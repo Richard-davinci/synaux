@@ -27,9 +27,15 @@ class SynauxCatalogSeeder extends Seeder
             ['Desarrollo web', 'Tienda online', 'tienda-online', 'Un catálogo con carrito y un proceso de compra adaptado a tu negocio.',
                 'Definimos la navegación de la tienda y configuramos el proceso de compra según tus productos y operaciones.',
                 ['Estructura del catálogo', 'Carrito y checkout', 'Configuración de medios de pago y envío']],
-            ['Diseño', 'Diseño UX/UI', 'diseno-ux-ui', 'Interfaces claras para sitios y productos digitales.',
+            ['UX/UI', 'Diseño UX/UI', 'diseno-ux-ui', 'Interfaces claras para sitios y productos digitales.',
                 'Diseñamos los flujos y las pantallas prioritarias de tu producto para que puedas evaluarlos antes del desarrollo.',
                 ['Flujos de navegación', 'Diseño de pantallas', 'Prototipo interactivo']],
+            ['UX/UI', 'Auditoría de usabilidad', 'auditoria-usabilidad', 'Una revisión de la experiencia para detectar qué dificulta el uso.',
+                'Evaluamos los recorridos principales de tu sitio o producto y priorizamos los problemas que afectan a sus usuarios.',
+                ['Revisión de tareas principales', 'Hallazgos con ejemplos', 'Recomendaciones priorizadas']],
+            ['UX/UI', 'Prototipo interactivo', 'prototipo-interactivo', 'Un prototipo navegable para validar una idea antes de desarrollarla.',
+                'Armamos un recorrido navegable con las pantallas necesarias para evaluar las interacciones principales.',
+                ['Definición del recorrido', 'Prototipo navegable', 'Revisión del flujo con el equipo']],
             ['Diseño', 'Piezas para redes sociales', 'piezas-redes-sociales', 'Recursos gráficos coherentes para comunicar en tus redes.',
                 'Adaptamos la identidad visual a los formatos que usás para comunicar en redes sociales.',
                 ['Dirección visual', 'Diseño de piezas acordadas', 'Exportaciones por formato']],
@@ -47,6 +53,13 @@ class SynauxCatalogSeeder extends Seeder
             DB::table('services')->insertOrIgnore(['slug' => $slug, 'name' => $name, 'service_category_id' => $categoryId, 'description' => $description,
                 'summary' => $summary, 'deliverables' => json_encode($includes), 'active' => 1, 'estimation_mode' => $slug === 'sitio-institucional' ? 'automatic' : 'manual']);
         }
+        // Actualiza instalaciones anteriores donde el servicio original estaba dentro de Diseño.
+        $previousCategory = DB::table('service_categories')->where('slug', 'diseno')->value('id');
+        $uxCategory = DB::table('service_categories')->where('slug', Str::slug('UX/UI'))->value('id');
+        DB::table('services')->where('slug', 'diseno-ux-ui')->where('service_category_id', $previousCategory)
+            ->update(['service_category_id' => $uxCategory]);
+
+
         $web = DB::table('services')->where('slug', 'sitio-institucional')->value('id');
         foreach ([['diseno', 'Diseño y arquitectura', true], ['seccion', 'Desarrollo de sección', false], ['contenido', 'Asistencia de contenidos', false], ['tienda', 'E-commerce', false]] as [$slug, $name, $default]) {
             DB::table('service_components')->insertOrIgnore(['service_id' => $web, 'slug' => $slug, 'name' => $name, 'description' => $name,

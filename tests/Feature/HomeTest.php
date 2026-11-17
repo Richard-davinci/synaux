@@ -34,7 +34,7 @@ class HomeTest extends TestCase
             );
     }
 
-    // Comprueba la pantalla del catálogo y las tres categorías del contenido inicial.
+    // Comprueba la pantalla del catálogo y las categorías del contenido inicial.
     public function test_platform_has_its_own_catalog_page_and_public_services(): void
     {
         $this->get('/plataforma')
@@ -43,11 +43,13 @@ class HomeTest extends TestCase
                 ->component('Catalog')
                 ->where('homeUrl', '/')
                 ->where('platformUrl', '/plataforma')
-                ->has('services', 9)
+                ->has('services', 11)
                 ->where('services.0.id', 'sitio-institucional')
                 ->where('services.1.category', 'Diseño')
                 ->where('services.2.category', 'Marketing')
-                ->where('services.8.id', 'estrategia-contenidos')
+                ->where('services.5.category', 'UX/UI')
+                ->where('services.6.id', 'auditoria-usabilidad')
+                ->where('services.7.id', 'prototipo-interactivo')
             );
     }
 
