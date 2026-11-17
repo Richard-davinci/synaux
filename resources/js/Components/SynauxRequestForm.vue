@@ -177,12 +177,14 @@ function save(publish) {
                         <h3>Servicios adicionales</h3>
                         <p>Agregá otros servicios que quieras incluir en la consulta.</p>
                         <div v-for="(item, index) in form.additional_services" :key="index" class="request-extra">
+                            <!-- Cada acción de quitar pertenece al encabezado del adicional que modifica. -->
+                            <div class="request-extra-heading"><h4>Adicional {{ index + 1 }}</h4><B variant="ghost" class="remove-extra" :aria-label="'Quitar servicio adicional ' + (index + 1)" @click="form.additional_services.splice(index, 1)"><I name="close" />Quitar</B></div>
                             <F v-model="item.service_id" :label="'Servicio adicional ' + (index + 1)" type="select" :options="extraOptions(index)" required :error="form.errors['additional_services.' + index + '.service_id']" />
                             <F v-model="item.quantity" label="Cantidad" type="number" min="1" max="1000" step="1" required :error="form.errors['additional_services.' + index + '.quantity']" />
                             <F v-model="item.notes" label="Qué necesitás de este servicio" type="textarea" maxlength="2000" :error="form.errors['additional_services.' + index + '.notes']" />
-                            <B variant="ghost" @click="form.additional_services.splice(index, 1)">Quitar servicio</B>
                         </div>
-                        <B variant="secondary" :disabled="form.additional_services.length >= Math.min(extras.length, 20)" @click="addService">Agregar servicio</B>
+                        <!-- Agregar es una acción de la lista; queda separada del avance al siguiente paso. -->
+                        <div class="request-add-row"><B variant="secondary" :disabled="form.additional_services.length >= Math.min(extras.length, 20)" @click="addService"><I name="plus" />Agregar servicio</B></div>
                     </template>
                     <template v-else-if="step === 2">
                         <F v-model="form.title" label="Título del proyecto" placeholder="Ej.: Renovación web para mi estudio" minlength="5" maxlength="255" required :error="form.errors.title" />
@@ -266,7 +268,17 @@ function save(publish) {
 .request-steps button:disabled { color: #446075; cursor: default; }
 .request-summary { position: sticky; top: 1.5rem; }
 .request-summary ul { padding-left: 1.25rem; margin-bottom: 1rem; }
-.request-extra, .summary-extra { border-top: 1px solid rgb(31 111 127 / 18%); padding-top: 1rem; margin-top: 1rem; }
+.summary-extra { border-top: 1px solid rgb(31 111 127 / 18%); padding-top: 1rem; margin-top: 1rem; }
+/* El adicional agrupa sus campos y su acción local; agregar ocupa una fila independiente antes de continuar. */
+.request-extra { padding: 20px; margin-top: 20px; border: 1px solid #1f6f7f33; border-radius: 12px; background: #f5f9fa; }
+.request-extra-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+.request-extra-heading h4 { margin: 0; font-size: 1rem; font-weight: 700; }
+.request-extra-heading :deep(.remove-extra) { min-height: 40px; padding: 8px 10px; box-shadow: none; }
+.request-extra-heading :deep(.icon), .request-add-row :deep(.icon) { width: 18px; height: 18px; margin-right: 8px; flex: 0 0 auto; }
+.request-add-row { margin: 20px 0 28px; }
+.request-add-row :deep(.btn) { width: 100%; border-style: dashed; box-shadow: none; }
+.request-extra :deep(.field:last-child) { margin-bottom: 0; }
+@media (max-width: 600px) { .request-extra { padding: 16px; } }
 .draft-action { margin-top: 1rem; }
 .summary-note { color: #446075; margin-top: 1.25rem; }
 @media (max-width: 900px) { .request-wizard { grid-template-columns: minmax(0, 1fr); } .request-summary { position: static; } }
