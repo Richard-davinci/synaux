@@ -160,6 +160,17 @@ class SynauxReferenceController extends Controller
             $data['profile'] = [...$data['profile'], 'brand_name' => 'Synaux'];
         }
 
+        // El seguimiento de ejemplo ilustra avances conservados sin escribir proyectos reales.
+        $tracking = [
+            ['id' => 2, 'status' => 'in_progress', 'progress' => 60, 'notes' => 'Diseño aprobado. Avanzamos en desarrollo y carga de contenidos.', 'next_steps' => 'El cliente revisará los contenidos de las secciones.', 'created_at' => '2025-06-18', 'start_date' => '2025-06-12', 'end_date' => null],
+            ['id' => 1, 'status' => 'in_progress', 'progress' => 25, 'notes' => 'Arquitectura y primeras pantallas preparadas.', 'next_steps' => 'Revisar la propuesta de diseño.', 'created_at' => '2025-06-14', 'start_date' => '2025-06-12', 'end_date' => null],
+        ];
+        $data['projects'][0] = [...$project, 'title' => $quote['title'], 'notes' => $tracking[0]['notes'], 'next_steps' => $tracking[0]['next_steps'], 'updates' => $tracking];
+        if ($data['screen'] === 'proyecto') {
+            $data['selected'] = $data['projects'][0];
+            $data['quotes'][0] = [...$quote, 'status' => 'accepted', 'display_status' => 'accepted'];
+        }
+
         // El recorrido de solicitud pertenece a la primera etapa y usa una estimación de ejemplo aislada.
         if (in_array($screen, ['publicar', 'publicar-revision'], true)) {
             $data['selectedEstimate'] = $estimate;

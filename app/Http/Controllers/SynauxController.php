@@ -335,18 +335,42 @@ class SynauxController extends Controller
         return redirect($id ? '/proyectos/'.$id : '/cliente/presupuestos')->with('notice', $id ? 'Presupuesto aceptado y proyecto creado.' : 'Presupuesto rechazado.');
     }
 
-    // Valida el avance, fechas y notas; solo el emisor o un administrador puede cambiarlos.
+    // Cada avance se valida y conserva en una transacción; el cliente solo puede consultarlo.
     private function updateProject(Request $request)
     {
-        $d = $request->validate(['id' => 'required|integer', 'status' => ['required', Rule::in(['pending', 'in_progress', 'completed', 'cancelled'])],
-            'progress' => 'required|integer|min:0|max:100', 'start_date' => 'nullable|date', 'end_date' => 'nullable|date|after_or_equal:start_date', 'notes' => 'nullable|string|max:10000']);
-        $project = DB::table('projects')->where('id', $d['id'])->firstOrFail();
-        $quotes = $this->workspace->quotes($request->user()->id, (bool) $request->user()->is_admin);
-        $version = collect($quotes)->firstWhere('id', $project->accepted_budget_version_id);
-        abort_unless($version && ($request->user()->is_admin || $version['issuer_id'] === $request->user()->id), 403);
-        $id = $d['id'];
-        unset($d['id']);
-        DB::table('projects')->where('id', $id)->update([...$d, 'updated_at' => now()]);
+        $d = $request->validate([
+            'id' => 'required|integer', 'status' => ['required', Rule::in(['pending', 'in_progress', 'completed', 'cancelled'])],
+            'progress' => 'required|integer|min:0|max:100',
+            'start_date' => 'nullable|required_with:end_date|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'notes' => 'nullable|string|max:10000', 'next_steps' => 'nullable|string|max:5000',
+        ]);
+        DB::transaction(function () use ($request, $d) {
+            $project = DB::table('projects')->where('id', $d['id'])->lockForUpdate()->firstOrFail();
+            $quotes = $this->workspace->quotes($request->user()->id, (bool) $request->user()->is_admin);
+            $version = collect($quotes)->firstWhere('id', $project->accepted_budget_version_id);
+            abort_unless($version && ($request->user()->is_admin || $version['issuer_id'] === $request->user()->id), 403);
+            // Estado y porcentaje deben comunicar el mismo avance.
+            if (($d['status'] === 'completed' && (int) $d['progress'] !== 100)
+                || ($d['status'] === 'pending' && (int) $d['progress'] !== 0)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'progress' => 'Usá 0% para pendiente y 100% para un proyecto completado.',
+                ]);
+            }
+            $values = [
+                'start_date' => $project->start_date, 'end_date' => $project->end_date,
+                'notes' => $project->notes, 'next_steps' => $project->next_steps,
+                ...collect($d)->except('id')->all(),
+            ];
+            // Reenviar los mismos datos no duplica el historial.
+            $changed = collect($values)->contains(fn ($value, $key) => (string) $value !== (string) $project->$key);
+            if ($changed) {
+                DB::table('projects')->where('id', $project->id)->update([...$values, 'updated_at' => now()]);
+                DB::table('project_updates')->insert([
+                    ...$values, 'project_id' => $project->id, 'user_id' => $request->user()->id, 'created_at' => now(),
+                ]);
+            }
+        });
 
         return back()->with('notice', 'Avance del proyecto actualizado.');
     }

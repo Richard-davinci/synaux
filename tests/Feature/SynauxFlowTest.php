@@ -502,5 +502,30 @@ class SynauxFlowTest extends TestCase
         $this->post('/acciones/proyecto', $data)->assertForbidden();
         $this->actingAs($issuer)->post('/acciones/proyecto', $data)->assertSessionHasNoErrors()->assertRedirect();
         $this->assertDatabaseHas('projects', ['id' => $project, 'progress' => 60, 'status' => 'in_progress']);
+        $this->assertDatabaseCount('project_updates', 1);
+        $this->post('/acciones/proyecto', $data)->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('project_updates', 1);
+        $this->post('/acciones/proyecto', [...$data, 'status' => 'completed'])->assertSessionHasErrors('progress');
+        $this->assertDatabaseCount('project_updates', 1);
+        $next = [...$data, 'progress' => 80, 'notes' => 'Desarrollo terminado, falta revisión.', 'next_steps' => 'Revisar el sitio con el cliente.'];
+        $this->post('/acciones/proyecto', $next)->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('project_updates', 2);
+        $this->actingAs($client)->get('/proyectos/'.$project)->assertInertia(fn (Assert $page) => $page
+            ->where('selected.next_steps', $next['next_steps'])
+            ->has('selected.updates', 2)->where('selected.updates.0.progress', 80)
+            ->where('selected.updates.1.notes', $data['notes'])->missing('selected.updates.0.user_id'));
+        $this->actingAs($this->account())->get('/proyectos/'.$project)->assertNotFound();
+        $this->post('/acciones/proyecto', $next)->assertForbidden();
+        $this->assertDatabaseCount('project_updates', 2);
+        $this->actingAs($issuer)->post('/acciones/proyecto', [...$next, 'start_date' => null, 'end_date' => today()->toDateString()])
+            ->assertSessionHasErrors('start_date');
+        $this->post('/acciones/proyecto', [...$next, 'status' => 'completed', 'progress' => 100,
+            'start_date' => today()->toDateString(), 'end_date' => today()->toDateString(),
+            'notes' => 'Entrega final realizada.', 'next_steps' => '',
+        ])->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('projects', ['id' => $project, 'status' => 'completed', 'progress' => 100, 'next_steps' => null]);
+        $this->assertDatabaseCount('project_updates', 3);
+        $this->assertDatabaseHas('project_updates', ['project_id' => $project, 'progress' => 80, 'next_steps' => $next['next_steps']]);
+
     }
 }
