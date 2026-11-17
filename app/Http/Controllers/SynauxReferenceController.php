@@ -138,6 +138,14 @@ class SynauxReferenceController extends Controller
             };
         }
 
+        // Los datos de contacto de Gestión son ficticios y nunca se guardan en cuentas reales.
+        if (in_array($screen, ['editor-presupuesto', 'g-solicitudes'], true)) {
+            $data['requests'][0]['contact'] = ['name' => 'Cliente de ejemplo', 'email' => 'cliente@example.test', 'company' => 'Estudio Norte'];
+        }
+        if ($screen === 'editor-presupuesto') {
+            $data['profile'] = [...$data['profile'], 'brand_name' => 'Synaux'];
+        }
+
         // El recorrido de solicitud pertenece a la primera etapa y usa una estimación de ejemplo aislada.
         if (in_array($screen, ['publicar', 'publicar-revision'], true)) {
             $data['selectedEstimate'] = $estimate;

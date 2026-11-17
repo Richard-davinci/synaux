@@ -369,6 +369,21 @@ class SynauxFlowTest extends TestCase
         $this->assertDatabaseCount('budget_versions', 1);
     }
 
+    // El contacto heredado solo se entrega al dueño o Gestión; nunca se incorpora al muro público.
+    public function test_legacy_request_contact_is_available_to_management_and_stays_private(): void
+    {
+        $client = $this->account();
+        $manager = $this->account(true);
+        $id = $this->projectRequest($client, 'public');
+        DB::table('project_requests')->where('id', $id)->update(['contact_snapshot' => null]);
+        $this->actingAs($manager)->get('/editor/presupuesto?solicitud='.$id)->assertInertia(fn (Assert $page) => $page
+            ->where('budgetRequests.0.contact.name', $client->name)
+            ->where('budgetRequests.0.contact.email', $client->email));
+        $this->get('/oportunidades')->assertInertia(fn (Assert $page) => $page
+            ->missing('opportunities.0.contact')->missing('opportunities.0.contact_email'));
+        $this->actingAs($this->account())->get('/solicitudes/'.$id)->assertNotFound();
+    }
+
     public function test_public_wall_does_not_include_private_answers_or_owner_contacts(): void
     {
         $owner = $this->account();
