@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import BrandLogo from '../Components/BrandLogo.vue';
 import AccountMenu from '../Components/AccountMenu.vue';
+import SynauxNotifications from '../Components/SynauxNotifications.vue';
 // El navbar usa el PNG horizontal a color sin eslogan de Recursos finales.
 import navbarLogo from '../../images/brand/synaux-horizontal-sin-slogan-color.png';
 import SynauxButton from '../Components/SynauxButton.vue';
@@ -39,9 +40,8 @@ const nav = computed(() => allNav.value.filter(([, href]) =>
                 <AccountMenu v-if="$page.props.auth && !$page.props.preview" />
             </nav>
         </header>
-        <!-- El aviso de resultado y los errores de servidor son visibles también para lectores de pantalla. -->
-        <div v-if="$page.props.notice || demoNotice" class="shell notice" role="status"><p>{{ demoNotice || $page.props.notice }}</p><button v-if="demoNotice" @click="demoNotice = ''" aria-label="Cerrar aviso">×</button></div>
-        <div v-if="Object.keys($page.props.errors ?? {}).length" class="shell notice error-summary" role="alert"><div><strong>Revisá los datos antes de continuar.</strong><p v-for="(error, key) in $page.props.errors" :key="key">{{ error }}</p></div></div>
+        <!-- El componente compartido anuncia resultados y errores sin perderse al desplazar la página. -->
+        <SynauxNotifications :message="demoNotice || $page.props.notice" :errors="$page.props.errors" :page-key="$page.url" @close-message="demoNotice = ''" />
         <v-main id="contenido" tabindex="-1"><slot /></v-main>
         <!-- La firma de cierre mantiene el fondo blanco del diseño y el original a color con eslogan. -->
         <!-- El pie de la landing aplica la guía de marca sobre el diseño compartido. -->
