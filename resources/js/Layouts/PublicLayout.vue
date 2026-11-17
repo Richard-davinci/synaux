@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import BrandLogo from '../Components/BrandLogo.vue';
+import AccountMenu from '../Components/AccountMenu.vue';
 // El navbar usa el PNG horizontal a color sin eslogan de Recursos finales.
 import navbarLogo from '../../images/brand/synaux-horizontal-sin-slogan-color.png';
 import SynauxButton from '../Components/SynauxButton.vue';
@@ -29,13 +30,13 @@ const nav = computed(() => allNav.value.filter(([, href]) =>
     <v-app class="synaux-app">
         <!-- En la referencia se puede revisar cada estado sin modificar registros ni conceder permisos. -->
         <div v-if="$page.props.preview" class="reference-bar"><div class="shell"><span>Prototipo · Datos de ejemplo</span><label>Ver pantalla<select :value="$page.props.referenceKey" aria-label="Pantalla del prototipo" @change="$inertia.get(`/prototipo/${$event.target.value}`)"><option v-for="item in $page.props.referenceScreens" :key="item.key" :value="item.key">{{ item.name }}</option></select></label><a href="/plataforma">Abrir aplicación</a></div></div>
-        <div v-else-if="$page.props.auth" class="account-bar"><div class="shell"><span>{{ $page.props.auth.name }}</span><nav aria-label="Áreas de mi cuenta"><a href="/cliente">Cliente</a><a v-if="$page.props.auth.is_admin" href="/gestion">Gestión</a><a href="/plataforma">Sitio público</a><button @click="$inertia.post('/salir')">Salir</button></nav></div></div>
         <a class="skip-link" href="#contenido">Saltar al contenido</a>
         <!-- Las dimensiones nativas del PNG reservan el espacio del logo en el encabezado. -->
         <header class="header"><a :href="referenceHref(landing ? '/' : '/plataforma', $page.props)" class="logo-button" aria-label="Synaux: inicio"><img :src="navbarLogo" class="brand-logo" width="2000" height="423" alt="Synaux"></a><button class="mobile-toggle" :aria-expanded="mobile" aria-label="Abrir navegación" @click="mobile = !mobile">☰</button>
             <nav :class="['main-nav', { 'mobile-open': mobile }]" aria-label="Navegación principal">
                 <template v-if="landing"><a href="#que-es-synaux">La propuesta</a><a href="#como-funciona">Cómo funciona</a><SynauxButton href="/plataforma">Entrar a Synaux</SynauxButton></template>
-                <template v-else><a v-for="[label, href] in nav" :key="href" :href="referenceHref(href, $page.props)" :aria-current="$page.url.split('?')[0] === href ? 'page' : undefined">{{ label }}</a><div v-if="area === 'public'" class="nav-actions"><template v-if="!$page.props.auth"><SynauxButton href="/ingresar" variant="ghost">Ingresar</SynauxButton><SynauxButton href="/crear-cuenta">Crear cuenta</SynauxButton></template><SynauxButton v-else href="/cliente">Mi cuenta</SynauxButton></div></template>
+                <template v-else><a v-for="[label, href] in nav" :key="href" :href="referenceHref(href, $page.props)" :aria-current="$page.url.split('?')[0] === href ? 'page' : undefined">{{ label }}</a><div v-if="area === 'public'" class="nav-actions"><template v-if="!$page.props.auth"><SynauxButton href="/ingresar" variant="ghost">Ingresar</SynauxButton><SynauxButton href="/crear-cuenta">Crear cuenta</SynauxButton></template></div></template>
+                <AccountMenu v-if="$page.props.auth && !$page.props.preview" />
             </nav>
         </header>
         <!-- El aviso de resultado y los errores de servidor son visibles también para lectores de pantalla. -->
