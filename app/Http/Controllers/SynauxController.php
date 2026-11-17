@@ -204,7 +204,10 @@ class SynauxController extends Controller
         $chosen = $profile ? DB::table('proposals')->where('professional_profile_id', $profile->id)->where('status', 'accepted')->pluck('project_request_id')->all() : [];
         $budgetRequests = $management ? $this->workspace->requests($id, true) : ($chosen ? $this->workspace->requests(null, true, only: $chosen) : []);
 
-        return ['area' => $management ? 'gestion' : 'cliente', 'services' => $this->catalog->services($management), 'requests' => $this->workspace->requests($id, $management),
+        // Los formularios reciben solo el contacto y la identidad de emisión de su propia cuenta.
+        return ['accountContact' => $request->user()->contactDetails(),
+            'issuerDetails' => $request->user()->issuerDetails($profile?->brand_name),
+            'area' => $management ? 'gestion' : 'cliente', 'services' => $this->catalog->services($management), 'requests' => $this->workspace->requests($id, $management),
             'references' => $this->catalog->references(), 'budgetRequests' => $budgetRequests,
             'quotes' => $quotes, 'projects' => $this->workspace->projects($quotes),
             'proposals' => $this->workspace->proposals($id, $management), 'invitations' => $this->workspace->invitations($id, $management),

@@ -32,7 +32,7 @@ const requestOptions = computed(() => requests.value.filter(item =>
     (item.status === 'open' && item.user_id !== props.data.auth?.id) || item.id == selected.request_id
 ).map(item => ({ value: item.id, label: 'SOL-' + item.id + ' · ' + item.title })));
 const client = computed(() => source.value?.contact ?? selected.client);
-const issuer = computed(() => ({
+const issuer = computed(() => props.data.issuerDetails ?? ({
     name: props.data.profile?.brand_name ?? selected.issuer?.name ?? 'Synaux',
     contact: props.data.auth?.name ?? selected.issuer?.contact,
     email: props.data.auth?.email ?? selected.issuer?.email,
@@ -92,7 +92,7 @@ function save(send) {
         <div class="budget-heading"><p class="eyebrow">Gestión · Presupuesto formal</p><h1>{{ selected.budget_id ? 'Prepará la próxima versión' : 'Prepará el presupuesto' }}</h1><p>Revisá el pedido del cliente, definí los servicios y comprobá el documento antes de enviarlo.</p><p v-if="selected.budget_id" class="editor-note">Los documentos enviados se conservan. {{ selected.status === 'draft' ? 'Estás editando el borrador de la versión' : 'Se guardará una nueva versión:' }} {{ version }}.</p></div>
         <ol class="budget-steps" aria-label="Pasos para preparar presupuesto"><li v-for="(label, index) in labels" :key="label"><button type="button" :disabled="index + 1 > step || quote.processing" :aria-current="step === index + 1 ? 'step' : undefined" @click="step = index + 1">{{ index + 1 }}. {{ label }}</button></li></ol>
         <div v-if="Object.keys(quote.errors).length" class="notice" role="alert"><div><strong>Revisá los datos del presupuesto</strong><ul><li v-for="(error, field) in quote.errors" :key="field">{{ error }}</li></ul></div></div>
-        <div v-if="needsIssuer" class="editor-note" role="status"><p>Completá los datos del emisor antes de guardar o enviar el presupuesto.</p><B href="/profesional/perfil" variant="secondary">Completar datos del emisor</B></div>
+        <div v-if="needsIssuer" class="editor-note" role="status"><p>Completá los datos del emisor antes de guardar o enviar el presupuesto.</p><B href="/mi-perfil#emision" variant="secondary">Completar datos del emisor</B></div>
 
         <!-- El formulario valida el paso visible y conserva los datos al volver a editar. -->
         <form class="budget-editor-grid" @submit.prevent="advance">

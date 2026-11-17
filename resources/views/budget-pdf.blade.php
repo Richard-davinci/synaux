@@ -44,7 +44,9 @@ table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 <table class="parties"><tr>
 <td><h3>Cliente</h3><p>{{ $client['company'] ?? $client['name'] ?? 'Cliente de la solicitud' }}</p>@if(!empty($client['company']))<p>{{ $client['name'] ?? '' }}</p>@endif
 @foreach(['email','phone','address'] as $field) @if(!empty($client[$field]))<p>{{ $client[$field] }}</p>@endif @endforeach</td>
-<td><h3>Emisor</h3><p>{{ $issuer['name'] ?? 'Synaux' }}</p><p>{{ $issuer['contact'] ?? '' }}</p><p>{{ $issuer['email'] ?? '' }}</p></td>
+<td><h3>Emisor</h3><p>{{ $issuer['name'] ?? 'Synaux' }}</p><p>{{ $issuer['contact'] ?? '' }}</p><p>{{ $issuer['email'] ?? '' }}</p>
+{{-- La identidad de emisión corresponde a la instantánea guardada con esta versión. --}}
+@foreach(['phone','address'] as $field) @if(!empty($issuer[$field]))<p>{{ $issuer[$field] }}</p>@endif @endforeach</td>
 </tr></table>
 <h2>Detalle de servicios</h2>
 <table class="items"><thead><tr><th style="width:46%">Concepto y alcance</th><th style="width:10%">Cant.</th><th style="width:22%">Precio unitario</th><th style="width:22%">Subtotal</th></tr></thead><tbody>

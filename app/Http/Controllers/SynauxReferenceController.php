@@ -176,6 +176,19 @@ class SynauxReferenceController extends Controller
             $data['selectedEstimate'] = $estimate;
         }
 
+        // Las dos vistas de cuenta usan datos ficticios y sus formularios no escriben en rutas reales.
+        if (in_array($screen, ['cuenta-cliente', 'cuenta-admin'], true)) {
+            $isAdmin = $screen === 'cuenta-admin';
+            $data['profile'] = [
+                'name' => 'Cuenta de ejemplo', 'email' => 'cuenta@example.test', 'phone' => '1100000000',
+                'company' => 'Estudio de ejemplo', 'address' => 'Dirección de ejemplo',
+                'is_admin' => $isAdmin, 'created_at' => '2026-11-17',
+            ];
+            $data['issuer'] = $isAdmin ? ['name' => 'Synaux', 'email' => 'presupuestos@example.test', 'phone' => '1100000000', 'address' => 'Dirección del estudio'] : null;
+            $data['area'] = $isAdmin ? 'gestion' : 'cliente';
+            return Inertia::render('AccountProfile', $data);
+        }
+
         return Inertia::render($screen === 'inicio' ? 'Home' : ($data['screen'] === 'servicios' ? 'Catalog' : 'Workspace'), $data);
     }
 }

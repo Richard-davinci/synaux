@@ -338,5 +338,15 @@
     "key": "presupuesto-rechazado",
     "name": "2.21 · Presupuesto · Rechazado [presupuesto-rechazado]",
     "node": null
+  },
+  {
+    "key": "cuenta-cliente",
+    "name": "2.22 · Cliente · Mi perfil [cuenta-cliente]",
+    "node": null
+  },
+  {
+    "key": "cuenta-admin",
+    "name": "4.14 · Administración · Mi perfil [cuenta-admin]",
+    "node": null
   }
 ]

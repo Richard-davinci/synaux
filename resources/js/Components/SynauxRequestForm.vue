@@ -15,6 +15,8 @@ const estimate = props.data.selectedEstimate ?? props.data.estimates?.find(item 
 const step = ref(props.data.referenceKey === 'publicar-revision' ? 4 : 1);
 const labels = ['Servicio', 'Tu proyecto', 'Contacto', 'Revisión'];
 const submit = useSubmit();
+// Un borrador conserva su instantánea, incluso si luego cambia el contacto de la cuenta.
+const contact = old?.contact ?? props.data.accountContact ?? page.props.auth ?? {};
 const form = useForm({
     id: old?.id ?? null,
     estimate_id: estimate?.id ?? old?.estimate_id ?? null,
@@ -27,11 +29,11 @@ const form = useForm({
     budget_reference: old?.budget_reference ?? '',
     desired_deadline: old?.desired_deadline ?? '',
     contact: {
-        name: old?.contact?.name ?? page.props.auth?.name ?? '',
-        email: old?.contact?.email ?? page.props.auth?.email ?? '',
-        company: old?.contact?.company ?? '',
-        phone: old?.contact?.phone ?? '',
-        address: old?.contact?.address ?? '',
+        name: contact.name ?? '',
+        email: contact.email ?? '',
+        company: contact.company ?? '',
+        phone: contact.phone ?? '',
+        address: contact.address ?? '',
     },
     additional_services: (old?.additional_services ?? []).map(item => ({
         service_id: item.service_id, quantity: item.quantity, notes: item.notes ?? '',

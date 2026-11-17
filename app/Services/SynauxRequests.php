@@ -46,7 +46,7 @@ class SynauxRequests
             }
             $owner = DB::table('users')->where('id', $userId)->firstOrFail();
             $contact = $d['contact'] ?? json_decode($existing?->contact_snapshot ?? 'null', true)
-                ?? ['name' => $owner->name, 'email' => $owner->email];
+                ?? ['name' => $owner->name, 'email' => $owner->email, 'phone' => $owner->phone, 'company' => $owner->company, 'address' => $owner->address];
             $values = ['user_id' => $userId, 'service_id' => $d['service_id'], 'estimate_id' => $estimate?->id ?? $existing?->estimate_id,
                 'title' => $d['title'], 'description' => $d['description'], 'visibility' => $d['visibility'], 'category' => $d['category'] ?? null,
                 'contact_snapshot' => json_encode($contact), 'requested_services' => json_encode($additional),

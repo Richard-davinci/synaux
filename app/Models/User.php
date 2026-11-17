@@ -34,6 +34,24 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    // El contacto propio se reutiliza al iniciar un pedido, sin modificar pedidos ya guardados.
+    public function contactDetails(): array
+    {
+        return $this->only('name', 'email', 'phone', 'company', 'address');
+    }
+
+    // La identidad de emisión administrativa se separa del correo usado para ingresar.
+    public function issuerDetails(?string $brand = null): array
+    {
+        return [
+            'name' => ($this->is_admin ? $this->issuer_name : null) ?: ($brand ?: 'Synaux'),
+            'contact' => $this->name,
+            'email' => ($this->is_admin ? $this->issuer_email : null) ?: $this->email,
+            'phone' => $this->is_admin ? $this->issuer_phone : null,
+            'address' => $this->is_admin ? $this->issuer_address : null,
+        ];
+    }
+
     /**
      * Get the attributes that should be cast.
      *

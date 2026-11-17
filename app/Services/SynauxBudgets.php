@@ -35,7 +35,7 @@ class SynauxBudgets
             }
             if (! $profile) {
                 // El gestor de Synaux puede completar su perfil de emisión desde el área profesional.
-                throw ValidationException::withMessages(['request_id' => 'Completá primero tu perfil profesional para identificar al emisor.']);
+                throw ValidationException::withMessages(['request_id' => 'Completá los datos de emisión en Mi perfil para identificar al emisor.']);
             }
             if (! empty($data['budget_id'])) {
                 $budget = DB::table('budgets')->where('id', $data['budget_id'])->lockForUpdate()->firstOrFail();
@@ -54,7 +54,7 @@ class SynauxBudgets
             // El documento conserva las partes de esta versión aunque después cambien los perfiles.
             $owner = DB::table('users')->where('id', $record->user_id)->firstOrFail();
             $client = json_decode($record->contact_snapshot ?? 'null', true) ?? ['name' => $owner->name, 'email' => $owner->email];
-            $issuer = ['name' => $profile->brand_name, 'contact' => $request->user()->name, 'email' => $request->user()->email];
+            $issuer = $request->user()->issuerDetails($profile->brand_name);
             $attributes = ['title' => $data['title'], 'currency_code' => $data['currency_code'], 'tax_rate' => $data['tax_rate'],
                 'valid_until' => $data['valid_until'], 'terms' => $data['terms'], 'estimated_delivery_days' => $data['estimated_delivery_days'],
                 'client_snapshot' => json_encode($client), 'issuer_snapshot' => json_encode($issuer),

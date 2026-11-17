@@ -48,6 +48,8 @@ Route::middleware('auth')->group(function () {
     // Las rutas de perfil siempre operan sobre la cuenta autenticada.
     Route::get('/mi-perfil', [SynauxAccountController::class, 'edit']);
     Route::patch('/mi-perfil', [SynauxAccountController::class, 'update'])->middleware('throttle:10,1');
+    Route::put('/mi-perfil/clave', [SynauxAccountController::class, 'updatePassword'])->middleware('throttle:6,1');
+    Route::patch('/mi-perfil/emision', [SynauxAccountController::class, 'updateIssuer'])->middleware('throttle:10,1');
     Route::post('/salir', [SynauxAuthController::class, 'logout']);
     foreach (['cliente', 'profesional'] as $area) {
         Route::get('/'.$area.'/{section?}', fn (Request $r, SynauxController $c, string $section = '') => $c->area($r, $area, $section));
