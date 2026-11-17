@@ -3,21 +3,22 @@ import { Head } from '@inertiajs/vue3';
 import PublicLayout from '../Layouts/PublicLayout.vue';
 import BrandLogo from '../Components/BrandLogo.vue';
 import B from '../Components/SynauxButton.vue';
+import I from '../Components/SynauxIcon.vue';
 import '../../css/workspace.css';
 import '../../css/workspace-overrides.css';
 
 // Estas áreas presentan la oferta inicial. El catálogo muestra los servicios disponibles.
 const areas = [
-    { title: 'Desarrollo web', text: 'Sitios institucionales para presentar tu organización y orientar a quienes la visitan.' },
-    { title: 'Identidad visual', text: 'Un sistema visual coherente para una marca nueva o en evolución.' },
-    { title: 'Campañas digitales', text: 'Estrategia, piezas y seguimiento para una campaña con objetivos concretos.' },
+    { icon: 'web', title: 'Desarrollo web', text: 'Sitios institucionales para presentar tu organización y orientar a quienes la visitan.' },
+    { icon: 'palette', title: 'Identidad visual', text: 'Un sistema visual coherente para una marca nueva o en evolución.' },
+    { icon: 'megaphone', title: 'Campañas digitales', text: 'Estrategia, piezas y seguimiento para una campaña con objetivos concretos.' },
 ];
 
 // El recorrido distingue la estimación orientativa de la propuesta formal.
 const steps = [
-    { title: 'Elegí por dónde empezar', text: 'Explorá el catálogo y descubrí qué servicio se ajusta a tu idea.' },
-    { title: 'Definí el alcance', text: 'Usá el estimador para orientar tu consulta y contanos qué necesitás.' },
-    { title: 'Acordá los próximos pasos', text: 'Revisá los entregables y las condiciones de la propuesta antes de avanzar.' },
+    { icon: 'folder', title: 'Elegí por dónde empezar', text: 'Explorá el catálogo y descubrí qué servicio se ajusta a tu idea.' },
+    { icon: 'edit', title: 'Definí el alcance', text: 'Usá el estimador para orientar tu consulta y contanos qué necesitás.' },
+    { icon: 'check', title: 'Acordá los próximos pasos', text: 'Revisá los entregables y las condiciones de la propuesta antes de avanzar.' },
 ];
 </script>
 
@@ -38,9 +39,7 @@ const steps = [
                     <a href="#como-funciona">Cómo funciona</a>
                 </div>
             </div>
-            <div class="landing-brand">
-                <BrandLogo />
-            </div>
+            <figure class="landing-brand"><img class="landing-photo" src="/images/landing/colaboracion.webp" alt="Dos personas revisando un proyecto digital en una mesa de trabajo." width="1200" height="800" fetchpriority="high"><div class="landing-logo-panel"><BrandLogo /></div></figure>
         </section>
 
         <!-- Las áreas orientan la lectura y comparten un acceso al catálogo vigente. -->
@@ -52,7 +51,7 @@ const steps = [
                 </div>
                 <div class="landing-service-grid">
                     <article v-for="area in areas" :key="area.title">
-                        <h3>{{ area.title }}</h3>
+                        <I :name="area.icon" class="landing-service-icon" /><h3>{{ area.title }}</h3>
                         <p>{{ area.text }}</p>
                     </article>
                 </div>
@@ -65,10 +64,11 @@ const steps = [
                 <h2 id="process-title">De la idea a la propuesta</h2>
                 <p class="landing-lead">Si ya tenés un servicio en mente, podés empezar con una estimación orientativa.</p>
                 <B href="/estimador" arrow>Usar el estimador</B>
+                <img class="landing-process-photo" src="/images/landing/planificacion.webp" alt="Bocetos de una página web junto a una computadora." width="1200" height="800" loading="lazy" decoding="async">
             </div>
             <ol class="landing-steps">
                 <li v-for="step in steps" :key="step.title">
-                    <h3>{{ step.title }}</h3>
+                    <h3><I :name="step.icon" />{{ step.title }}</h3>
                     <p>{{ step.text }}</p>
                 </li>
             </ol>
@@ -151,22 +151,15 @@ const steps = [
     text-underline-offset: .25em;
 }
 
-.landing-brand {
-    display: grid;
-    min-height: 23rem;
-    place-items: center;
-    padding: 1.25rem;
-    border: 1px solid rgb(31 111 127 / 18%);
-    border-radius: 2rem;
-    background: radial-gradient(ellipse at 70% 10%, rgb(45 179 163 / 15%), transparent 65%), #f5f9fa;
-}
-
-.landing-brand :deep(.brand-logo) {
-    display: block;
-    width: min(360px, 100%);
-    height: auto;
-}
-
+/* Las fotografías acompañan el trabajo digital y el logo se presenta sobre su propia superficie clara. */
+.landing-brand { margin: 0; overflow: hidden; border: 1px solid rgb(31 111 127 / 18%); border-radius: 2rem; background: #fff; }
+.landing-photo { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; }
+.landing-logo-panel { display: grid; place-items: center; padding: 1.5rem; }
+.landing-brand :deep(.brand-logo) { display: block; width: min(360px,100%); height: auto; }
+.landing-process-photo { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; margin-top: 1.75rem; border-radius: 1.25rem; }
+.landing-service-icon { width: 2rem; height: 2rem; color: #1f6f7f; margin-bottom: 1rem; }
+.landing-steps h3 { display: flex; align-items: center; gap: .75rem; }
+.landing-steps h3 :deep(.icon) { flex-shrink: 0; color: #1f6f7f; }
 /* El fondo suave distingue el catálogo y las tarjetas conservan una jerarquía común. */
 .landing-services {
     background: #f5f9fa;
@@ -260,7 +253,6 @@ const steps = [
 
     .landing-brand {
         min-height: 0;
-        padding: 1.5rem 1rem;
     }
 }
 </style>
