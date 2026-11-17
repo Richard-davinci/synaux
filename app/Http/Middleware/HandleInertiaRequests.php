@@ -20,7 +20,7 @@ class HandleInertiaRequests extends Middleware
             ? DB::table('professional_profiles')->where('user_id', $user->id)->exists() : false;
 
         return [...parent::share($request), 'appName' => 'Synaux',
-            'homeUrl' => '/', 'platformUrl' => '/plataforma', 'year' => (int) date('Y'),
+            'stageTwo' => (bool) (config('synaux.stage_two_enabled') || $user?->is_admin), 'homeUrl' => '/', 'platformUrl' => '/plataforma', 'year' => (int) date('Y'),
             'auth' => $user ? ['id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'is_admin' => (bool) $user->is_admin, 'professional' => $professional] : null,
             'notice' => fn () => $request->session()->get('notice'),
         ];

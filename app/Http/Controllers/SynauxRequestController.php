@@ -28,6 +28,11 @@ class SynauxRequestController extends Controller
             'publish' => 'required|boolean',
         ]);
 
+        // La publicación en el muro pertenece al marketplace y requiere acceso a la segunda etapa.
+        if ($data['visibility'] === 'public' && ! config('synaux.stage_two_enabled') && ! $request->user()->is_admin) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['visibility' => 'En esta etapa las solicitudes se envían de forma privada a Synaux.']);
+        }
+
         // Las habilidades llegan separadas por comas y se guardan sin espacios externos ni duplicados.
         $data['skills'] = array_values(array_unique(array_filter(array_map('trim', explode(',', $data['skills'] ?? '')))));
         $id = $this->requests->save($request->user()->id, $data);

@@ -60,6 +60,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/acciones/{action}', [SynauxController::class, 'action'])->middleware('throttle:60,1');
     // Gestión y Administración comparten autorización de área, además de la autenticación del grupo exterior.
     Route::middleware('synaux.management')->group(function () {
+        // Entrada administrativa de revisión para las funciones de la segunda etapa.
+        Route::get('/admin/etapa-2', fn () => Inertia::render('StageTwo'))->name('stage-two');
         foreach (['gestion', 'admin'] as $area) {
             Route::get('/'.$area.'/{section?}', fn (Request $r, SynauxController $c, string $section = '') => $c->area($r, $area, $section));
         }

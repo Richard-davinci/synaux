@@ -12,16 +12,19 @@ const page = usePage();
 const mobile = ref(false);
 const area = computed(() => page.props.area ?? (page.url.startsWith('/gestion') || page.url.startsWith('/admin') ? 'gestion' : page.url.startsWith('/profesional') ? 'profesional' : page.url.startsWith('/cliente') ? 'cliente' : 'public'));
 const publicNav = [['Catálogo', '/plataforma'], ['Portfolio', '/portfolio'], ['Nosotros', '/nosotros'], ['Contacto', '/contacto']];
-const nav = computed(() => area.value === 'cliente' ? [['Resumen', '/cliente'], ['Solicitudes', '/cliente/solicitudes'], ['Publicaciones', '/cliente/publicaciones'], ['Propuestas', '/cliente/propuestas'], ['Presupuestos', '/cliente/presupuestos'], ['Proyectos', '/cliente/proyectos']]
+const allNav = computed(() => area.value === 'cliente' ? [['Resumen', '/cliente'], ['Estimaciones', '/cliente/estimaciones'], ['Solicitudes', '/cliente/solicitudes'], ['Publicaciones', '/cliente/publicaciones'], ['Propuestas', '/cliente/propuestas'], ['Presupuestos', '/cliente/presupuestos'], ['Proyectos', '/cliente/proyectos']]
     : area.value === 'profesional' ? [['Resumen', '/profesional'], ['Oportunidades', '/oportunidades'], ['Mis propuestas', '/profesional/propuestas'], ['Invitaciones', '/profesional/invitaciones'], ['Presupuestos', '/profesional/presupuestos'], ['Proyectos', '/profesional/proyectos'], ['Mi perfil', '/profesional/perfil']]
     : area.value === 'gestion' ? [['Resumen', '/gestion'], ['Solicitudes', '/gestion/solicitudes'], ['Presupuestos', '/gestion/presupuestos'], ['Proyectos', '/gestion/proyectos'], ['Portfolio', '/gestion/portfolio'], ['Administración', '/admin/servicios']]
     : publicNav);
+// Las entradas del marketplace solo aparecen para quien tiene acceso a la segunda etapa.
+const stageTwoPaths = ['/cliente/publicaciones', '/cliente/propuestas', '/cliente/invitaciones'];
+const nav = computed(() => allNav.value.filter(([, href]) => page.props.stageTwo || !stageTwoPaths.includes(href)));
 </script>
 <template>
     <v-app class="synaux-app">
         <!-- En la referencia se puede revisar cada estado sin modificar registros ni conceder permisos. -->
         <div v-if="$page.props.preview" class="reference-bar"><div class="shell"><span>Prototipo · Datos de ejemplo</span><label>Ver pantalla<select :value="$page.props.referenceKey" aria-label="Pantalla del prototipo" @change="$inertia.get(`/prototipo/${$event.target.value}`)"><option v-for="item in $page.props.referenceScreens" :key="item.key" :value="item.key">{{ item.name }}</option></select></label><a href="/plataforma">Abrir aplicación</a></div></div>
-        <div v-else-if="$page.props.auth" class="account-bar"><div class="shell"><span>{{ $page.props.auth.name }}</span><nav aria-label="Áreas de mi cuenta"><a href="/cliente">Cliente</a><a href="/profesional">Profesional</a><a v-if="$page.props.auth.is_admin" href="/gestion">Gestión</a><a href="/plataforma">Sitio público</a><button @click="$inertia.post('/salir')">Salir</button></nav></div></div>
+        <div v-else-if="$page.props.auth" class="account-bar"><div class="shell"><span>{{ $page.props.auth.name }}</span><nav aria-label="Áreas de mi cuenta"><a href="/cliente">Cliente</a><a v-if="$page.props.stageTwo" href="/profesional">Profesional</a><a v-if="$page.props.auth.is_admin" href="/gestion">Gestión</a><a href="/plataforma">Sitio público</a><button @click="$inertia.post('/salir')">Salir</button></nav></div></div>
         <a class="skip-link" href="#contenido">Saltar al contenido</a>
         <!-- Las dimensiones nativas del PNG reservan el espacio del logo en el encabezado. -->
         <header class="header"><a :href="referenceHref(landing ? '/' : '/plataforma', $page.props)" class="logo-button" aria-label="Synaux: inicio"><img :src="navbarLogo" class="brand-logo" width="2000" height="423" alt="Synaux"></a><button class="mobile-toggle" :aria-expanded="mobile" aria-label="Abrir navegación" @click="mobile = !mobile">☰</button>

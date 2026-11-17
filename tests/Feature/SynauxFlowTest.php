@@ -19,6 +19,8 @@ class SynauxFlowTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Esta suite verifica también los recorridos futuros del marketplace.
+        config(['synaux.stage_two_enabled' => true]);
         $this->seed(SynauxCatalogSeeder::class);
     }
 

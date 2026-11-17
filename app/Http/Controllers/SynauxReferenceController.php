@@ -14,6 +14,10 @@ class SynauxReferenceController extends Controller
     {
         abort_unless(app()->environment('local', 'testing'), 404);
         $screens = json_decode(File::get(resource_path('reference/screens.json')), true);
+        // La galería también oculta los estados del marketplace para visitantes de la primera etapa.
+        if (! config('synaux.stage_two_enabled') && ! request()->user()?->is_admin) {
+            $screens = array_values(array_filter($screens, fn ($item) => ! str_starts_with($item['name'], '3.')));
+        }
         abort_unless(collect($screens)->contains('key', $screen), 404);
         $catalog = app(SynauxCatalog::class);
         $services = $catalog->services();
