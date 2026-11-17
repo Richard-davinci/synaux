@@ -28,3 +28,8 @@ Thumbs.db
 !.env.example
 /database/*.sqlite*
 desktop.ini
+
+# Documentación de trabajo local
+/FIGMA-IMPLEMENTADO.md
+/DESARROLLO.md
+/AGENTS.md
