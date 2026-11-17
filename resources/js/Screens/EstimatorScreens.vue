@@ -33,7 +33,15 @@ function next() {
     if (props.data.preview || props.data.selected?.id === service.value) { step.value = 2; return; }
     router.get('/estimador', { servicio: service.value, paso: 2 });
 }
-function calculate() { submit(form, '/estimador/calcular', {previewTarget:'estimador-4'}); }
+// Una validación fallida vuelve a las preguntas con los valores que Inertia conserva en el formulario.
+function calculate() {
+    submit(form, '/estimador/calcular', {
+        previewTarget: 'estimador-4',
+        onError: (errors) => {
+            step.value = errors.service ? 1 : 2;
+        },
+    });
+}
 function save(toRequest) { saveForm.to_request = toRequest; submit(saveForm, 'guardar-estimacion', {previewTarget:toRequest ? 'solicitud-borrador' : 'estimaciones'}); }
 </script>
 <template>
@@ -44,6 +52,7 @@ function save(toRequest) { saveForm.to_request = toRequest; submit(saveForm, 'gu
         <v-card v-if="step === 1 && !saved" class="card form-card">
             <h2>¿Qué necesitás resolver?</h2>
             <p>Seleccioná un servicio. Podés cambiarlo antes de finalizar.</p>
+            <p v-if="form.errors.service" class="error" role="alert">{{ form.errors.service }}</p>
             <section v-for="[category, items] in serviceGroups" :key="category" class="estimator-service-group">
                 <h3>{{ category }}</h3>
                 <div class="choice-grid">
@@ -63,7 +72,7 @@ function save(toRequest) { saveForm.to_request = toRequest; submit(saveForm, 'gu
             <div class="form-actions"><span /><B arrow @click="next">Continuar</B></div>
         </v-card>
         <v-card v-else-if="step === 2 && !saved" class="card form-card"><h2>Contanos un poco más</h2><p>Tus respuestas definen componentes y cantidades del cálculo.</p>
-            <form @submit.prevent="step = 3"><template v-for="q in data.questions" :key="q.id"><fieldset v-if="q.input_type === 'multiple_choice'" class="question-group"><legend>{{ q.question }}</legend><label v-for="option in q.options" :key="option.id" class="select-row"><input v-model="form.answers[q.id]" type="checkbox" :value="String(option.id)">{{ option.label }}</label></fieldset><F v-else v-model="form.answers[q.id]" :label="q.question" :type="q.input_type === 'single_choice' ? 'select' : q.input_type === 'number' ? 'number' : 'textarea'" :options="q.options?.map(o => ({value:o.id,label:o.label}))" required :min="q.input_type === 'number' ? 1 : undefined" :error="form.errors[`answers.${q.id}`]" /></template><div class="form-actions"><B variant="ghost" @click="step = 1">Volver</B><B type="submit" arrow>Revisar respuestas</B></div></form>
+            <form @submit.prevent="step = 3"><template v-for="q in data.questions" :key="q.id"><fieldset v-if="q.input_type === 'multiple_choice'" class="question-group" :aria-invalid="!!form.errors[`answers.${q.id}`]"><legend>{{ q.question }}</legend><label v-for="option in q.options" :key="option.id" class="select-row"><input v-model="form.answers[q.id]" type="checkbox" :value="String(option.id)">{{ option.label }}</label><small v-if="form.errors[`answers.${q.id}`]" class="error" role="alert">{{ form.errors[`answers.${q.id}`] }}</small></fieldset><F v-else v-model="form.answers[q.id]" :label="q.question" :type="q.input_type === 'single_choice' ? 'select' : q.input_type === 'number' ? 'number' : 'textarea'" :options="q.options?.map(o => ({value:o.id,label:o.label}))" required :min="q.input_type === 'number' ? 1 : undefined" :error="form.errors[`answers.${q.id}`]" /></template><div class="form-actions"><B variant="ghost" @click="step = 1">Volver</B><B type="submit" arrow>Revisar respuestas</B></div></form>
         </v-card>
         <v-card v-else-if="step === 3 && !saved" class="card form-card"><h2>Revisá antes de calcular</h2><div class="review-list"><div><span>Servicio</span><strong>{{ data.services.find(s => s.id === service)?.name }}</strong><button @click="step = 1">Editar</button></div><div v-for="q in data.questions" :key="q.id"><span>{{ q.question }}</span><strong>{{ q.input_type.includes('choice') ? (Array.isArray(form.answers[q.id]) ? form.answers[q.id] : [form.answers[q.id]]).map(v => q.options.find(o => String(o.id) === String(v))?.label).join(', ') : form.answers[q.id] }}</strong><button @click="step = 2">Editar</button></div></div><div class="notice"><I name="info" /><p>El resultado será orientativo. El presupuesto formal se prepara después de revisar tu solicitud.</p></div><div class="form-actions"><B variant="ghost" @click="step = 2">Volver</B><B :disabled="form.processing" @click="calculate">Calcular estimación</B></div></v-card>
         <!-- El resultado es una instantánea del cálculo; recalcular crea una referencia independiente. -->
