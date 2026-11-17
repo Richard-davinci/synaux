@@ -27,8 +27,9 @@ const price = computed(() => options.value.find(item => item.label === segment.v
 /* Las referencias mantienen un pie común en las tarjetas y usan únicamente la paleta de Synaux. */
 .catalog-price { margin-top: auto; padding-top: 1.25rem; }
 .price-segments { display: flex; flex-wrap: wrap; gap: .35rem; padding-bottom: 1rem; }
-.price-segments button { flex: 1; border: 1px solid rgb(31 111 127 / 20%); border-radius: .5rem; padding: .4rem .55rem; color: #446075; background: #fff; font: inherit; font-size: .875rem; cursor: pointer; }
+.price-segments button { flex: 1; min-height: 44px; border: 1px solid #446075; border-radius: .5rem; padding: .4rem .55rem; color: #446075; background: #fff; font: inherit; font-size: .875rem; font-weight: 600; cursor: pointer; }
 .price-segments button[aria-pressed='true'] { background: #1f6f7f; border-color: #1f6f7f; color: #fff; }
+.price-segments button:hover:not([aria-pressed='true']) { color: #153b64; border-color: #153b64; background: #f5f9fa; }
 .price-segments button:focus-visible { outline: 2px solid #153b64; outline-offset: 2px; }
 .price-summary { display: grid; gap: .25rem; padding-top: 1rem; border-top: 1px solid rgb(31 111 127 / 18%); }
 .price-summary span, .price-summary small { color: #446075; font-size: .875rem; }

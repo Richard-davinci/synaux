@@ -83,7 +83,7 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
                     <li v-for="item in service.includes.slice(0, 3)" :key="item"><I name="check" /><span>{{ item }}</span></li>
                 </ul>
                 <CatalogServicePrice :reference="data.references?.[service.id]" :service-name="service.name" />
-                <div class="card-link"><B :href="'/servicios/' + service.id" variant="secondary" :aria-label="'Ver detalles de ' + service.name" arrow>Ver detalles</B></div>
+                <div class="card-link"><B :href="'/servicios/' + service.id" :aria-label="'Ver detalles de ' + service.name" arrow>Ver detalles</B></div>
             </v-card>
         </div>        <Empty v-else title="No encontramos servicios con esos filtros." text="Probá otra búsqueda o volvé a ver todas las propuestas."><B @click="clear">Limpiar filtros</B></Empty>
         <div class="notice"><I name="info" /><p>Cada proyecto tiene su propio alcance. Los entregables, el precio y las condiciones se definen en una propuesta profesional.</p></div>
@@ -159,11 +159,14 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
 /* La búsqueda, las categorías y la limpieza comparten un panel con estados de foco visibles. */
 .catalog-page .catalog-tools { background: #f5f9fa; padding: 1.5rem; }
 .catalog-page .catalog-tools-row { grid-template-columns: minmax(220px,.8fr) minmax(0,1.6fr); align-items: center; gap: 1.5rem; }
-.catalog-page .filter-row button { display: inline-flex; align-items: center; gap: .5rem; font-family: 'Nunito',sans-serif; font-size: .875rem; padding: .55rem .8rem; }
+.catalog-page .filter-row button { display: inline-flex; align-items: center; gap: .5rem; font-family: 'Nunito',sans-serif; font-size: .875rem; min-height: 44px; padding: .55rem .85rem; font-weight: 600; border-color: #446075; }
 .category-count { font-size: .8rem; opacity: .8; }
 .catalog-results-bar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-top: 1rem; }
 .catalog-page .catalog-count { margin: 0; color: #446075; }
-.clear-catalog { border: 0; background: transparent; color: #1f6f7f; font: inherit; font-size: .875rem; text-decoration: underline; cursor: pointer; }
+.clear-catalog { min-height: 44px; padding: .5rem .85rem; border: 1px solid #1f6f7f; border-radius: .5rem; background: #fff; color: #1f6f7f; font: inherit; font-size: .875rem; font-weight: 700; cursor: pointer; }
+.clear-catalog:hover { background: #f5f9fa; }
+.catalog-page .filter-row button:hover:not(.active) { background: #fff; border-color: #153b64; color: #153b64; }
+.catalog-page .filter-row button.active { background: #153b64; border-color: #153b64; color: #fff; }
 .catalog-page button:focus-visible { outline: 2px solid #153b64; outline-offset: 3px; }
 
 /* Cada tarjeta mantiene categoría, alcance y precio en un orden común para facilitar la comparación. */
