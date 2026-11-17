@@ -27,6 +27,11 @@ class SynauxAuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
+        if (app(\App\Services\SynauxRequestJourney::class)->pending($request)) {
+            $request->session()->forget('url.intended');
+            return redirect('/solicitudes/nueva?continuar=1');
+        }
+
         return redirect($request->session()->has('pending_estimate') ? '/estimador?paso=4' : '/cliente');
     }
 
@@ -45,6 +50,12 @@ class SynauxAuthController extends Controller
         }
         RateLimiter::clear($key);
         $request->session()->regenerate();
+
+        // El proyecto preparado por esta sesión se retoma antes de mostrar el panel habitual.
+        if (app(\App\Services\SynauxRequestJourney::class)->pending($request)) {
+            $request->session()->forget('url.intended');
+            return redirect('/solicitudes/nueva?continuar=1');
+        }
 
         // Gestión es el inicio del administrador. Un acceso previo al resumen cliente no reemplaza ese destino.
         $admin = $request->user()->is_admin;

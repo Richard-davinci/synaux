@@ -29,6 +29,9 @@ foreach (['servicios' => 'servicio', 'trabajos' => 'trabajo', 'oportunidades' =>
     Route::get('/'.$path.'/{id}', fn (Request $r, SynauxController $c, string $id) => $c->publicPage($r, $screen, $id));
 }
 Route::post('/contacto', [SynauxController::class, 'contact'])->middleware('throttle:6,1');
+// El formulario nuevo es público; consultar registros guardados y enviar pedidos sigue requiriendo autenticación.
+Route::get('/solicitudes/nueva', [SynauxController::class, 'newRequest']);
+Route::post('/solicitudes/preparar', [SynauxController::class, 'prepareRequest'])->middleware('throttle:20,1');
 Route::post('/estimador/calcular', [SynauxController::class, 'calculate'])->middleware('throttle:30,1');
 
 // Registro e ingreso usan sesiones y límites de intentos; la recuperación usa el broker de Laravel.
@@ -54,7 +57,6 @@ Route::middleware('auth')->group(function () {
     foreach (['cliente', 'profesional'] as $area) {
         Route::get('/'.$area.'/{section?}', fn (Request $r, SynauxController $c, string $section = '') => $c->area($r, $area, $section));
     }
-    Route::get('/solicitudes/nueva', [SynauxController::class, 'newRequest']);
     Route::get('/presupuestos/{id}/pdf', [SynauxBudgetPdfController::class, 'show'])->whereNumber('id')->middleware('throttle:20,1');
     foreach (['solicitudes' => 'solicitud', 'estimaciones' => 'estimacion', 'presupuestos' => 'presupuesto', 'proyectos' => 'proyecto'] as $path => $kind) {
         Route::get('/'.$path.'/{id}', fn (Request $r, SynauxController $c, int $id) => $c->detail($r, $kind, $id))->whereNumber('id');

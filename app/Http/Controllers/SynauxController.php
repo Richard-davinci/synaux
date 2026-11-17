@@ -85,6 +85,8 @@ class SynauxController extends Controller
             // Las respuestas de otro servicio no se pueden reutilizar en el formulario actual.
             $data['pending'] = $pendingSlug === $slug ? $pending : null;
             $data['step'] = $step === 4 && ! $data['pending'] ? 1 : $step;
+            // El acceso anterior al estimador abre ahora el mismo recorrido público de solicitud.
+            $data = app(\App\Services\SynauxRequestJourney::class)->pageData($request, $data);
         }
         if ($screen === 'restablecer') {
             $data['token'] = $id;
@@ -97,12 +99,19 @@ class SynauxController extends Controller
     // Abre una solicitud nueva y recupera la estimación elegida solo si pertenece a la cuenta actual.
     public function newRequest(Request $request)
     {
-        $data = $this->privateData($request);
-        $data['screen'] = 'publicar';
         $id = (int) $request->query('estimacion', 0);
+        if ($id && ! $request->user()) return redirect()->guest('/ingresar');
+        $data = $request->user() ? $this->privateData($request) : [
+            'services' => $this->catalog->services(), 'references' => $this->catalog->references(),
+        ];
         $data['selectedEstimate'] = $id ? collect($data['estimates'])->firstWhere('id', $id) ?? abort(404) : null;
+        return Inertia::render('Workspace', app(\App\Services\SynauxRequestJourney::class)->pageData($request, $data));
+    }
 
-        return Inertia::render('Workspace', $data);
+    // Conserva el proyecto en la sesión antes del ingreso y vuelve después al paso de contacto.
+    public function prepareRequest(Request $request)
+    {
+        return redirect(app(\App\Services\SynauxRequestJourney::class)->prepare($request));
     }
 
     // Valida las respuestas, calcula en el servidor y conserva el resultado en la sesión para continuar.

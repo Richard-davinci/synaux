@@ -17,6 +17,7 @@ class SynauxRequestController extends Controller
         $data = $request->validate([
             'id' => 'nullable|integer',
             'estimate_id' => 'nullable|integer',
+            'answers' => 'sometimes|array|max:100',
             'service_id' => 'required|integer|exists:services,id',
             'title' => 'required|string|min:5|max:255',
             'description' => 'required|string|min:10|max:10000',
@@ -45,7 +46,23 @@ class SynauxRequestController extends Controller
 
         // Las habilidades llegan separadas por comas y se guardan sin espacios externos ni duplicados.
         $data['skills'] = array_values(array_unique(array_filter(array_map('trim', explode(',', $data['skills'] ?? '')))));
-        $id = $this->requests->save($request->user()->id, $data);
+        // La estimación integrada se calcula en el servidor y se guarda junto al pedido en una transacción.
+        $id = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $data) {
+            if (! empty($data['answers']) || (array_key_exists('answers', $data) && empty($data['estimate_id']))) {
+                if (empty($data['estimate_id'])) {
+                    $journey = app(\App\Services\SynauxRequestJourney::class);
+                    $calculation = $journey->calculate($data);
+                    $pending = $journey->pending($request);
+                    if ($pending && $pending['calculation']['service']['database_id'] === (int) $data['service_id']
+                        && $pending['calculation']['answers'] == $calculation['answers']) {
+                        $calculation = $pending['calculation'];
+                    }
+                    $data['estimate_id'] = app(\App\Services\SynauxEstimates::class)->save($request->user()->id, $calculation);
+                }
+            }
+            return $this->requests->save($request->user()->id, $data);
+        });
+        $request->session()->forget('pending_request');
 
         return redirect('/solicitudes/'.$id)->with('notice', $data['publish'] ? 'Solicitud enviada.' : 'Borrador guardado.');
     }

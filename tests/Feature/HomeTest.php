@@ -94,7 +94,7 @@ class HomeTest extends TestCase
         $this->get('/estimador?servicio='.$slug)
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Workspace')
-                ->where('screen', 'estimador')
+                ->where('screen', 'publicar')
                 ->where('selected.id', $slug)
                 ->where('step', 1)
                 ->has('questions', 1)
