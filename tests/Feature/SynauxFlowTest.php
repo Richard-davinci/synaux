@@ -1,0 +1,273 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\User;
+use Database\Seeders\SynauxCatalogSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia as Assert;
+use Tests\TestCase;
+
+// Comprueba recorridos completos y límites de acceso en una base SQLite en memoria, nunca sobre datos locales.
+class SynauxFlowTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(SynauxCatalogSeeder::class);
+    }
+
+    private function account(bool $admin = false): User
+    {
+        $u = User::factory()->create();
+        if ($admin) {
+            $u->is_admin = true;
+            $u->save();
+        }
+
+        return $u;
+    }
+
+    private function projectRequest(User $owner, string $visibility = 'private'): int
+    {
+        return DB::table('project_requests')->insertGetId(['user_id' => $owner->id, 'service_id' => DB::table('services')->value('id'), 'title' => 'Proyecto de prueba', 'description' => 'Necesitamos un sitio para nuestra organización.', 'visibility' => $visibility, 'status' => 'open', 'published_at' => $visibility === 'public' ? now() : null]);
+    }
+
+    private function profile(User $owner): int
+    {
+        return DB::table('professional_profiles')->insertGetId(['user_id' => $owner->id, 'brand_name' => 'Estudio de prueba', 'headline' => 'Desarrollo web', 'bio' => 'Diseñamos experiencias digitales.', 'availability_status' => 'available', 'active' => 1]);
+    }
+
+    private function quoteData(int $id): array
+    {
+        return ['request_id' => $id, 'title' => 'Presupuesto de prueba', 'currency_code' => 'ARS', 'tax_rate' => 21, 'valid_until' => today()->addDays(14)->toDateString(), 'estimated_delivery_days' => 30, 'terms' => 'Dos revisiones y entrega acordada.', 'items' => [['description' => 'Diseño y desarrollo', 'quantity' => 2, 'unit_price' => 100000]], 'send' => true];
+    }
+
+    // Un registro público jamás puede concederse administración aunque manipule los campos enviados.
+    // El dueño puede publicar su borrador y otra cuenta no puede modificarlo.
+    public function test_only_the_owner_can_publish_a_saved_request_draft(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $data = [
+            'service_id' => DB::table('services')->value('id'),
+            'title' => 'Sitio para mi organización',
+            'description' => 'Necesito presentar los servicios de mi organización.',
+            'visibility' => 'public',
+            'skills' => 'Vue, Laravel',
+            'publish' => false,
+        ];
+
+        $this->actingAs($owner)->post('/acciones/solicitud', $data)->assertRedirect();
+        $id = DB::table('project_requests')->where('user_id', $owner->id)->value('id');
+        $this->assertDatabaseHas('project_requests', ['id' => $id, 'status' => 'draft']);
+
+        $publication = [...$data, 'id' => $id, 'publish' => true];
+        $this->actingAs($other)->post('/acciones/solicitud', $publication)->assertForbidden();
+        $this->actingAs($owner)->post('/acciones/solicitud', $publication)->assertRedirect('/solicitudes/'.$id);
+        $this->assertDatabaseHas('project_requests', ['id' => $id, 'status' => 'open']);
+    }
+
+
+    public function test_registration_cannot_grant_management_access(): void
+    {
+        $this->post('/crear-cuenta', ['name' => 'Cliente Prueba', 'email' => 'cliente@example.test', 'password' => 'ClaveLarga123!', 'password_confirmation' => 'ClaveLarga123!', 'is_admin' => true])->assertRedirect('/cliente');
+        $this->assertAuthenticated();
+        $this->assertDatabaseHas('users', ['email' => 'cliente@example.test', 'is_admin' => 0]);
+        $this->get('/admin/servicios')->assertForbidden();
+        $this->get('/gestion')->assertForbidden();
+        $this->post('/admin/guardar/componentes', [])->assertForbidden();
+    }
+
+    public function test_private_records_and_drafts_are_not_visible_to_another_account(): void
+    {
+        $owner = $this->account();
+        $stranger = $this->account();
+        $id = $this->projectRequest($owner);
+        $this->get('/solicitudes/'.$id)->assertRedirect('/ingresar');
+        $this->actingAs($stranger)->get('/solicitudes/'.$id)->assertNotFound();
+        $this->get('/oportunidades/'.$id)->assertNotFound();
+        $this->post('/acciones/estado-solicitud', ['id' => $id, 'status' => 'closed'])->assertForbidden();
+        $this->assertDatabaseHas('project_requests', ['id' => $id, 'status' => 'open']);
+        $this->actingAs($owner)->get('/solicitudes/'.$id)->assertOk();
+    }
+
+    // Sin tarifario completo no se inventa un importe cero; el resultado requiere revisión profesional.
+    public function test_estimate_is_preserved_through_registration_and_saved_once(): void
+    {
+        $answers = DB::table('estimator_questions')->where('service_id', DB::table('services')->where('slug', 'sitio-institucional')->value('id'))->get()->mapWithKeys(fn ($q) => [$q->id => (string) DB::table('estimator_options')->where('question_id', $q->id)->value('id')])->all();
+        $this->post('/estimador/calcular', ['service' => 'sitio-institucional', 'answers' => $answers])->assertRedirect()->assertSessionHas('pending_estimate', fn ($p) => $p['mode'] === 'manual' && array_key_exists('min', $p) && $p['min'] === null);
+        $this->post('/crear-cuenta', ['name' => 'Nuevo Cliente', 'email' => 'nuevo@example.test', 'password' => 'ClaveLarga123!', 'password_confirmation' => 'ClaveLarga123!'])->assertRedirect('/estimador?paso=4');
+        $response = $this->post('/acciones/guardar-estimacion', ['to_request' => true]);
+        $id = DB::table('estimates')->value('id');
+        $response->assertRedirect('/solicitudes/nueva?estimacion='.$id);
+        $this->post('/acciones/guardar-estimacion', ['to_request' => true])->assertRedirect('/solicitudes/nueva?estimacion='.$id);
+        $this->assertDatabaseCount('estimates', 1);
+        $this->assertDatabaseHas('estimates', ['status' => 'manual', 'price_min' => null, 'price_max' => null]);
+        $this->get('/solicitudes/nueva?estimacion='.$id)->assertInertia(fn (Assert $p) => $p->component('Workspace')->where('selectedEstimate.id', $id));
+    }
+
+    public function test_estimator_rejects_forged_options(): void
+    {
+        $qid = DB::table('estimator_questions')->value('id');
+        $this->from('/estimador?paso=2')->post('/estimador/calcular', ['service' => 'sitio-institucional', 'answers' => [$qid => 999999]])->assertSessionHasErrors('answers.'.$qid)->assertSessionMissing('pending_estimate');
+    }
+
+    // El presupuesto enviado se conserva al emitir otra versión, y solo la vigente puede aceptarse.
+    public function test_budget_versions_and_acceptance_create_exactly_one_project(): void
+    {
+        $client = $this->account();
+        $issuer = $this->account(true);
+        $this->profile($issuer);
+        $id = $this->projectRequest($client);
+        $this->actingAs($issuer)->post('/acciones/presupuesto', $this->quoteData($id))->assertSessionHasNoErrors()->assertRedirect();
+        $v1 = DB::table('budget_versions')->first();
+        $this->post('/acciones/presupuesto', [...$this->quoteData($id), 'budget_id' => $v1->budget_id, 'title' => 'Segunda versión'])->assertSessionHasNoErrors()->assertRedirect();
+        $v2 = DB::table('budget_versions')->orderByDesc('id')->first();
+        $this->assertDatabaseCount('budget_versions', 2);
+        $this->assertDatabaseHas('budget_versions', ['id' => $v1->id, 'title' => 'Presupuesto de prueba', 'status' => 'sent']);
+        $this->actingAs($client)->post('/acciones/decidir-presupuesto', ['id' => $v1->id, 'decision' => 'accepted', 'confirmed' => true])->assertStatus(422);
+        $this->post('/acciones/decidir-presupuesto', ['id' => $v2->id, 'decision' => 'accepted', 'confirmed' => false])->assertSessionHasErrors('confirmed');
+        $this->post('/acciones/decidir-presupuesto', ['id' => $v2->id, 'decision' => 'accepted', 'confirmed' => true])->assertRedirect();
+        $this->assertDatabaseHas('projects', ['accepted_budget_version_id' => $v2->id]);
+        $this->assertDatabaseHas('project_requests', ['id' => $id, 'status' => 'closed']);
+        $this->post('/acciones/decidir-presupuesto', ['id' => $v2->id, 'decision' => 'accepted', 'confirmed' => true])->assertStatus(422);
+        $this->assertDatabaseCount('projects', 1);
+    }
+
+    public function test_budget_drafts_and_expired_versions_cannot_be_accepted(): void
+    {
+        $client = $this->account();
+        $issuer = $this->account(true);
+        $this->profile($issuer);
+        $id = $this->projectRequest($client);
+        $this->actingAs($issuer)->post('/acciones/presupuesto', [...$this->quoteData($id), 'send' => false])->assertSessionHasNoErrors();
+        $v = DB::table('budget_versions')->first();
+        $this->actingAs($client)->get('/presupuestos/'.$v->id)->assertNotFound();
+        DB::table('budget_versions')->where('id', $v->id)->update(['status' => 'sent', 'sent_at' => now(), 'valid_until' => today()->subDay()]);
+        $this->post('/acciones/decidir-presupuesto', ['id' => $v->id, 'decision' => 'accepted', 'confirmed' => true])->assertStatus(422);
+        $this->assertDatabaseCount('projects', 0);
+    }
+
+    // La invitación privada se vuelve legible solo para su destinatario después de aceptarla.
+    public function test_private_invitation_and_professional_selection_flow(): void
+    {
+        $client = $this->account();
+        $pro = $this->account();
+        $profile = $this->profile($pro);
+        $other = $this->account();
+        $id = $this->projectRequest($client);
+        $this->actingAs($client)->post('/acciones/invitacion', ['request_id' => $id, 'professional_id' => $profile])->assertRedirect();
+        $invite = DB::table('project_request_invitations')->value('id');
+        $this->actingAs($other)->post('/acciones/responder-invitacion', ['id' => $invite, 'status' => 'accepted'])->assertForbidden();
+        $this->actingAs($pro)->get('/oportunidades/'.$id)->assertNotFound();
+        $this->post('/acciones/responder-invitacion', ['id' => $invite, 'status' => 'accepted'])->assertRedirect();
+        $this->get('/oportunidades/'.$id)->assertInertia(fn (Assert $p) => $p->missing('selected.answers')->missing('selected.user_id'));
+        $this->post('/acciones/propuesta', ['request_id' => $id, 'message' => 'Puedo desarrollar la solución con una revisión inicial.', 'estimated_delivery_days' => 30, 'currency_code' => 'ARS'])->assertRedirect('/profesional/propuestas');
+        $proposal = DB::table('proposals')->value('id');
+        $this->post('/acciones/presupuesto', $this->quoteData($id))->assertForbidden();
+        $this->actingAs($client)->post('/acciones/seleccionar-propuesta', ['id' => $proposal])->assertRedirect();
+        $this->actingAs($pro)->get('/editor/presupuesto?solicitud='.$id)->assertInertia(fn (Assert $p) => $p->has('budgetRequests', 1)->where('budgetRequests.0.id', $id));
+        $this->post('/acciones/presupuesto', $this->quoteData($id))->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('budget_versions', 1);
+    }
+
+    public function test_public_wall_does_not_include_private_answers_or_owner_contacts(): void
+    {
+        $owner = $this->account();
+        $this->projectRequest($owner);
+        $id = $this->projectRequest($owner, 'public');
+        $this->get('/oportunidades')->assertInertia(fn (Assert $p) => $p->has('opportunities', 1)->where('opportunities.0.id', $id)->missing('opportunities.0.answers')->missing('opportunities.0.user_id')->missing('opportunities.0.email'));
+    }
+
+    public function test_contact_is_persisted_and_visible_only_to_management(): void
+    {
+        $this->post('/contacto', ['name' => 'Persona de prueba', 'email' => 'contacto@example.test', 'topic' => 'Consulta general', 'message' => 'Quisiera conversar sobre un proyecto digital.'])->assertRedirect('/contacto?enviado=1');
+        $this->assertDatabaseCount('contact_inquiries', 1);
+        $this->actingAs($this->account())->get('/gestion/contactos')->assertForbidden();
+        $this->actingAs($this->account(true))->get('/gestion/contactos')->assertInertia(fn (Assert $p) => $p->has('inquiries', 1));
+    }
+
+    // Recorre las 65 referencias y prueba que sus datos no crean cuentas ni permisos de sesión.
+    public function test_every_figma_reference_state_renders_without_authenticating_a_user(): void
+    {
+        $screens = json_decode(file_get_contents(resource_path('reference/screens.json')), true);
+        $this->assertCount(65, $screens);
+        foreach ($screens as $screen) {
+            $this->get('/prototipo/'.$screen['key'])->assertOk()->assertInertia(fn (Assert $p) => $p->where('preview', true)->where('referenceKey', $screen['key'])->where('auth', null));
+        }
+        $this->assertGuest();
+        $this->assertDatabaseCount('users', 0);
+        $this->assertDatabaseCount('budget_versions', 0);
+        $this->assertDatabaseCount('tariff_versions', 0);
+    }
+
+    // La edición del tarifario conserva el cálculo anterior y un tarifario incompleto no puede activarse.
+    public function test_automatic_prices_use_versioned_tariffs_and_snapshot_currency(): void
+    {
+        $admin = $this->account(true);
+        $this->actingAs($admin);
+        $service = DB::table('services')->where('slug', 'sitio-institucional')->value('id');
+        $components = DB::table('service_components')->where('service_id', $service)->get();
+        $prices = $components->map(fn ($c) => ['id' => $c->id, 'min' => 10, 'max' => 20])->all();
+        $tariff = ['name' => 'Tarifa de prueba', 'currency_code' => 'USD', 'active' => true, 'services' => [['id' => $service, 'min' => 100, 'max' => 200]], 'components' => $prices];
+        $this->post('/admin/guardar/tarifario', [...$tariff, 'components' => []])->assertSessionHasErrors('active');
+        $this->assertDatabaseCount('tariff_versions', 0);
+        $this->post('/admin/guardar/tarifario', $tariff)->assertSessionHasNoErrors();
+        $answers = DB::table('estimator_questions')->where('service_id', $service)->get()->mapWithKeys(fn ($q) => [$q->id => (string) DB::table('estimator_options')->where('question_id', $q->id)->value('id')])->all();
+        $this->post('/estimador/calcular', ['service' => 'sitio-institucional', 'answers' => $answers])->assertSessionHas('pending_estimate', fn ($p) => $p['mode'] === 'automatic' && $p['min'] === 140 && $p['max'] === 280 && $p['currency'] === 'USD');
+        $this->post('/acciones/guardar-estimacion', [])->assertRedirect();
+        $this->post('/admin/guardar/tarifario', [...$tariff, 'name' => 'Versión siguiente', 'currency_code' => 'ARS'])->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('tariff_versions', 2);
+        $this->assertDatabaseHas('estimates', ['currency_snapshot' => 'USD', 'price_min' => 140, 'price_max' => 280]);
+    }
+
+    public function test_question_options_are_deactivated_without_destroying_history(): void
+    {
+        $this->actingAs($this->account(true));
+        $q = DB::table('estimator_questions')->first();
+        $option = DB::table('estimator_options')->where('question_id', $q->id)->first();
+        $this->post('/admin/guardar/preguntas', ['id' => $q->id, 'service_id' => $q->service_id, 'question' => $q->question, 'input_type' => 'single_choice', 'sort_order' => 0, 'active' => true, 'options_text' => "Opción nueva\nOtra opción", 'quantity_component_id' => null])->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('estimator_options', ['id' => $option->id, 'active' => 0]);
+        $this->assertDatabaseHas('estimator_options', ['question_id' => $q->id, 'label' => 'Opción nueva', 'active' => 1]);
+        $this->assertDatabaseHas('estimation_rules', ['estimator_option_id' => $option->id]);
+    }
+
+    // La portada se sirve desde Laravel con permisos, sin depender de enlaces simbólicos de Windows/Drive.
+    public function test_portfolio_upload_and_private_image_permissions(): void
+    {
+        Storage::fake('public');
+        $owner = $this->account();
+        $this->profile($owner);
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l1sAAAAASUVORK5CYII=');
+        $data = ['service_id' => DB::table('services')->value('id'), 'title' => 'Trabajo publicado', 'description' => 'Descripción del proyecto de prueba', 'category' => 'Desarrollo web', 'is_public' => true];
+        $this->actingAs($owner)->post('/acciones/trabajo', [...$data, 'cover' => UploadedFile::fake()->createWithContent('portada.png', $png)])->assertSessionHasNoErrors()->assertRedirect();
+        $work = DB::table('portfolio_projects')->first();
+        $this->get($work->cover_path)->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
+        $this->actingAs($this->account())->get($work->cover_path)->assertOk();
+        $this->actingAs($owner)->post('/acciones/trabajo', [...$data, 'id' => $work->id, 'is_public' => false])->assertSessionHasNoErrors();
+        $this->actingAs($this->account())->get($work->cover_path)->assertNotFound();
+        $this->actingAs($owner)->get($work->cover_path)->assertOk();
+    }
+
+    public function test_project_progress_can_be_updated_only_by_issuer_or_management(): void
+    {
+        $client = $this->account();
+        $issuer = $this->account(true);
+        $this->profile($issuer);
+        $id = $this->projectRequest($client);
+        $this->actingAs($issuer)->post('/acciones/presupuesto', $this->quoteData($id))->assertSessionHasNoErrors();
+        $version = DB::table('budget_versions')->value('id');
+        $this->actingAs($client)->post('/acciones/decidir-presupuesto', ['id' => $version, 'decision' => 'accepted', 'confirmed' => true])->assertRedirect();
+        $project = DB::table('projects')->value('id');
+        $data = ['id' => $project, 'status' => 'in_progress', 'progress' => 60, 'start_date' => null, 'end_date' => null, 'notes' => 'Diseño aprobado, avanzamos en desarrollo.'];
+        $this->post('/acciones/proyecto', $data)->assertForbidden();
+        $this->actingAs($issuer)->post('/acciones/proyecto', $data)->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertDatabaseHas('projects', ['id' => $project, 'progress' => 60, 'status' => 'in_progress']);
+    }
+}

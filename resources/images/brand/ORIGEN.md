@@ -1,0 +1,18 @@
+# Logo vertical aprobado
+
+Fuente: [00 · Aprobado · Texto recto y S 12°](https://www.figma.com/design/DAWObWWcHYQlYXYOgb38Q1?node-id=668-2).
+
+Aplicado a la web local el 20 de octubre de 2026 por solicitud del usuario. Exportaciones SVG completas de los maestros de Figma mediante `exportAsync`, con `contentsOnly: true` y `svgOutlineText: true`, para conservar transparencia y texto convertido a contornos. Se exporta únicamente el contenido de la marca, sin los fondos de sus tarjetas de presentación. No se reconstruyeron ni modificaron los originales.
+
+| Archivo | Nodo maestro | Dimensiones SVG |
+| --- | --- | --- |
+| synaux-vertical-sin-slogan-color.svg | 668:10 | 250 × 168 |
+| synaux-vertical-con-slogan-color.svg | 668:42 | 250 × 179 |
+| synaux-vertical-sin-slogan-blanco.svg | 668:30 | 250 × 168 |
+| synaux-vertical-con-slogan-blanco.svg | 668:66 | 250 × 179 |
+
+La S ya incorpora su giro de 12°. No aplicar rotación adicional. La bajada conserva la alineación aprobada desde la n hasta la x. El recurso es una imagen única, sin texto HTML superpuesto.
+
+Mínimos del aprobado: 100 px de ancho sin eslogan, 200 px con eslogan y 64 px de alto para el símbolo independiente. Mantener espacio libre alrededor y escalar proporcionalmente.
+
+Los recursos horizontales anteriores permanecen en esta carpeta como referencia histórica, sin cambios.

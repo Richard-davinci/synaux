@@ -1,0 +1,93 @@
+/* Tipografía de títulos servida desde el proyecto; swap permite leer mientras se carga. */
+@font-face {
+    font-family: 'Space Grotesk';
+    src: url('../fonts/SpaceGrotesk-Variable.ttf') format('truetype');
+    font-style: normal;
+    font-weight: 300 700;
+    font-display: swap;
+}
+
+/* Tipografía de lectura local para párrafos, formularios y navegación. */
+@font-face {
+    font-family: 'Nunito';
+    src: url('../fonts/Nunito-Variable.ttf') format('truetype');
+    font-style: normal;
+    font-weight: 200 1000;
+    font-display: swap;
+}
+
+/* Configuración de lectura y suavizado aplicada a todo el documento. */
+:root {
+    font-family: 'Nunito', Arial, sans-serif;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Desplazamiento entre secciones y eliminación del margen predeterminado del navegador. */
+html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+body { margin: 0; }
+/* Foco visible para reconocer el elemento seleccionado con el teclado. */
+a:focus-visible, button:focus-visible { outline: 3px solid rgb(var(--v-theme-secondary)); outline-offset: 4px; }
+/* Fuente de lectura y ancho máximo compartidos por las pantallas de la plataforma. */
+.v-application { font-family: 'Nunito', Arial, sans-serif; }
+.site-container { max-width: 1200px; padding-inline: 24px; }
+/* Encabezado blanco con separación sutil y espacio para acomodar logo y enlaces. */
+.site-header { background: rgb(var(--v-theme-surface)); }
+.site-header { border-bottom: 1px solid #44607533; }
+.header-content { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding-block: 20px; }
+/* Escala proporcional de los SVG: 200 px con eslogan y 100 px sin eslogan en el menú. */
+.brand-link { display: inline-flex; flex-shrink: 0; align-items: center; max-width: 100%; border-radius: 4px; }
+.brand-logo { display: block; width: 200px; max-width: 100%; height: auto; }
+.site-header .brand-logo { width: 100px; }
+.site-nav { display: flex; flex-wrap: wrap; gap: 4px; }
+/* Reglas de apoyo para composiciones de presentación basadas en filas de Vuetify. */
+.hero-section { padding-block: 72px; }
+.hero-row { row-gap: 24px; margin-inline: -16px; }
+.hero-row > .v-col { padding-inline: 16px; }
+/* Jerarquía tipográfica compartida: etiquetas, títulos y texto introductorio. */
+.eyebrow { color: rgb(var(--v-theme-secondary)); font-size: .8rem; font-weight: 700; letter-spacing: .1em; line-height: 1.6; text-transform: uppercase; margin-bottom: 20px; }
+h1, h2, h3 { font-family: 'Space Grotesk', Arial, sans-serif; color: rgb(var(--v-theme-primary)); text-wrap: balance; }
+h1 { max-width: 620px; font-size: clamp(2rem, 4vw, 3rem); font-weight: 700; letter-spacing: -.035em; line-height: 1.15; }
+.hero-description { max-width: 530px; margin-block: 24px 32px; color: rgb(var(--v-theme-text-muted)); font-size: 1.125rem; line-height: 1.8; }
+/* Presentación de tarjetas informativas y listas de apoyo reutilizables. */
+.overview-card { padding: 32px; border-color: #44607533; }
+.overview-card h2 { font-size: 1.55rem; line-height: 1.35; }
+.overview-list { display: grid; gap: 12px; margin-block: 24px; padding: 0; list-style: none; }
+.overview-list li { padding: 16px; border-radius: 12px; background: rgb(var(--v-theme-background)); color: rgb(var(--v-theme-text-muted)); line-height: 1.6; }
+.supporting-text { color: rgb(var(--v-theme-text-muted)); font-size: .9rem; line-height: 1.7; }
+/* Composición compartida para explicar procesos mediante pasos y tarjetas. */
+.process-section { padding-block: 64px; background: rgb(var(--v-theme-surface)); border-top: 1px solid #44607533; }
+.section-heading { font-size: clamp(1.75rem, 3vw, 2rem); line-height: 1.2; }
+.section-description { margin-block: 16px 32px; color: rgb(var(--v-theme-text-muted)); line-height: 1.7; }
+.steps-list { list-style: none; padding: 0; }
+.step-card { height: 100%; padding: 24px; border-color: #44607533; }
+.step-label { margin-bottom: 16px; color: rgb(var(--v-theme-secondary)); font-size: .85rem; font-weight: 700; }
+.step-card h3 { margin-bottom: 12px; font-size: 1.2rem; line-height: 1.4; }
+.step-card h3 + p { color: rgb(var(--v-theme-text-muted)); line-height: 1.75; }
+/* Pie de la plataforma: fondo azul, logo blanco y distribución del texto de cierre. */
+.site-footer { background: rgb(var(--v-theme-primary)); color: rgb(var(--v-theme-on-primary)); }
+.site-footer .brand-logo { width: 200px; }
+.site-footer a:focus-visible { outline-color: rgb(var(--v-theme-accent)); }
+.footer-content { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 24px; padding-block: 32px; font-size: .9375rem; line-height: 1.7; }
+.footer-copy { text-align: right; }
+/* Atajo accesible oculto hasta recibir foco; permite saltar directamente al contenido. */
+.skip-link { position: absolute; top: 8px; left: 8px; z-index: 10000; padding: 12px 16px; transform: translateY(-180%); background: #fff; color: #153b64; border-radius: 8px; }
+.skip-link:focus { transform: translateY(0); }
+
+/* En celular se reducen espacios y el pie pasa a una columna. */
+@media (max-width: 599px) {
+    .header-content { align-items: center; flex-direction: row; gap: 12px; }
+    .hero-section { padding-block: 40px; }
+    .hero-row { margin-inline: -12px; }
+    .hero-row > .v-col { padding-inline: 12px; }
+    .overview-card { padding: 24px; }
+    .process-section { padding-block: 40px; }
+    .footer-content { align-items: flex-start; flex-direction: column; }
+    .footer-copy { text-align: left; }
+}
+
+/* Respeta la preferencia del sistema para evitar desplazamientos animados. */
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+}

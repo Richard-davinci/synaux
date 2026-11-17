@@ -1,0 +1,327 @@
+[
+  {
+    "key": "inicio",
+    "name": "00 · Inicio [inicio]",
+    "node": "1:434"
+  },
+  {
+    "key": "servicios",
+    "name": "00 · Catálogo [servicios]",
+    "node": "1:866"
+  },
+  {
+    "key": "portfolio",
+    "name": "00 · Portfolio [portfolio]",
+    "node": "1:1174"
+  },
+  {
+    "key": "servicio-web",
+    "name": "1.01 · Detalle · Sitio institucional [servicio-web]",
+    "node": "13:3"
+  },
+  {
+    "key": "servicio-identidad",
+    "name": "1.02 · Detalle · Identidad visual [servicio-identidad]",
+    "node": "13:98"
+  },
+  {
+    "key": "servicio-marketing",
+    "name": "1.03 · Detalle · Campaña digital [servicio-marketing]",
+    "node": "13:193"
+  },
+  {
+    "key": "trabajo",
+    "name": "1.04 · Detalle de trabajo [trabajo]",
+    "node": "13:288"
+  },
+  {
+    "key": "perfil",
+    "name": "1.05 · Nosotros · Perfil de SYNAUX [perfil]",
+    "node": "13:366"
+  },
+  {
+    "key": "contacto",
+    "name": "1.06 · Contacto [contacto]",
+    "node": "13:438"
+  },
+  {
+    "key": "contacto-enviado",
+    "name": "1.07 · Contacto · Mensaje enviado [contacto-enviado]",
+    "node": "13:530"
+  },
+  {
+    "key": "ingreso",
+    "name": "1.08 · Ingresar [ingreso]",
+    "node": "13:597"
+  },
+  {
+    "key": "registro",
+    "name": "1.09 · Crear cuenta [registro]",
+    "node": "13:664"
+  },
+  {
+    "key": "ingreso-error",
+    "name": "1.10 · Ingreso · Error de credenciales [ingreso-error]",
+    "node": "13:734"
+  },
+  {
+    "key": "recuperar",
+    "name": "1.11 · Recuperar acceso [recuperar]",
+    "node": "13:802"
+  },
+  {
+    "key": "catalogo-vacio",
+    "name": "1.12 · Catálogo · Sin resultados [catalogo-vacio]",
+    "node": "13:854"
+  },
+  {
+    "key": "estimador-1",
+    "name": "2.01 · Estimación · Servicio [estimador-1]",
+    "node": "13:937"
+  },
+  {
+    "key": "estimador-2",
+    "name": "2.02 · Estimación · Preguntas [estimador-2]",
+    "node": "13:1033"
+  },
+  {
+    "key": "estimador-3",
+    "name": "2.03 · Estimación · Revisión [estimador-3]",
+    "node": "13:1150"
+  },
+  {
+    "key": "estimador-4",
+    "name": "2.04 · Estimación · Resultado [estimador-4]",
+    "node": "13:1263"
+  },
+  {
+    "key": "cliente",
+    "name": "2.05 · Cliente · Resumen [cliente]",
+    "node": "13:1383"
+  },
+  {
+    "key": "estimaciones",
+    "name": "2.06 · Cliente · Mis estimaciones [estimaciones]",
+    "node": "13:1517"
+  },
+  {
+    "key": "solicitudes",
+    "name": "2.07 · Cliente · Solicitudes [solicitudes]",
+    "node": "13:1608"
+  },
+  {
+    "key": "solicitud",
+    "name": "2.08 · Cliente · Detalle de solicitud [solicitud]",
+    "node": "13:1690"
+  },
+  {
+    "key": "presupuestos",
+    "name": "2.09 · Cliente · Presupuestos [presupuestos]",
+    "node": "13:1783"
+  },
+  {
+    "key": "presupuesto",
+    "name": "2.10 · Cliente · Presupuesto y versiones [presupuesto]",
+    "node": "13:1860"
+  },
+  {
+    "key": "proyectos",
+    "name": "2.11 · Cliente · Proyectos [proyectos]",
+    "node": "13:2018"
+  },
+  {
+    "key": "proyecto",
+    "name": "2.12 · Cliente · Detalle de proyecto [proyecto]",
+    "node": "13:2087"
+  },
+  {
+    "key": "solicitud-borrador",
+    "name": "2.13 · Cliente · Editar borrador [solicitud-borrador]",
+    "node": "13:2219"
+  },
+  {
+    "key": "presupuesto-vencido",
+    "name": "2.14 · Cliente · Presupuesto vencido [presupuesto-vencido]",
+    "node": "13:2326"
+  },
+  {
+    "key": "presupuesto-aceptar",
+    "name": "2.15 · Cliente · Confirmar aceptación [presupuesto-aceptar]",
+    "node": "13:2482"
+  },
+  {
+    "key": "presupuesto-rechazar",
+    "name": "2.16 · Cliente · Confirmar rechazo [presupuesto-rechazar]",
+    "node": "13:2661"
+  },
+  {
+    "key": "gestion",
+    "name": "4.01 · Gestión · Resumen [gestion]",
+    "node": "13:2838"
+  },
+  {
+    "key": "g-solicitudes",
+    "name": "4.02 · Gestión · Solicitudes recibidas [g-solicitudes]",
+    "node": "13:2968"
+  },
+  {
+    "key": "gestion-solicitud",
+    "name": "4.03 · Gestión · Detalle de solicitud [solicitud]",
+    "node": "13:3052"
+  },
+  {
+    "key": "g-presupuestos",
+    "name": "4.04 · Gestión · Presupuestos [g-presupuestos]",
+    "node": "13:3153"
+  },
+  {
+    "key": "editor-presupuesto",
+    "name": "4.05 · Gestión · Editor de presupuesto [editor-presupuesto]",
+    "node": "13:3254"
+  },
+  {
+    "key": "g-proyectos",
+    "name": "4.06 · Gestión · Seguimiento de proyectos [g-proyectos]",
+    "node": "13:3413"
+  },
+  {
+    "key": "g-portfolio",
+    "name": "4.07 · Gestión · Portfolio [g-portfolio]",
+    "node": "13:3494"
+  },
+  {
+    "key": "editor-trabajo",
+    "name": "4.08 · Gestión · Editor de trabajo [editor-trabajo]",
+    "node": "13:3576"
+  },
+  {
+    "key": "admin-servicios",
+    "name": "4.09 · Administración · Servicios [admin-servicios]",
+    "node": "13:3679"
+  },
+  {
+    "key": "admin-preguntas",
+    "name": "4.10 · Administración · Preguntas [admin-preguntas]",
+    "node": "13:3799"
+  },
+  {
+    "key": "admin-componentes",
+    "name": "4.11 · Administración · Componentes [admin-componentes]",
+    "node": "13:3919"
+  },
+  {
+    "key": "admin-reglas",
+    "name": "4.12 · Administración · Reglas [admin-reglas]",
+    "node": "13:4039"
+  },
+  {
+    "key": "admin-tarifario",
+    "name": "4.13 · Administración · Tarifario [admin-tarifario]",
+    "node": "13:4159"
+  },
+  {
+    "key": "muro",
+    "name": "3.01 · Muro de oportunidades [muro]",
+    "node": "21:504"
+  },
+  {
+    "key": "muro-vacio",
+    "name": "3.02 · Muro · Sin publicaciones [muro-vacio]",
+    "node": "21:719"
+  },
+  {
+    "key": "muro-sin-resultados",
+    "name": "3.03 · Muro · Sin resultados [muro-sin-resultados]",
+    "node": "21:809"
+  },
+  {
+    "key": "muro-cargando",
+    "name": "3.04 · Muro · Cargando [muro-cargando]",
+    "node": "21:899"
+  },
+  {
+    "key": "oportunidad",
+    "name": "3.05 · Detalle de oportunidad [oportunidad]",
+    "node": "21:990"
+  },
+  {
+    "key": "propuesta-formulario",
+    "name": "3.06 · Presentar propuesta [propuesta-formulario]",
+    "node": "21:1136"
+  },
+  {
+    "key": "profesionales",
+    "name": "3.07 · Directorio de profesionales [profesionales]",
+    "node": "21:1320"
+  },
+  {
+    "key": "perfil-profesional",
+    "name": "3.08 · Perfil de profesional [perfil-profesional]",
+    "node": "21:1440"
+  },
+  {
+    "key": "publicar",
+    "name": "3.09 · Publicar solicitud · Formulario [publicar]",
+    "node": "21:1544"
+  },
+  {
+    "key": "publicar-revision",
+    "name": "3.10 · Publicar solicitud · Vista previa [publicar-revision]",
+    "node": "21:1663"
+  },
+  {
+    "key": "mis-publicaciones",
+    "name": "3.11 · Cliente · Mis publicaciones [mis-publicaciones]",
+    "node": "21:1757"
+  },
+  {
+    "key": "propuestas-recibidas",
+    "name": "3.12 · Cliente · Propuestas recibidas [propuestas-recibidas]",
+    "node": "21:1869"
+  },
+  {
+    "key": "invitaciones-enviadas",
+    "name": "3.13 · Cliente · Invitaciones enviadas [invitaciones-enviadas]",
+    "node": "21:2006"
+  },
+  {
+    "key": "comparar-propuestas",
+    "name": "3.14 · Cliente · Comparar propuestas [comparar-propuestas]",
+    "node": "21:2096"
+  },
+  {
+    "key": "profesional",
+    "name": "3.15 · Profesional · Resumen [profesional]",
+    "node": "21:2233"
+  },
+  {
+    "key": "mis-propuestas",
+    "name": "3.16 · Profesional · Mis propuestas [mis-propuestas]",
+    "node": "21:2349"
+  },
+  {
+    "key": "invitaciones-recibidas",
+    "name": "3.17 · Profesional · Invitaciones recibidas [invitaciones-recibidas]",
+    "node": "21:2416"
+  },
+  {
+    "key": "mi-perfil",
+    "name": "3.18 · Profesional · Editar perfil [mi-perfil]",
+    "node": "21:2496"
+  },
+  {
+    "key": "profesional-presupuestos",
+    "name": "3.19 · Profesional · Presupuestos vacíos [profesional-presupuestos]",
+    "node": "21:2601"
+  },
+  {
+    "key": "profesional-proyectos",
+    "name": "3.20 · Profesional · Proyectos vacíos [profesional-proyectos]",
+    "node": "21:2663"
+  },
+  {
+    "key": "profesional-presupuestos-cargados",
+    "name": "3.21 · Profesional · Preparar presupuesto [profesional-presupuestos-cargados]",
+    "node": "21:2725"
+  }
+]
