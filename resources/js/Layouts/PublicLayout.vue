@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import BrandLogo from '../Components/BrandLogo.vue';
 import SynauxNotifications from '../Components/SynauxNotifications.vue';
@@ -15,6 +15,17 @@ const page = usePage();
 const mobile = ref(false);
 const workspaceOpen = ref(false);
 const workspaceToggle = ref(null);
+// Se mide el encabezado real para compensar cambios de ancho, menú móvil y barra de referencia.
+const fixedHeader = ref(null);
+const headerHeight = ref(108);
+let headerObserver;
+onMounted(() => {
+    headerObserver = new ResizeObserver(([entry]) => {
+        headerHeight.value = entry.target.getBoundingClientRect().height;
+    });
+    if (fixedHeader.value) headerObserver.observe(fixedHeader.value);
+});
+onBeforeUnmount(() => headerObserver?.disconnect());
 function restoreWorkspaceFocus() { workspaceToggle.value?.focus(); }
 const area = computed(() => page.props.area ?? (page.url.startsWith('/gestion') || page.url.startsWith('/admin') ? 'gestion' : page.url.startsWith('/profesional') ? 'profesional' : page.url.startsWith('/cliente') ? 'cliente' : 'public'));
 const publicNav = [['Catálogo', '/plataforma'], ['Portfolio', '/portfolio'], ['Nosotros', '/nosotros'], ['Contacto', '/contacto']];
@@ -45,7 +56,9 @@ const currentSection = computed(() => {
 watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false; });
 </script>
 <template>
-    <v-app class="synaux-app">
+    <v-app class="synaux-app" :style="{ '--navbar-height': headerHeight + 'px' }">
+        <!-- El encabezado fijo conserva su espacio mediante una altura medida, sin tapar el contenido. -->
+        <div ref="fixedHeader" class="fixed-header">
         <!-- En la referencia se puede revisar cada estado sin modificar registros ni conceder permisos. -->
         <div v-if="$page.props.preview" class="reference-bar"><div class="shell"><span>Prototipo · Datos de ejemplo</span><label>Ver pantalla<select :value="$page.props.referenceKey" aria-label="Pantalla del prototipo" @change="$inertia.get(`/prototipo/${$event.target.value}`)"><option v-for="item in $page.props.referenceScreens" :key="item.key" :value="item.key">{{ item.name }}</option></select></label><a href="/plataforma">Abrir aplicación</a></div></div>
         <a class="skip-link" href="#contenido">Saltar al contenido</a>
@@ -58,6 +71,8 @@ watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false;
                 <SynauxButton v-if="$page.props.auth && !$page.props.preview && !hasWorkspace" :href="$page.props.auth.is_admin ? '/gestion' : '/cliente'">Ir a mi panel</SynauxButton>
             </nav>
         </header>
+        </div>
+        <div class="navbar-space" aria-hidden="true"></div>
         <!-- El componente compartido anuncia resultados y errores sin perderse al desplazar la página. -->
         <SynauxNotifications :message="demoNotice || $page.props.notice" :errors="$page.props.errors" :page-key="$page.url" @close-message="demoNotice = ''" />
         <!-- El panel es adicional al sitio y solo acompaña las pantallas privadas. -->
@@ -72,24 +87,32 @@ watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false;
         </v-dialog>
         <!-- La firma de cierre mantiene el fondo blanco del diseño y el original a color con eslogan. -->
         <!-- El pie de la landing aplica la guía de marca sobre el diseño compartido. -->
-        <footer :class="{ 'landing-footer': landing }"><div class="shell footer-grid"><a :href="referenceHref('/', $page.props)" aria-label="Synaux: presentación"><BrandLogo /></a><div><strong>Conexión, transparencia y crecimiento digital.</strong><p>© {{ year }} Synaux.</p></div><nav aria-label="Navegación del pie"><a v-for="[label, href] in publicNav" :key="href" :href="referenceHref(href, $page.props)">{{ label }}</a></nav></div></footer>
+        <footer :class="{ 'landing-footer': landing, 'workspace-footer': hasWorkspace }"><div class="shell footer-grid"><a :href="referenceHref('/', $page.props)" aria-label="Synaux: presentación"><BrandLogo /></a><div><strong>Conexión, transparencia y crecimiento digital.</strong><p>© {{ year }} Synaux.</p></div><nav aria-label="Navegación del pie"><a v-for="[label, href] in publicNav" :key="href" :href="referenceHref(href, $page.props)">{{ label }}</a></nav></div></footer>
     </v-app>
 </template>
 
 <style scoped>
+/* El navbar queda sobre la página; la compensación usa su altura real incluso en el prototipo. */
+.fixed-header { position: fixed; inset: 0 0 auto; z-index: 100; background: #fff; }
+.navbar-space { flex: 0 0 var(--navbar-height); height: var(--navbar-height); }
+.workspace-content { scroll-margin-top: calc(var(--navbar-height) + 24px); }
+/* El pie ocupa el mismo ancho del contenido para no quedar detrás del panel fijo. */
+.workspace-footer { margin-left: 240px; }
 /* El contenido usa el ancho restante del panel; la landing y el catálogo conservan su composición pública. */
 .workspace-layout { flex: 1 1 auto; min-width: 0; }
 .with-workspace { display: grid; grid-template-columns: 240px minmax(0, 1fr); align-items: start; }
 .workspace-content { min-width: 0; width: 100%; }
 .workspace-sidebar { align-self: stretch; min-width: 0; background: #f5f9fa; border-right: 1px solid #1f6f7f22; }
-.workspace-sidebar-sticky { position: sticky; top: 24px; max-height: calc(100dvh - 48px); overflow-y: auto; }
+/* El panel ocupa el alto bajo el navbar; la navegación interna conserva su pie de cuenta visible. */
+.workspace-sidebar-sticky { position: fixed; top: var(--navbar-height); bottom: 0; left: 0; width: 240px; background: #f5f9fa; border-right: 1px solid #1f6f7f22; z-index: 40; }
 .with-workspace :deep(.page) { padding-block: 40px 72px; }
 .with-workspace :deep(.admin-layout) { grid-template-columns: minmax(0, 1fr); }
 .workspace-mobile-bar { display: none; }
 @media (max-width: 1100px) {
     .with-workspace { display: block; }
+    .workspace-footer { margin-left: 0; }
     .workspace-sidebar { display: none; }
-    .workspace-mobile-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 24px; background: #f5f9fa; border-bottom: 1px solid #1f6f7f22; color: #153b64; font-weight: 700; }
+    .workspace-mobile-bar { position: sticky; top: var(--navbar-height); z-index: 50; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 24px; background: #f5f9fa; border-bottom: 1px solid #1f6f7f22; color: #153b64; font-weight: 700; }
     .workspace-mobile-bar button { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 12px; border: 1px solid #1f6f7f44; border-radius: 8px; color: #153b64; background: #fff; cursor: pointer; }
     .workspace-mobile-bar button:focus-visible { outline: 3px solid #1f6f7f; outline-offset: 3px; }
 }
@@ -98,8 +121,9 @@ watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false;
 <style>
 /* El diálogo móvil se presenta como un panel lateral y conserva el foco y el cierre de Vuetify. */
 .workspace-mobile-dialog .v-overlay__content { position: fixed; top: 0; left: 0; margin: 0 !important; width: min(340px, calc(100vw - 24px)) !important; max-height: 100dvh !important; height: 100dvh; }
-.workspace-mobile-panel { height: 100%; overflow-y: auto; background: #f5f9fa; color: #153b64; font-family: 'Nunito', sans-serif; }
-.workspace-mobile-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid #1f6f7f33; }
+/* En móvil, la navegación ocupa el alto restante debajo del encabezado hasta el pie. */
+.workspace-mobile-panel { display: flex; flex-direction: column; height: 100%; overflow: hidden; background: #f5f9fa; color: #153b64; font-family: 'Nunito', sans-serif; }
+.workspace-mobile-heading { flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid #1f6f7f33; }
 .workspace-mobile-heading button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 8px; background: transparent; color: #153b64; cursor: pointer; }
 .workspace-mobile-heading button:focus-visible { outline: 3px solid #1f6f7f; }
 </style>

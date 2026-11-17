@@ -31,6 +31,8 @@ function logout() {
 
 <template>
     <div class="workspace-navigation">
+        <!-- Las secciones recibidas ocupan el área desplazable y dejan la cuenta al pie del panel. -->
+        <div class="workspace-sections">
         <p class="workspace-eyebrow">Mi espacio de trabajo</p><h2>{{ title }}</h2><p v-if="accountName" class="workspace-user">{{ accountName }}</p>
         <nav :aria-label="'Secciones de ' + title.toLowerCase()">
             <a v-for="[label, href] in items.filter(([label]) => label !== 'Administración' && label !== 'Mi perfil')" :key="href" :href="referenceHref(href, page.props)" :aria-current="isActive(href) ? 'page' : undefined" @click="emit('navigate')"><I :name="icons[label] ?? 'folder'" /><span>{{ label }}</span></a>
@@ -40,13 +42,17 @@ function logout() {
             <summary><I name="layout" /><span>Administración</span></summary>
             <nav aria-label="Configuración administrativa"><a v-for="[label, section] in administration" :key="section" :href="referenceHref('/admin/' + section, page.props)" :aria-current="current === 'administracion' && (page.props.section || 'servicios') === section ? 'page' : undefined" @click="emit('navigate')">{{ label }}</a></nav>
         </details>
+        </div>
+        <!-- Los accesos de cuenta permanecen al pie sin cambiar sus rutas ni el cierre de sesión. -->
         <nav class="workspace-account" aria-label="Opciones de la cuenta"><a :href="referenceHref('/mi-perfil', page.props)" :aria-current="current === 'mi-perfil' ? 'page' : undefined" @click="emit('navigate')"><I name="user" /><span>Mi perfil</span></a><button type="button" class="workspace-logout" :disabled="logoutForm.processing" @click="logout"><I name="arrow" /><span>{{ logoutForm.processing ? 'Cerrando sesión…' : 'Cerrar sesión' }}</span></button></nav>
     </div>
 </template>
 
 <style scoped>
 /* El panel conserva la paleta de Synaux y ofrece objetivos de al menos 44 px para teclado y tacto. */
-.workspace-navigation { padding: 26px 18px; color: #153b64; }
+/* El contenedor aporta la altura; solo las secciones se desplazan cuando falta espacio. */
+.workspace-navigation { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; height: 100%; padding: 26px 18px; color: #153b64; }
+.workspace-sections { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 .workspace-eyebrow { margin: 0 0 8px; color: #446075; font-size: .75rem; letter-spacing: .12em; font-weight: 700; text-transform: uppercase; }
 .workspace-user { margin: -12px 0 22px; color: #446075; font-size: .95rem; overflow-wrap: anywhere; }
 .workspace-navigation h2 { font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; font-weight: 700; line-height: 1.25; margin: 0 10px 24px 0; }
@@ -65,5 +71,6 @@ function logout() {
 .workspace-admin[open] summary::after { content: '−'; }
 .workspace-admin nav { margin: 6px 0 8px 20px; padding-left: 12px; border-left: 1px solid #1f6f7f33; }
 .workspace-admin nav a { font-size: .95rem; }
-.workspace-account { margin-top: 22px; padding-top: 16px; border-top: 1px solid #1f6f7f33; }
+/* El pie reserva espacio para perfil y salida aunque crezca la lista de secciones. */
+.workspace-account { flex-shrink: 0; margin-top: 22px; padding-top: 16px; border-top: 1px solid #1f6f7f33; }
 </style>
