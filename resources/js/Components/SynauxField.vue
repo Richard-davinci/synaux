@@ -8,7 +8,8 @@ const emit = defineEmits(['update:modelValue']);
         <span>{{ label }}<span v-if="required" aria-hidden="true"> *</span></span>
         <textarea v-if="type === 'textarea'" :value="modelValue" :required="required" :minlength="minlength" :maxlength="maxlength" :disabled="disabled" :placeholder="placeholder" :aria-invalid="!!error" @input="emit('update:modelValue', $event.target.value)" />
         <select v-else-if="type === 'select'" :value="modelValue" :required="required" :disabled="disabled" :aria-invalid="!!error" @change="emit('update:modelValue', $event.target.value)">
-            <option value="">Seleccioná una opción</option>
+            <!-- Los filtros ya incluyen «Todos» con valor vacío; no se duplica con una opción inicial. -->
+            <option v-if="!options?.some(option => (option?.value ?? option?.id ?? option) === '')" value="">Seleccioná una opción</option>
             <option v-for="option in options" :key="option.value ?? option.id ?? option" :value="option.value ?? option.id ?? option">{{ option.label ?? option.name ?? option }}</option>
         </select>
         <input v-else :value="modelValue" :type="type" :required="required" :autocomplete="autocomplete" :minlength="minlength" :maxlength="maxlength" :min="min" :max="max" :step="step" :disabled="disabled" :placeholder="placeholder" :aria-invalid="!!error" @input="emit('update:modelValue', $event.target.value)">

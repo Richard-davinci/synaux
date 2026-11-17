@@ -179,7 +179,7 @@ class SynauxFlowTest extends TestCase
 
         $decision = ['id' => $version, 'decision' => 'accepted', 'confirmed' => true];
         $this->actingAs($client)->post('/acciones/decidir-presupuesto', $decision)->assertRedirect();
-        $this->post('/acciones/decidir-presupuesto', $decision)->assertStatus(422);
+        $this->post('/acciones/decidir-presupuesto', $decision)->assertSessionHasErrors('decision');
         $this->assertDatabaseCount('projects', 1);
     }
 
@@ -310,6 +310,27 @@ class SynauxFlowTest extends TestCase
         $this->from('/estimador?paso=2')->post('/estimador/calcular', ['service' => 'sitio-institucional', 'answers' => [$qid => 999999]])->assertSessionHasErrors('answers.'.$qid)->assertSessionMissing('pending_estimate');
     }
 
+    // Si el pedido se cierra mientras se edita, el borrador se conserva y el aviso vuelve al formulario.
+    public function test_closed_request_returns_a_field_error_without_overwriting_the_budget_draft(): void
+    {
+        $client = $this->account();
+        $manager = $this->account(true);
+        $this->profile($manager);
+        $requestId = $this->projectRequest($client);
+        $this->actingAs($manager)->post('/acciones/presupuesto', [...$this->quoteData($requestId), 'send' => false])
+            ->assertSessionHasNoErrors();
+        $draft = DB::table('budget_versions')->first();
+        DB::table('project_requests')->where('id', $requestId)->update(['status' => 'closed']);
+        $this->from('/editor/presupuesto/'.$draft->id)->post('/acciones/presupuesto', [
+            ...$this->quoteData($requestId), 'budget_id' => $draft->budget_id,
+            'title' => 'Cambios que todavía estoy editando', 'send' => true,
+        ])->assertRedirect('/editor/presupuesto/'.$draft->id)->assertSessionHasErrors('request_id')
+            ->assertSessionHasInput('title', 'Cambios que todavía estoy editando');
+        $this->assertDatabaseHas('budget_versions', ['id' => $draft->id, 'title' => $draft->title, 'status' => 'draft']);
+        $this->assertDatabaseCount('budget_versions', 1);
+        $this->assertDatabaseCount('projects', 0);
+    }
+
     // El presupuesto enviado se conserva al emitir otra versión, y solo la vigente puede aceptarse.
     public function test_budget_versions_and_acceptance_create_exactly_one_project(): void
     {
@@ -323,12 +344,12 @@ class SynauxFlowTest extends TestCase
         $v2 = DB::table('budget_versions')->orderByDesc('id')->first();
         $this->assertDatabaseCount('budget_versions', 2);
         $this->assertDatabaseHas('budget_versions', ['id' => $v1->id, 'title' => 'Presupuesto de prueba', 'status' => 'sent']);
-        $this->actingAs($client)->post('/acciones/decidir-presupuesto', ['id' => $v1->id, 'decision' => 'accepted', 'confirmed' => true])->assertStatus(422);
+        $this->actingAs($client)->post('/acciones/decidir-presupuesto', ['id' => $v1->id, 'decision' => 'accepted', 'confirmed' => true])->assertSessionHasErrors('decision');
         $this->post('/acciones/decidir-presupuesto', ['id' => $v2->id, 'decision' => 'accepted', 'confirmed' => false])->assertSessionHasErrors('confirmed');
         $this->post('/acciones/decidir-presupuesto', ['id' => $v2->id, 'decision' => 'accepted', 'confirmed' => true])->assertRedirect();
         $this->assertDatabaseHas('projects', ['accepted_budget_version_id' => $v2->id]);
         $this->assertDatabaseHas('project_requests', ['id' => $id, 'status' => 'closed']);
-        $this->post('/acciones/decidir-presupuesto', ['id' => $v2->id, 'decision' => 'accepted', 'confirmed' => true])->assertStatus(422);
+        $this->post('/acciones/decidir-presupuesto', ['id' => $v2->id, 'decision' => 'accepted', 'confirmed' => true])->assertSessionHasErrors('decision');
         $this->assertDatabaseCount('projects', 1);
     }
 
@@ -353,7 +374,7 @@ class SynauxFlowTest extends TestCase
         $this->get('/presupuestos/'.$version->id.'/pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->post('/acciones/decidir-presupuesto', [
             'id' => $version->id, 'decision' => 'accepted', 'confirmed' => true,
-        ])->assertStatus(422);
+        ])->assertSessionHasErrors('decision');
         $this->assertDatabaseCount('projects', 0);
     }
 
@@ -367,7 +388,7 @@ class SynauxFlowTest extends TestCase
         $v = DB::table('budget_versions')->first();
         $this->actingAs($client)->get('/presupuestos/'.$v->id)->assertNotFound();
         DB::table('budget_versions')->where('id', $v->id)->update(['status' => 'sent', 'sent_at' => now(), 'valid_until' => today()->subDay()]);
-        $this->post('/acciones/decidir-presupuesto', ['id' => $v->id, 'decision' => 'accepted', 'confirmed' => true])->assertStatus(422);
+        $this->post('/acciones/decidir-presupuesto', ['id' => $v->id, 'decision' => 'accepted', 'confirmed' => true])->assertSessionHasErrors('decision');
         $this->assertDatabaseCount('projects', 0);
     }
 

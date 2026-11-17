@@ -28,6 +28,9 @@ class SynauxController extends Controller
         $data['profile'] = $ownProfile ? $this->workspace->profile($ownProfile) : null;
         if ($screen === 'servicio') {
             $data['selected'] = $this->catalog->service($id);
+            // El catálogo puede indicar el segmento inicial, pero el servidor conserva el control de los precios.
+            $data['initialClientType'] = in_array($request->query('cliente'), ['Particular', 'PyME', 'Empresa'], true)
+                ? $request->query('cliente') : null;
         }
         if (in_array($screen, ['portfolio', 'trabajo'], true)) {
             $data['works'] = $this->workspace->works();

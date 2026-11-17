@@ -1,10 +1,12 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { money } from '../support/synaux';
 
 // Cada tarjeta mantiene su propio segmento. Los importes llegan del tarifario publicado por Laravel.
-const props = defineProps({ reference: Object, serviceName: String });
-const segment = ref('PyME');
+const props = defineProps({ reference: Object, serviceName: String, modelValue: { type: String, default: 'PyME' } });
+const emit = defineEmits(['update:modelValue']);
+// La tarjeta comunica su selección para que el enlace al detalle conserve el mismo tipo de cliente.
+const segment = computed({ get: () => props.modelValue, set: value => emit('update:modelValue', value) });
 const options = computed(() => props.reference?.segments ?? []);
 const price = computed(() => options.value.find(item => item.label === segment.value) ?? options.value[0] ?? props.reference);
 </script>

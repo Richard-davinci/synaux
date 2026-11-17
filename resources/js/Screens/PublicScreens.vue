@@ -35,6 +35,13 @@ const services = computed(() => props.data.services.filter(service => {
     return searchWords.value.every(word => searchableText.includes(word));
 }));
 const resultsLabel = computed(() => services.value.length === 1 ? '1 resultado' : `${services.value.length} resultados`);
+// El enlace del catálogo conserva el segmento elegido y solo transmite su etiqueta, nunca un importe.
+const catalogSegments = ref({});
+function serviceHref(service) {
+    const segment = catalogSegments.value[service.id] ?? 'PyME';
+    const available = props.data.references?.[service.id]?.segments ?? [];
+    return '/servicios/' + service.id + (available.some(item => item.label === segment) ? '?cliente=' + encodeURIComponent(segment) : '');
+}
 const selected = computed(() => props.data.selected ?? {});
 // El detalle reutiliza los importes publicados del catálogo, con todos los segmentos visibles.
 const detailReference = computed(() => props.data.references?.[selected.value.id]);
@@ -42,7 +49,7 @@ const detailPrices = computed(() => detailReference.value?.segments?.length
     ? detailReference.value.segments
     : detailReference.value ? [{ label: 'Alcance base', min: detailReference.value.min, max: detailReference.value.max }] : []);
 // El tipo de cliente elegido en el detalle acompaña el acceso al estimador.
-const detailSegment = ref('PyME');
+const detailSegment = ref(props.data.initialClientType ?? 'PyME');
 const chosenPrice = computed(() => detailPrices.value.find(item => item.label === detailSegment.value) ?? detailPrices.value[0]);
 const estimateHref = computed(() => {
     const query = new URLSearchParams({ servicio: selected.value.id, paso: '2' });
@@ -94,8 +101,8 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
                 <ul v-if="service.includes?.length" class="service-deliverables" aria-label="Incluye">
                     <li v-for="item in service.includes.slice(0, 3)" :key="item"><I name="check" /><span>{{ item }}</span></li>
                 </ul>
-                <CatalogServicePrice :reference="data.references?.[service.id]" :service-name="service.name" />
-                <div class="card-link"><B :href="'/servicios/' + service.id" :aria-label="'Ver detalles de ' + service.name" arrow>Ver detalles</B></div>
+                <CatalogServicePrice v-model="catalogSegments[service.id]" :reference="data.references?.[service.id]" :service-name="service.name" />
+                <div class="card-link"><B :href="serviceHref(service)" :aria-label="'Ver detalles de ' + service.name" arrow>Ver detalles</B></div>
             </v-card>
         </div>        <Empty v-else title="No encontramos servicios con esos filtros." text="Probá otra búsqueda o volvé a ver todas las propuestas."><B @click="clear">Limpiar filtros</B></Empty>
         <div class="notice"><I name="info" /><p>Cada proyecto tiene su propio alcance. Los entregables, el precio y las condiciones se definen en una propuesta profesional.</p></div>

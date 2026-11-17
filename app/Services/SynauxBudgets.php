@@ -23,11 +23,16 @@ class SynauxBudgets
 
         return DB::transaction(function () use ($request, $data) {
             $record = DB::table('project_requests')->where('id', $data['request_id'])->lockForUpdate()->firstOrFail();
-            abort_unless($record->status === 'open', 422, 'La solicitud debe estar enviada y abierta.');
+            // Los conflictos de estado vuelven al formulario con un mensaje y conservan sus datos.
+            if ($record->status !== 'open') {
+                throw ValidationException::withMessages(['request_id' => 'La solicitud ya no está abierta. Revisá su estado antes de preparar el presupuesto.']);
+            }
             $profile = DB::table('professional_profiles')->where('user_id', $request->user()->id)->first();
             $proposal = $profile ? DB::table('proposals')->where('project_request_id', $record->id)->where('professional_profile_id', $profile->id)->where('status', 'accepted')->first() : null;
             abort_unless($request->user()->is_admin || $proposal !== null, 403);
-            abort_if($record->user_id === $request->user()->id, 422, 'No podés presupuestarte a vos mismo.');
+            if ($record->user_id === $request->user()->id) {
+                throw ValidationException::withMessages(['request_id' => 'No podés preparar un presupuesto para tu propia solicitud.']);
+            }
             if (! $profile) {
                 // El gestor de Synaux puede completar su perfil de emisión desde el área profesional.
                 throw ValidationException::withMessages(['request_id' => 'Completá primero tu perfil profesional para identificar al emisor.']);
@@ -42,7 +47,9 @@ class SynauxBudgets
                     'project_request_id' => $proposal ? null : $record->id, 'professional_profile_id' => $proposal ? null : $profile->id,
                     'created_at' => now(), 'updated_at' => now()]);
             }
-            abort_if(DB::table('budget_versions')->where('budget_id', $budgetId)->where('status', 'accepted')->exists(), 422, 'Este presupuesto ya fue aceptado.');
+            if (DB::table('budget_versions')->where('budget_id', $budgetId)->where('status', 'accepted')->exists()) {
+                throw ValidationException::withMessages(['budget_id' => 'Este presupuesto ya fue aceptado. Consultá el proyecto para continuar.']);
+            }
             $draft = DB::table('budget_versions')->where('budget_id', $budgetId)->where('status', 'draft')->first();
             // El documento conserva las partes de esta versión aunque después cambien los perfiles.
             $owner = DB::table('users')->where('id', $record->user_id)->firstOrFail();
@@ -81,10 +88,16 @@ class SynauxBudgets
             $origin = $budget->proposal_id ? DB::table('proposals')->where('id', $budget->proposal_id)->first() : null;
             $record = DB::table('project_requests')->where('id', $budget->project_request_id ?? $origin?->project_request_id)->lockForUpdate()->first();
             abort_unless(($record?->user_id ?? $budget->client_user_id) === $request->user()->id, 403);
-            abort_if($record && $record->status !== 'open', 422, 'La solicitud ya no está abierta.');
+            if ($record && $record->status !== 'open') {
+                throw ValidationException::withMessages(['decision' => 'La solicitud ya no está abierta. Actualizá la página para consultar su estado.']);
+            }
             $latest = DB::table('budget_versions')->where('budget_id', $budget->id)->whereNotNull('sent_at')->max('version_number');
-            abort_unless($version->status === 'sent' && $version->version_number === (int) $latest && $version->valid_until >= today()->toDateString(), 422, 'Esta versión no está vigente para tomar una decisión.');
-            abort_if(DB::table('budget_versions')->where('budget_id', $budget->id)->where('status', 'accepted')->exists(), 422);
+            if ($version->status !== 'sent' || $version->version_number !== (int) $latest || $version->valid_until < today()->toDateString()) {
+                throw ValidationException::withMessages(['decision' => 'Esta versión ya no está vigente para decidir. Actualizá la página y revisá la última versión.']);
+            }
+            if (DB::table('budget_versions')->where('budget_id', $budget->id)->where('status', 'accepted')->exists()) {
+                throw ValidationException::withMessages(['decision' => 'Este presupuesto ya tiene una versión aceptada. Consultá el proyecto.']);
+            }
             DB::table('budget_versions')->where('id', $version->id)->update(['status' => $data['decision'], 'updated_at' => now()]);
             if ($data['decision'] !== 'accepted') {
                 return null;
