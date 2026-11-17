@@ -48,7 +48,7 @@ class SynauxReferenceController extends Controller
         $quote = ['id' => 2082, 'budget_id' => 208, 'request_id' => 1042, 'request_owner' => 1, 'issuer_id' => 2, 'title' => $request['title'], 'request_title' => $request['title'], 'version_number' => 2, 'status' => 'sent', 'display_status' => 'sent', 'current' => true, 'created_at' => '2025-06-18', 'sent_at' => '2025-06-18', 'valid_until' => today()->addDays(14)->toDateString(), 'currency_code' => 'ARS', 'tax_rate' => 0, 'subtotal' => 2450000, 'total' => 2450000, 'estimated_delivery_days' => 42, 'terms' => "2 instancias de revisión por etapa.\n50% al inicio y 50% contra entrega.", 'items' => $items];
         // El documento de ejemplo usa identidades ficticias, igual que la vista previa de Gestión.
         $quote['client'] = ['name' => 'Cliente de ejemplo', 'company' => 'Estudio Norte', 'email' => 'cliente@example.test'];
-        $quote['issuer'] = ['name' => 'Synaux', 'email' => 'contacto@example.test'];
+        $quote['issuer'] = ['name' => 'synaux', 'email' => 'contacto@example.test'];
         $previous = [...$quote, 'id' => 2081, 'version_number' => 1, 'current' => false, 'sent_at' => '2025-06-12'];
         $expired = [...$quote, 'id' => 1961, 'budget_id' => 196, 'title' => 'Sistema visual Horizonte', 'version_number' => 1, 'display_status' => 'expired', 'valid_until' => '2025-05-10', 'subtotal' => 980000, 'total' => 980000];
         $project = ['id' => 78, 'title' => 'Sitio institucional Andina', 'status' => 'in_progress', 'progress' => 60, 'accepted_budget_version_id' => 2082, 'created_at' => '2025-06-12', 'start_date' => '2025-06-12', 'end_date' => null, 'notes' => 'Diseño aprobado. Estamos avanzando en desarrollo y carga de contenidos. Próximo paso: revisión del sitio.'];
@@ -157,7 +157,7 @@ class SynauxReferenceController extends Controller
             $data['requests'][0]['contact'] = ['name' => 'Cliente de ejemplo', 'email' => 'cliente@example.test', 'company' => 'Estudio Norte'];
         }
         if ($screen === 'editor-presupuesto') {
-            $data['profile'] = [...$data['profile'], 'brand_name' => 'Synaux'];
+            $data['profile'] = [...$data['profile'], 'brand_name' => 'synaux'];
         }
 
         // El seguimiento de ejemplo ilustra avances conservados sin escribir proyectos reales.
@@ -187,7 +187,7 @@ class SynauxReferenceController extends Controller
                 'company' => 'Estudio de ejemplo', 'address' => 'Dirección de ejemplo',
                 'is_admin' => $isAdmin, 'created_at' => '2026-11-17',
             ];
-            $data['issuer'] = $isAdmin ? ['name' => 'Synaux', 'email' => 'presupuestos@example.test', 'phone' => '1100000000', 'address' => 'Dirección del estudio'] : null;
+            $data['issuer'] = $isAdmin ? ['name' => 'synaux', 'email' => 'presupuestos@example.test', 'phone' => '1100000000', 'address' => 'Dirección del estudio'] : null;
             $data['area'] = $isAdmin ? 'gestion' : 'cliente';
             $data['referenceRoutes']['/mi-perfil'] = $isAdmin ? 'cuenta-admin' : 'cuenta-cliente';
             return Inertia::render('AccountProfile', $data);

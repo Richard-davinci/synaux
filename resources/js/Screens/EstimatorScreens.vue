@@ -157,14 +157,14 @@ function save(toRequest) {
                     <div><span>Servicio</span><strong>{{ selectedService?.name }}</strong><B variant="ghost" @click="step = 1">Cambiar servicio</B></div>
                     <div v-for="question in data.questions" :key="question.id"><span>{{ question.question }}</span><strong>{{ answerLabel(question) }}</strong><B variant="ghost" :aria-label="'Editar respuesta: ' + question.question" @click="step = 2">Editar</B></div>
                 </div>
-                <p class="estimate-note">Al confirmar, Synaux calcula la referencia y conserva las respuestas para tu solicitud de presupuesto.</p>
+                <p class="estimate-note">Al confirmar, synaux calcula la referencia y conserva las respuestas para tu solicitud de presupuesto.</p>
                 <div class="form-actions"><B variant="secondary" @click="step = 2">Anterior</B><B :disabled="form.processing" arrow @click="calculate">{{ form.processing ? 'Calculando…' : 'Calcular estimación' }}</B></div>
             </v-card>
 
             <aside class="estimator-reference">
                 <ServiceReference :service="selectedService" :reference="currentReference" />
                 <v-card v-if="!selectedService" class="card reference-empty"><h3>Referencia del servicio</h3><p>Elegí un servicio para ver su alcance y la referencia de precio disponible.</p></v-card>
-                <p class="estimate-note">Podés revisar los datos antes de enviar una solicitud a Synaux.</p>
+                <p class="estimate-note">Podés revisar los datos antes de enviar una solicitud a synaux.</p>
             </aside>
         </div>
 
@@ -173,7 +173,7 @@ function save(toRequest) {
             <v-card class="card result-card">
                 <p class="eyebrow">{{ result.mode === 'manual' ? 'Revisión de alcance' : 'Tu estimación orientativa' }}</p>
                 <h2>{{ result.mode === 'manual' ? 'Preparemos una propuesta para tu proyecto' : priceRange(result.min, result.max, result.currency) }}</h2>
-                <p>{{ result.mode === 'manual' ? 'Synaux necesita revisar el alcance para definir el importe y los plazos. Podés continuar con la solicitud.' : 'Calculada el ' + date(result.date) + '. El precio y las condiciones finales se confirman en el presupuesto formal.' }}</p>
+                <p>{{ result.mode === 'manual' ? 'synaux necesita revisar el alcance para definir el importe y los plazos. Podés continuar con la solicitud.' : 'Calculada el ' + date(result.date) + '. El precio y las condiciones finales se confirman en el presupuesto formal.' }}</p>
                 <div v-if="result.mode !== 'manual'" class="estimate-lines">
                     <div><span>Base del servicio</span><strong>{{ priceRange(result.base_min,result.base_max,result.currency) }}</strong></div>
                     <div v-for="item in result.items" :key="item.name"><span>{{ item.name }}<template v-if="item.unit !== 'segmento'"> · {{ item.quantity }}</template></span><strong>{{ priceRange(Number(item.min)*Number(item.quantity),Number(item.max)*Number(item.quantity),result.currency) }}</strong></div>
@@ -195,7 +195,7 @@ function save(toRequest) {
                     <ul v-if="!saved"><li v-for="deliverable in result.service?.includes ?? []" :key="deliverable">{{ deliverable }}</li></ul>
                     <dl class="data-list"><div v-for="answer in result.answers" :key="answer.id"><dt>{{ answer.question }}</dt><dd>{{ answer.label }}</dd></div></dl>
                 </v-card>
-                <v-card class="card soft-panel"><h3>El próximo paso</h3><p>Completá el pedido y tus datos de contacto. Synaux revisará el alcance y te enviará un presupuesto formal.</p><p v-if="!$page.props.auth && !data.preview">Tus respuestas se conservan al ingresar o crear tu cuenta.</p></v-card>
+                <v-card class="card soft-panel"><h3>El próximo paso</h3><p>Completá el pedido y tus datos de contacto. synaux revisará el alcance y te enviará un presupuesto formal.</p><p v-if="!$page.props.auth && !data.preview">Tus respuestas se conservan al ingresar o crear tu cuenta.</p></v-card>
             </aside>
         </div>
         <v-card v-else class="card"><h2>Comenzá por elegir un servicio</h2><p>Necesitamos tus respuestas para preparar la referencia.</p><B href="/estimador">Volver al estimador</B></v-card>

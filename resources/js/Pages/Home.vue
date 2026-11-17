@@ -24,7 +24,7 @@ const steps = [
 
 <template>
     <Head title="Estrategia, diseño y desarrollo">
-        <meta name="description" content="Explorá los servicios digitales de Synaux y definí el próximo paso de tu proyecto.">
+        <meta name="description" content="Explorá los servicios digitales de synaux y definí el próximo paso de tu proyecto.">
     </Head>
 
     <PublicLayout landing>
@@ -33,7 +33,7 @@ const steps = [
             <div>
                 <p class="eyebrow">Estrategia · Diseño · Desarrollo</p>
                 <h1 id="landing-title">Dale forma a tu <em>próximo proyecto.</em></h1>
-                <p class="landing-lead">En Synaux conectamos estrategia, diseño y desarrollo para ayudarte a entender qué necesitás y avanzar con un alcance claro.</p>
+                <p class="landing-lead">En synaux conectamos estrategia, diseño y desarrollo para ayudarte a entender qué necesitás y avanzar con un alcance claro.</p>
                 <div class="landing-actions">
                     <B href="/plataforma" arrow>Explorar servicios</B>
                     <a href="#como-funciona">Cómo funciona</a>

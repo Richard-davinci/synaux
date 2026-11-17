@@ -56,7 +56,7 @@ const estimateHref = computed(() => {
     if (['Particular', 'PyME', 'Empresa'].includes(chosenPrice.value?.label)) query.set('cliente', chosenPrice.value.label);
     return '/estimador?' + query.toString();
 });
-// El detalle reutiliza las escenas de trabajo digital que ya forman parte de los recursos de Synaux.
+// El detalle reutiliza las escenas de trabajo digital que ya forman parte de los recursos de synaux.
 const detailImage = computed(() => ['Desarrollo web', 'UX/UI'].includes(selected.value.category)
     ? { src: '/images/landing/planificacion.webp', alt: 'Planificación de una interfaz con bocetos y una computadora.' }
     : { src: '/images/landing/colaboracion.webp', alt: 'Dos personas revisando una propuesta digital.' });
@@ -139,7 +139,7 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
             <p v-if="detailReference" class="detail-price-date">Valores vigentes desde {{ date(detailReference.date) }}.</p>
             <div class="detail-price-info">
                 <I name="info" />
-                <p>Los precios son orientativos. El importe final puede variar según la complejidad, los entregables, los plazos y las revisiones acordadas. Synaux confirma el alcance y las condiciones en el presupuesto formal.</p>
+                <p>Los precios son orientativos. El importe final puede variar según la complejidad, los entregables, los plazos y las revisiones acordadas. synaux confirma el alcance y las condiciones en el presupuesto formal.</p>
             </div>
             <div class="button-row">
                 <B :href="estimateHref" arrow>Continuar con mi estimación</B>
@@ -149,14 +149,14 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
 
         <div class="content-grid">
             <article><h2>Qué incluye</h2><ul class="check-list"><li v-for="item in selected.includes" :key="item"><I name="check" />{{ item }}</li></ul></article>
-            <aside class="soft-panel service-next-steps"><I name="file" /><h2>Cómo seguimos</h2><p>Completá la estimación y enviá tu solicitud privada. Synaux revisará tus necesidades y preparará una propuesta con precio, plazo y condiciones.</p></aside>
+            <aside class="soft-panel service-next-steps"><I name="file" /><h2>Cómo seguimos</h2><p>Completá la estimación y enviá tu solicitud privada. synaux revisará tus necesidades y preparará una propuesta con precio, plazo y condiciones.</p></aside>
         </div>
     </section>
     <!-- Las imágenes se sirven localmente y cada tarjeta abre el trabajo correspondiente. -->
     <section v-else-if="data.screen === 'portfolio'" class="page shell">
         <T eyebrow="Portfolio" title="Trabajo real, decisiones con intención" description="Una selección de proyectos en los que estrategia, diseño y tecnología avanzaron juntos." />
         <div v-if="data.works?.length" class="portfolio-grid"><a v-for="(work, index) in data.works" :key="work.id" :href="data.preview ? '/prototipo/trabajo' : `/trabajos/${work.id}`" :class="['work-card', `work-${index % 3}`]"><img v-if="work.cover_path" :src="work.cover_path" :alt="work.title"><span><small>{{ work.category }}</small><strong>{{ work.title }}</strong><i><I name="arrow" /></i></span></a></div>
-        <Empty v-else title="Estamos preparando nuestro portfolio." text="Próximamente vas a poder conocer los trabajos publicados por Synaux." href="/contacto" action="Contanos tu proyecto" />
+        <Empty v-else title="Estamos preparando nuestro portfolio." text="Próximamente vas a poder conocer los trabajos publicados por synaux." href="/contacto" action="Contanos tu proyecto" />
         <p v-if="data.preview" class="photo-credit">Fotografías de Airlangga Jati, Creatvise y Branislav Rodman en Unsplash.</p>
     </section>
     <section v-else-if="data.screen === 'trabajo'" class="page shell">
@@ -165,10 +165,10 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
         <div class="story"><aside><strong>Servicio</strong><p>{{ selected.category }}</p><strong>Año</strong><p>{{ selected.year ?? 'A definir' }}</p><B v-if="selected.live_url" :href="selected.live_url" variant="secondary">Visitar proyecto</B></aside><article><h2>El desafío</h2><p class="text-block">{{ selected.challenge || selected.description }}</p><h2>La solución</h2><p class="text-block">{{ selected.result || 'Las decisiones y los entregables de este trabajo se documentan en su presentación.' }}</p><div class="gallery"><img v-for="image in selected.images ?? []" :key="image.id" :src="image.image_path" :alt="image.alt_text"></div><B href="/contacto" arrow>Hablemos de tu proyecto</B></article></div>
     </section>
 
-    <!-- La presentación de Synaux utiliza la identidad actual y las especialidades del prototipo. -->
+    <!-- La presentación de synaux utiliza la identidad actual y las especialidades del prototipo. -->
     <section v-else-if="data.screen === 'perfil'" class="page shell narrow">
-        <div class="profile-hero"><div class="profile-mark">{{ data.preview ? 'RS' : 'S' }}</div><div><p class="eyebrow">Quién está detrás de Synaux</p><h1>{{ data.preview ? 'Ricardo Salvatierra' : 'Synaux' }}</h1><p class="lead">Profesional digital enfocado en conectar estrategia, diseño y tecnología para crear soluciones que se entienden.</p></div></div>
-        <div class="content-grid"><article><h2>Trabajo cercano, proceso profesional</h2><p>Synaux nace para ofrecer una forma más transparente de abordar proyectos digitales. Cada decisión se vincula con un objetivo, cada propuesta explicita su alcance y cada proyecto conserva la historia de lo acordado.</p><h2>Especialidades</h2><div class="tag-list"><span>Estrategia digital</span><span>UX/UI</span><span>Desarrollo web</span><span>Sistemas de diseño</span></div></article><v-card class="card summary-card"><h3>¿Hablamos de tu proyecto?</h3><p>Podemos empezar con una estimación o con una conversación si tu necesidad requiere una mirada particular.</p><B href="/contacto">Contactar</B></v-card></div>
+        <div class="profile-hero"><div class="profile-mark">{{ data.preview ? 'RS' : 'S' }}</div><div><p class="eyebrow">Quién está detrás de synaux</p><h1>{{ data.preview ? 'Ricardo Salvatierra' : 'synaux' }}</h1><p class="lead">Profesional digital enfocado en conectar estrategia, diseño y tecnología para crear soluciones que se entienden.</p></div></div>
+        <div class="content-grid"><article><h2>Trabajo cercano, proceso profesional</h2><p>synaux nace para ofrecer una forma más transparente de abordar proyectos digitales. Cada decisión se vincula con un objetivo, cada propuesta explicita su alcance y cada proyecto conserva la historia de lo acordado.</p><h2>Especialidades</h2><div class="tag-list"><span>Estrategia digital</span><span>UX/UI</span><span>Desarrollo web</span><span>Sistemas de diseño</span></div></article><v-card class="card summary-card"><h3>¿Hablamos de tu proyecto?</h3><p>Podemos empezar con una estimación o con una conversación si tu necesidad requiere una mirada particular.</p><B href="/contacto">Contactar</B></v-card></div>
     </section>
 
     <!-- El formulario guarda una consulta real; el estado enviado se muestra solo tras una respuesta válida. -->
@@ -208,7 +208,7 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
 @media (max-width: 1000px) { .catalog-page .catalog-tools-row { grid-template-columns: minmax(0,1fr); } }
 @media (max-width: 600px) { .catalog-page .catalog-tools, .catalog-page .service-card { padding: 1.15rem; } }
 
-/* La vista independiente agrupa alcance, precios e información con la identidad de Synaux. */
+/* La vista independiente agrupa alcance, precios e información con la identidad de synaux. */
 .service-intro { display: grid; grid-template-columns: minmax(0,1.2fr) minmax(0,1fr); align-items: center; gap: 2rem; margin-block: 1.5rem 2.5rem; }
 .service-image { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 1.25rem; }
 .service-intro h1 { margin-bottom: 1rem; font-size: clamp(2.25rem,4vw,3.75rem); line-height: 1.08; }

@@ -44,7 +44,7 @@ class User extends Authenticatable
     public function issuerDetails(?string $brand = null): array
     {
         return [
-            'name' => ($this->is_admin ? $this->issuer_name : null) ?: ($brand ?: 'Synaux'),
+            'name' => ($this->is_admin ? $this->issuer_name : null) ?: ($brand ?: 'synaux'),
             'contact' => $this->name,
             'email' => ($this->is_admin ? $this->issuer_email : null) ?: $this->email,
             'phone' => $this->is_admin ? $this->issuer_phone : null,

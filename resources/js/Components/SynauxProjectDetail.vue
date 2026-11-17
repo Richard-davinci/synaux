@@ -12,7 +12,7 @@ const project = computed(() => props.data.selected ?? {});
 const budget = computed(() => props.data.quotes?.find(item => item.id === project.value.accepted_budget_version_id));
 const management = computed(() => props.data.area === 'gestion' || props.data.area === 'profesional');
 const guidance = computed(() => ({
-    pending: ['Coordinación del inicio', 'El presupuesto fue aceptado. Synaux coordinará el inicio y registrará los próximos pasos.'],
+    pending: ['Coordinación del inicio', 'El presupuesto fue aceptado. synaux coordinará el inicio y registrará los próximos pasos.'],
     in_progress: ['Proyecto en desarrollo', 'Consultá los avances registrados y las próximas tareas acordadas.'],
     completed: ['Proyecto completado', 'El trabajo figura como completado. Conservás el presupuesto y el historial para consultarlos.'],
     cancelled: ['Proyecto cancelado', 'El proyecto figura como cancelado. Podés consultar el seguimiento y las condiciones del presupuesto aceptado.'],
@@ -30,10 +30,10 @@ const guidance = computed(() => ({
                     <h2>Avance del proyecto</h2><div class="section-head"><span>Progreso informado</span><strong class="project-percent">{{ project.progress }}%</strong></div>
                     <progress max="100" :value="project.progress" aria-label="Avance del proyecto" />
                     <dl class="data-list"><div><dt>Proyecto creado</dt><dd>{{ date(project.created_at) }}</dd></div><div><dt>Inicio</dt><dd>{{ project.start_date ? date(project.start_date) : 'A coordinar' }}</dd></div><div><dt>Fecha de cierre</dt><dd>{{ project.end_date ? date(project.end_date) : 'Sin registrar' }}</dd></div></dl>
-                    <h3>Última actualización</h3><p class="preserve-lines">{{ project.notes || 'Todavía no hay una actualización registrada por Synaux.' }}</p>
+                    <h3>Última actualización</h3><p class="preserve-lines">{{ project.notes || 'Todavía no hay una actualización registrada por synaux.' }}</p>
                     <p v-if="project.updates?.length" class="project-help">Registrada el {{ date(project.updates[0].created_at) }}</p>
                 </v-card>
-                <v-card class="card next-steps"><p class="eyebrow">Qué sigue</p><h2>Próximos pasos</h2><p class="preserve-lines">{{ project.next_steps || (project.status === 'completed' ? 'El proyecto está completado. Consultá la última actualización para conocer el cierre.' : project.status === 'cancelled' ? 'No hay próximas tareas registradas para este proyecto.' : 'Synaux registrará acá las próximas tareas y lo que necesite de tu parte.') }}</p></v-card>
+                <v-card class="card next-steps"><p class="eyebrow">Qué sigue</p><h2>Próximos pasos</h2><p class="preserve-lines">{{ project.next_steps || (project.status === 'completed' ? 'El proyecto está completado. Consultá la última actualización para conocer el cierre.' : project.status === 'cancelled' ? 'No hay próximas tareas registradas para este proyecto.' : 'synaux registrará acá las próximas tareas y lo que necesite de tu parte.') }}</p></v-card>
                 <v-card class="card">
                     <h2>Historial de avances</h2><p class="project-help">Cada actualización conserva el estado y el avance informado en ese momento.</p>
                     <ol v-if="project.updates?.length" class="project-history"><li v-for="update in project.updates" :key="update.id"><div class="history-heading"><strong>{{ date(update.created_at) }} · {{ update.progress }}%</strong><S :status="update.status" /></div><p v-if="update.notes" class="preserve-lines">{{ update.notes }}</p><div v-if="update.next_steps"><strong>Próximos pasos</strong><p class="preserve-lines">{{ update.next_steps }}</p></div><p v-if="!update.notes && !update.next_steps">Se actualizaron los datos de seguimiento del proyecto.</p><small v-if="update.start_date || update.end_date">Inicio: {{ date(update.start_date) }} · Cierre: {{ update.end_date ? date(update.end_date) : 'Sin registrar' }}</small></li></ol>

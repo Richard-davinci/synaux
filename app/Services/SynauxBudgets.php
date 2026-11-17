@@ -34,7 +34,7 @@ class SynauxBudgets
                 throw ValidationException::withMessages(['request_id' => 'No podés preparar un presupuesto para tu propia solicitud.']);
             }
             if (! $profile) {
-                // El gestor de Synaux puede completar su perfil de emisión desde el área profesional.
+                // El gestor de synaux puede completar su perfil de emisión desde el área profesional.
                 throw ValidationException::withMessages(['request_id' => 'Completá los datos de emisión en Mi perfil para identificar al emisor.']);
             }
             if (! empty($data['budget_id'])) {
@@ -73,6 +73,12 @@ class SynauxBudgets
                     'quantity' => $item['quantity'], 'unit_price' => $item['unit_price'], 'unit_label' => 'unidad']);
             }
 
+            // El cliente recibe el aviso únicamente cuando se envía la versión, nunca por borradores.
+            if ($data['send']) {
+                app(SynauxNotificationCenter::class)->send('presupuesto', $versionId, 'presupuesto-enviado:'.$versionId,
+                    'Nuevo presupuesto', $data['title'], [$record->user_id], actor: $request->user()->id);
+            }
+
             return $versionId;
         });
     }
@@ -107,8 +113,14 @@ class SynauxBudgets
                 DB::table('project_requests')->where('id', $record->id)->update(['status' => 'closed', 'updated_at' => now()]);
             }
 
-            return DB::table('projects')->insertGetId(['accepted_budget_version_id' => $version->id, 'title' => $version->title,
+            $projectId = DB::table('projects')->insertGetId(['accepted_budget_version_id' => $version->id, 'title' => $version->title,
                 'status' => 'pending', 'progress' => 0, 'created_at' => now(), 'updated_at' => now()]);
+            // El proyecto creado avisa a sus partes y a gestión dentro de la misma transacción.
+            $center = app(SynauxNotificationCenter::class);
+            $center->send('proyecto', $projectId, 'proyecto-creado:'.$projectId, 'Nuevo proyecto', $version->title,
+                $center->projectRecipients($projectId), management: true, actor: $request->user()->id);
+
+            return $projectId;
         });
     }
 }

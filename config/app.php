@@ -13,7 +13,8 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Laravel'),
+    // La marca se escribe en minúsculas también en las notificaciones generadas por Laravel.
+    'name' => env('APP_NAME', 'synaux'),
 
     /*
     |--------------------------------------------------------------------------

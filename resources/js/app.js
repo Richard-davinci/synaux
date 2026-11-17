@@ -1,4 +1,4 @@
-// Preparación común: cliente HTTP, estilos de Vuetify y tipografías/ajustes de Synaux.
+// Preparación común: cliente HTTP, estilos de Vuetify y tipografías/ajustes de synaux.
 import './bootstrap';
 import 'vuetify/styles';
 import '../css/app.css';
@@ -11,8 +11,8 @@ import vuetify from './plugins/vuetify';
 
 // Inicia una única aplicación Vue; Inertia selecciona la página solicitada a Laravel.
 createInertiaApp({
-    // Agrega la marca al título definido por cada página.
-    title: (title) => (title ? `${title} | Synaux` : 'Synaux'),
+    // Agrega la marca en minúsculas al título recibido de cada página.
+    title: (title) => (title ? `${title} | synaux` : 'synaux'),
     // Busca el componente dentro de Pages a partir del nombre devuelto por Inertia::render.
     resolve: (name) => resolvePageComponent(
         `./Pages/${name}.vue`,

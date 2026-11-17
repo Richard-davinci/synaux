@@ -25,7 +25,7 @@ defineProps({
         class="brand-logo"
         width="250"
         :height="withSlogan ? 179 : 168"
-        :alt="withSlogan ? 'Synaux, Creciendo juntos' : 'Synaux'"
+        :alt="withSlogan ? 'synaux, Creciendo juntos' : 'synaux'"
         decoding="async"
     >
 </template>

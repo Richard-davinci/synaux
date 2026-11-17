@@ -48,6 +48,9 @@ Route::middleware('guest')->group(function () {
 
 // El servidor vuelve a comprobar propiedad y permisos para cada formulario y cada detalle privado.
 Route::middleware('auth')->group(function () {
+    // Marcar avisos como leídos requiere sesión y no acepta destinatarios enviados por el navegador.
+    Route::patch('/notificaciones/leer-todas', [\App\Http\Controllers\SynauxNotificationController::class, 'read'])->middleware('throttle:60,1');
+    Route::patch('/notificaciones/{id}/leer', [\App\Http\Controllers\SynauxNotificationController::class, 'read'])->whereNumber('id')->middleware('throttle:60,1');
     // Las rutas de perfil siempre operan sobre la cuenta autenticada.
     Route::get('/mi-perfil', [SynauxAccountController::class, 'edit']);
     Route::patch('/mi-perfil', [SynauxAccountController::class, 'update'])->middleware('throttle:10,1');
@@ -76,6 +79,13 @@ Route::middleware('auth')->group(function () {
         Route::post('/admin/tarifario/importar', [SynauxTariffImportController::class, 'store'])->middleware('throttle:2,1');
         // Entrada administrativa de revisión para las funciones de la segunda etapa.
         Route::get('/admin/etapa-2', fn () => Inertia::render('StageTwo'))->name('stage-two');
+        // El asistente usa una página propia y conserva el permiso real del grupo administrativo.
+        Route::get('/admin/servicios/nuevo', fn (Request $r, SynauxController $c) => $c->area($r, 'admin', 'servicios'));
+        Route::get('/admin/servicios/{service}/editar', function (Request $r, SynauxController $c, int $service) {
+            abort_unless(\Illuminate\Support\Facades\DB::table('services')->where('id', $service)->exists(), 404);
+
+            return $c->area($r, 'admin', 'servicios');
+        })->whereNumber('service');
         foreach (['gestion', 'admin'] as $area) {
             Route::get('/'.$area.'/{section?}', fn (Request $r, SynauxController $c, string $section = '') => $c->area($r, $area, $section));
         }

@@ -17,11 +17,11 @@ defineProps({ service: Object, reference: Object, saved: Boolean });
         <p>{{ service.summary }}</p>
         <ul v-if="service.includes?.length"><li v-for="item in service.includes" :key="item">{{ item }}</li></ul>
         <p v-if="reference" class="reference-note">{{ saved ? 'Calculada el' : 'Referencia vigente desde' }} {{ date(reference.date) }}. {{ saved ? 'Conservamos el importe y las respuestas de tu estimación.' : 'Las respuestas pueden ajustar el importe.' }} El presupuesto formal se prepara al revisar tu solicitud.</p>
-        <p v-else class="reference-note">Contanos qué necesitás para que Synaux prepare una propuesta.</p>
+        <p v-else class="reference-note">Contanos qué necesitás para que synaux prepare una propuesta.</p>
     </section>
 </template>
 <style scoped>
-/* La ficha usa las superficies y los colores de Synaux y se adapta al ancho disponible. */
+/* La ficha usa las superficies y los colores de synaux y se adapta al ancho disponible. */
 .service-reference { padding: 1.5rem; margin-block: 1.5rem; background: #f5f9fa; border: 1px solid rgb(31 111 127 / 18%); border-radius: .875rem; color: #153b64; }
 .reference-heading { display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem; margin-bottom: .75rem; }
 .reference-heading .eyebrow { margin: 0 0 .35rem; }

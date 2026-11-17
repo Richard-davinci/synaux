@@ -14,7 +14,7 @@ defineProps({ budget: Object, client: Object, issuer: Object });
         <div class="document-dates"><span>Fecha: {{ date(budget.sent_at ?? budget.created_at ?? new Date().toISOString()) }}</span><span>Vigente hasta {{ date(budget.valid_until) }}</span></div>
         <div class="document-parties">
             <section><h3>Cliente</h3><strong>{{ client?.company || client?.name || 'Cliente de la solicitud' }}</strong><p v-if="client?.company">{{ client.name }}</p><p v-for="field in ['email','phone','address']" :key="field">{{ client?.[field] }}</p></section>
-            <section><h3>Emisor</h3><strong>{{ issuer?.name || 'Synaux' }}</strong><p>{{ issuer?.contact }}</p><p>{{ issuer?.email }}</p><p v-if="issuer?.phone">{{ issuer.phone }}</p><p v-if="issuer?.address">{{ issuer.address }}</p></section>
+            <section><h3>Emisor</h3><strong>{{ issuer?.name || 'synaux' }}</strong><p>{{ issuer?.contact }}</p><p>{{ issuer?.email }}</p><p v-if="issuer?.phone">{{ issuer.phone }}</p><p v-if="issuer?.address">{{ issuer.address }}</p></section>
         </div>
         <h3>Detalle de servicios</h3>
         <div class="table-scroll"><table><thead><tr><th>Concepto y alcance</th><th>Cant.</th><th>Precio unitario</th><th>Subtotal</th></tr></thead><tbody><tr v-for="(item,index) in budget.items" :key="index"><td class="preserve-lines">{{ item.description }}</td><td>{{ item.quantity }}</td><td>{{ money(item.unit_price,budget.currency_code) }}</td><td>{{ money(item.quantity * item.unit_price,budget.currency_code) }}</td></tr></tbody></table></div>

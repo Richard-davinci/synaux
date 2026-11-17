@@ -19,4 +19,4 @@ const component=computed(()=>['servicios','servicio','portfolio','trabajo','perf
     :['gestion','admin','editor-presupuesto','editor-trabajo'].includes(data.value.screen) || (data.value.screen==='profesional' && data.value.section==='portfolio')?ManagementScreens
     :['muro','oportunidad','profesionales','perfil-profesional','publicar','profesional'].includes(data.value.screen) || (data.value.screen==='cliente' && ['publicaciones','propuestas','invitaciones'].includes(data.value.section))?MarketplaceScreens:ClientScreens);
 </script>
-<template><Head :title="data.selected?.title ?? 'Synaux'" /><PublicLayout><component :is="component" :key="`${page.url}:${data.referenceKey ?? ''}`" :data="data" /></PublicLayout></template>
+<template><Head :title="data.selected?.title ?? 'synaux'" /><PublicLayout><component :is="component" :key="`${page.url}:${data.referenceKey ?? ''}`" :data="data" /></PublicLayout></template>

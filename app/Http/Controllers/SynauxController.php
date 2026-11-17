@@ -129,7 +129,12 @@ class SynauxController extends Controller
     {
         $data = $request->validate(['name' => 'required|string|max:255', 'email' => 'required|email|max:254',
             'topic' => 'required|string|max:255', 'message' => 'required|string|min:10|max:10000']);
-        DB::table('contact_inquiries')->insert([...$data, 'created_at' => now(), 'updated_at' => now()]);
+        // La consulta y sus avisos se guardan juntos para que una confirmación siempre sea consistente.
+        DB::transaction(function () use ($data, $request) {
+            $id = DB::table('contact_inquiries')->insertGetId([...$data, 'created_at' => now(), 'updated_at' => now()]);
+            app(\App\Services\SynauxNotificationCenter::class)->send('consulta', $id, 'consulta-recibida:'.$id,
+                'Nueva consulta', $data['topic'], management: true, actor: $request->user()?->id);
+        });
 
         return redirect('/contacto?enviado=1')->with('notice', 'Recibimos tu consulta. Quedó guardada para su revisión.');
     }
@@ -158,7 +163,8 @@ class SynauxController extends Controller
             'cliente' => ['', 'estimaciones', 'solicitudes', 'presupuestos', 'proyectos', 'publicaciones', 'propuestas', 'invitaciones'],
             'profesional' => ['', 'perfil', 'propuestas', 'invitaciones', 'presupuestos', 'proyectos', 'portfolio'],
             'gestion' => ['', 'solicitudes', 'presupuestos', 'proyectos', 'portfolio', 'contactos'],
-            'admin' => ['', 'servicios', 'preguntas', 'componentes', 'reglas', 'tarifario'],
+            // Catálogo reutiliza las mismas tablas y la autorización administrativa del área.
+            'admin' => ['', 'servicios', 'categorias', 'preguntas', 'componentes', 'reglas', 'tarifario'],
         ];
         abort_unless(isset($allowed[$area]) && in_array($section, $allowed[$area], true), 404);
         $data = $this->privateData($request, $admin);
@@ -175,6 +181,10 @@ class SynauxController extends Controller
         }
         if ($section === 'contactos') {
             $data['inquiries'] = DB::table('contact_inquiries')->orderByDesc('id')->get();
+            // El enlace del aviso identifica la consulta que se abrió sin marcar todo el listado.
+            if ($request->integer('consulta') && $data['inquiries']->contains('id', $request->integer('consulta'))) {
+                app(\App\Services\SynauxNotificationCenter::class)->readEntity($request->user(), 'consulta', $request->integer('consulta'));
+            }
         }
 
         return Inertia::render('Workspace', $data);
@@ -205,6 +215,11 @@ class SynauxController extends Controller
         }
         $data['screen'] = $kind;
         $data['requestId'] = (int) $request->query('solicitud', 0);
+
+        // La lectura se registra después de comprobar el acceso al detalle; listar tarjetas no consume avisos.
+        if ($id && in_array($kind, ['solicitud', 'presupuesto', 'proyecto'], true)) {
+            app(\App\Services\SynauxNotificationCenter::class)->readEntity($request->user(), $kind, $id);
+        }
 
         return Inertia::render('Workspace', $data);
     }
@@ -387,9 +402,13 @@ class SynauxController extends Controller
             $changed = collect($values)->contains(fn ($value, $key) => (string) $value !== (string) $project->$key);
             if ($changed) {
                 DB::table('projects')->where('id', $project->id)->update([...$values, 'updated_at' => now()]);
-                DB::table('project_updates')->insert([
+                $updateId = DB::table('project_updates')->insertGetId([
                     ...$values, 'project_id' => $project->id, 'user_id' => $request->user()->id, 'created_at' => now(),
                 ]);
+                // Un cambio real genera un aviso a las otras partes; reenviar los mismos datos no lo duplica.
+                $center = app(\App\Services\SynauxNotificationCenter::class);
+                $center->send('proyecto', $project->id, 'proyecto-actualizado:'.$updateId, 'Proyecto actualizado', $project->title,
+                    $center->projectRecipients($project->id), management: true, actor: $request->user()->id);
             }
         });
 

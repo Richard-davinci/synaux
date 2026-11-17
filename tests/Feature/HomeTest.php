@@ -27,7 +27,7 @@ class HomeTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Home')
-                ->where('appName', 'Synaux')
+                ->where('appName', 'synaux')
                 ->where('homeUrl', '/')
                 ->where('platformUrl', '/plataforma')
                 ->where('year', (int) date('Y'))

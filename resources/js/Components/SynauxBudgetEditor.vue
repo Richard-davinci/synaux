@@ -33,7 +33,7 @@ const requestOptions = computed(() => requests.value.filter(item =>
 ).map(item => ({ value: item.id, label: 'SOL-' + item.id + ' · ' + item.title })));
 const client = computed(() => source.value?.contact ?? selected.client);
 const issuer = computed(() => props.data.issuerDetails ?? ({
-    name: props.data.profile?.brand_name ?? selected.issuer?.name ?? 'Synaux',
+    name: props.data.profile?.brand_name ?? selected.issuer?.name ?? 'synaux',
     contact: props.data.auth?.name ?? selected.issuer?.contact,
     email: props.data.auth?.email ?? selected.issuer?.email,
 }));

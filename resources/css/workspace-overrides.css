@@ -17,6 +17,10 @@
     /* Ajusta el ancho del logo horizontal y conserva su proporción. */
     .header .brand-logo { width: 175px; height: auto; }
     .main-nav { gap: 24px; }
+    /* El badge acompaña al título del registro y permite saltos de línea en tarjetas angostas. */
+    .record-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-block: 4px 8px; }
+    .record-heading h3 { margin: 0; }
+    [id^='consulta-'] { scroll-margin-top: 180px; }
     .main-nav > a { padding-block: 10px; font-weight: 500; }
     .main-nav [aria-current='page'] { color: #1f6f7f; }
     .btn.v-btn { min-height: 46px; height: auto; min-width: 0; padding-block: 10px; font-family: 'Nunito', sans-serif; font-size: 1rem; text-transform: none; letter-spacing: 0; border-radius: 10px; }

@@ -60,11 +60,17 @@ class SynauxRequests
                 'answers_snapshot' => $estimate?->answers_snapshot ?? $existing?->answers_snapshot, 'updated_at' => now()];
             if ($existing) {
                 DB::table('project_requests')->where('id', $existing->id)->update($values);
-
-                return $existing->id;
+                $id = $existing->id;
+            } else {
+                $id = DB::table('project_requests')->insertGetId([...$values, 'created_at' => now()]);
+            }
+            // Solo el envío definitivo avisa a gestión; guardar un borrador no publica su existencia.
+            if ($d['publish']) {
+                app(SynauxNotificationCenter::class)->send('solicitud', $id, 'solicitud-enviada:'.$id,
+                    'Nueva solicitud', $d['title'], management: true, actor: $userId);
             }
 
-            return DB::table('project_requests')->insertGetId([...$values, 'created_at' => now()]);
+            return $id;
         });
     }
 }

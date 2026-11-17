@@ -4,7 +4,7 @@ import { router, usePage } from '@inertiajs/vue3';
 // Formato común de importes y fechas; null significa que todavía no hay un precio configurado.
 export const money = (value, currency = 'ARS') => value == null ? 'A definir con el profesional' : new Intl.NumberFormat('es-AR', { style: 'currency', currency:currency || 'ARS', minimumFractionDigits:Number.isInteger(Number(value))?0:2, maximumFractionDigits:2 }).format(Number(value));
 export const date = value => value ? new Intl.DateTimeFormat('es-AR', { dateStyle: 'medium', timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date(value.length === 10 ? `${value}T12:00:00` : value.replace(' ', 'T'))) : 'A coordinar';
-export const initials = value => (value ?? 'Synaux').split(' ').slice(0, 2).map(s => s[0]).join('').toUpperCase();
+export const initials = value => (value ?? 'synaux').split(' ').slice(0, 2).map(s => s[0]).join('').toUpperCase();
 export const demoNotice = ref('');
 
 // La galería de referencia adapta enlaces, pero nunca usa el selector visual para autenticar cuentas.

@@ -25,7 +25,7 @@ const state = computed(() => {
     if (record.value.status === 'rejected') return { title: 'Presupuesto rechazado', text: 'Tu decisión quedó registrada. El documento permanece disponible para consultar y descargar.', icon: 'info' };
     if (record.value.status === 'draft') return { title: 'Borrador interno', text: 'Este documento todavía no fue enviado al cliente.', icon: 'edit' };
     if (!record.value.current) return { title: 'Estás viendo una versión anterior', text: 'Consultá la versión más reciente para conocer el estado y las condiciones actuales.', icon: 'clock' };
-    if (record.value.display_status === 'expired') return { title: 'La vigencia de este presupuesto finalizó', text: 'Contactá a Synaux para revisar el alcance y preparar una nueva versión antes de confirmar.', icon: 'clock' };
+    if (record.value.display_status === 'expired') return { title: 'La vigencia de este presupuesto finalizó', text: 'Contactá a synaux para revisar el alcance y preparar una nueva versión antes de confirmar.', icon: 'clock' };
     if (source.value && source.value.status !== 'open') return { title: 'La solicitud ya está cerrada', text: 'Podés consultar el documento y sus condiciones. Revisá tus proyectos para continuar.', icon: 'folder' };
     return { title: 'Presupuesto disponible para revisar', text: 'Revisá los servicios, el importe, los plazos y las condiciones antes de tomar una decisión.', icon: 'file' };
 });
@@ -70,7 +70,7 @@ function decide() {
                         <B v-if="canEdit" :href="'/editor/presupuesto/' + record.id" variant="secondary">{{ record.status === 'draft' ? 'Continuar borrador' : 'Preparar nueva versión' }}</B>
                     </div>
                     <p v-if="canDecide" class="budget-help">La aceptación crea el proyecto con esta versión. Antes de confirmar podrás revisar tu decisión.</p>
-                    <p v-if="record.display_status === 'expired' && record.current" class="budget-help">Para solicitar una actualización, contactá a Synaux indicando PRE-{{ record.budget_id }}.</p>
+                    <p v-if="record.display_status === 'expired' && record.current" class="budget-help">Para solicitar una actualización, contactá a synaux indicando PRE-{{ record.budget_id }}.</p>
                 </v-card>
                 <v-card class="card"><h2>Historial de versiones</h2><p class="budget-help">Cada versión conserva sus importes y condiciones.</p>
                     <ol class="budget-history"><li v-for="item in versions" :key="item.id" :class="{ 'history-selected': item.id === record.id }"><a :href="historyHref(item)" :aria-current="item.id === record.id ? 'page' : undefined">Versión {{ item.version_number }}<span v-if="item.id === record.id"> · En pantalla</span></a><S :status="item.display_status ?? item.status" /><small>{{ date(item.sent_at ?? item.created_at) }}</small><small v-if="item.current">Última versión enviada</small></li></ol>

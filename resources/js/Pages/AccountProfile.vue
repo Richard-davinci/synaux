@@ -88,7 +88,7 @@ function saveIssuer() {
                     </v-card>
                     <v-card v-if="profile.is_admin" id="emision" class="card">
                         <div class="account-section-title"><I name="file" /><h2>Datos de emisión</h2></div>
-                        <p>Estos datos identifican a Synaux en los nuevos presupuestos y su PDF. El correo de emisión puede ser diferente del correo de ingreso.</p>
+                        <p>Estos datos identifican a synaux en los nuevos presupuestos y su PDF. El correo de emisión puede ser diferente del correo de ingreso.</p>
                         <form @submit.prevent="saveIssuer">
                             <F v-model="issuerForm.name" label="Nombre del emisor o razón social" autocomplete="organization" maxlength="255" required :error="issuerForm.errors.name" />
                             <F v-model="issuerForm.email" label="Correo de emisión" type="email" maxlength="254" required :error="issuerForm.errors.email" />

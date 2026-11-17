@@ -12,6 +12,8 @@ defineProps({ name: { type: String, default: 'arrow' } });
         <g v-else-if="name === 'user'"><circle cx="12" cy="8" r="4" /><path d="M4 21c1-5 4-7 8-7s7 2 8 7" /></g>
         <path v-else-if="name === 'menu'" d="M4 7h16M4 12h16M4 17h16" />
         <path v-else-if="name === 'close'" d="m6 6 12 12M18 6 6 18" />
+        <!-- La campana identifica el centro de novedades sin alterar los recursos originales de marca. -->
+        <g v-else-if="name === 'bell'"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></g>
         <!-- Iconos para indicar si la contraseña está visible u oculta. -->
         <g v-else-if="name === 'eye'"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></g>
         <g v-else-if="name === 'eye-off'"><path d="m3 3 18 18M10.6 5.1A12 12 0 0 1 12 5c6.5 0 10 7 10 7a18 18 0 0 1-3 4M6.3 6.3A20 20 0 0 0 2 12s3.5 7 10 7a12 12 0 0 0 5.7-1.7M10 10a3 3 0 0 0 4 4" /></g>

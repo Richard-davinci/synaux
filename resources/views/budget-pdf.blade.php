@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Presupuesto Synaux</title>
+<title>Presupuesto synaux</title>
 <style>
 /* La impresión usa las fuentes y los recursos locales de la marca con paginación de tablas. */
 @font-face { font-family: Nunito; src: url("{{ resource_path('fonts/Nunito-Regular.ttf') }}") format("truetype"); }
@@ -36,7 +36,7 @@ table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     $issuer = $budget['issuer'] ?? [];
 @endphp
 <div class="header">
-<img src="{{ $logo }}" alt="Synaux">
+<img src="{{ $logo }}" alt="synaux">
 <h1>{{ $budget['title'] }}</h1>
 <p>Presupuesto PRE-{{ $budget['budget_id'] }} · Versión {{ $budget['version_number'] }} · {{ $budget['status'] === 'draft' ? 'Borrador' : 'Presupuesto formal' }}</p>
 </div>
@@ -44,7 +44,7 @@ table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 <table class="parties"><tr>
 <td><h3>Cliente</h3><p>{{ $client['company'] ?? $client['name'] ?? 'Cliente de la solicitud' }}</p>@if(!empty($client['company']))<p>{{ $client['name'] ?? '' }}</p>@endif
 @foreach(['email','phone','address'] as $field) @if(!empty($client[$field]))<p>{{ $client[$field] }}</p>@endif @endforeach</td>
-<td><h3>Emisor</h3><p>{{ $issuer['name'] ?? 'Synaux' }}</p><p>{{ $issuer['contact'] ?? '' }}</p><p>{{ $issuer['email'] ?? '' }}</p>
+<td><h3>Emisor</h3><p>{{ $issuer['name'] ?? 'synaux' }}</p><p>{{ $issuer['contact'] ?? '' }}</p><p>{{ $issuer['email'] ?? '' }}</p>
 {{-- La identidad de emisión corresponde a la instantánea guardada con esta versión. --}}
 @foreach(['phone','address'] as $field) @if(!empty($issuer[$field]))<p>{{ $issuer[$field] }}</p>@endif @endforeach</td>
 </tr></table>
@@ -55,6 +55,6 @@ table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 <table class="totals"><tr><td>Subtotal</td><td class="amount">{{ $money($budget['subtotal']) }}</td></tr><tr><td>Impuestos ({{ $budget['tax_rate'] }}%)</td><td class="amount">{{ $money($budget['total'] - $budget['subtotal']) }}</td></tr><tr class="total"><td>Total</td><td class="amount">{{ $money($budget['total']) }}</td></tr></table>
 <h2>Plazos y condiciones</h2><p>Entrega estimada: {{ $budget['estimated_delivery_days'] }} días desde el inicio acordado.</p>
 <p class="terms">{{ $budget['terms'] }}</p>
-<p class="footer">Synaux · Creciendo juntos</p>
+<p class="footer">synaux · Creciendo juntos</p>
 </body>
 </html>

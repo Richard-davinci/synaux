@@ -26,7 +26,7 @@ const price = computed(() => options.value.find(item => item.label === segment.v
     </div>
 </template>
 <style scoped>
-/* Las referencias mantienen un pie común en las tarjetas y usan únicamente la paleta de Synaux. */
+/* Las referencias mantienen un pie común en las tarjetas y usan únicamente la paleta de synaux. */
 .catalog-price { margin-top: auto; padding-top: 1.25rem; }
 .price-segments { display: flex; flex-wrap: wrap; gap: .35rem; padding-bottom: 1rem; }
 .price-segments button { flex: 1; min-height: 44px; border: 1px solid #446075; border-radius: .5rem; padding: .4rem .55rem; color: #446075; background: #fff; font: inherit; font-size: .875rem; font-weight: 600; cursor: pointer; }

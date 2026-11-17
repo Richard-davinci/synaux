@@ -3,10 +3,12 @@ import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import BrandLogo from '../Components/BrandLogo.vue';
 import SynauxNotifications from '../Components/SynauxNotifications.vue';
+// La campana de actividad persiste separada de los avisos transitorios de formularios.
+import SynauxNotificationCenter from '../Components/SynauxNotificationCenter.vue';
 import WorkspaceNavigation from '../Components/WorkspaceNavigation.vue';
 import I from '../Components/SynauxIcon.vue';
-// El navbar usa el PNG horizontal a color sin eslogan de Recursos finales.
-import navbarLogo from '../../images/brand/synaux-horizontal-sin-slogan-color.png';
+// El navbar usa el SVG horizontal entregado por el usuario, sin modificar sus trazos ni colores.
+import navbarLogo from '../../images/brand/synaux-horizontal-sin-slogan-color.svg';
 import SynauxButton from '../Components/SynauxButton.vue';
 import { demoNotice, referenceHref } from '../support/synaux';
 // El navbar mantiene los enlaces públicos; el panel lateral organiza el área privada de la sesión.
@@ -62,14 +64,16 @@ watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false;
         <!-- En la referencia se puede revisar cada estado sin modificar registros ni conceder permisos. -->
         <div v-if="$page.props.preview" class="reference-bar"><div class="shell"><span>Prototipo · Datos de ejemplo</span><label>Ver pantalla<select :value="$page.props.referenceKey" aria-label="Pantalla del prototipo" @change="$inertia.get(`/prototipo/${$event.target.value}`)"><option v-for="item in $page.props.referenceScreens" :key="item.key" :value="item.key">{{ item.name }}</option></select></label><a href="/plataforma">Abrir aplicación</a></div></div>
         <a class="skip-link" href="#contenido">Saltar al contenido</a>
-        <!-- Las dimensiones nativas del PNG reservan el espacio del logo en el encabezado. -->
-        <header class="header"><a :href="referenceHref('/', $page.props)" class="logo-button" aria-label="Synaux: inicio"><img :src="navbarLogo" class="brand-logo" width="2000" height="423" alt="Synaux"></a><button class="mobile-toggle" :aria-expanded="mobile" aria-label="Abrir navegación" @click="mobile = !mobile">☰</button>
+        <!-- Las dimensiones nativas del SVG reservan su proporción antes de cargar el logo horizontal. -->
+        <header class="header"><a :href="referenceHref('/', $page.props)" class="logo-button" aria-label="synaux: inicio"><img :src="navbarLogo" class="brand-logo" width="405" height="140" alt="synaux"></a><button class="mobile-toggle" :aria-expanded="mobile" aria-label="Abrir navegación" @click="mobile = !mobile">☰</button>
             <nav :class="['main-nav', { 'mobile-open': mobile }]" aria-label="Navegación principal">
                 <a v-for="[label, href] in publicNav" :key="href" :href="referenceHref(href, $page.props)" :aria-current="$page.url.split('?')[0] === href ? 'page' : undefined">{{ label }}</a>
                 <div v-if="!$page.props.auth && !$page.props.preview" class="nav-actions"><SynauxButton href="/ingresar" variant="ghost">Ingresar</SynauxButton><SynauxButton href="/crear-cuenta">Crear cuenta</SynauxButton></div>
                 <!-- Fuera del área privada solo hace falta un acceso directo al panel de la cuenta. -->
                 <SynauxButton v-if="$page.props.auth && !$page.props.preview && !hasWorkspace" :href="$page.props.auth.is_admin ? '/gestion' : '/cliente'">Ir a mi panel</SynauxButton>
             </nav>
+            <!-- Solo una sesión real consulta notificaciones; el prototipo no accede a actividad privada. -->
+            <SynauxNotificationCenter v-if="$page.props.auth && !$page.props.preview" />
         </header>
         </div>
         <div class="navbar-space" aria-hidden="true"></div>
@@ -87,7 +91,7 @@ watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false;
         </v-dialog>
         <!-- La firma de cierre mantiene el fondo blanco del diseño y el original a color con eslogan. -->
         <!-- El pie de la landing aplica la guía de marca sobre el diseño compartido. -->
-        <footer :class="{ 'landing-footer': landing, 'workspace-footer': hasWorkspace }"><div class="shell footer-grid"><a :href="referenceHref('/', $page.props)" aria-label="Synaux: presentación"><BrandLogo /></a><div><strong>Conexión, transparencia y crecimiento digital.</strong><p>© {{ year }} Synaux.</p></div><nav aria-label="Navegación del pie"><a v-for="[label, href] in publicNav" :key="href" :href="referenceHref(href, $page.props)">{{ label }}</a></nav></div></footer>
+        <footer :class="{ 'landing-footer': landing, 'workspace-footer': hasWorkspace }"><div class="shell footer-grid"><a :href="referenceHref('/', $page.props)" aria-label="synaux: presentación"><BrandLogo /></a><div><strong>Conexión, transparencia y crecimiento digital.</strong><p>© {{ year }} synaux.</p></div><nav aria-label="Navegación del pie"><a v-for="[label, href] in publicNav" :key="href" :href="referenceHref(href, $page.props)">{{ label }}</a></nav></div></footer>
     </v-app>
 </template>
 
@@ -108,6 +112,17 @@ watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false;
 .with-workspace :deep(.page) { padding-block: 40px 72px; }
 .with-workspace :deep(.admin-layout) { grid-template-columns: minmax(0, 1fr); }
 .workspace-mobile-bar { display: none; }
+/* Los controles de cuenta se mantienen en el primer renglón y el menú abierto ocupa el siguiente en móvil. */
+.header .main-nav { order: 1; }
+.header :deep(.notification-trigger) { order: 2; }
+.header .mobile-toggle { order: 3; }
+@media (max-width: 760px) {
+    .header { gap: 12px; }
+    .header .logo-button { flex: 1 1 0; min-width: 0; }
+    .header .logo-button img { max-width: 100%; }
+    .header .main-nav { order: 4; }
+    .header .mobile-toggle { margin-left: 0; }
+}
 @media (max-width: 1100px) {
     .with-workspace { display: block; }
     .workspace-footer { margin-left: 0; }

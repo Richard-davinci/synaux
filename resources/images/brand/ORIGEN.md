@@ -16,3 +16,9 @@ La S ya incorpora su giro de 12°. No aplicar rotación adicional. La bajada con
 Mínimos del aprobado: 100 px de ancho sin eslogan, 200 px con eslogan y 64 px de alto para el símbolo independiente. Mantener espacio libre alrededor y escalar proporcionalmente.
 
 Los recursos horizontales anteriores permanecen en esta carpeta como referencia histórica, sin cambios.
+
+## Logo horizontal actualizado
+
+El usuario entregó el archivo `Z:/Escritorio/logo Synauz horizontal.svg` el 17 de noviembre de 2026 para actualizar la variante horizontal de la web. Se copió sin cambios a `synaux-horizontal-sin-slogan-color.svg` y se verificó la coincidencia SHA-256 con el original.
+
+Dimensiones nativas: 405 × 140. Se utiliza completo y proporcional en el navbar de la landing y de la plataforma, reemplazando el PNG horizontal anterior. Los SVG verticales con eslogan mantienen su uso en la presentación y el pie.

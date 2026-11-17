@@ -192,11 +192,11 @@ function save(publish) {
                         <F v-model="form.skills" label="Habilidades deseadas (opcional, separadas por comas)" maxlength="1000" :error="form.errors.skills" />
                         <F v-model="form.budget_reference" label="Presupuesto disponible (opcional)" maxlength="255" :error="form.errors.budget_reference" />
                         <F v-model="form.desired_deadline" label="Plazo deseado (opcional)" maxlength="255" :error="form.errors.desired_deadline" />
-                        <F v-if="data.allowPublicRequest || old?.visibility === 'public'" v-model="form.visibility" label="Visibilidad" type="select" :options="[{ value:'private', label:'Privada · revisión de Synaux' }, { value:'public', label:'Pública · visible en el muro' }]" />
-                        <p v-else>Tu solicitud se enviará de forma privada a Synaux.</p>
+                        <F v-if="data.allowPublicRequest || old?.visibility === 'public'" v-model="form.visibility" label="Visibilidad" type="select" :options="[{ value:'private', label:'Privada · revisión de synaux' }, { value:'public', label:'Pública · visible en el muro' }]" />
+                        <p v-else>Tu solicitud se enviará de forma privada a synaux.</p>
                     </template>
                     <template v-else-if="step === 3 && !authenticated">
-                        <div class="request-auth-gate"><I name="user" /><h3>Guardá tu proyecto en tu cuenta</h3><p>Ingresá o creá una cuenta para revisar tus datos de contacto y confirmar el envío. Vamos a conservar el servicio, las respuestas y todo lo que completaste.</p><p>Tu solicitud todavía no se enviará a Synaux.</p><div class="button-stack"><B :disabled="handoff.processing" @click="prepareJourney('login')">{{ handoff.processing ? 'Preparando…' : 'Ingresar y continuar' }}</B><B variant="secondary" :disabled="handoff.processing" @click="prepareJourney('register')">Crear cuenta y continuar</B><B variant="ghost" :disabled="handoff.processing" @click="step = 2">Volver al proyecto</B></div></div>
+                        <div class="request-auth-gate"><I name="user" /><h3>Guardá tu proyecto en tu cuenta</h3><p>Ingresá o creá una cuenta para revisar tus datos de contacto y confirmar el envío. Vamos a conservar el servicio, las respuestas y todo lo que completaste.</p><p>Tu solicitud todavía no se enviará a synaux.</p><div class="button-stack"><B :disabled="handoff.processing" @click="prepareJourney('login')">{{ handoff.processing ? 'Preparando…' : 'Ingresar y continuar' }}</B><B variant="secondary" :disabled="handoff.processing" @click="prepareJourney('register')">Crear cuenta y continuar</B><B variant="ghost" :disabled="handoff.processing" @click="step = 2">Volver al proyecto</B></div></div>
                     </template>
                     <template v-else-if="step === 3">
                         <F v-model="form.contact.name" label="Nombre de contacto" autocomplete="name" maxlength="255" required :error="form.errors['contact.name']" />
@@ -204,7 +204,7 @@ function save(publish) {
                         <F v-model="form.contact.company" label="Empresa u organización (opcional)" autocomplete="organization" maxlength="255" :error="form.errors['contact.company']" />
                         <F v-model="form.contact.phone" label="Teléfono (opcional)" type="tel" autocomplete="tel" maxlength="50" :error="form.errors['contact.phone']" />
                         <F v-model="form.contact.address" label="Dirección (opcional)" autocomplete="street-address" maxlength="500" :error="form.errors['contact.address']" />
-                        <p>Estos datos acompañan el pedido para que Synaux pueda preparar tu presupuesto.</p>
+                        <p>Estos datos acompañan el pedido para que synaux pueda preparar tu presupuesto.</p>
                     </template>
                     <div v-if="step !== 3 || authenticated" class="form-actions"><B v-if="step > 1" variant="secondary" @click="step -= 1">Anterior</B><span v-else /><B type="submit" arrow :disabled="!selectedService || handoff.processing">{{ step === 3 ? 'Revisar solicitud' : 'Continuar' }}</B></div>
                 </form>
@@ -224,7 +224,7 @@ function save(publish) {
                         <div><dt>Presupuesto disponible</dt><dd>{{ form.budget_reference || 'A definir' }}</dd></div>
                         <div><dt>Visibilidad</dt><dd>{{ form.visibility === 'public' ? 'Pública' : 'Privada' }}</dd></div>
                     </dl>
-                    <p class="request-origin"><I name="info" /> Al enviar, Synaux revisará el alcance y preparará tu presupuesto. Esta solicitud no confirma una contratación.</p><div class="form-actions"><B variant="secondary" :disabled="form.processing" @click="step = 3">Anterior</B><B :disabled="form.processing" arrow @click="save(true)">{{ form.processing ? 'Enviando…' : form.visibility === 'public' ? 'Publicar solicitud' : 'Solicitar presupuesto' }}</B></div>
+                    <p class="request-origin"><I name="info" /> Al enviar, synaux revisará el alcance y preparará tu presupuesto. Esta solicitud no confirma una contratación.</p><div class="form-actions"><B variant="secondary" :disabled="form.processing" @click="step = 3">Anterior</B><B :disabled="form.processing" arrow @click="save(true)">{{ form.processing ? 'Enviando…' : form.visibility === 'public' ? 'Publicar solicitud' : 'Solicitar presupuesto' }}</B></div>
                 </template>
                 <B v-if="step >= 2 && authenticated" class="draft-action" variant="ghost" :disabled="form.processing || !canSaveDraft" @click="save(false)">{{ form.processing && !form.publish ? 'Guardando…' : 'Guardar borrador' }}</B><p v-if="step >= 2 && authenticated && !canSaveDraft" class="draft-help">Completá el título y la descripción para guardar el borrador.</p>
             </v-card>
@@ -254,7 +254,7 @@ function save(publish) {
                     <small>Importes orientativos. El presupuesto formal confirmará el precio final.</small>
                 </div>
                 <p v-if="form.contact.name">{{ form.contact.name }}<br>{{ form.contact.email }}</p>
-                <p class="summary-note">Synaux revisará el pedido y enviará un presupuesto formal con el total, los plazos y las condiciones.</p>
+                <p class="summary-note">synaux revisará el pedido y enviará un presupuesto formal con el total, los plazos y las condiciones.</p>
             </v-card>
         </aside>
     </div>

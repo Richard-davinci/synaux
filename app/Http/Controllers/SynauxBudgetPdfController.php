@@ -33,7 +33,7 @@ class SynauxBudgetPdfController extends Controller
 
         return response($pdf->output(), 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="Synaux-PRE-'.$budget['budget_id'].'-v'.$budget['version_number'].'.pdf"',
+            'Content-Disposition' => 'attachment; filename="synaux-PRE-'.$budget['budget_id'].'-v'.$budget['version_number'].'.pdf"',
             'Cache-Control' => 'private, no-store',
         ]);
     }
