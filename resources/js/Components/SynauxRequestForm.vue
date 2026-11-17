@@ -6,6 +6,7 @@ import F from './SynauxField.vue';
 import I from './SynauxIcon.vue';
 import ServicePicker from './SynauxServicePicker.vue';
 import { money, date, useSubmit } from '../support/synaux';
+import { referenceLine, summarizePrices } from '../support/requestPricing';
 
 // Los borradores existentes se recuperan con sus datos y las solicitudes nuevas parten de la cuenta actual.
 const props = defineProps({ data: Object });
@@ -71,6 +72,21 @@ const reference = computed(() => estimate
         const segment = published?.segments?.find(item => labels.includes(item.label));
         return segment ? {...published,min:segment.min,max:segment.max,segment:segment.label} : published;
     })());
+// Los adicionales comparten el segmento del servicio principal, también al retomar una estimación guardada.
+const customerSegment = computed(() => {
+    const answered = questions.value.flatMap(question => (question.options ?? [])
+        .filter(option => String(option.id) === String(form.answers[question.id])).map(option => option.label));
+    return [...answered, ...estimateAnswers.value.map(answer => answer.label)]
+        .find(label => ['Particular', 'PyME', 'Empresa'].includes(label)) ?? reference.value?.segment ?? 'Particular';
+});
+const summaryCurrency = computed(() => reference.value?.currency || 'ARS');
+const additionalPrices = computed(() => form.additional_services.map(item => {
+    const service = props.data.services.find(service => service.database_id == item.service_id);
+    return referenceLine(props.data.references?.[service?.id], item.quantity, customerSegment.value, summaryCurrency.value);
+}));
+const summaryPrice = computed(() => summarizePrices([
+    referenceLine(reference.value, 1, null, summaryCurrency.value), ...additionalPrices.value,
+], summaryCurrency.value));
 const canSaveDraft = computed(() => form.title.trim().length >= 5 && form.description.trim().length >= 10);
 
 
@@ -219,9 +235,22 @@ function save(publish) {
                 <h3>{{ selectedService?.name }}</h3>
                 <p>{{ selectedService?.summary }}</p>
                 <ul v-if="selectedService?.includes?.length"><li v-for="item in selectedService.includes" :key="item">{{ item }}</li></ul>
-                <div class="request-price"><p>{{ estimate ? 'Estimación guardada · servicio principal' : 'Referencia del servicio principal' }}</p><strong v-if="reference">{{ money(reference.min, reference.currency) }}<template v-if="reference.max !== reference.min"> – {{ money(reference.max, reference.currency) }}</template></strong><strong v-else>A cotizar según el alcance</strong><p v-if="estimate">{{ date(estimate.created_at) }}</p><p v-else-if="reference?.segment">{{ reference.segment }}</p><small v-if="form.additional_services.length">Los servicios adicionales se cotizan por separado y no están sumados a este importe.</small></div>
+                <div class="request-price"><p>{{ estimate ? 'Estimación guardada · servicio principal' : 'Referencia del servicio principal' }}</p><strong v-if="reference">{{ money(reference.min, reference.currency) }}<template v-if="reference.max !== reference.min"> – {{ money(reference.max, reference.currency) }}</template></strong><strong v-else>A cotizar según el alcance</strong><p v-if="estimate">{{ date(estimate.created_at) }}</p><p v-else-if="reference?.segment">{{ reference.segment }}</p></div>
                 <dl v-if="estimateAnswers.length" class="summary-answers"><div v-for="answer in estimateAnswers" :key="answer.id"><dt>{{ answer.question }}</dt><dd>{{ answer.label }}</dd></div></dl>
-                <div v-for="(item, index) in form.additional_services" :key="index" class="summary-extra"><strong>{{ extraName(item.service_id) }} × {{ item.quantity }}</strong><p>{{ item.notes || 'A cotizar con el alcance del proyecto.' }}</p></div>
+                <div v-for="(item, index) in form.additional_services" :key="index" class="summary-extra">
+                    <strong>{{ extraName(item.service_id) }} × {{ item.quantity }}</strong>
+                    <template v-if="additionalPrices[index].priced"><p>{{ money(additionalPrices[index].min, summaryCurrency) }}<template v-if="additionalPrices[index].max !== additionalPrices[index].min"> – {{ money(additionalPrices[index].max, summaryCurrency) }}</template></p><small>{{ money(additionalPrices[index].unitMin, summaryCurrency) }}<template v-if="additionalPrices[index].unitMax !== additionalPrices[index].unitMin"> – {{ money(additionalPrices[index].unitMax, summaryCurrency) }}</template> por unidad · {{ customerSegment }}</small></template>
+                    <p v-else>{{ Number.isInteger(Number(item.quantity)) && Number(item.quantity) >= 1 && Number(item.quantity) <= 1000 ? 'Pendiente de cotización' : 'Ingresá una cantidad válida para calcular' }}</p>
+                    <p v-if="item.notes">{{ item.notes }}</p>
+                </div>
+                <!-- El total reacciona a cambios de servicio, segmento y cantidad sin enviar importes del navegador. -->
+                <div class="request-price summary-total" role="status" aria-live="polite" aria-atomic="true">
+                    <p>{{ summaryPrice.pending ? 'Subtotal estimado' : 'Total estimado' }}</p>
+                    <strong v-if="summaryPrice.hasPrice">{{ money(summaryPrice.min, summaryPrice.currency) }}<template v-if="summaryPrice.max !== summaryPrice.min"> – {{ money(summaryPrice.max, summaryPrice.currency) }}</template></strong>
+                    <strong v-else>A cotizar según el alcance</strong>
+                    <small v-if="summaryPrice.pending">{{ summaryPrice.pending === 1 ? 'Hay 1 servicio pendiente de cotización o con cantidad por completar.' : 'Hay ' + summaryPrice.pending + ' servicios pendientes de cotización o con cantidades por completar.' }} No está{{ summaryPrice.pending === 1 ? '' : 'n' }} incluido{{ summaryPrice.pending === 1 ? '' : 's' }} en el subtotal.</small>
+                    <small>Importes orientativos. El presupuesto formal confirmará el precio final.</small>
+                </div>
                 <p v-if="form.contact.name">{{ form.contact.name }}<br>{{ form.contact.email }}</p>
                 <p class="summary-note">Synaux revisará el pedido y enviará un presupuesto formal con el total, los plazos y las condiciones.</p>
             </v-card>
@@ -254,6 +283,7 @@ function save(publish) {
 .request-price { padding: 18px; background: #f5f9fa; border: 1px solid #1f6f7f22; border-radius: 12px; margin: 20px 0; }
 .request-price strong { display: block; font-family: 'Space Grotesk', sans-serif; font-size: 1.65rem; line-height: 1.3; overflow-wrap: anywhere; }
 .request-price p { margin: 0 0 8px; }
+.summary-total { border-color: #1f6f7f; }
 .request-price small { display: block; margin-top: 12px; }
 .review-section-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 18px; }
 .review-section-heading h3 { flex: 1 1 auto; margin: 0; }
