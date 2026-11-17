@@ -68,7 +68,7 @@ class SynauxReferenceController extends Controller
         foreach (['estimaciones', 'solicitudes', 'presupuestos', 'proyectos', 'publicaciones', 'propuestas', 'invitaciones'] as $section) {
             $data['referenceRoutes']['/cliente/'.$section] = ['publicaciones' => 'mis-publicaciones', 'propuestas' => 'propuestas-recibidas', 'invitaciones' => 'invitaciones-enviadas'][$section] ?? $section;
         }
-        foreach (['solicitudes', 'presupuestos', 'proyectos', 'portfolio'] as $section) {
+        foreach (['solicitudes', 'presupuestos', 'proyectos', 'portfolio', 'contactos'] as $section) {
             $data['referenceRoutes']['/gestion/'.$section] = 'g-'.$section;
         }
         foreach (['propuestas', 'invitaciones', 'perfil', 'presupuestos', 'proyectos'] as $section) {
@@ -176,6 +176,9 @@ class SynauxReferenceController extends Controller
             $data['selectedEstimate'] = $estimate;
         }
 
+        // El acceso al perfil de la galería conserva el área sin autenticar ni cambiar permisos.
+        $data['referenceRoutes']['/mi-perfil'] = $data['area'] === 'gestion' ? 'cuenta-admin' : 'cuenta-cliente';
+
         // Las dos vistas de cuenta usan datos ficticios y sus formularios no escriben en rutas reales.
         if (in_array($screen, ['cuenta-cliente', 'cuenta-admin'], true)) {
             $isAdmin = $screen === 'cuenta-admin';
@@ -186,6 +189,7 @@ class SynauxReferenceController extends Controller
             ];
             $data['issuer'] = $isAdmin ? ['name' => 'Synaux', 'email' => 'presupuestos@example.test', 'phone' => '1100000000', 'address' => 'Dirección del estudio'] : null;
             $data['area'] = $isAdmin ? 'gestion' : 'cliente';
+            $data['referenceRoutes']['/mi-perfil'] = $isAdmin ? 'cuenta-admin' : 'cuenta-cliente';
             return Inertia::render('AccountProfile', $data);
         }
 

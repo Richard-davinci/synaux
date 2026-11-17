@@ -21,10 +21,7 @@ function logout() {
             <VListItem :title="page.props.auth.name" disabled />
             <VListItem :href="page.props.auth.is_admin ? '/gestion' : '/cliente'" title="Mi cuenta" />
             <VListItem href="/mi-perfil" title="Mi perfil" />
-            <template v-if="page.props.auth.is_admin">
-                <VListItem href="/gestion" title="Gestión" />
-                <VListItem href="/admin/servicios" title="Administración" />
-            </template>
+            <!-- Las secciones de trabajo se encuentran en el panel lateral de Mi cuenta. -->
 
             <VListItem title="Cerrar sesión" :disabled="signingOut" @click="logout" />
         </VList>

@@ -348,5 +348,10 @@
     "key": "cuenta-admin",
     "name": "4.14 · Administración · Mi perfil [cuenta-admin]",
     "node": null
+  },
+  {
+    "key": "g-contactos",
+    "name": "4.15 · Gestión · Consultas recibidas [g-contactos]",
+    "node": null
   }
 ]

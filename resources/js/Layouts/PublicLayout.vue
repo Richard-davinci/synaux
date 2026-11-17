@@ -1,22 +1,27 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import BrandLogo from '../Components/BrandLogo.vue';
 import AccountMenu from '../Components/AccountMenu.vue';
 import SynauxNotifications from '../Components/SynauxNotifications.vue';
+import WorkspaceNavigation from '../Components/WorkspaceNavigation.vue';
+import I from '../Components/SynauxIcon.vue';
 // El navbar usa el PNG horizontal a color sin eslogan de Recursos finales.
 import navbarLogo from '../../images/brand/synaux-horizontal-sin-slogan-color.png';
 import SynauxButton from '../Components/SynauxButton.vue';
 import { demoNotice, referenceHref } from '../support/synaux';
-// El encabezado cambia de área según la sesión real; la galería usa datos aislados de referencia.
+// El navbar mantiene los enlaces públicos; el panel lateral organiza el área privada de la sesión.
 defineProps({ homeUrl: { type: String, default: '/' }, platformUrl: { type: String, default: '/plataforma' }, year: { type: Number, default: 2026 }, landing: Boolean });
 const page = usePage();
 const mobile = ref(false);
+const workspaceOpen = ref(false);
+const workspaceToggle = ref(null);
+function restoreWorkspaceFocus() { workspaceToggle.value?.focus(); }
 const area = computed(() => page.props.area ?? (page.url.startsWith('/gestion') || page.url.startsWith('/admin') ? 'gestion' : page.url.startsWith('/profesional') ? 'profesional' : page.url.startsWith('/cliente') ? 'cliente' : 'public'));
 const publicNav = [['Catálogo', '/plataforma'], ['Portfolio', '/portfolio'], ['Nosotros', '/nosotros'], ['Contacto', '/contacto']];
 const allNav = computed(() => area.value === 'cliente' ? [['Resumen', '/cliente'], ['Estimaciones', '/cliente/estimaciones'], ['Solicitudes', '/cliente/solicitudes'], ['Publicaciones', '/cliente/publicaciones'], ['Propuestas', '/cliente/propuestas'], ['Presupuestos', '/cliente/presupuestos'], ['Proyectos', '/cliente/proyectos']]
     : area.value === 'profesional' ? [['Resumen', '/profesional'], ['Oportunidades', '/oportunidades'], ['Mis propuestas', '/profesional/propuestas'], ['Invitaciones', '/profesional/invitaciones'], ['Presupuestos', '/profesional/presupuestos'], ['Proyectos', '/profesional/proyectos'], ['Mi perfil', '/profesional/perfil']]
-    : area.value === 'gestion' ? [['Resumen', '/gestion'], ['Solicitudes', '/gestion/solicitudes'], ['Presupuestos', '/gestion/presupuestos'], ['Proyectos', '/gestion/proyectos'], ['Portfolio', '/gestion/portfolio'], ['Administración', '/admin/servicios']]
+    : area.value === 'gestion' ? [['Resumen', '/gestion'], ['Solicitudes', '/gestion/solicitudes'], ['Presupuestos', '/gestion/presupuestos'], ['Proyectos', '/gestion/proyectos'], ['Consultas', '/gestion/contactos'], ['Portfolio', '/gestion/portfolio'], ['Administración', '/admin/servicios']]
     : publicNav);
 // Las entradas del marketplace solo aparecen para quien tiene acceso a la segunda etapa.
 const stageTwoPaths = ['/cliente/publicaciones', '/cliente/propuestas', '/cliente/invitaciones'];
@@ -26,6 +31,18 @@ const inStageTwoClientArea = computed(() => stageTwoPaths.includes(page.url.spli
 const nav = computed(() => allNav.value.filter(([, href]) =>
     !stageTwoPaths.includes(href) || (page.props.stageTwo && inStageTwoClientArea.value)
 ));
+
+// El contexto de trabajo identifica también los detalles y formularios abiertos desde cada área.
+const hasWorkspace = computed(() => area.value !== 'public' && !!(page.props.auth || page.props.preview));
+const workspaceTitle = computed(() => area.value === 'gestion' ? 'Panel de gestión' : area.value === 'profesional' ? 'Área profesional' : 'Mi espacio');
+const currentSection = computed(() => {
+    if (page.url.split('?')[0].split('#')[0] === '/mi-perfil' || ['cuenta-admin', 'cuenta-cliente'].includes(page.props.referenceKey)) return 'mi-perfil';
+    if (page.props.screen === 'admin' || page.url.startsWith('/admin')) return 'administracion';
+    return ({ solicitud: 'solicitudes', publicar: 'solicitudes', presupuesto: 'presupuestos', 'editor-presupuesto': 'presupuestos',
+        proyecto: 'proyectos', estimacion: 'estimaciones', 'editor-trabajo': 'portfolio' })[page.props.screen]
+        ?? (page.props.section || 'resumen');
+});
+watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false; });
 </script>
 <template>
     <v-app class="synaux-app">
@@ -35,16 +52,53 @@ const nav = computed(() => allNav.value.filter(([, href]) =>
         <!-- Las dimensiones nativas del PNG reservan el espacio del logo en el encabezado. -->
         <header class="header"><a :href="referenceHref('/', $page.props)" class="logo-button" aria-label="Synaux: inicio"><img :src="navbarLogo" class="brand-logo" width="2000" height="423" alt="Synaux"></a><button class="mobile-toggle" :aria-expanded="mobile" aria-label="Abrir navegación" @click="mobile = !mobile">☰</button>
             <nav :class="['main-nav', { 'mobile-open': mobile }]" aria-label="Navegación principal">
-                <template v-if="landing"><a href="#que-es-synaux">La propuesta</a><a href="#como-funciona">Cómo funciona</a><SynauxButton href="/plataforma">Entrar a Synaux</SynauxButton></template>
-                <template v-else><a v-for="[label, href] in nav" :key="href" :href="referenceHref(href, $page.props)" :aria-current="$page.url.split('?')[0] === href ? 'page' : undefined">{{ label }}</a><div v-if="area === 'public'" class="nav-actions"><template v-if="!$page.props.auth"><SynauxButton href="/ingresar" variant="ghost">Ingresar</SynauxButton><SynauxButton href="/crear-cuenta">Crear cuenta</SynauxButton></template></div></template>
+                <a v-for="[label, href] in publicNav" :key="href" :href="referenceHref(href, $page.props)" :aria-current="$page.url.split('?')[0] === href ? 'page' : undefined">{{ label }}</a>
+                <div v-if="!$page.props.auth && !$page.props.preview" class="nav-actions"><SynauxButton href="/ingresar" variant="ghost">Ingresar</SynauxButton><SynauxButton href="/crear-cuenta">Crear cuenta</SynauxButton></div>
                 <AccountMenu v-if="$page.props.auth && !$page.props.preview" />
             </nav>
         </header>
         <!-- El componente compartido anuncia resultados y errores sin perderse al desplazar la página. -->
         <SynauxNotifications :message="demoNotice || $page.props.notice" :errors="$page.props.errors" :page-key="$page.url" @close-message="demoNotice = ''" />
-        <v-main id="contenido" tabindex="-1"><slot /></v-main>
+        <!-- El panel es adicional al sitio y solo acompaña las pantallas privadas. -->
+        <div v-if="hasWorkspace" class="workspace-mobile-bar"><span>{{ workspaceTitle }}</span><button ref="workspaceToggle" type="button" :aria-expanded="workspaceOpen" aria-controls="workspace-mobile-panel" @click="workspaceOpen = true"><I name="menu" />Menú del panel</button></div>
+        <div :class="['workspace-layout', { 'with-workspace': hasWorkspace }]">
+            <aside v-if="hasWorkspace" class="workspace-sidebar"><div class="workspace-sidebar-sticky"><WorkspaceNavigation :items="nav" :area="area" :current="currentSection" /></div></aside>
+            <v-main id="contenido" class="workspace-content" tabindex="-1"><slot /></v-main>
+        </div>
+        <!-- Vuetify mantiene el foco en el panel móvil y permite cerrarlo con Escape o fuera de él. -->
+        <v-dialog v-if="hasWorkspace" v-model="workspaceOpen" class="workspace-mobile-dialog" max-width="340" @after-leave="restoreWorkspaceFocus" aria-labelledby="workspace-mobile-title">
+            <div id="workspace-mobile-panel" class="synaux-app workspace-mobile-panel"><div class="workspace-mobile-heading"><strong id="workspace-mobile-title">Menú del panel</strong><button type="button" aria-label="Cerrar menú del panel" @click="workspaceOpen = false"><I name="close" /></button></div><WorkspaceNavigation :items="nav" :area="area" :current="currentSection" @navigate="workspaceOpen = false" /></div>
+        </v-dialog>
         <!-- La firma de cierre mantiene el fondo blanco del diseño y el original a color con eslogan. -->
         <!-- El pie de la landing aplica la guía de marca sobre el diseño compartido. -->
         <footer :class="{ 'landing-footer': landing }"><div class="shell footer-grid"><a :href="referenceHref('/', $page.props)" aria-label="Synaux: presentación"><BrandLogo /></a><div><strong>Conexión, transparencia y crecimiento digital.</strong><p>© {{ year }} Synaux.</p></div><nav aria-label="Navegación del pie"><a v-for="[label, href] in publicNav" :key="href" :href="referenceHref(href, $page.props)">{{ label }}</a></nav></div></footer>
     </v-app>
 </template>
+
+<style scoped>
+/* El contenido usa el ancho restante del panel; la landing y el catálogo conservan su composición pública. */
+.workspace-layout { flex: 1 1 auto; min-width: 0; }
+.with-workspace { display: grid; grid-template-columns: 240px minmax(0, 1fr); align-items: start; }
+.workspace-content { min-width: 0; width: 100%; }
+.workspace-sidebar { align-self: stretch; min-width: 0; background: #f5f9fa; border-right: 1px solid #1f6f7f22; }
+.workspace-sidebar-sticky { position: sticky; top: 24px; max-height: calc(100dvh - 48px); overflow-y: auto; }
+.with-workspace :deep(.page) { padding-block: 40px 72px; }
+.with-workspace :deep(.admin-layout) { grid-template-columns: minmax(0, 1fr); }
+.workspace-mobile-bar { display: none; }
+@media (max-width: 1100px) {
+    .with-workspace { display: block; }
+    .workspace-sidebar { display: none; }
+    .workspace-mobile-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 24px; background: #f5f9fa; border-bottom: 1px solid #1f6f7f22; color: #153b64; font-weight: 700; }
+    .workspace-mobile-bar button { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 12px; border: 1px solid #1f6f7f44; border-radius: 8px; color: #153b64; background: #fff; cursor: pointer; }
+    .workspace-mobile-bar button:focus-visible { outline: 3px solid #1f6f7f; outline-offset: 3px; }
+}
+@media (max-width: 600px) { .workspace-mobile-bar { padding-inline: 16px; font-size: .9rem; } }
+</style>
+<style>
+/* El diálogo móvil se presenta como un panel lateral y conserva el foco y el cierre de Vuetify. */
+.workspace-mobile-dialog .v-overlay__content { position: fixed; top: 0; left: 0; margin: 0 !important; width: min(340px, calc(100vw - 24px)) !important; max-height: 100dvh !important; height: 100dvh; }
+.workspace-mobile-panel { height: 100%; overflow-y: auto; background: #f5f9fa; color: #153b64; font-family: 'Nunito', sans-serif; }
+.workspace-mobile-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid #1f6f7f33; }
+.workspace-mobile-heading button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 8px; background: transparent; color: #153b64; cursor: pointer; }
+.workspace-mobile-heading button:focus-visible { outline: 3px solid #1f6f7f; }
+</style>
