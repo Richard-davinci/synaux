@@ -139,6 +139,49 @@ class SynauxFlowTest extends TestCase
     }
 
 
+    // Recorre el MVP privado con los formularios reales, desde el estimador hasta el proyecto.
+    public function test_private_estimate_becomes_a_project_after_management_quotes_it(): void
+    {
+        $client = $this->account();
+        $manager = $this->account(admin: true);
+        $this->profile($manager);
+        $service = DB::table('services')->where('slug', 'landing-page')->value('id');
+        $question = DB::table('estimator_questions')->where('service_id', $service)->value('id');
+
+        $this->actingAs($client)->post('/estimador/calcular', [
+            'service' => 'landing-page',
+            'answers' => [$question => 'Necesitamos presentar nuestro próximo lanzamiento.'],
+        ])->assertRedirect('/estimador?paso=4&servicio=landing-page');
+
+        $this->post('/acciones/guardar-estimacion')->assertRedirect();
+        $estimate = DB::table('estimates')->where('user_id', $client->id)->value('id');
+        $request = [
+            'service_id' => $service,
+            'estimate_id' => $estimate,
+            'title' => 'Landing para el lanzamiento',
+            'description' => 'Necesitamos presentar el producto con un formulario de contacto.',
+            'visibility' => 'private',
+            'publish' => false,
+        ];
+        $this->post('/acciones/solicitud', $request)->assertRedirect();
+        $id = DB::table('project_requests')->where('estimate_id', $estimate)->value('id');
+        $this->assertDatabaseHas('project_requests', ['id' => $id, 'status' => 'draft']);
+        $this->post('/acciones/solicitud', [...$request, 'id' => $id, 'publish' => true])
+            ->assertRedirect('/solicitudes/'.$id);
+        $this->assertDatabaseHas('project_requests', ['id' => $id, 'visibility' => 'private', 'status' => 'open', 'published_at' => null]);
+
+        $this->actingAs($this->account())->get('/solicitudes/'.$id)->assertNotFound();
+        $this->actingAs($manager)->get('/solicitudes/'.$id)->assertOk();
+        $this->post('/acciones/presupuesto', $this->quoteData($id))->assertSessionHasNoErrors()->assertRedirect();
+        $version = DB::table('budget_versions')->value('id');
+
+        $decision = ['id' => $version, 'decision' => 'accepted', 'confirmed' => true];
+        $this->actingAs($client)->post('/acciones/decidir-presupuesto', $decision)->assertRedirect();
+        $this->post('/acciones/decidir-presupuesto', $decision)->assertStatus(422);
+        $this->assertDatabaseCount('projects', 1);
+    }
+
+
     public function test_estimator_rejects_forged_options(): void
     {
         $qid = DB::table('estimator_questions')->value('id');
