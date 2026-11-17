@@ -201,7 +201,6 @@ class SynauxController extends Controller
     {
         // La lista explícita impide ejecutar métodos arbitrarios desde una URL.
         return match ($action) {
-            'guardar-estimacion' => $this->saveEstimate($request),
             'estado-solicitud' => $this->requestStatus($request),
             'perfil' => $this->saveProfile($request),
             'propuesta' => $this->saveProposal($request),
@@ -215,27 +214,6 @@ class SynauxController extends Controller
             'trabajo' => $this->saveWork($request),
             default => abort(404),
         };
-    }
-
-    // Guarda una instantánea del resultado de sesión y evita duplicarla si se repite el envío.
-    private function saveEstimate(Request $request)
-    {
-        $pending = $request->session()->get('pending_estimate');
-        abort_unless($pending, 422, 'Primero completá el estimador.');
-        // La clave del cálculo evita duplicados por doble clic sin reutilizar una estimación al recalcular.
-        $existing = DB::table('estimates')->where('request_key', $pending['key'])->first();
-        if ($existing) {
-            abort_unless($existing->user_id === $request->user()->id, 403);
-
-            return redirect($request->boolean('to_request') ? '/solicitudes/nueva?estimacion='.$existing->id : '/estimaciones/'.$existing->id);
-        }
-        $id = DB::table('estimates')->insertGetId(['user_id' => $request->user()->id, 'service_id' => $pending['service']['database_id'],
-            'tariff_version_id' => $pending['tariff_id'], 'request_key' => $pending['key'], 'summary' => $pending['service']['name'],
-            'status' => $pending['mode'] === 'automatic' ? 'calculated' : 'manual', 'base_min_snapshot' => $pending['base_min'],
-            'base_max_snapshot' => $pending['base_max'], 'price_min' => $pending['min'], 'price_max' => $pending['max'],
-            'currency_snapshot' => $pending['currency'], 'answers_snapshot' => json_encode($pending['answers']), 'items_snapshot' => json_encode($pending['items']), 'created_at' => now(), 'updated_at' => now()]);
-
-        return redirect($request->boolean('to_request') ? '/solicitudes/nueva?estimacion='.$id : '/estimaciones/'.$id)->with('notice', 'Estimación guardada. Podés crear una solicitud con estas respuestas.');
     }
 
     // Comprueba propiedad o administración antes de revisar, cerrar o cancelar una solicitud.

@@ -5,6 +5,7 @@ use App\Http\Controllers\SynauxAuthController;
 use App\Http\Controllers\SynauxController;
 use App\Http\Controllers\SynauxReferenceController;
 use App\Http\Controllers\SynauxRequestController;
+use App\Http\Controllers\SynauxEstimateController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -54,6 +55,8 @@ Route::middleware('auth')->group(function () {
     }
     // El formulario de solicitudes conserva su URL y el mismo límite de envíos.
     Route::post('/acciones/solicitud', [SynauxRequestController::class, 'store'])->middleware('throttle:60,1');
+    // El guardado de estimaciones mantiene la URL y los límites que usa el frontend.
+    Route::post('/acciones/guardar-estimacion', [SynauxEstimateController::class, 'store'])->middleware('throttle:60,1');
     Route::post('/acciones/{action}', [SynauxController::class, 'action'])->middleware('throttle:60,1');
     Route::post('/admin/guardar/{resource}', [SynauxAdminController::class, 'save'])->middleware('throttle:30,1');
 });
