@@ -50,6 +50,29 @@ class HomeTest extends TestCase
             );
     }
 
+    // El estimador recibe el servicio del detalle, incluso cuando no es el servicio predeterminado.
+    public function test_estimator_uses_the_service_selected_from_the_catalog(): void
+    {
+        $slug = 'identidad-visual';
+
+        $this->get('/servicios/'.$slug)
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Workspace')
+                ->where('screen', 'servicio')
+                ->where('selected.id', $slug)
+            );
+
+        $this->get('/estimador?servicio='.$slug)
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Workspace')
+                ->where('screen', 'estimador')
+                ->where('selected.id', $slug)
+                ->where('step', 1)
+                ->has('questions', 1)
+            );
+    }
+
+
     // Simula una navegación de Inertia con la versión de recursos actual y verifica la respuesta JSON.
     public function test_inertia_can_navigate_from_the_landing_to_the_platform(): void
     {
