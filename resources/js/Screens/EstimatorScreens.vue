@@ -18,6 +18,16 @@ for (const q of props.data.questions ?? []) if (q.input_type === 'multiple_choic
 const form = useForm({ service: service.value, answers: initial });
 const saveForm = useForm({ to_request: false });
 const labels = ['Servicio', 'Preguntas', 'Revisión', 'Resultado'];
+
+// Las categorías del catálogo organizan la selección sin cambiar el servicio activo.
+const serviceGroups = computed(() => {
+    const groups = new Map();
+    for (const item of props.data.services) {
+        if (!groups.has(item.category)) groups.set(item.category, []);
+        groups.get(item.category).push(item);
+    }
+    return groups;
+});
 function choose(id) { service.value = id; form.service = id; }
 function next() {
     if (props.data.preview || props.data.selected?.id === service.value) { step.value = 2; return; }
@@ -31,7 +41,27 @@ function save(toRequest) { saveForm.to_request = toRequest; submit(saveForm, 'gu
         <T eyebrow="Presupuestador orientativo" :title="saved ? 'Tu estimación guardada' : 'Estimá tu proyecto'"><span v-if="!saved">Paso {{ step }} de 4</span></T>
         <!-- La secuencia refleja el paso actual y permite volver sin perder las respuestas ingresadas. -->
         <ol v-if="!saved" class="progress" aria-label="Pasos de la estimación"><li v-for="(label, index) in labels" :key="label" :class="{done:step >= index + 1}"><i>{{ step > index + 1 ? '✓' : index + 1 }}</i><span>{{ label }}</span></li></ol>
-        <v-card v-if="step === 1 && !saved" class="card form-card"><h2>¿Qué necesitás resolver?</h2><p>Seleccioná un servicio. Podés cambiarlo antes de finalizar.</p><div class="choice-grid"><button v-for="s in data.services" :key="s.id" :class="['choice',{selected:service === s.id}]" :aria-pressed="service === s.id" @click="choose(s.id)"><span>{{ s.category }}</span><strong>{{ s.name }}</strong><small>{{ s.mode }}</small></button></div><div class="form-actions"><span /><B arrow @click="next">Continuar</B></div></v-card>
+        <v-card v-if="step === 1 && !saved" class="card form-card">
+            <h2>¿Qué necesitás resolver?</h2>
+            <p>Seleccioná un servicio. Podés cambiarlo antes de finalizar.</p>
+            <section v-for="[category, items] in serviceGroups" :key="category" class="estimator-service-group">
+                <h3>{{ category }}</h3>
+                <div class="choice-grid">
+                    <button
+                        v-for="item in items"
+                        :key="item.id"
+                        type="button"
+                        :class="['choice', { selected: service === item.id }]"
+                        :aria-pressed="service === item.id"
+                        @click="choose(item.id)"
+                    >
+                        <strong>{{ item.name }}</strong>
+                        <small>{{ item.mode }}</small>
+                    </button>
+                </div>
+            </section>
+            <div class="form-actions"><span /><B arrow @click="next">Continuar</B></div>
+        </v-card>
         <v-card v-else-if="step === 2 && !saved" class="card form-card"><h2>Contanos un poco más</h2><p>Tus respuestas definen componentes y cantidades del cálculo.</p>
             <form @submit.prevent="step = 3"><template v-for="q in data.questions" :key="q.id"><fieldset v-if="q.input_type === 'multiple_choice'" class="question-group"><legend>{{ q.question }}</legend><label v-for="option in q.options" :key="option.id" class="select-row"><input v-model="form.answers[q.id]" type="checkbox" :value="String(option.id)">{{ option.label }}</label></fieldset><F v-else v-model="form.answers[q.id]" :label="q.question" :type="q.input_type === 'single_choice' ? 'select' : q.input_type === 'number' ? 'number' : 'textarea'" :options="q.options?.map(o => ({value:o.id,label:o.label}))" required :min="q.input_type === 'number' ? 1 : undefined" :error="form.errors[`answers.${q.id}`]" /></template><div class="form-actions"><B variant="ghost" @click="step = 1">Volver</B><B type="submit" arrow>Revisar respuestas</B></div></form>
         </v-card>
@@ -41,3 +71,22 @@ function save(toRequest) { saveForm.to_request = toRequest; submit(saveForm, 'gu
         <v-card v-else class="card"><h2>Comenzá por elegir un servicio</h2><p>Necesitamos tus respuestas para preparar la referencia.</p><B href="/estimador">Volver al estimador</B></v-card>
     </section>
 </template>
+
+<style scoped>
+/* Separa las categorías y permite que las opciones ocupen el ancho disponible. */
+.estimator-service-group + .estimator-service-group {
+    margin-top: 1.5rem;
+}
+
+.estimator-service-group h3 {
+    margin-bottom: .75rem;
+}
+
+.estimator-service-group .choice-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+}
+
+.estimator-service-group .choice {
+    min-height: 0;
+}
+</style>
