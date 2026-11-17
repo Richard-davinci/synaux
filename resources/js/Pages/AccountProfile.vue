@@ -33,7 +33,7 @@ function save() {
                     <F v-model="form.name" label="Nombre" autocomplete="name" maxlength="255" required :error="form.errors.name" />
                     <F v-model="form.email" label="Correo electrónico" type="email" autocomplete="email" maxlength="254" required :error="form.errors.email" />
                     <F v-if="emailChanged" v-model="form.current_password" label="Contraseña actual" type="password" autocomplete="current-password" hint="Confirmá tu contraseña para cambiar el correo de acceso." required :error="form.errors.current_password" />
-                    <div class="form-actions"><B href="/cliente" variant="secondary">Volver a mi cuenta</B><B type="submit" :disabled="form.processing">Guardar cambios</B></div>
+                    <div class="form-actions"><B :href="$page.props.auth.is_admin ? '/gestion' : '/cliente'" variant="secondary">Volver a mi cuenta</B><B type="submit" :disabled="form.processing">Guardar cambios</B></div>
                 </form>
             </v-card>
         </section>

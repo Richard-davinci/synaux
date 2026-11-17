@@ -46,7 +46,16 @@ class SynauxAuthController extends Controller
         RateLimiter::clear($key);
         $request->session()->regenerate();
 
-        return redirect()->intended($request->session()->has('pending_estimate') ? '/estimador?paso=4' : '/cliente');
+        // Gestión es el inicio del administrador. Un acceso previo al resumen cliente no reemplaza ese destino.
+        $admin = $request->user()->is_admin;
+        $intended = $request->session()->get('url.intended');
+        if ($admin && is_string($intended) && parse_url($intended, PHP_URL_PATH) === '/cliente') {
+            $request->session()->forget('url.intended');
+        }
+        $destination = $admin ? '/gestion'
+            : ($request->session()->has('pending_estimate') ? '/estimador?paso=4' : '/cliente');
+
+        return redirect()->intended($destination);
     }
 
     // Cierra la sesión e invalida sus datos y token antes de volver al catálogo público.
