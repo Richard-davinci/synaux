@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Database\Seeders\SynauxCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -52,6 +53,31 @@ class HomeTest extends TestCase
                 ->where('services.7.id', 'prototipo-interactivo')
             );
     }
+
+    // Volver a cargar el catálogo reubica UX/UI sin duplicar servicios ni pisar su descripción.
+    public function test_catalog_reseed_updates_the_legacy_ux_category_without_duplicates(): void
+    {
+        $design = DB::table('service_categories')->where('slug', 'diseno')->value('id');
+        $ux = DB::table('service_categories')->where('name', 'UX/UI')->value('id');
+        DB::table('services')->where('slug', 'diseno-ux-ui')->update([
+            'service_category_id' => $design,
+            'description' => 'Descripción editorial de Synaux.',
+        ]);
+        $questionsCount = DB::table('estimator_questions')->count();
+
+        $this->seed(SynauxCatalogSeeder::class);
+        $this->seed(SynauxCatalogSeeder::class);
+
+        $this->assertDatabaseHas('services', [
+            'slug' => 'diseno-ux-ui',
+            'service_category_id' => $ux,
+            'description' => 'Descripción editorial de Synaux.',
+        ]);
+        $this->assertDatabaseCount('service_categories', 4);
+        $this->assertDatabaseCount('services', 11);
+        $this->assertDatabaseCount('estimator_questions', $questionsCount);
+    }
+
 
     // El estimador recibe el servicio del detalle, incluso cuando no es el servicio predeterminado.
     public function test_estimator_uses_the_service_selected_from_the_catalog(): void
