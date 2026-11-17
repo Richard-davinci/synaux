@@ -25,7 +25,7 @@ function logout() {
                 <VListItem href="/gestion" title="Gestión" />
                 <VListItem href="/admin/servicios" title="Administración" />
             </template>
-            <VListItem href="/plataforma" title="Sitio público" />
+
             <VListItem title="Cerrar sesión" :disabled="signingOut" @click="logout" />
         </VList>
     </VMenu>
