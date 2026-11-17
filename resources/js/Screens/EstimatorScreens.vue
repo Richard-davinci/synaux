@@ -5,12 +5,15 @@ import B from '../Components/SynauxButton.vue';
 import F from '../Components/SynauxField.vue';
 import T from '../Components/SynauxTitle.vue';
 import I from '../Components/SynauxIcon.vue';
+import ServiceReference from '../Components/ServiceReference.vue';
 import { money, date, useSubmit } from '../support/synaux';
 // El navegador organiza los pasos; Laravel valida respuestas y calcula con la versión de tarifas vigente.
 const props = defineProps({ data: Object });
 const submit = useSubmit();
 const step = ref(props.data.step ?? 1);
 const service = ref(props.data.selected?.id ?? props.data.pending?.service?.id ?? 'sitio-institucional');
+// La referencia sigue la selección antes de cargar las preguntas de ese servicio.
+const selectedService = computed(() => props.data.services.find(item => item.id === service.value));
 const saved = computed(() => props.data.screen === 'estimacion');
 const result = computed(() => saved.value ? { ...props.data.selected, service: props.data.services.find(s => s.database_id === props.data.selected.service_id), min: props.data.selected.price_min, max: props.data.selected.price_max, mode: props.data.selected.status === 'manual' ? 'manual' : 'automatic', currency: props.data.selected.currency_snapshot, base_min: props.data.selected.base_min_snapshot, base_max: props.data.selected.base_max_snapshot, date: props.data.selected.created_at } : props.data.pending);
 const initial = Object.fromEntries((props.data.pending?.answers ?? []).map(a => [a.id, a.value]));
@@ -59,6 +62,7 @@ function save(toRequest) { saveForm.to_request = toRequest; submit(saveForm, 'gu
         <v-card v-if="step === 1 && !saved" class="card form-card">
             <h2>¿Qué necesitás resolver?</h2>
             <p>Seleccioná un servicio. Podés cambiarlo antes de finalizar.</p>
+            <ServiceReference :service="selectedService" :reference="data.references?.[service]" />
             <p v-if="form.errors.service" class="error" role="alert">{{ form.errors.service }}</p>
             <section v-for="[category, items] in serviceGroups" :key="category" class="estimator-service-group">
                 <h3>{{ category }}</h3>
@@ -79,12 +83,8 @@ function save(toRequest) { saveForm.to_request = toRequest; submit(saveForm, 'gu
             <div class="form-actions"><span /><B arrow @click="next">Continuar</B></div>
         </v-card>
         <v-card v-else-if="step === 2 && !saved" class="card form-card"><h2>Contanos un poco más</h2><p>Respondé para preparar una referencia acorde a tu proyecto.</p>
-            <!-- El alcance publicado permite evaluar el paquete antes de responder y calcular. -->
-            <section v-if="data.selected?.includes?.length" class="estimator-scope">
-                <h3>{{ data.selected.name }}</h3>
-                <ul><li v-for="deliverable in data.selected.includes" :key="deliverable">{{ deliverable }}</li></ul>
-                <p>Si necesitás prestaciones adicionales, detallalas en la solicitud para que Synaux revise el alcance.</p>
-            </section>
+            <!-- La referencia acompaña las preguntas del servicio elegido. -->
+            <ServiceReference :service="data.selected" :reference="data.references?.[data.selected.id]" />
             <form @submit.prevent="step = 3"><template v-for="q in data.questions" :key="q.id"><fieldset v-if="q.input_type === 'multiple_choice'" class="question-group" :aria-invalid="!!form.errors[`answers.${q.id}`]"><legend>{{ q.question }}</legend><label v-for="option in q.options" :key="option.id" class="select-row"><input v-model="form.answers[q.id]" type="checkbox" :value="String(option.id)">{{ option.label }}</label><small v-if="form.errors[`answers.${q.id}`]" class="error" role="alert">{{ form.errors[`answers.${q.id}`] }}</small></fieldset><F v-else v-model="form.answers[q.id]" :label="q.question" :type="q.input_type === 'single_choice' ? 'select' : q.input_type === 'number' ? 'number' : 'textarea'" :options="q.options?.map(o => ({value:o.id,label:o.label}))" required :min="q.input_type === 'number' ? 1 : undefined" :error="form.errors[`answers.${q.id}`]" /></template><div class="form-actions"><B variant="ghost" @click="step = 1">Volver</B><B type="submit" arrow>Revisar respuestas</B></div></form>
         </v-card>
         <v-card v-else-if="step === 3 && !saved" class="card form-card"><h2>Revisá antes de calcular</h2><div class="review-list"><div><span>Servicio</span><strong>{{ data.services.find(s => s.id === service)?.name }}</strong><button @click="step = 1">Editar</button></div><div v-for="q in data.questions" :key="q.id"><span>{{ q.question }}</span><strong>{{ q.input_type.includes('choice') ? (Array.isArray(form.answers[q.id]) ? form.answers[q.id] : [form.answers[q.id]]).map(v => q.options.find(o => String(o.id) === String(v))?.label).join(', ') : form.answers[q.id] }}</strong><button @click="step = 2">Editar</button></div></div><div class="notice"><I name="info" /><p>El resultado será orientativo. El presupuesto formal se prepara después de revisar tu solicitud.</p></div><div class="form-actions"><B variant="ghost" @click="step = 2">Volver</B><B :disabled="form.processing" @click="calculate">Calcular estimación</B></div></v-card>
@@ -95,22 +95,6 @@ function save(toRequest) { saveForm.to_request = toRequest; submit(saveForm, 'gu
 </template>
 
 <style scoped>
-/* El alcance comparte la paleta de marca y mantiene la lista legible antes del formulario. */
-.estimator-scope {
-    margin-block: 1.5rem;
-    padding: 1.25rem;
-    border: 1px solid rgb(31 111 127 / 18%);
-    border-radius: .75rem;
-    background: #f5f9fa;
-}
-.estimator-scope ul {
-    padding-left: 1.25rem;
-    margin-block: .75rem;
-}
-.estimator-scope p {
-    margin-bottom: 0;
-}
-
 /* Separa las categorías y permite que las opciones ocupen el ancho disponible. */
 .estimator-service-group + .estimator-service-group {
     margin-top: 1.5rem;

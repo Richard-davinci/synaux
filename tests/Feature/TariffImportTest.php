@@ -48,6 +48,15 @@ class TariffImportTest extends TestCase
 
         $catalog = app(SynauxCatalog::class);
         $service = $catalog->service('sitio-institucional');
+        // La referencia inicial sale de la versión importada y solo existe para servicios con tarifas completas.
+        $reference = $catalog->references()['sitio-institucional'];
+        $this->assertEquals(676360, $reference['min']);
+        $this->assertSame('Particular', $reference['segment']);
+        $this->assertSame(SynauxTariffImport::SOURCE, $reference['source']);
+        $this->assertArrayNotHasKey('identidad-visual', $catalog->references());
+        $this->get('/estimador?servicio=sitio-institucional')->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+            ->where('references.sitio-institucional.currency', 'ARS')
+            ->where('references.sitio-institucional.segment', 'Particular'));
         $question = $catalog->questions($service['database_id'])[0];
         foreach ($question['options'] as $position => $option) {
             $estimate = $catalog->calculate('sitio-institucional', [$question['id'] => $option->id]);

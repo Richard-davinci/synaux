@@ -56,6 +56,7 @@ class SynauxController extends Controller
             }
         }
         if ($screen === 'estimador') {
+            $data['references'] = $this->catalog->references();
             // Al volver de la cuenta, el resultado reabre el servicio del cálculo guardado en sesión.
             $step = max(1, min(4, (int) $request->query('paso', 1)));
             $pending = $request->session()->get('pending_estimate');

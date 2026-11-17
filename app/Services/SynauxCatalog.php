@@ -22,6 +22,41 @@ class SynauxCatalog
             ])->all();
     }
 
+    // Prepara referencias iniciales con la base y los componentes incluidos, sin calcular respuestas ficticias.
+    public function references(): array
+    {
+        $tariff = DB::table('tariff_versions')->where('active', 1)->where('effective_from', '<=', now())
+            ->orderByDesc('effective_from')->orderByDesc('id')->first();
+        if (! $tariff) {
+            return [];
+        }
+        $bases = DB::table('service_prices')->where('tariff_version_id', $tariff->id)->get()->keyBy('service_id');
+        $prices = DB::table('component_prices')->where('tariff_version_id', $tariff->id)->get()->keyBy('service_component_id');
+        $components = DB::table('service_components')->where('active', 1)->get()->groupBy('service_id');
+        $references = [];
+        foreach ($this->services() as $service) {
+            $base = $bases->get($service['database_id']);
+            $parts = $components->get($service['database_id'], collect());
+            if ($service['estimation_mode'] !== 'automatic' || ! $base || $parts->contains(fn ($part) => ! $prices->has($part->id))) {
+                continue;
+            }
+            $min = (float) $base->price_min;
+            $max = (float) $base->price_max;
+            foreach ($parts->where('is_default', 1) as $part) {
+                $min += $prices[$part->id]->price_min * $part->default_quantity;
+                $max += $prices[$part->id]->price_max * $part->default_quantity;
+            }
+            $references[$service['id']] = [
+                'min' => round($min, 2), 'max' => round($max, 2), 'currency' => $tariff->currency_code,
+                'date' => $tariff->effective_from,
+                'segment' => $parts->contains('slug', 'segmento-tarifario-2026-11') ? 'Particular' : null,
+                'source' => $service['id'] === 'sitio-institucional' ? $tariff->source_url : null,
+            ];
+        }
+
+        return $references;
+    }
+
     // Resuelve un servicio activo por su identificador público; devuelve 404 si no existe.
     public function service(string $slug): array
     {
