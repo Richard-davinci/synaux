@@ -229,6 +229,22 @@ class SynauxFlowTest extends TestCase
         $this->post('/acciones/solicitud', [...$data, 'service_id' => $service])->assertSessionHasNoErrors()->assertRedirect('/solicitudes/'.$id);
     }
 
+    // El servidor usa la categoría del catálogo y rechaza servicios retirados para nuevos pedidos.
+    public function test_new_request_uses_the_catalog_category_and_requires_an_active_service(): void
+    {
+        $owner = $this->account();
+        $service = DB::table('services')->where('slug', 'auditoria-usabilidad')->value('id');
+        $data = [
+            'service_id' => $service, 'category' => 'Desarrollo web', 'title' => 'Auditoría de mi producto',
+            'description' => 'Necesitamos revisar el proceso de registro.', 'visibility' => 'private', 'publish' => false,
+        ];
+        $this->actingAs($owner)->post('/acciones/solicitud', $data)->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertDatabaseHas('project_requests', ['user_id' => $owner->id, 'service_id' => $service, 'category' => 'UX/UI']);
+        DB::table('services')->where('id', $service)->update(['active' => 0]);
+        $this->post('/acciones/solicitud', $data)->assertSessionHasErrors('service_id');
+        $this->assertDatabaseCount('project_requests', 1);
+    }
+
     public function test_estimator_rejects_forged_options(): void
     {
         $qid = DB::table('estimator_questions')->value('id');

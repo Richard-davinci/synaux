@@ -15,6 +15,14 @@ class SynauxRequests
             if ($existing) {
                 abort_unless($existing->user_id === $userId && $existing->status === 'draft', 403);
             }
+            // La categoría se deriva del catálogo. Un borrador antiguo conserva su servicio aunque se haya desactivado.
+            $service = DB::table('services as s')->join('service_categories as c', 'c.id', '=', 's.service_category_id')
+                ->where('s.id', $d['service_id'])->select('s.id', 's.active', 'c.active as category_active', 'c.name as category')->firstOrFail();
+            if ((! $existing || $existing->service_id !== (int) $d['service_id']) && (! $service->active || ! $service->category_active)) {
+                throw ValidationException::withMessages(['service_id' => 'Elegí un servicio disponible en el catálogo.']);
+            }
+            $d['category'] = $service->category;
+
             // Recupera también la estimación del borrador cuando el formulario omite su identificador.
             $estimateId = $d['estimate_id'] ?? $existing?->estimate_id;
             $estimate = $estimateId ? DB::table('estimates')->where('id', $estimateId)->where('user_id', $userId)->firstOrFail() : null;
