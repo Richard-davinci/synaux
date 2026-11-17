@@ -29,8 +29,27 @@ class SynauxRequests
             if ($estimate && $estimate->service_id !== (int) $d['service_id']) {
                 throw ValidationException::withMessages(['service_id' => 'El servicio debe coincidir con la estimación de origen.']);
             }
+            // Los servicios se identifican por registros del catálogo y sus nombres quedan en la instantánea del pedido.
+            $additional = json_decode($existing?->requested_services ?? '[]', true);
+            if (array_key_exists('additional_services', $d)) {
+                $additional = [];
+                foreach ($d['additional_services'] as $index => $item) {
+                    $extra = DB::table('services')->where('id', $item['service_id'])->where('active', 1)->first();
+                    if (! $extra || $extra->id === (int) $d['service_id']) {
+                        throw ValidationException::withMessages(["additional_services.$index.service_id" => 'Elegí otro servicio disponible.']);
+                    }
+                    $additional[] = [
+                        'service_id' => $extra->id, 'name' => $extra->name,
+                        'quantity' => $item['quantity'], 'notes' => $item['notes'] ?? '',
+                    ];
+                }
+            }
+            $owner = DB::table('users')->where('id', $userId)->firstOrFail();
+            $contact = $d['contact'] ?? json_decode($existing?->contact_snapshot ?? 'null', true)
+                ?? ['name' => $owner->name, 'email' => $owner->email];
             $values = ['user_id' => $userId, 'service_id' => $d['service_id'], 'estimate_id' => $estimate?->id ?? $existing?->estimate_id,
                 'title' => $d['title'], 'description' => $d['description'], 'visibility' => $d['visibility'], 'category' => $d['category'] ?? null,
+                'contact_snapshot' => json_encode($contact), 'requested_services' => json_encode($additional),
                 'skills' => json_encode($d['skills']), 'budget_reference' => $d['budget_reference'] ?? null,
                 'desired_deadline' => $d['desired_deadline'] ?? null, 'status' => $d['publish'] ? 'open' : 'draft',
                 'published_at' => $d['publish'] && $d['visibility'] === 'public' ? now() : null,

@@ -41,6 +41,8 @@ class SynauxWorkspace
             ->when($only !== null, fn ($q) => $q->whereIn('r.id', $only))
             ->when($public, fn ($q) => $q->where('r.visibility', 'public')->where('r.status', 'open'))
             ->when(! $public && ! $management, fn ($q) => $q->where('r.user_id', $owner))
+            // Los borradores pertenecen al cliente hasta que se envía el pedido.
+            ->when($management, fn ($q) => $q->where(fn ($drafts) => $drafts->where('r.status', '!=', 'draft')->orWhere('r.user_id', $owner)))
             ->orderByDesc('r.created_at')->select('r.*', 's.name as service_name', 's.slug as service_slug')->get()->map(function ($r) use ($public) {
                 $base = ['id' => $r->id, 'title' => $r->title, 'description' => $r->description,
                     'service_id' => $r->service_id, 'service_name' => $r->service_name, 'service_slug' => $r->service_slug,
@@ -50,6 +52,7 @@ class SynauxWorkspace
                     'proposal_count' => DB::table('proposals')->where('project_request_id', $r->id)->count()];
 
                 return $public ? $base : [...$base, 'user_id' => $r->user_id, 'estimate_id' => $r->estimate_id,
+                    'contact' => json_decode($r->contact_snapshot ?? 'null', true), 'additional_services' => json_decode($r->requested_services ?? '[]', true),
                     'reviewed_at' => $r->reviewed_at, 'answers' => json_decode($r->answers_snapshot ?? '[]', true)];
             })->all();
     }
@@ -71,7 +74,7 @@ class SynauxWorkspace
                 $total = (int) round($subtotal * (1 + $v->tax_rate / 100));
                 $latestSent = DB::table('budget_versions')->where('budget_id', $v->budget_id)->whereNotNull('sent_at')->max('version_number');
 
-                return [...((array) $v), 'items' => $items, 'subtotal' => $subtotal / 100, 'total' => $total / 100,
+                return [...((array) $v), 'client' => json_decode($v->client_snapshot ?? 'null', true), 'issuer' => json_decode($v->issuer_snapshot ?? 'null', true), 'items' => $items, 'subtotal' => $subtotal / 100, 'total' => $total / 100,
                     'current' => (int) $latestSent === (int) $v->version_number,
                     'display_status' => $v->status === 'sent' && $v->valid_until < today()->toDateString() ? 'expired' : $v->status];
             })->values()->all();

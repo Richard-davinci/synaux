@@ -259,6 +259,51 @@ class SynauxFlowTest extends TestCase
         $this->get('/admin/tarifario')->assertOk();
     }
 
+    // El pedido conserva contacto y adicionales privados; cada presupuesto mantiene la identidad de su versión.
+    public function test_request_contact_and_additional_services_flow_into_a_private_budget_pdf(): void
+    {
+        $client = $this->account();
+        $manager = $this->account(true);
+        $this->profile($manager);
+        $service = DB::table('services')->where('slug', 'sitio-institucional')->value('id');
+        $extra = DB::table('services')->where('slug', 'identidad-visual')->value('id');
+        $contact = ['name' => 'Contacto del proyecto', 'email' => 'proyecto@example.test', 'company' => 'Estudio de prueba', 'phone' => '1122334455', 'address' => 'Dirección de prueba'];
+        $this->actingAs($client)->post('/acciones/solicitud', [
+            'service_id' => $service, 'title' => 'Sitio y marca para el estudio',
+            'description' => 'Queremos presentar nuestros servicios con una identidad nueva.',
+            'visibility' => 'private', 'publish' => true, 'contact' => $contact,
+            'additional_services' => [['service_id' => $extra, 'quantity' => 1, 'notes' => 'Incluye guía de uso.']],
+        ])->assertSessionHasNoErrors()->assertRedirect();
+        $id = DB::table('project_requests')->where('user_id', $client->id)->value('id');
+        $this->get('/solicitudes/'.$id)->assertInertia(fn (Assert $page) => $page
+            ->where('selected.contact.email', $contact['email'])
+            ->where('selected.additional_services.0.name', 'Identidad visual'));
+
+        $this->actingAs($manager)->get('/editor/presupuesto?solicitud='.$id)->assertInertia(fn (Assert $page) => $page
+            ->where('budgetRequests.0.contact.email', $contact['email']));
+        $this->post('/acciones/presupuesto', $this->quoteData($id))->assertSessionHasNoErrors();
+        $version = DB::table('budget_versions')->first();
+        $this->assertSame($contact['email'], json_decode($version->client_snapshot, true)['email']);
+        DB::table('project_requests')->where('id', $id)->update(['contact_snapshot' => json_encode([...$contact, 'email' => 'otro@example.test'])]);
+        $this->actingAs($client)->get('/presupuestos/'.$version->id)->assertInertia(fn (Assert $page) => $page
+            ->where('selected.client.email', $contact['email']));
+
+        $pdf = $this->get('/presupuestos/'.$version->id.'/pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF-', $pdf->getContent());
+        $this->actingAs($this->account())->get('/presupuestos/'.$version->id.'/pdf')->assertNotFound();
+    }
+
+    // Gestión recibe el pedido al enviarlo; el borrador continúa reservado a su dueño.
+    public function test_management_cannot_read_a_client_request_draft_before_submission(): void
+    {
+        $client = $this->account();
+        $id = $this->projectRequest($client);
+        DB::table('project_requests')->where('id', $id)->update(['status' => 'draft']);
+        $this->actingAs($this->account(true))->get('/solicitudes/'.$id)->assertNotFound();
+        DB::table('project_requests')->where('id', $id)->update(['status' => 'open']);
+        $this->get('/solicitudes/'.$id)->assertOk();
+    }
+
     public function test_estimator_rejects_forged_options(): void
     {
         $qid = DB::table('estimator_questions')->value('id');

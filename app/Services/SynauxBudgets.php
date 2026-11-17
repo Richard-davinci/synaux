@@ -44,8 +44,13 @@ class SynauxBudgets
             }
             abort_if(DB::table('budget_versions')->where('budget_id', $budgetId)->where('status', 'accepted')->exists(), 422, 'Este presupuesto ya fue aceptado.');
             $draft = DB::table('budget_versions')->where('budget_id', $budgetId)->where('status', 'draft')->first();
+            // El documento conserva las partes de esta versión aunque después cambien los perfiles.
+            $owner = DB::table('users')->where('id', $record->user_id)->firstOrFail();
+            $client = json_decode($record->contact_snapshot ?? 'null', true) ?? ['name' => $owner->name, 'email' => $owner->email];
+            $issuer = ['name' => $profile->brand_name, 'contact' => $request->user()->name, 'email' => $request->user()->email];
             $attributes = ['title' => $data['title'], 'currency_code' => $data['currency_code'], 'tax_rate' => $data['tax_rate'],
                 'valid_until' => $data['valid_until'], 'terms' => $data['terms'], 'estimated_delivery_days' => $data['estimated_delivery_days'],
+                'client_snapshot' => json_encode($client), 'issuer_snapshot' => json_encode($issuer),
                 'status' => $data['send'] ? 'sent' : 'draft', 'sent_at' => $data['send'] ? now() : null, 'updated_at' => now()];
             if ($draft) {
                 $versionId = $draft->id;

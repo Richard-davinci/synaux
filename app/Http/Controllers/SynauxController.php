@@ -43,7 +43,7 @@ class SynauxController extends Controller
                 $invited = $profile && DB::table('project_request_invitations')->where('project_request_id', $id)->where('professional_profile_id', $profile->id)->where('status', 'accepted')->exists();
                 abort_unless($request->user() && ($record->user_id === $request->user()->id || $invited), 404);
                 $data['selected'] = collect($this->workspace->requests($record->user_id))->firstWhere('id', (int) $id);
-                unset($data['selected']['answers'], $data['selected']['estimate_id'], $data['selected']['user_id']);
+                unset($data['selected']['answers'], $data['selected']['estimate_id'], $data['selected']['user_id'], $data['selected']['contact']);
             }
             if ($id) {
                 // Estos indicadores pertenecen al visitante actual; no publican la identidad del cliente.
@@ -191,7 +191,7 @@ class SynauxController extends Controller
         $budgetRequests = $management ? $this->workspace->requests($id, true) : ($chosen ? $this->workspace->requests(null, true, only: $chosen) : []);
 
         return ['area' => $management ? 'gestion' : 'cliente', 'services' => $this->catalog->services($management), 'requests' => $this->workspace->requests($id, $management),
-            'budgetRequests' => $budgetRequests,
+            'references' => $this->catalog->references(), 'budgetRequests' => $budgetRequests,
             'quotes' => $quotes, 'projects' => $this->workspace->projects($quotes),
             'proposals' => $this->workspace->proposals($id, $management), 'invitations' => $this->workspace->invitations($id, $management),
             'profile' => $profile ? $this->workspace->profile($profile) : null, 'professionals' => $this->workspace->professionals(),

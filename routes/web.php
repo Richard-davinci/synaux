@@ -4,6 +4,7 @@ use App\Http\Controllers\SynauxAdminController;
 use App\Http\Controllers\SynauxTariffImportController;
 use App\Http\Controllers\SynauxAuthController;
 use App\Http\Controllers\SynauxAccountController;
+use App\Http\Controllers\SynauxBudgetPdfController;
 use App\Http\Controllers\SynauxController;
 use App\Http\Controllers\SynauxReferenceController;
 use App\Http\Controllers\SynauxRequestController;
@@ -52,6 +53,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/'.$area.'/{section?}', fn (Request $r, SynauxController $c, string $section = '') => $c->area($r, $area, $section));
     }
     Route::get('/solicitudes/nueva', [SynauxController::class, 'newRequest']);
+    Route::get('/presupuestos/{id}/pdf', [SynauxBudgetPdfController::class, 'show'])->whereNumber('id')->middleware('throttle:20,1');
     foreach (['solicitudes' => 'solicitud', 'estimaciones' => 'estimacion', 'presupuestos' => 'presupuesto', 'proyectos' => 'proyecto'] as $path => $kind) {
         Route::get('/'.$path.'/{id}', fn (Request $r, SynauxController $c, int $id) => $c->detail($r, $kind, $id))->whereNumber('id');
     }

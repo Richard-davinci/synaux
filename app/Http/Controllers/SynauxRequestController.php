@@ -26,6 +26,16 @@ class SynauxRequestController extends Controller
             'budget_reference' => 'nullable|string|max:255',
             'desired_deadline' => 'nullable|string|max:255',
             'publish' => 'required|boolean',
+            'contact' => 'sometimes|array:name,email,company,phone,address',
+            'contact.name' => 'required_with:contact|string|max:255',
+            'contact.email' => 'required_with:contact|email|max:254',
+            'contact.company' => 'nullable|string|max:255',
+            'contact.phone' => 'nullable|string|max:50',
+            'contact.address' => 'nullable|string|max:500',
+            'additional_services' => 'sometimes|array|max:20',
+            'additional_services.*.service_id' => 'required|integer|distinct|exists:services,id',
+            'additional_services.*.quantity' => 'required|integer|min:1|max:1000',
+            'additional_services.*.notes' => 'nullable|string|max:2000',
         ]);
 
         // La publicación en el muro pertenece al marketplace y requiere acceso a la segunda etapa.
