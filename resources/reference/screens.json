@@ -323,5 +323,20 @@
     "key": "profesional-presupuestos-cargados",
     "name": "3.21 · Profesional · Preparar presupuesto [profesional-presupuestos-cargados]",
     "node": "21:2725"
+  },
+  {
+    "key": "presupuesto-anterior",
+    "name": "2.19 · Presupuesto · Versión anterior [presupuesto-anterior]",
+    "node": null
+  },
+  {
+    "key": "presupuesto-aceptado",
+    "name": "2.20 · Presupuesto · Aceptado [presupuesto-aceptado]",
+    "node": null
+  },
+  {
+    "key": "presupuesto-rechazado",
+    "name": "2.21 · Presupuesto · Rechazado [presupuesto-rechazado]",
+    "node": null
   }
 ]

@@ -332,6 +332,31 @@ class SynauxFlowTest extends TestCase
         $this->assertDatabaseCount('projects', 1);
     }
 
+    // Rechazar conserva el documento, no crea un proyecto y bloquea decisiones posteriores sobre esa versión.
+    public function test_budget_rejection_preserves_the_document_without_creating_a_project(): void
+    {
+        $client = $this->account();
+        $issuer = $this->account(true);
+        $this->profile($issuer);
+        $requestId = $this->projectRequest($client);
+        $this->actingAs($issuer)->post('/acciones/presupuesto', $this->quoteData($requestId))->assertSessionHasNoErrors();
+        $version = DB::table('budget_versions')->first();
+        $this->actingAs($client)->post('/acciones/decidir-presupuesto', [
+            'id' => $version->id, 'decision' => 'rejected', 'confirmed' => false,
+        ])->assertSessionHasErrors('confirmed');
+        $this->post('/acciones/decidir-presupuesto', [
+            'id' => $version->id, 'decision' => 'rejected', 'confirmed' => true,
+        ])->assertRedirect();
+        $this->assertDatabaseHas('budget_versions', ['id' => $version->id, 'status' => 'rejected']);
+        $this->assertDatabaseCount('projects', 0);
+        $this->get('/presupuestos/'.$version->id)->assertInertia(fn (Assert $page) => $page->where('selected.status', 'rejected'));
+        $this->get('/presupuestos/'.$version->id.'/pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->post('/acciones/decidir-presupuesto', [
+            'id' => $version->id, 'decision' => 'accepted', 'confirmed' => true,
+        ])->assertStatus(422);
+        $this->assertDatabaseCount('projects', 0);
+    }
+
     public function test_budget_drafts_and_expired_versions_cannot_be_accepted(): void
     {
         $client = $this->account();
@@ -400,11 +425,12 @@ class SynauxFlowTest extends TestCase
         $this->actingAs($this->account(true))->get('/gestion/contactos')->assertInertia(fn (Assert $p) => $p->has('inquiries', 1));
     }
 
-    // Recorre las 65 referencias y prueba que sus datos no crean cuentas ni permisos de sesión.
+    // Recorre las referencias de diseño y los estados funcionales y prueba que sus datos no crean cuentas ni permisos de sesión.
     public function test_every_figma_reference_state_renders_without_authenticating_a_user(): void
     {
         $screens = json_decode(file_get_contents(resource_path('reference/screens.json')), true);
-        $this->assertCount(65, $screens);
+        $this->assertNotEmpty($screens);
+        $this->assertCount(count($screens), array_unique(array_column($screens, 'key')));
         foreach ($screens as $screen) {
             $this->get('/prototipo/'.$screen['key'])->assertOk()->assertInertia(fn (Assert $p) => $p->where('preview', true)->where('referenceKey', $screen['key'])->where('auth', null));
         }
