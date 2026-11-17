@@ -4,6 +4,7 @@ use App\Http\Controllers\SynauxAdminController;
 use App\Http\Controllers\SynauxAuthController;
 use App\Http\Controllers\SynauxController;
 use App\Http\Controllers\SynauxReferenceController;
+use App\Http\Controllers\SynauxRequestController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -51,6 +52,8 @@ Route::middleware('auth')->group(function () {
     foreach (['presupuesto' => 'editor-presupuesto', 'trabajo' => 'editor-trabajo'] as $path => $kind) {
         Route::get('/editor/'.$path.'/{id?}', fn (Request $r, SynauxController $c, int $id = 0) => $c->detail($r, $kind, $id))->whereNumber('id');
     }
+    // El formulario de solicitudes conserva su URL y el mismo límite de envíos.
+    Route::post('/acciones/solicitud', [SynauxRequestController::class, 'store'])->middleware('throttle:60,1');
     Route::post('/acciones/{action}', [SynauxController::class, 'action'])->middleware('throttle:60,1');
     Route::post('/admin/guardar/{resource}', [SynauxAdminController::class, 'save'])->middleware('throttle:30,1');
 });

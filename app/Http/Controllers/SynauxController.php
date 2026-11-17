@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Services\SynauxBudgets;
 use App\Services\SynauxCatalog;
-use App\Services\SynauxRequests;
 use App\Services\SynauxWorkspace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +14,7 @@ use Inertia\Inertia;
 // Conecta las pantallas con datos persistentes y autoriza cada cambio en el servidor.
 class SynauxController extends Controller
 {
-    public function __construct(private SynauxCatalog $catalog, private SynauxWorkspace $workspace, private SynauxRequests $requests) {}
+    public function __construct(private SynauxCatalog $catalog, private SynauxWorkspace $workspace) {}
 
     // Prepara una pantalla pública y agrega únicamente los datos que su recorrido necesita.
     public function publicPage(Request $request, string $screen = 'servicios', ?string $id = null)
@@ -198,7 +197,6 @@ class SynauxController extends Controller
         // La lista explícita impide ejecutar métodos arbitrarios desde una URL.
         return match ($action) {
             'guardar-estimacion' => $this->saveEstimate($request),
-            'solicitud' => $this->saveRequest($request),
             'estado-solicitud' => $this->requestStatus($request),
             'perfil' => $this->saveProfile($request),
             'propuesta' => $this->saveProposal($request),
@@ -233,21 +231,6 @@ class SynauxController extends Controller
             'currency_snapshot' => $pending['currency'], 'answers_snapshot' => json_encode($pending['answers']), 'items_snapshot' => json_encode($pending['items']), 'created_at' => now(), 'updated_at' => now()]);
 
         return redirect($request->boolean('to_request') ? '/solicitudes/nueva?estimacion='.$id : '/estimaciones/'.$id)->with('notice', 'Estimación guardada. Podés crear una solicitud con estas respuestas.');
-    }
-
-    // Valida el alcance y guarda una solicitud propia como borrador, privada o pública.
-    private function saveRequest(Request $request)
-    {
-        $d = $request->validate(['id' => 'nullable|integer', 'estimate_id' => 'nullable|integer', 'service_id' => 'required|integer|exists:services,id',
-            'title' => 'required|string|min:5|max:255', 'description' => 'required|string|min:10|max:10000',
-            'visibility' => ['required', Rule::in(['private', 'public'])], 'category' => 'nullable|string|max:255',
-            'skills' => 'nullable|string|max:1000', 'budget_reference' => 'nullable|string|max:255', 'desired_deadline' => 'nullable|string|max:255', 'publish' => 'required|boolean']);
-        // Normaliza las habilidades del formulario antes de guardar los datos validados.
-        $d['skills'] = $this->tags($d['skills'] ?? '');
-        $id = $this->requests->save($request->user()->id, $d);
-
-
-        return redirect('/solicitudes/'.$id)->with('notice', $d['publish'] ? 'Solicitud enviada.' : 'Borrador guardado.');
     }
 
     // Comprueba propiedad o administración antes de revisar, cerrar o cancelar una solicitud.
