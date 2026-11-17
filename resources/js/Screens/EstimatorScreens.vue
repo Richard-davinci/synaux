@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
+import { VAutocomplete, VListItem } from 'vuetify/components';
 import B from '../Components/SynauxButton.vue';
 import F from '../Components/SynauxField.vue';
 import T from '../Components/SynauxTitle.vue';
@@ -24,14 +25,24 @@ for (const question of props.data.questions ?? []) {
 const form = useForm({ service: service.value, answers: initial });
 const saveForm = useForm({ to_request: false });
 const labels = ['Servicio', 'Preguntas', 'Revisión', 'Resultado'];
-const serviceGroups = computed(() => {
-    const groups = new Map();
-    for (const item of props.data.services) {
-        if (!groups.has(item.category)) groups.set(item.category, []);
-        groups.get(item.category).push(item);
-    }
-    return groups;
-});
+// La categoría acota las opciones y el autocompletado evita desplegar cientos de tarjetas.
+const categories = computed(() => [...new Set(props.data.services.map(item => item.category))]);
+const category = ref(selectedService.value?.category ?? categories.value[0] ?? '');
+const serviceSearch = ref('');
+const availableServices = computed(() => props.data.services
+    .filter(item => item.category === category.value)
+    .sort((a, b) => a.name.localeCompare(b.name, 'es')));
+const normalize = value => String(value ?? '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('es');
+function filterService(value, query) {
+    const title = normalize(value);
+    return normalize(query).trim().split(/\s+/).every(word => title.includes(word));
+}
+function changeCategory(value) {
+    category.value = value;
+    serviceSearch.value = '';
+    if (selectedService.value?.category !== value) choose(null);
+    form.clearErrors('service');
+}
 
 // El precio orientativo sigue al segmento elegido, sin alterar los importes históricos del resultado.
 const currentReference = computed(() => {
@@ -65,10 +76,12 @@ function priceRange(min, max, currency) {
     return Number(min) === Number(max) ? money(min, currency) : money(min, currency) + ' – ' + money(max, currency);
 }
 function choose(id) {
-    service.value = id;
-    form.service = id;
+    service.value = id ?? null;
+    form.service = id ?? '';
+    form.clearErrors('service');
 }
 function next() {
+    if (!selectedService.value || selectedService.value.category !== category.value) return;
     if (props.data.preview || props.data.selected?.id === service.value) {
         step.value = 2;
         return;
@@ -104,16 +117,22 @@ function save(toRequest) {
         <div v-if="step < 4 && !saved" class="estimator-workflow">
             <v-card v-if="step === 1" class="card form-card">
                 <h2>¿Qué necesitás resolver?</h2><p>Elegí el servicio para conocer su alcance y preparar la estimación.</p>
-                <p v-if="form.errors.service" class="error" role="alert">{{ form.errors.service }}</p>
-                <section v-for="[category, items] in serviceGroups" :key="category" class="estimator-service-group">
-                    <h3>{{ category }}</h3>
-                    <div class="choice-grid">
-                        <button v-for="item in items" :key="item.id" type="button" :class="['choice', { selected: service === item.id }]" :aria-pressed="service === item.id" @click="choose(item.id)">
-                            <strong>{{ item.name }}</strong><small>{{ item.mode }}</small>
-                        </button>
-                    </div>
-                </section>
-                <div class="form-actions"><span /><B arrow @click="next">Continuar</B></div>
+                <form class="estimator-service-form" @submit.prevent="next">
+                    <F :model-value="category" label="Categoría" type="select" :options="categories" required @update:model-value="changeCategory" />
+                    <p class="service-count">{{ availableServices.length }} {{ availableServices.length === 1 ? 'servicio disponible' : 'servicios disponibles' }} en esta categoría.</p>
+                    <VAutocomplete :model-value="service" v-model:search="serviceSearch" class="estimator-service-select"
+                        :items="availableServices" item-title="name" item-value="id" label="Servicio" placeholder="Buscá o elegí un servicio"
+                        variant="outlined" color="primary" density="comfortable" clearable
+                        :custom-filter="filterService" :menu-props="{ maxHeight: 280 }"
+                        no-data-text="No encontramos servicios con esa búsqueda."
+                        hint="Escribí parte del nombre para encontrar el servicio." persistent-hint
+                        :error-messages="form.errors.service" :disabled="!availableServices.length"
+                        @update:model-value="choose">
+                        <template #item="{ props: itemProps, item }"><VListItem v-bind="itemProps" :subtitle="item.raw.mode" /></template>
+                    </VAutocomplete>
+                    <p v-if="selectedService" class="service-mode">{{ selectedService.mode }}</p>
+                    <div class="form-actions"><span /><B type="submit" arrow :disabled="!selectedService">Continuar</B></div>
+                </form>
             </v-card>
 
             <v-card v-else-if="step === 2" class="card form-card">
@@ -143,6 +162,7 @@ function save(toRequest) {
 
             <aside class="estimator-reference">
                 <ServiceReference :service="selectedService" :reference="currentReference" />
+                <v-card v-if="!selectedService" class="card reference-empty"><h3>Referencia del servicio</h3><p>Elegí un servicio para ver su alcance y la referencia de precio disponible.</p></v-card>
                 <p class="estimate-note">Podés revisar los datos antes de enviar una solicitud a Synaux.</p>
             </aside>
         </div>
@@ -191,11 +211,17 @@ function save(toRequest) {
 .estimator-workflow { display: grid; grid-template-columns: minmax(0,1.3fr) minmax(0,1fr); gap: 1.5rem; align-items: start; }
 .estimator-reference { position: sticky; top: 1.5rem; }
 .estimator-reference :deep(.service-reference) { margin-top: 0; }
-.estimator-service-group + .estimator-service-group { margin-top: 1.5rem; }
-.estimator-service-group h3 { margin-bottom: .75rem; font-size: 1.1rem; }
-.estimator-service-group .choice-grid { grid-template-columns: repeat(auto-fit,minmax(min(100%,12rem),1fr)); }
-.estimator-service-group .choice { min-height: 88px; }
-.estimator .choice.selected { border-color: #1f6f7f; background: #f5f9fa; }
+/* Los controles ocupan una altura estable y la lista de opciones se desplaza dentro del menú. */
+.estimator-service-form { margin-top: 24px; }
+.service-count { margin: -6px 0 20px; font-size: .9rem; color: #446075; }
+.estimator-service-select { margin-bottom: 12px; }
+.estimator-service-select :deep(.v-field) { border-radius: 10px; background: #fff; }
+.estimator-service-select :deep(.v-field__input) { font-family: 'Nunito', sans-serif; }
+.estimator-service-select :deep(.v-messages) { font-size: .875rem; line-height: 1.45; color: #446075; opacity: 1; }
+/* El input interno usa el borde del componente Vuetify, sin el borde adicional de los campos nativos. */
+.estimator-service-select :deep(.v-field input) { min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; outline: none; }
+.service-mode { display: inline-block; padding: 6px 10px; margin: 12px 0; border-radius: 8px; color: #1f6f7f; background: #f5f9fa; font-size: .9rem; font-weight: 700; }
+.reference-empty p { margin-bottom: 0; }
 .estimator button:focus-visible { outline: 3px solid #1f6f7f; outline-offset: 3px; }
 .estimator-review > div { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: .5rem 1rem; padding-block: 1rem; border-bottom: 1px solid rgb(31 111 127 / 18%); }
 .estimator-review span { color: #446075; }
