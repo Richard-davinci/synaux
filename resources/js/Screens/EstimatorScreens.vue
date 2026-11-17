@@ -16,7 +16,7 @@ const service = ref(props.data.selected?.id ?? props.data.pending?.service?.id ?
 const selectedService = computed(() => props.data.services.find(item => item.id === service.value));
 const saved = computed(() => props.data.screen === 'estimacion');
 const result = computed(() => saved.value ? { ...props.data.selected, service: props.data.services.find(s => s.database_id === props.data.selected.service_id), min: props.data.selected.price_min, max: props.data.selected.price_max, mode: props.data.selected.status === 'manual' ? 'manual' : 'automatic', currency: props.data.selected.currency_snapshot, base_min: props.data.selected.base_min_snapshot, base_max: props.data.selected.base_max_snapshot, date: props.data.selected.created_at } : props.data.pending);
-const initial = Object.fromEntries((props.data.pending?.answers ?? []).map(a => [a.id, a.value]));
+const initial = { ...Object.fromEntries((props.data.pending?.answers ?? []).map(a => [a.id, a.value])), ...props.data.initialAnswers };
 for (const q of props.data.questions ?? []) if (q.input_type === 'multiple_choice' && !initial[q.id]) initial[q.id] = [];
 const form = useForm({ service: service.value, answers: initial });
 const saveForm = useForm({ to_request: false });

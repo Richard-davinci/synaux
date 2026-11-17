@@ -68,6 +68,17 @@ class SynauxController extends Controller
             $service = $this->catalog->service($slug);
             $data['questions'] = $this->catalog->questions($service['database_id']);
             $data['selected'] = $service;
+            // Solo preselecciona opciones activas del servicio: la URL no aporta precios ni respuestas libres.
+            $data['initialAnswers'] = [];
+            $clientType = $request->query('cliente');
+            if (in_array($clientType, ['Particular', 'PyME', 'Empresa'], true)) {
+                foreach ($data['questions'] as $question) {
+                    $options = collect($question['options']);
+                    if ($question['input_type'] === 'single_choice' && $options->pluck('label')->intersect(['Particular', 'PyME', 'Empresa'])->count() === 3) {
+                        $data['initialAnswers'][$question['id']] = $options->firstWhere('label', $clientType)->id;
+                    }
+                }
+            }
             // Las respuestas de otro servicio no se pueden reutilizar en el formulario actual.
             $data['pending'] = $pendingSlug === $slug ? $pending : null;
             $data['step'] = $step === 4 && ! $data['pending'] ? 1 : $step;

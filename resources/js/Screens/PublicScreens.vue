@@ -41,6 +41,14 @@ const detailReference = computed(() => props.data.references?.[selected.value.id
 const detailPrices = computed(() => detailReference.value?.segments?.length
     ? detailReference.value.segments
     : detailReference.value ? [{ label: 'Alcance base', min: detailReference.value.min, max: detailReference.value.max }] : []);
+// El tipo de cliente elegido en el detalle acompaña el acceso al estimador.
+const detailSegment = ref('PyME');
+const chosenPrice = computed(() => detailPrices.value.find(item => item.label === detailSegment.value) ?? detailPrices.value[0]);
+const estimateHref = computed(() => {
+    const query = new URLSearchParams({ servicio: selected.value.id, paso: '2' });
+    if (['Particular', 'PyME', 'Empresa'].includes(chosenPrice.value?.label)) query.set('cliente', chosenPrice.value.label);
+    return '/estimador?' + query.toString();
+});
 const segmentDescriptions = {
     Particular: 'Personas, organizaciones sin fines de lucro y ONG',
     PyME: 'PyMEs e instituciones',
@@ -104,12 +112,14 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
                 <h2>Precios estimativos por cliente</h2>
                 <span v-if="detailReference">Moneda: {{ detailReference.currency }}</span>
             </div>
-            <div v-if="detailPrices.length" class="detail-price-grid">
-                <article v-for="price in detailPrices" :key="price.label" class="detail-price-option">
-                    <h3>{{ price.label }}</h3>
+            <p v-if="detailReference?.segments?.length">Elegí el tipo de cliente para continuar con esa referencia.</p>
+            <div v-if="detailPrices.length" class="detail-price-grid" role="group" aria-label="Precio por tipo de cliente">
+                <button v-for="price in detailPrices" :key="price.label" type="button" class="detail-price-option" :aria-pressed="price.label === chosenPrice?.label" @click="detailSegment = price.label">
+                    <span class="detail-price-label">{{ price.label }}</span>
                     <strong>{{ detailPrice(price.min, price.max) }}</strong>
-                    <p v-if="segmentDescriptions[price.label]">{{ segmentDescriptions[price.label] }}</p>
-                </article>
+                    <span v-if="segmentDescriptions[price.label]" class="detail-price-description">{{ segmentDescriptions[price.label] }}</span>
+                    <span class="detail-price-status">{{ price.label === chosenPrice?.label ? 'Seleccionado' : 'Elegir' }}</span>
+                </button>
             </div>
             <div v-else class="soft-panel"><h3>Presupuesto a medida</h3><p>Contanos qué necesitás para definir los entregables y el importe de tu proyecto.</p></div>
             <p v-if="detailReference" class="detail-price-date">Valores vigentes desde {{ date(detailReference.date) }}.</p>
@@ -118,7 +128,7 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
                 <p>Los precios son orientativos. El importe final puede variar según la complejidad, los entregables, los plazos y las revisiones acordadas. Synaux confirma el alcance y las condiciones en el presupuesto formal.</p>
             </div>
             <div class="button-row">
-                <B :href="'/estimador?servicio=' + selected.id" arrow>Estimar mi proyecto</B>
+                <B :href="estimateHref" arrow>Continuar con mi estimación</B>
                 <B href="/contacto" variant="secondary">Hacer una consulta</B>
             </div>
         </v-card>
@@ -190,10 +200,17 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
 .detail-pricing { margin-bottom: 2rem; }
 .detail-pricing h2 { margin: 0; }
 .detail-price-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-block: 1.5rem; }
-.detail-price-option { padding: 1.5rem; border: 1px solid rgb(31 111 127 / 20%); border-radius: .875rem; background: #f5f9fa; }
-.detail-price-option h3 { font-size: 1.1rem; margin-bottom: .75rem; }
+.detail-price-option { display: flex; flex-direction: column; align-items: start; text-align: left; font: inherit; cursor: pointer; padding: 1.5rem; border: 1px solid rgb(31 111 127 / 20%); border-radius: .875rem; background: #f5f9fa; }
+.detail-price-label { display: block; font-weight: 700; font-size: 1.1rem; margin-bottom: .75rem; }
 .detail-price-option strong { display: block; color: #153b64; font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.25rem, 2vw, 1.75rem); overflow-wrap: anywhere; }
-.detail-price-option p { margin: .75rem 0 0; color: #446075; font-size: .875rem; }
+.detail-price-description { display: block; margin: .75rem 0 0; color: #446075; font-size: .875rem; }
+.detail-price-option:hover { border-color: #1f6f7f; }
+.detail-price-option[aria-pressed='true'] { border: 2px solid #1f6f7f; box-shadow: 0 0 0 2px rgb(45 179 163 / 15%); }
+.detail-price-option:focus-visible { outline: 3px solid #153b64; outline-offset: 3px; }
+.detail-price-status { margin-top: auto; padding-top: 1rem; color: #1f6f7f; font-size: .875rem; font-weight: 700; }
+.service-intro h1 { font-weight: 700; }
+.detail-actions { gap: 1rem; padding-top: 1rem; border-top: 1px solid rgb(31 111 127 / 18%); }
+@media (max-width: 700px) { .detail-actions .btn { width: 100%; } }
 .detail-price-date { font-size: .875rem; color: #446075; }
 .detail-price-info { display: flex; align-items: start; gap: .75rem; margin-block: 1.25rem; padding: 1rem; background: #f5f9fa; border-radius: .75rem; }
 .detail-price-info p { margin: 0; }

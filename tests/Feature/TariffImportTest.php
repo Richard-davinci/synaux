@@ -81,6 +81,23 @@ class TariffImportTest extends TestCase
         $this->assertDatabaseCount('tariff_versions', 1);
     }
 
+    // El paso de detalle a estimación conserva el segmento mediante una opción activa del servidor.
+    public function test_detail_customer_type_preselects_only_valid_service_options(): void
+    {
+        $service = DB::table('services')->where('slug', 'sitio-institucional')->value('id');
+        $question = DB::table('estimator_questions')->where('service_id', $service)->where('active', 1)->value('id');
+        foreach (['Particular', 'PyME', 'Empresa'] as $label) {
+            $option = DB::table('estimator_options')->where('question_id', $question)->where('label', $label)->value('id');
+            $this->get('/estimador?servicio=sitio-institucional&paso=2&cliente='.urlencode($label))
+                ->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+                    ->where('step', 2)->where('selected.id', 'sitio-institucional')
+                    ->where('initialAnswers.'.$question, $option));
+        }
+        $this->get('/estimador?servicio=sitio-institucional&cliente=Otro')->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+            ->where('initialAnswers', []));
+        $this->assertDatabaseCount('estimates', 0);
+    }
+
     public function test_network_failure_keeps_the_current_tariff(): void
     {
         Http::preventStrayRequests();
