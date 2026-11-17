@@ -112,6 +112,33 @@ class SynauxFlowTest extends TestCase
         $this->get('/solicitudes/nueva?estimacion='.$id)->assertInertia(fn (Assert $p) => $p->component('Workspace')->where('selectedEstimate.id', $id));
     }
 
+    // Entrar en una cuenta existente recupera el resultado y las respuestas del servicio original.
+    public function test_login_resumes_the_estimate_for_the_original_service(): void
+    {
+        $user = User::factory()->create();
+        $service = DB::table('services')->where('slug', 'tienda-online')->value('id');
+        $question = DB::table('estimator_questions')->where('service_id', $service)->value('id');
+        $answer = 'Necesito vender un catálogo de productos.';
+        $this->post('/estimador/calcular', ['service' => 'tienda-online', 'answers' => [$question => $answer]])
+            ->assertRedirect('/estimador?paso=4&servicio=tienda-online');
+
+        $this->post('/ingresar', ['email' => $user->email, 'password' => 'password'])
+            ->assertRedirect('/estimador?paso=4');
+
+        $this->get('/estimador?paso=4')->assertInertia(fn (Assert $page) => $page
+            ->where('step', 4)
+            ->where('selected.id', 'tienda-online')
+            ->where('pending.answers.0.value', $answer)
+        );
+
+        $this->get('/estimador?paso=4&servicio=identidad-visual')->assertInertia(fn (Assert $page) => $page
+            ->where('step', 1)
+            ->where('selected.id', 'identidad-visual')
+            ->where('pending', null)
+        );
+    }
+
+
     public function test_estimator_rejects_forged_options(): void
     {
         $qid = DB::table('estimator_questions')->value('id');

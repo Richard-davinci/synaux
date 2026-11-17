@@ -56,12 +56,17 @@ class SynauxController extends Controller
             }
         }
         if ($screen === 'estimador') {
-            $slug = (string) $request->query('servicio', 'sitio-institucional');
+            // Al volver de la cuenta, el resultado reabre el servicio del cálculo guardado en sesión.
+            $step = max(1, min(4, (int) $request->query('paso', 1)));
+            $pending = $request->session()->get('pending_estimate');
+            $pendingSlug = $pending['service']['id'] ?? null;
+            $slug = (string) $request->query('servicio', ($step === 4 ? $pendingSlug : null) ?? 'sitio-institucional');
             $service = $this->catalog->service($slug);
             $data['questions'] = $this->catalog->questions($service['database_id']);
             $data['selected'] = $service;
-            $data['pending'] = $request->session()->get('pending_estimate');
-            $data['step'] = max(1, min(4, (int) $request->query('paso', 1)));
+            // Las respuestas de otro servicio no se pueden reutilizar en el formulario actual.
+            $data['pending'] = $pendingSlug === $slug ? $pending : null;
+            $data['step'] = $step === 4 && ! $data['pending'] ? 1 : $step;
         }
         if ($screen === 'restablecer') {
             $data['token'] = $id;
