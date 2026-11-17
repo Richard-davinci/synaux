@@ -18,13 +18,18 @@ const allNav = computed(() => area.value === 'cliente' ? [['Resumen', '/cliente'
     : publicNav);
 // Las entradas del marketplace solo aparecen para quien tiene acceso a la segunda etapa.
 const stageTwoPaths = ['/cliente/publicaciones', '/cliente/propuestas', '/cliente/invitaciones'];
-const nav = computed(() => allNav.value.filter(([, href]) => page.props.stageTwo || !stageTwoPaths.includes(href)));
+// La navegación habitual del cliente muestra la etapa 1 incluso para una cuenta administradora.
+// Los enlaces del marketplace aparecen al abrir expresamente una de sus secciones desde el panel.
+const inStageTwoClientArea = computed(() => stageTwoPaths.includes(page.url.split('?')[0]));
+const nav = computed(() => allNav.value.filter(([, href]) =>
+    !stageTwoPaths.includes(href) || (page.props.stageTwo && inStageTwoClientArea.value)
+));
 </script>
 <template>
     <v-app class="synaux-app">
         <!-- En la referencia se puede revisar cada estado sin modificar registros ni conceder permisos. -->
         <div v-if="$page.props.preview" class="reference-bar"><div class="shell"><span>Prototipo · Datos de ejemplo</span><label>Ver pantalla<select :value="$page.props.referenceKey" aria-label="Pantalla del prototipo" @change="$inertia.get(`/prototipo/${$event.target.value}`)"><option v-for="item in $page.props.referenceScreens" :key="item.key" :value="item.key">{{ item.name }}</option></select></label><a href="/plataforma">Abrir aplicación</a></div></div>
-        <div v-else-if="$page.props.auth" class="account-bar"><div class="shell"><span>{{ $page.props.auth.name }}</span><nav aria-label="Áreas de mi cuenta"><a href="/cliente">Cliente</a><a v-if="$page.props.stageTwo" href="/profesional">Profesional</a><a v-if="$page.props.auth.is_admin" href="/gestion">Gestión</a><a href="/plataforma">Sitio público</a><button @click="$inertia.post('/salir')">Salir</button></nav></div></div>
+        <div v-else-if="$page.props.auth" class="account-bar"><div class="shell"><span>{{ $page.props.auth.name }}</span><nav aria-label="Áreas de mi cuenta"><a href="/cliente">Cliente</a><a v-if="$page.props.auth.is_admin" href="/gestion">Gestión</a><a href="/plataforma">Sitio público</a><button @click="$inertia.post('/salir')">Salir</button></nav></div></div>
         <a class="skip-link" href="#contenido">Saltar al contenido</a>
         <!-- Las dimensiones nativas del PNG reservan el espacio del logo en el encabezado. -->
         <header class="header"><a :href="referenceHref(landing ? '/' : '/plataforma', $page.props)" class="logo-button" aria-label="Synaux: inicio"><img :src="navbarLogo" class="brand-logo" width="2000" height="423" alt="Synaux"></a><button class="mobile-toggle" :aria-expanded="mobile" aria-label="Abrir navegación" @click="mobile = !mobile">☰</button>
