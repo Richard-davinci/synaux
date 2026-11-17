@@ -19,6 +19,13 @@ const form = useForm({ service: service.value, answers: initial });
 const saveForm = useForm({ to_request: false });
 const labels = ['Servicio', 'Preguntas', 'Revisión', 'Resultado'];
 
+// Presenta una sola cifra cuando ambos límites coinciden y conserva los rangos de versiones anteriores.
+function priceRange(min, max, currency) {
+    return Number(min) === Number(max)
+        ? money(min, currency)
+        : money(min, currency) + ' – ' + money(max, currency);
+}
+
 // Las categorías del catálogo organizan la selección sin cambiar el servicio activo.
 const serviceGroups = computed(() => {
     const groups = new Map();
@@ -71,17 +78,39 @@ function save(toRequest) { saveForm.to_request = toRequest; submit(saveForm, 'gu
             </section>
             <div class="form-actions"><span /><B arrow @click="next">Continuar</B></div>
         </v-card>
-        <v-card v-else-if="step === 2 && !saved" class="card form-card"><h2>Contanos un poco más</h2><p>Tus respuestas definen componentes y cantidades del cálculo.</p>
+        <v-card v-else-if="step === 2 && !saved" class="card form-card"><h2>Contanos un poco más</h2><p>Respondé para preparar una referencia acorde a tu proyecto.</p>
+            <!-- El alcance publicado permite evaluar el paquete antes de responder y calcular. -->
+            <section v-if="data.selected?.includes?.length" class="estimator-scope">
+                <h3>{{ data.selected.name }}</h3>
+                <ul><li v-for="deliverable in data.selected.includes" :key="deliverable">{{ deliverable }}</li></ul>
+                <p>Si necesitás prestaciones adicionales, detallalas en la solicitud para que Synaux revise el alcance.</p>
+            </section>
             <form @submit.prevent="step = 3"><template v-for="q in data.questions" :key="q.id"><fieldset v-if="q.input_type === 'multiple_choice'" class="question-group" :aria-invalid="!!form.errors[`answers.${q.id}`]"><legend>{{ q.question }}</legend><label v-for="option in q.options" :key="option.id" class="select-row"><input v-model="form.answers[q.id]" type="checkbox" :value="String(option.id)">{{ option.label }}</label><small v-if="form.errors[`answers.${q.id}`]" class="error" role="alert">{{ form.errors[`answers.${q.id}`] }}</small></fieldset><F v-else v-model="form.answers[q.id]" :label="q.question" :type="q.input_type === 'single_choice' ? 'select' : q.input_type === 'number' ? 'number' : 'textarea'" :options="q.options?.map(o => ({value:o.id,label:o.label}))" required :min="q.input_type === 'number' ? 1 : undefined" :error="form.errors[`answers.${q.id}`]" /></template><div class="form-actions"><B variant="ghost" @click="step = 1">Volver</B><B type="submit" arrow>Revisar respuestas</B></div></form>
         </v-card>
         <v-card v-else-if="step === 3 && !saved" class="card form-card"><h2>Revisá antes de calcular</h2><div class="review-list"><div><span>Servicio</span><strong>{{ data.services.find(s => s.id === service)?.name }}</strong><button @click="step = 1">Editar</button></div><div v-for="q in data.questions" :key="q.id"><span>{{ q.question }}</span><strong>{{ q.input_type.includes('choice') ? (Array.isArray(form.answers[q.id]) ? form.answers[q.id] : [form.answers[q.id]]).map(v => q.options.find(o => String(o.id) === String(v))?.label).join(', ') : form.answers[q.id] }}</strong><button @click="step = 2">Editar</button></div></div><div class="notice"><I name="info" /><p>El resultado será orientativo. El presupuesto formal se prepara después de revisar tu solicitud.</p></div><div class="form-actions"><B variant="ghost" @click="step = 2">Volver</B><B :disabled="form.processing" @click="calculate">Calcular estimación</B></div></v-card>
         <!-- El resultado es una instantánea del cálculo; recalcular crea una referencia independiente. -->
-        <div v-else-if="result" class="result-grid"><v-card class="card result-card"><p class="eyebrow">{{ result.mode === 'manual' ? 'Revisión profesional' : 'Estimación orientativa' }}</p><h2>{{ result.mode === 'manual' ? 'Una propuesta a la medida de tu proyecto' : (Number(result.min) === Number(result.max) ? money(result.min,result.currency) : money(result.min,result.currency) + ' – ' + money(result.max,result.currency)) }}</h2><p>{{ result.mode === 'manual' ? 'Este alcance necesita una revisión profesional antes de definir importes y plazos.' : `Referencia calculada el ${date(result.date)}. No es un presupuesto formal ni implica reserva de precio.` }}</p><div v-if="result.mode !== 'manual'" class="estimate-lines"><div><span>Base del servicio</span><strong>{{ money(result.base_min,result.currency) }} – {{ money(result.base_max,result.currency) }}</strong></div><div v-for="item in result.items" :key="item.name"><span>{{ item.name }} · {{ item.quantity }}</span><strong>{{ money(Number(item.min)*Number(item.quantity),result.currency) }} – {{ money(Number(item.max)*Number(item.quantity),result.currency) }}</strong></div></div><div class="button-stack"><template v-if="$page.props.auth || data.preview"><B v-if="saved" :href="`/solicitudes/nueva?estimacion=${data.selected.id}`" arrow>Crear solicitud</B><B v-else :disabled="saveForm.processing" arrow @click="save(true)">Crear solicitud</B><B v-if="!saved" variant="secondary" :disabled="saveForm.processing" @click="save(false)">Guardar estimación</B></template><B v-else href="/ingresar" arrow>Ingresar para crear la solicitud</B><B :href="`/estimador?servicio=${result.service?.id ?? service}`" variant="secondary">Recalcular como nueva estimación</B></div></v-card><aside><v-card class="card"><h3>Alcance considerado</h3><dl class="data-list"><div v-for="answer in result.answers" :key="answer.id"><dt>{{ answer.question }}</dt><dd>{{ answer.label }}</dd></div></dl></v-card><v-card class="card soft-panel"><I name="info" /><p>Para convertir esta referencia en una propuesta, creá una solicitud. Si no tenés cuenta, tus respuestas se conservarán durante el registro.</p></v-card></aside></div>
+        <div v-else-if="result" class="result-grid"><v-card class="card result-card"><p class="eyebrow">{{ result.mode === 'manual' ? 'Revisión profesional' : 'Estimación orientativa' }}</p><h2>{{ result.mode === 'manual' ? 'Una propuesta a la medida de tu proyecto' : priceRange(result.min,result.max,result.currency) }}</h2><p>{{ result.mode === 'manual' ? 'Este alcance necesita una revisión profesional antes de definir importes y plazos.' : `Referencia calculada el ${date(result.date)}. No es un presupuesto formal ni implica reserva de precio.` }}</p><div v-if="result.mode !== 'manual'" class="estimate-lines"><div><span>Base del servicio</span><strong>{{ priceRange(result.base_min,result.base_max,result.currency) }}</strong></div><div v-for="item in result.items" :key="item.name"><span>{{ item.name }} · {{ item.quantity }}</span><strong>{{ priceRange(Number(item.min)*Number(item.quantity),Number(item.max)*Number(item.quantity),result.currency) }}</strong></div></div><div class="button-stack"><template v-if="$page.props.auth || data.preview"><B v-if="saved" :href="`/solicitudes/nueva?estimacion=${data.selected.id}`" arrow>Crear solicitud</B><B v-else :disabled="saveForm.processing" arrow @click="save(true)">Crear solicitud</B><B v-if="!saved" variant="secondary" :disabled="saveForm.processing" @click="save(false)">Guardar estimación</B></template><B v-else href="/ingresar" arrow>Ingresar para crear la solicitud</B><B :href="`/estimador?servicio=${result.service?.id ?? service}`" variant="secondary">Recalcular como nueva estimación</B></div></v-card><aside><v-card class="card"><h3>Alcance considerado</h3><p>{{ result.service?.name }}</p><ul v-if="!saved"><li v-for="deliverable in result.service?.includes ?? []" :key="deliverable">{{ deliverable }}</li></ul><dl class="data-list"><div v-for="answer in result.answers" :key="answer.id"><dt>{{ answer.question }}</dt><dd>{{ answer.label }}</dd></div></dl></v-card><v-card class="card soft-panel"><I name="info" /><p>Para convertir esta referencia en una propuesta, creá una solicitud. Si no tenés cuenta, tus respuestas se conservarán durante el registro.</p></v-card></aside></div>
         <v-card v-else class="card"><h2>Comenzá por elegir un servicio</h2><p>Necesitamos tus respuestas para preparar la referencia.</p><B href="/estimador">Volver al estimador</B></v-card>
     </section>
 </template>
 
 <style scoped>
+/* El alcance comparte la paleta de marca y mantiene la lista legible antes del formulario. */
+.estimator-scope {
+    margin-block: 1.5rem;
+    padding: 1.25rem;
+    border: 1px solid rgb(31 111 127 / 18%);
+    border-radius: .75rem;
+    background: #f5f9fa;
+}
+.estimator-scope ul {
+    padding-left: 1.25rem;
+    margin-block: .75rem;
+}
+.estimator-scope p {
+    margin-bottom: 0;
+}
+
 /* Separa las categorías y permite que las opciones ocupen el ancho disponible. */
 .estimator-service-group + .estimator-service-group {
     margin-top: 1.5rem;
