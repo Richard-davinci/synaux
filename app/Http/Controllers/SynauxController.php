@@ -20,6 +20,10 @@ class SynauxController extends Controller
     public function publicPage(Request $request, string $screen = 'servicios', ?string $id = null)
     {
         $data = ['screen' => $screen, 'services' => $this->catalog->services()];
+        // El catálogo y el estimador comparten la referencia de la versión vigente.
+        if (in_array($screen, ['servicios', 'servicio', 'estimador'], true)) {
+            $data['references'] = $this->catalog->references();
+        }
         $ownProfile = $request->user() ? DB::table('professional_profiles')->where('user_id', $request->user()->id)->first() : null;
         $data['profile'] = $ownProfile ? $this->workspace->profile($ownProfile) : null;
         if ($screen === 'servicio') {
@@ -56,7 +60,6 @@ class SynauxController extends Controller
             }
         }
         if ($screen === 'estimador') {
-            $data['references'] = $this->catalog->references();
             // Al volver de la cuenta, el resultado reabre el servicio del cálculo guardado en sesión.
             $step = max(1, min(4, (int) $request->query('paso', 1)));
             $pending = $request->session()->get('pending_estimate');

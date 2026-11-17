@@ -37,7 +37,7 @@ class SynauxCatalog
         foreach ($this->services() as $service) {
             $base = $bases->get($service['database_id']);
             $parts = $components->get($service['database_id'], collect());
-            if ($service['estimation_mode'] !== 'automatic' || ! $base || $parts->contains(fn ($part) => ! $prices->has($part->id))) {
+            if (! $base || $parts->contains(fn ($part) => ! $prices->has($part->id))) {
                 continue;
             }
             $min = (float) $base->price_min;
@@ -46,9 +46,27 @@ class SynauxCatalog
                 $min += $prices[$part->id]->price_min * $part->default_quantity;
                 $max += $prices[$part->id]->price_max * $part->default_quantity;
             }
+            // Cada segmento usa su opción y regla real; la tarjeta no calcula factores fijos en JavaScript.
+            $segments = [];
+            $segmentPart = $parts->firstWhere('slug', 'segmento-tarifario-2026-11');
+            if ($segmentPart) {
+                $options = DB::table('estimator_options as o')
+                    ->join('estimator_questions as q', 'q.id', '=', 'o.question_id')
+                    ->join('estimation_rules as r', 'r.estimator_option_id', '=', 'o.id')
+                    ->where('q.service_id', $service['database_id'])->where('q.active', 1)->where('o.active', 1)
+                    ->where('r.active', 1)->where('r.service_component_id', $segmentPart->id)
+                    ->orderBy('o.sort_order')->select('o.label', 'r.quantity')->get();
+                foreach ($options as $option) {
+                    $segments[] = [
+                        'label' => $option->label,
+                        'min' => round($min + $prices[$segmentPart->id]->price_min * $option->quantity, 2),
+                        'max' => round($max + $prices[$segmentPart->id]->price_max * $option->quantity, 2),
+                    ];
+                }
+            }
             $references[$service['id']] = [
                 'min' => round($min, 2), 'max' => round($max, 2), 'currency' => $tariff->currency_code,
-                'date' => $tariff->effective_from,
+                'date' => $tariff->effective_from, 'segments' => $segments,
                 'segment' => $parts->contains('slug', 'segmento-tarifario-2026-11') ? 'Particular' : null,
                 'source' => $service['id'] === 'sitio-institucional' ? $tariff->source_url : null,
             ];

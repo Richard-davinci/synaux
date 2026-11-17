@@ -1,0 +1,39 @@
+<script setup>
+import { computed, ref } from 'vue';
+import { money } from '../support/synaux';
+
+// Cada tarjeta mantiene su propio segmento. Los importes llegan del tarifario publicado por Laravel.
+const props = defineProps({ reference: Object, serviceName: String });
+const segment = ref('PyME');
+const options = computed(() => props.reference?.segments ?? []);
+const price = computed(() => options.value.find(item => item.label === segment.value) ?? options.value[0] ?? props.reference);
+</script>
+<template>
+    <div class="catalog-price">
+        <div v-if="options.length" class="price-segments" role="group" :aria-label="'Tipo de cliente para ' + serviceName">
+            <button v-for="option in options" :key="option.label" type="button" :aria-pressed="price.label === option.label" @click="segment = option.label">{{ option.label }}</button>
+        </div>
+        <div class="price-summary" aria-live="polite">
+            <template v-if="reference">
+                <span>Precio estimativo · {{ reference.currency }}</span>
+                <strong>{{ money(price.min, reference.currency) }}<template v-if="price.max !== price.min"> – {{ money(price.max, reference.currency) }}</template></strong>
+                <small>{{ options.length ? 'Referencia para ' + price.label : 'Alcance base' }}</small>
+            </template>
+            <template v-else><span>Presupuesto a medida</span><strong>Consultar precio</strong></template>
+        </div>
+        <small v-if="reference?.source" class="price-source">Referencia de <a :href="reference.source" target="_blank" rel="noopener">Tarifario.ar</a></small>
+    </div>
+</template>
+<style scoped>
+/* Las referencias mantienen un pie común en las tarjetas y usan únicamente la paleta de Synaux. */
+.catalog-price { margin-top: auto; padding-top: 1.25rem; }
+.price-segments { display: flex; flex-wrap: wrap; gap: .35rem; padding-bottom: 1rem; }
+.price-segments button { flex: 1; border: 1px solid rgb(31 111 127 / 20%); border-radius: .5rem; padding: .4rem .55rem; color: #446075; background: #fff; font: inherit; font-size: .875rem; cursor: pointer; }
+.price-segments button[aria-pressed='true'] { background: #1f6f7f; border-color: #1f6f7f; color: #fff; }
+.price-segments button:focus-visible { outline: 2px solid #153b64; outline-offset: 2px; }
+.price-summary { display: grid; gap: .25rem; padding-top: 1rem; border-top: 1px solid rgb(31 111 127 / 18%); }
+.price-summary span, .price-summary small, .price-source { color: #446075; font-size: .875rem; }
+.price-summary strong { color: #153b64; font-family: 'Space Grotesk', sans-serif; font-size: 1.4rem; }
+.price-source { display: block; margin-top: .4rem; }
+.price-source a { color: #1f6f7f; text-decoration: underline; }
+</style>

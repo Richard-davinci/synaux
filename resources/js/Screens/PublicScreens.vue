@@ -6,6 +6,7 @@ import F from '../Components/SynauxField.vue';
 import T from '../Components/SynauxTitle.vue';
 import I from '../Components/SynauxIcon.vue';
 import Empty from '../Components/SynauxEmpty.vue';
+import CatalogServicePrice from '../Components/CatalogServicePrice.vue';
 import { useSubmit } from '../support/synaux';
 // Pantallas públicas: los datos llegan de Laravel; filtros y estados de interacción pertenecen a Vue.
 const props = defineProps({ data: Object });
@@ -35,7 +36,7 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
     <section v-if="data.screen === 'servicios'" class="page shell catalog-page">
         <T eyebrow="Catálogo de servicios" title="Encontrá por dónde empezar." description="Explorá las propuestas y conocé qué puede aportar cada servicio a tu próximo proyecto digital." />
         <div class="catalog-tools"><div class="catalog-tools-row"><F v-model="query" label="Buscar un servicio" placeholder="Ej. tienda online o auditoría SEO" /><div class="filter-row" role="group" aria-label="Filtrar servicios"><button v-for="item in categories" :key="item" :class="{active:category === item}" :aria-pressed="category === item" @click="category = item">{{ item }}</button></div></div><p class="catalog-count" aria-live="polite">{{ resultsLabel }}</p></div>
-        <div v-if="services.length && data.referenceKey !== 'catalogo-vacio'" class="service-grid"><v-card v-for="(service, index) in services" :key="service.id" class="card service-card" tag="article"><span v-if="data.preview" class="service-number">0{{ index + 1 }}</span><p class="eyebrow">{{ service.category }}</p><h2>{{ service.name }}</h2><p>{{ service.summary }}</p><div class="card-link"><B :href="`/servicios/${service.id}`" variant="ghost" :aria-label="`Ver alcance de ${service.name}`" arrow>Ver alcance</B></div></v-card></div>
+        <div v-if="services.length && data.referenceKey !== 'catalogo-vacio'" class="service-grid"><v-card v-for="(service, index) in services" :key="service.id" class="card service-card" tag="article"><span v-if="data.preview" class="service-number">0{{ index + 1 }}</span><p class="eyebrow">{{ service.category }}</p><h2>{{ service.name }}</h2><p>{{ service.summary }}</p><CatalogServicePrice :reference="data.references?.[service.id]" :service-name="service.name" /><div class="card-link"><B :href="`/servicios/${service.id}`" variant="ghost" :aria-label="`Ver alcance de ${service.name}`" arrow>Ver alcance</B></div></v-card></div>
         <Empty v-else title="No encontramos servicios con esos filtros." text="Probá otra búsqueda o volvé a ver todas las propuestas."><B @click="clear">Limpiar filtros</B></Empty>
         <div class="notice"><I name="info" /><p>Cada proyecto tiene su propio alcance. Los entregables, el precio y las condiciones se definen en una propuesta profesional.</p></div>
     </section>

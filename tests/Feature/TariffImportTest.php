@@ -54,6 +54,9 @@ class TariffImportTest extends TestCase
         $this->assertSame('Particular', $reference['segment']);
         $this->assertSame(SynauxTariffImport::SOURCE, $reference['source']);
         $this->assertArrayNotHasKey('identidad-visual', $catalog->references());
+        $this->get('/plataforma')->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+            ->has('references.sitio-institucional.segments', 3)
+            ->where('references.sitio-institucional.segments.1.label', 'PyME'));
         $this->get('/estimador?servicio=sitio-institucional')->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
             ->where('references.sitio-institucional.currency', 'ARS')
             ->where('references.sitio-institucional.segment', 'Particular'));
@@ -61,6 +64,7 @@ class TariffImportTest extends TestCase
         foreach ($question['options'] as $position => $option) {
             $estimate = $catalog->calculate('sitio-institucional', [$question['id'] => $option->id]);
             $this->assertEquals([676360, 1352720, 2029080][$position], $estimate['min']);
+            $this->assertEquals($estimate['min'], $reference['segments'][$position]['min']);
             $this->assertSame($result['id'], $estimate['tariff_id']);
         }
     }
