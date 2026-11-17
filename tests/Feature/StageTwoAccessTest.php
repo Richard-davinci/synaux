@@ -21,6 +21,11 @@ class StageTwoAccessTest extends TestCase
         $this->get('/oportunidades')->assertNotFound();
         $this->get('/profesionales')->assertNotFound();
         $this->get('/prototipo/muro')->assertNotFound();
+        // La solicitud privada sigue disponible en la galería aunque el marketplace esté oculto.
+        $this->get('/prototipo/publicar')->assertInertia(fn (Assert $page) => $page
+            ->where('screen', 'publicar')->where('selectedEstimate.id', 64)
+            ->where('selectedEstimate.price_min', 1900000));
+        $this->get('/prototipo/publicar-revision')->assertOk();
 
         $this->actingAs(User::factory()->create());
         foreach (['/admin/etapa-2', '/profesional', '/cliente/publicaciones', '/cliente/propuestas', '/cliente/invitaciones'] as $path) {

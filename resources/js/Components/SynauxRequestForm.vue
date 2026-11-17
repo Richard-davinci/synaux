@@ -3,8 +3,9 @@ import { computed, ref, watch } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 import B from './SynauxButton.vue';
 import F from './SynauxField.vue';
+import I from './SynauxIcon.vue';
 import ServiceReference from './ServiceReference.vue';
-import { money, useSubmit } from '../support/synaux';
+import { money, date, useSubmit } from '../support/synaux';
 
 // Los borradores existentes se recuperan con sus datos y las solicitudes nuevas parten de la cuenta actual.
 const props = defineProps({ data: Object });
@@ -39,7 +40,16 @@ const form = useForm({
 });
 const selectedService = computed(() => props.data.services.find(item => item.database_id == form.service_id));
 const extras = computed(() => props.data.services.filter(item => item.database_id != form.service_id));
-const reference = computed(() => props.data.references?.[selectedService.value?.id]);
+// Las tarifas nuevas no modifican el importe histórico de la estimación elegida.
+const estimateAnswers = computed(() => estimate?.answers ?? old?.answers ?? []);
+const reference = computed(() => estimate
+    ? (estimate.price_min == null ? null : {
+        min: estimate.price_min, max: estimate.price_max ?? estimate.price_min,
+        currency: estimate.currency_snapshot, date: estimate.created_at,
+    })
+    : props.data.references?.[selectedService.value?.id]);
+const canSaveDraft = computed(() => form.title.trim().length >= 5 && form.description.trim().length >= 10);
+
 
 // La categoría se deriva del servicio y un mismo servicio no se repite como adicional.
 watch(selectedService, (service) => {
@@ -77,7 +87,7 @@ function save(publish) {
         <div>
             <ol class="request-steps" aria-label="Pasos para solicitar presupuesto">
                 <li v-for="(label, index) in labels" :key="label">
-                    <button type="button" :disabled="index + 1 > step" :aria-current="step === index + 1 ? 'step' : undefined" @click="step = index + 1">{{ index + 1 }}. {{ label }}</button>
+                    <button type="button" :disabled="index + 1 > step || form.processing" :aria-current="step === index + 1 ? 'step' : undefined" @click="step = index + 1">{{ index + 1 }}. {{ label }}</button>
                 </li>
             </ol>
             <v-card class="card">
@@ -89,13 +99,15 @@ function save(publish) {
                 <form v-if="step < 4" @submit.prevent="step += 1">
                     <template v-if="step === 1">
                         <F v-model="form.service_id" label="Servicio principal" type="select" :disabled="!!form.estimate_id" :options="data.services.map(item => ({ value: item.database_id, label: item.name }))" :error="form.errors.service_id" required />
-                        <ServiceReference :service="selectedService" :reference="reference" />
+                        <p v-if="estimate" class="request-origin"><I name="check" /> Servicio y respuestas recuperados de tu estimación. Podés agregar otros servicios a la consulta.</p>
+                        <ServiceReference :service="selectedService" :reference="reference" :saved="!!estimate" />
+                        <section v-if="estimateAnswers.length" class="request-answers"><h3>Respuestas de tu estimación</h3><dl><div v-for="answer in estimateAnswers" :key="answer.id"><dt>{{ answer.question }}</dt><dd>{{ answer.label }}</dd></div></dl></section>
                         <h3>Servicios adicionales</h3>
                         <p>Agregá otros servicios que quieras incluir en la consulta.</p>
                         <div v-for="(item, index) in form.additional_services" :key="index" class="request-extra">
                             <F v-model="item.service_id" :label="'Servicio adicional ' + (index + 1)" type="select" :options="extraOptions(index)" required :error="form.errors['additional_services.' + index + '.service_id']" />
                             <F v-model="item.quantity" label="Cantidad" type="number" min="1" max="1000" step="1" required :error="form.errors['additional_services.' + index + '.quantity']" />
-                            <F v-model="item.notes" label="Qué necesitás de este servicio" type="textarea" maxlength="2000" />
+                            <F v-model="item.notes" label="Qué necesitás de este servicio" type="textarea" maxlength="2000" :error="form.errors['additional_services.' + index + '.notes']" />
                             <B variant="ghost" @click="form.additional_services.splice(index, 1)">Quitar servicio</B>
                         </div>
                         <B variant="secondary" :disabled="form.additional_services.length >= Math.min(extras.length, 20)" @click="addService">Agregar servicio</B>
@@ -112,31 +124,32 @@ function save(publish) {
                     <template v-else-if="step === 3">
                         <F v-model="form.contact.name" label="Nombre de contacto" autocomplete="name" maxlength="255" required :error="form.errors['contact.name']" />
                         <F v-model="form.contact.email" label="Correo de contacto" type="email" autocomplete="email" maxlength="254" required :error="form.errors['contact.email']" />
-                        <F v-model="form.contact.company" label="Empresa u organización (opcional)" autocomplete="organization" maxlength="255" />
-                        <F v-model="form.contact.phone" label="Teléfono (opcional)" type="tel" autocomplete="tel" maxlength="50" />
-                        <F v-model="form.contact.address" label="Dirección (opcional)" autocomplete="street-address" maxlength="500" />
+                        <F v-model="form.contact.company" label="Empresa u organización (opcional)" autocomplete="organization" maxlength="255" :error="form.errors['contact.company']" />
+                        <F v-model="form.contact.phone" label="Teléfono (opcional)" type="tel" autocomplete="tel" maxlength="50" :error="form.errors['contact.phone']" />
+                        <F v-model="form.contact.address" label="Dirección (opcional)" autocomplete="street-address" maxlength="500" :error="form.errors['contact.address']" />
                         <p>Estos datos acompañan el pedido para que Synaux pueda preparar tu presupuesto.</p>
                     </template>
                     <div class="form-actions"><B v-if="step > 1" variant="secondary" @click="step -= 1">Anterior</B><span v-else /><B type="submit" arrow>{{ step === 3 ? 'Revisar solicitud' : 'Continuar' }}</B></div>
                 </form>
 
                 <template v-else>
-                    <h3>{{ form.title || 'Tu proyecto' }}</h3>
+                    <div class="review-section-heading"><h3>Tu proyecto</h3><B variant="ghost" @click="step = 2">Editar proyecto</B></div>
+                    <strong>{{ form.title || 'Tu proyecto' }}</strong>
                     <p class="preserve-lines">{{ form.description }}</p>
-                    <dl class="data-list">
+                    <div class="review-section-heading"><h3>Servicios y contacto</h3><B variant="ghost" @click="step = 1">Editar servicios</B><B variant="ghost" @click="step = 3">Editar contacto</B></div><dl class="data-list">
                         <div><dt>Servicio principal</dt><dd>{{ selectedService?.name }}</dd></div>
                         <div v-for="(item, index) in form.additional_services" :key="index"><dt>{{ extraName(item.service_id) }} × {{ item.quantity }}</dt><dd>{{ item.notes || 'Alcance a revisar' }}</dd></div>
                         <div><dt>Contacto</dt><dd>{{ form.contact.name }}<br>{{ form.contact.email }}</dd></div>
                         <div v-if="form.contact.company"><dt>Organización</dt><dd>{{ form.contact.company }}</dd></div>
                         <div v-if="form.contact.phone"><dt>Teléfono</dt><dd>{{ form.contact.phone }}</dd></div>
                         <div v-if="form.contact.address"><dt>Dirección</dt><dd>{{ form.contact.address }}</dd></div>
-                        <div><dt>Plazo</dt><dd>{{ form.desired_deadline || 'A coordinar' }}</dd></div>
+                        <div v-if="form.skills"><dt>Habilidades deseadas</dt><dd>{{ form.skills }}</dd></div><div><dt>Plazo</dt><dd>{{ form.desired_deadline || 'A coordinar' }}</dd></div>
                         <div><dt>Presupuesto disponible</dt><dd>{{ form.budget_reference || 'A definir' }}</dd></div>
                         <div><dt>Visibilidad</dt><dd>{{ form.visibility === 'public' ? 'Pública' : 'Privada' }}</dd></div>
                     </dl>
-                    <div class="form-actions"><B variant="secondary" @click="step = 3">Anterior</B><B :disabled="form.processing" arrow @click="save(true)">{{ form.visibility === 'public' ? 'Publicar solicitud' : 'Solicitar presupuesto' }}</B></div>
+                    <p class="request-origin"><I name="info" /> Al enviar, Synaux revisará el alcance y preparará tu presupuesto. Esta solicitud no confirma una contratación.</p><div class="form-actions"><B variant="secondary" :disabled="form.processing" @click="step = 3">Anterior</B><B :disabled="form.processing" arrow @click="save(true)">{{ form.processing ? 'Enviando…' : form.visibility === 'public' ? 'Publicar solicitud' : 'Solicitar presupuesto' }}</B></div>
                 </template>
-                <B v-if="step >= 2" class="draft-action" variant="ghost" :disabled="form.processing" @click="save(false)">Guardar borrador</B>
+                <B v-if="step >= 2" class="draft-action" variant="ghost" :disabled="form.processing || !canSaveDraft" @click="save(false)">{{ form.processing && !form.publish ? 'Guardando…' : 'Guardar borrador' }}</B><p v-if="step >= 2 && !canSaveDraft" class="draft-help">Completá el título y la descripción para guardar el borrador.</p>
             </v-card>
         </div>
 
@@ -147,9 +160,8 @@ function save(publish) {
                 <h3>{{ selectedService?.name }}</h3>
                 <p>{{ selectedService?.summary }}</p>
                 <ul v-if="selectedService?.includes?.length"><li v-for="item in selectedService.includes" :key="item">{{ item }}</li></ul>
-                <template v-if="estimate"><p>Estimación guardada</p><strong>{{ money(estimate.price_min, estimate.currency_snapshot) }}<template v-if="estimate.price_max != null && estimate.price_max !== estimate.price_min"> – {{ money(estimate.price_max, estimate.currency_snapshot) }}</template></strong></template>
-                <template v-else-if="reference"><p>Base orientativa del servicio principal</p><strong>{{ money(reference.min, reference.currency) }}<template v-if="reference.max !== reference.min"> – {{ money(reference.max, reference.currency) }}</template></strong><p v-if="reference.segment">{{ reference.segment }}</p></template>
-                <p v-else>Precio a definir al revisar el alcance.</p>
+                <div class="request-price"><p>{{ estimate ? 'Estimación guardada · servicio principal' : 'Referencia del servicio principal' }}</p><strong v-if="reference">{{ money(reference.min, reference.currency) }}<template v-if="reference.max !== reference.min"> – {{ money(reference.max, reference.currency) }}</template></strong><strong v-else>A cotizar según el alcance</strong><p v-if="estimate">{{ date(estimate.created_at) }}</p><p v-else-if="reference?.segment">{{ reference.segment }}</p><small v-if="form.additional_services.length">Los servicios adicionales se cotizan por separado y no están sumados a este importe.</small></div>
+                <dl v-if="estimateAnswers.length" class="summary-answers"><div v-for="answer in estimateAnswers" :key="answer.id"><dt>{{ answer.question }}</dt><dd>{{ answer.label }}</dd></div></dl>
                 <div v-for="(item, index) in form.additional_services" :key="index" class="summary-extra"><strong>{{ extraName(item.service_id) }} × {{ item.quantity }}</strong><p>{{ item.notes || 'A cotizar con el alcance del proyecto.' }}</p></div>
                 <p v-if="form.contact.name">{{ form.contact.name }}<br>{{ form.contact.email }}</p>
                 <p class="summary-note">Synaux revisará el pedido y enviará un presupuesto formal con el total, los plazos y las condiciones.</p>
@@ -160,8 +172,8 @@ function save(publish) {
 <style scoped>
 /* La grilla mantiene el resumen a la vista sin cubrir los campos ni el pie de página. */
 .request-wizard { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 2rem; align-items: start; }
-.request-steps { display: flex; flex-wrap: wrap; gap: .5rem; padding: 0; margin: 0 0 1.25rem; list-style: none; }
-.request-steps button { padding: .6rem .75rem; border: 1px solid rgb(31 111 127 / 20%); border-radius: .5rem; font: inherit; color: #153b64; background: #fff; cursor: pointer; }
+.request-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; padding: 0; margin: 0 0 1.25rem; list-style: none; }
+.request-steps button { width: 100%; min-height: 48px; font-weight: 700; padding: .6rem .75rem; border: 1px solid rgb(31 111 127 / 20%); border-radius: .5rem; font: inherit; color: #153b64; background: #fff; cursor: pointer; }
 .request-steps button[aria-current='step'] { background: #153b64; color: #fff; }
 .request-steps button:disabled { color: #446075; cursor: default; }
 .request-summary { position: sticky; top: 1.5rem; }
@@ -170,4 +182,23 @@ function save(publish) {
 .draft-action { margin-top: 1rem; }
 .summary-note { color: #446075; margin-top: 1.25rem; }
 @media (max-width: 900px) { .request-wizard { grid-template-columns: minmax(0, 1fr); } .request-summary { position: static; } }
+/* La revisión y los importes comparten la jerarquía del estimador y admiten textos largos. */
+.request-wizard :deep(h2) { font-size: clamp(1.5rem, 2.3vw, 2rem); font-weight: 700; line-height: 1.2; }
+.request-wizard :deep(h3) { font-weight: 700; }
+.request-steps button:focus-visible { outline: 3px solid #1f6f7f; outline-offset: 3px; }
+.request-steps button:disabled { background: #f5f9fa; opacity: .65; }
+.request-origin { display: flex; gap: 10px; align-items: flex-start; padding: 14px; background: #f5f9fa; border-radius: 10px; }
+.request-origin .icon { flex: 0 0 22px; color: #1f6f7f; }
+.request-answers dl, .summary-answers { margin: 0 0 20px; }
+.request-answers dl > div, .summary-answers > div { padding: 12px 0; border-bottom: 1px solid #1f6f7f22; }
+.request-answers dd, .summary-answers dd { margin: 4px 0 0; color: #153b64; font-weight: 700; overflow-wrap: anywhere; }
+.request-price { padding: 18px; background: #f5f9fa; border: 1px solid #1f6f7f22; border-radius: 12px; margin: 20px 0; }
+.request-price strong { display: block; font-family: 'Space Grotesk', sans-serif; font-size: 1.65rem; line-height: 1.3; overflow-wrap: anywhere; }
+.request-price p { margin: 0 0 8px; }
+.request-price small { display: block; margin-top: 12px; }
+.review-section-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 18px; }
+.review-section-heading h3 { flex: 1 1 auto; margin: 0; }
+.request-wizard .data-list dd, .request-summary { overflow-wrap: anywhere; min-width: 0; }
+.draft-help { font-size: .9rem; margin: 8px 0 0; }
+@media (max-width: 600px) { .request-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } .request-wizard :deep(.form-actions) { flex-wrap: wrap; gap: 12px; } .request-wizard :deep(.form-actions .btn) { flex: 1 1 100%; } }
 </style>

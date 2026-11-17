@@ -2,21 +2,21 @@
 import { money, date } from '../support/synaux';
 
 // Muestra los datos del servicio seleccionado y la referencia inicial publicada por el servidor.
-defineProps({ service: Object, reference: Object });
+defineProps({ service: Object, reference: Object, saved: Boolean });
 </script>
 <template>
     <section v-if="service" class="service-reference" aria-label="Referencia inicial del servicio">
         <div class="reference-heading">
-            <div><p class="eyebrow">Referencia inicial</p><h3>{{ service.name }}</h3></div>
+            <div><p class="eyebrow">{{ saved ? 'Estimación guardada' : 'Referencia inicial' }}</p><h3>{{ service.name }}</h3></div>
             <div v-if="reference" class="reference-price">
                 <strong>{{ money(reference.min,reference.currency) }}<template v-if="reference.max !== reference.min"> – {{ money(reference.max,reference.currency) }}</template></strong>
-                <span>{{ reference.segment ? 'Base para ' + reference.segment : 'Base del servicio' }} · {{ reference.currency }}</span>
+                <span v-if="!saved">{{ reference.segment ? 'Base para ' + reference.segment : 'Base del servicio' }} · {{ reference.currency }}</span>
             </div>
             <strong v-else>Precio a definir al revisar el alcance</strong>
         </div>
         <p>{{ service.summary }}</p>
         <ul v-if="service.includes?.length"><li v-for="item in service.includes" :key="item">{{ item }}</li></ul>
-        <p v-if="reference" class="reference-note">Referencia vigente desde {{ date(reference.date) }}. Las respuestas pueden ajustar el importe. El presupuesto formal se prepara al revisar tu solicitud.</p>
+        <p v-if="reference" class="reference-note">{{ saved ? 'Calculada el' : 'Referencia vigente desde' }} {{ date(reference.date) }}. {{ saved ? 'Conservamos el importe y las respuestas de tu estimación.' : 'Las respuestas pueden ajustar el importe.' }} El presupuesto formal se prepara al revisar tu solicitud.</p>
         <p v-else class="reference-note">Contanos qué necesitás para que Synaux prepare una propuesta.</p>
     </section>
 </template>

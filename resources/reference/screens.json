@@ -261,12 +261,12 @@
   },
   {
     "key": "publicar",
-    "name": "3.09 · Publicar solicitud · Formulario [publicar]",
+    "name": "2.17 · Solicitar presupuesto · Formulario [publicar]",
     "node": "21:1544"
   },
   {
     "key": "publicar-revision",
-    "name": "3.10 · Publicar solicitud · Vista previa [publicar-revision]",
+    "name": "2.18 · Solicitar presupuesto · Revisión [publicar-revision]",
     "node": "21:1663"
   },
   {

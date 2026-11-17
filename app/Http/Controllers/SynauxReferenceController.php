@@ -138,6 +138,11 @@ class SynauxReferenceController extends Controller
             };
         }
 
+        // El recorrido de solicitud pertenece a la primera etapa y usa una estimación de ejemplo aislada.
+        if (in_array($screen, ['publicar', 'publicar-revision'], true)) {
+            $data['selectedEstimate'] = $estimate;
+        }
+
         return Inertia::render($screen === 'inicio' ? 'Home' : ($data['screen'] === 'servicios' ? 'Catalog' : 'Workspace'), $data);
     }
 }
