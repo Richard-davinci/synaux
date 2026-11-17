@@ -182,6 +182,31 @@ class SynauxFlowTest extends TestCase
     }
 
 
+    // La ficha usa el paquete completo por segmento y conserva la versión anterior al volver a cargarla.
+    public function test_institutional_reference_matches_all_three_customer_segments(): void
+    {
+        $this->seed(\Database\Seeders\SynauxInstitutionalTariffSeeder::class);
+        $catalog = app(\App\Services\SynauxCatalog::class);
+        $service = $catalog->service('sitio-institucional');
+        $this->assertContains('Hasta 7 secciones en WordPress', $service['includes']);
+        $questions = $catalog->questions($service['database_id']);
+        $this->assertCount(1, $questions);
+
+        foreach ($questions[0]['options'] as $position => $option) {
+            $result = $catalog->calculate('sitio-institucional', [$questions[0]['id'] => $option->id]);
+            $expected = [676240, 1352480, 2028720][$position];
+            $this->assertSame('automatic', $result['mode']);
+            $this->assertSame('ARS', $result['currency']);
+            $this->assertEquals($expected, $result['min']);
+            $this->assertEquals($expected, $result['max']);
+        }
+
+        $this->seed(\Database\Seeders\SynauxInstitutionalTariffSeeder::class);
+        $this->seed(SynauxCatalogSeeder::class);
+        $this->assertDatabaseCount('tariff_versions', 1);
+        $this->assertCount(1, $catalog->questions($service['database_id']));
+    }
+
     public function test_estimator_rejects_forged_options(): void
     {
         $qid = DB::table('estimator_questions')->value('id');
