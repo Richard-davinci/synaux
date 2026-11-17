@@ -21,7 +21,6 @@ const price = computed(() => options.value.find(item => item.label === segment.v
             </template>
             <template v-else><span>Presupuesto a medida</span><strong>Consultar precio</strong></template>
         </div>
-        <small v-if="reference?.source" class="price-source">Referencia de <a :href="reference.source" target="_blank" rel="noopener">Tarifario.ar</a></small>
     </div>
 </template>
 <style scoped>
@@ -32,8 +31,6 @@ const price = computed(() => options.value.find(item => item.label === segment.v
 .price-segments button[aria-pressed='true'] { background: #1f6f7f; border-color: #1f6f7f; color: #fff; }
 .price-segments button:focus-visible { outline: 2px solid #153b64; outline-offset: 2px; }
 .price-summary { display: grid; gap: .25rem; padding-top: 1rem; border-top: 1px solid rgb(31 111 127 / 18%); }
-.price-summary span, .price-summary small, .price-source { color: #446075; font-size: .875rem; }
+.price-summary span, .price-summary small { color: #446075; font-size: .875rem; }
 .price-summary strong { color: #153b64; font-family: 'Space Grotesk', sans-serif; font-size: 1.4rem; }
-.price-source { display: block; margin-top: .4rem; }
-.price-source a { color: #1f6f7f; text-decoration: underline; }
 </style>

@@ -18,7 +18,6 @@ defineProps({ service: Object, reference: Object });
         <ul v-if="service.includes?.length"><li v-for="item in service.includes" :key="item">{{ item }}</li></ul>
         <p v-if="reference" class="reference-note">Referencia vigente desde {{ date(reference.date) }}. Las respuestas pueden ajustar el importe. El presupuesto formal se prepara al revisar tu solicitud.</p>
         <p v-else class="reference-note">Contanos qué necesitás para que Synaux prepare una propuesta.</p>
-        <small v-if="reference?.source">Referencia adaptada de <a :href="reference.source" target="_blank" rel="noopener">Tarifario.ar</a> · <a href="https://tarifario.ar/licencia" target="_blank" rel="noopener">CC BY-NC 4.0</a></small>
     </section>
 </template>
 <style scoped>

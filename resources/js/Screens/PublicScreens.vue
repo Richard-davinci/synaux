@@ -7,7 +7,7 @@ import T from '../Components/SynauxTitle.vue';
 import I from '../Components/SynauxIcon.vue';
 import Empty from '../Components/SynauxEmpty.vue';
 import CatalogServicePrice from '../Components/CatalogServicePrice.vue';
-import { useSubmit } from '../support/synaux';
+import { money, date, useSubmit } from '../support/synaux';
 // Pantallas públicas: los datos llegan de Laravel; filtros y estados de interacción pertenecen a Vue.
 const props = defineProps({ data: Object });
 const page = usePage();
@@ -28,6 +28,20 @@ const services = computed(() => props.data.services.filter(service => {
 }));
 const resultsLabel = computed(() => services.value.length === 1 ? '1 resultado' : `${services.value.length} resultados`);
 const selected = computed(() => props.data.selected ?? {});
+// El detalle reutiliza los importes publicados del catálogo, con todos los segmentos visibles.
+const detailReference = computed(() => props.data.references?.[selected.value.id]);
+const detailPrices = computed(() => detailReference.value?.segments?.length
+    ? detailReference.value.segments
+    : detailReference.value ? [{ label: 'Alcance base', min: detailReference.value.min, max: detailReference.value.max }] : []);
+const segmentDescriptions = {
+    Particular: 'Personas, organizaciones sin fines de lucro y ONG',
+    PyME: 'PyMEs e instituciones',
+    Empresa: 'Grandes empresas',
+};
+function detailPrice(min, max) {
+    const currency = detailReference.value.currency;
+    return min === max ? money(min, currency) : money(min, currency) + ' – ' + money(max, currency);
+}
 const sent = computed(() => page.url.includes('enviado=1') || props.data.referenceKey === 'contacto-enviado');
 const clear = () => { query.value = ''; category.value = 'Todos'; };
 </script>
@@ -42,12 +56,44 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
     </section>
 
     <!-- Cada detalle conserva el servicio elegido; sus entregables no se confunden con un contrato. -->
-    <section v-else-if="data.screen === 'servicio'" class="page shell narrow">
+    <section v-else-if="data.screen === 'servicio'" class="page shell service-detail">
         <B href="/plataforma" variant="ghost" class="back">← Volver a servicios</B>
-        <div class="detail-hero"><div><p class="eyebrow">{{ selected.category }}</p><h1>{{ selected.name }}</h1><p class="lead">{{ selected.description }}</p><div class="button-row"><B :href="`/estimador?servicio=${selected.id}`" arrow>Estimar proyecto</B><B href="/contacto" variant="secondary">Hacer una consulta</B></div></div><v-card class="card summary-card"><p class="eyebrow">Alcance a medida</p><h3>Una propuesta para cada proyecto</h3><p>Los entregables, el precio y las condiciones se acuerdan después de entender tu necesidad.</p></v-card></div>
-        <div class="content-grid"><article><h2>Posibles entregables</h2><ul class="check-list"><li v-for="item in selected.includes" :key="item"><I name="check" />{{ item }}</li></ul><h2>Cómo trabajamos</h2><p>Partimos de tus objetivos, definimos el alcance y convertimos esa definición en un presupuesto formal. La estimación es una referencia inicial: no reemplaza la propuesta que recibirás después de revisar tu solicitud.</p></article><aside class="soft-panel"><I name="info" /><h3>Sobre la estimación</h3><p>El rango se calcula con tus respuestas y sirve para orientarte. No constituye una oferta ni una tarifa oficial.</p></aside></div>
-    </section>
+        <header class="service-intro">
+            <p class="eyebrow">{{ selected.category }}</p>
+            <h1>{{ selected.name }}</h1>
+            <p class="lead">{{ selected.description }}</p>
+        </header>
 
+        <!-- Los tres precios permiten comparar el alcance sin salir de esta página. -->
+        <v-card class="card detail-pricing">
+            <div class="section-head">
+                <h2>Precios estimativos por cliente</h2>
+                <span v-if="detailReference">Moneda: {{ detailReference.currency }}</span>
+            </div>
+            <div v-if="detailPrices.length" class="detail-price-grid">
+                <article v-for="price in detailPrices" :key="price.label" class="detail-price-option">
+                    <h3>{{ price.label }}</h3>
+                    <strong>{{ detailPrice(price.min, price.max) }}</strong>
+                    <p v-if="segmentDescriptions[price.label]">{{ segmentDescriptions[price.label] }}</p>
+                </article>
+            </div>
+            <div v-else class="soft-panel"><h3>Presupuesto a medida</h3><p>Contanos qué necesitás para definir los entregables y el importe de tu proyecto.</p></div>
+            <p v-if="detailReference" class="detail-price-date">Valores vigentes desde {{ date(detailReference.date) }}.</p>
+            <div class="detail-price-info">
+                <I name="info" />
+                <p>Los precios son orientativos. El importe final puede variar según la complejidad, los entregables, los plazos y las revisiones acordadas. Synaux confirma el alcance y las condiciones en el presupuesto formal.</p>
+            </div>
+            <div class="button-row">
+                <B :href="'/estimador?servicio=' + selected.id" arrow>Estimar mi proyecto</B>
+                <B href="/contacto" variant="secondary">Hacer una consulta</B>
+            </div>
+        </v-card>
+
+        <div class="content-grid">
+            <article><h2>Qué incluye</h2><ul class="check-list"><li v-for="item in selected.includes" :key="item"><I name="check" />{{ item }}</li></ul></article>
+            <aside class="soft-panel"><h2>Cómo seguimos</h2><p>Completá la estimación y enviá tu solicitud privada. Synaux revisará tus necesidades y preparará una propuesta con precio, plazo y condiciones.</p></aside>
+        </div>
+    </section>
     <!-- Las imágenes se sirven localmente y cada tarjeta abre el trabajo correspondiente. -->
     <section v-else-if="data.screen === 'portfolio'" class="page shell">
         <T eyebrow="Portfolio" title="Trabajo real, decisiones con intención" description="Una selección de proyectos en los que estrategia, diseño y tecnología avanzaron juntos." />
@@ -74,3 +120,24 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
     </section>
 </template>
 
+
+<style scoped>
+/* La vista independiente agrupa alcance, precios e información con la identidad de Synaux. */
+.service-intro { max-width: 850px; margin-block: 1rem 2rem; }
+.service-intro h1 { margin-bottom: 1rem; }
+.detail-pricing { margin-bottom: 2rem; }
+.detail-pricing h2 { margin: 0; }
+.detail-price-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-block: 1.5rem; }
+.detail-price-option { padding: 1.5rem; border: 1px solid rgb(31 111 127 / 20%); border-radius: .875rem; background: #f5f9fa; }
+.detail-price-option h3 { font-size: 1.1rem; margin-bottom: .75rem; }
+.detail-price-option strong { display: block; color: #153b64; font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.25rem, 2vw, 1.75rem); overflow-wrap: anywhere; }
+.detail-price-option p { margin: .75rem 0 0; color: #446075; font-size: .875rem; }
+.detail-price-date { font-size: .875rem; color: #446075; }
+.detail-price-info { display: flex; align-items: start; gap: .75rem; margin-block: 1.25rem; padding: 1rem; background: #f5f9fa; border-radius: .75rem; }
+.detail-price-info p { margin: 0; }
+.service-detail .content-grid { align-items: start; }
+.service-detail .content-grid article h2 { margin-top: 0; }
+@media (max-width: 700px) {
+    .detail-price-grid { grid-template-columns: minmax(0, 1fr); }
+}
+</style>
