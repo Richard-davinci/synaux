@@ -43,7 +43,7 @@ Route::middleware('guest')->group(function () {
 // El servidor vuelve a comprobar propiedad y permisos para cada formulario y cada detalle privado.
 Route::middleware('auth')->group(function () {
     Route::post('/salir', [SynauxAuthController::class, 'logout']);
-    foreach (['cliente', 'profesional', 'gestion', 'admin'] as $area) {
+    foreach (['cliente', 'profesional'] as $area) {
         Route::get('/'.$area.'/{section?}', fn (Request $r, SynauxController $c, string $section = '') => $c->area($r, $area, $section));
     }
     Route::get('/solicitudes/nueva', [SynauxController::class, 'newRequest']);
@@ -58,5 +58,11 @@ Route::middleware('auth')->group(function () {
     // El guardado de estimaciones mantiene la URL y los límites que usa el frontend.
     Route::post('/acciones/guardar-estimacion', [SynauxEstimateController::class, 'store'])->middleware('throttle:60,1');
     Route::post('/acciones/{action}', [SynauxController::class, 'action'])->middleware('throttle:60,1');
-    Route::post('/admin/guardar/{resource}', [SynauxAdminController::class, 'save'])->middleware('throttle:30,1');
+    // Gestión y Administración comparten autorización de área, además de la autenticación del grupo exterior.
+    Route::middleware('synaux.management')->group(function () {
+        foreach (['gestion', 'admin'] as $area) {
+            Route::get('/'.$area.'/{section?}', fn (Request $r, SynauxController $c, string $section = '') => $c->area($r, $area, $section));
+        }
+        Route::post('/admin/guardar/{resource}', [SynauxAdminController::class, 'save'])->middleware('throttle:30,1');
+    });
 });

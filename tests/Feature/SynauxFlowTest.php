@@ -245,6 +245,18 @@ class SynauxFlowTest extends TestCase
         $this->assertDatabaseCount('project_requests', 1);
     }
 
+    // Las áreas de Gestión y Administración aplican el mismo permiso en lectura y escritura.
+    public function test_management_routes_require_the_persisted_management_permission(): void
+    {
+        $this->get('/gestion')->assertRedirect('/ingresar');
+        $this->actingAs($this->account())->get('/gestion')->assertForbidden();
+        $this->get('/admin/tarifario')->assertForbidden();
+        $this->post('/admin/guardar/servicios', [])->assertForbidden();
+
+        $this->actingAs($this->account(true))->get('/gestion')->assertOk();
+        $this->get('/admin/tarifario')->assertOk();
+    }
+
     public function test_estimator_rejects_forged_options(): void
     {
         $qid = DB::table('estimator_questions')->value('id');

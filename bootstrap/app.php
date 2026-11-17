@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\EnsureSynauxManagement;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -16,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
     // Incorpora Inertia al grupo web, que ya incluye sesiones y protección CSRF de Laravel.
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [HandleInertiaRequests::class]);
+        // Las rutas de gestión declaran explícitamente el permiso administrativo.
+        $middleware->alias(['synaux.management' => EnsureSynauxManagement::class]);
     })
     // Conserva el manejo de errores predeterminado de Laravel.
     ->withExceptions(function (Exceptions $exceptions): void {
