@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class SynauxRequests
 {
@@ -14,8 +15,12 @@ class SynauxRequests
             if ($existing) {
                 abort_unless($existing->user_id === $userId && $existing->status === 'draft', 403);
             }
-            $estimate = ! empty($d['estimate_id']) ? DB::table('estimates')->where('id', $d['estimate_id'])->where('user_id', $userId)->firstOrFail() : null;
-            abort_if($estimate && $estimate->service_id !== (int) $d['service_id'], 422, 'El servicio debe coincidir con la estimación de origen.');
+            // Recupera también la estimación del borrador cuando el formulario omite su identificador.
+            $estimateId = $d['estimate_id'] ?? $existing?->estimate_id;
+            $estimate = $estimateId ? DB::table('estimates')->where('id', $estimateId)->where('user_id', $userId)->firstOrFail() : null;
+            if ($estimate && $estimate->service_id !== (int) $d['service_id']) {
+                throw ValidationException::withMessages(['service_id' => 'El servicio debe coincidir con la estimación de origen.']);
+            }
             $values = ['user_id' => $userId, 'service_id' => $d['service_id'], 'estimate_id' => $estimate?->id ?? $existing?->estimate_id,
                 'title' => $d['title'], 'description' => $d['description'], 'visibility' => $d['visibility'], 'category' => $d['category'] ?? null,
                 'skills' => json_encode($d['skills']), 'budget_reference' => $d['budget_reference'] ?? null,

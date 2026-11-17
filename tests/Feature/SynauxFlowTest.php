@@ -207,6 +207,28 @@ class SynauxFlowTest extends TestCase
         $this->assertCount(1, $catalog->questions($service['database_id']));
     }
 
+    // Omitir estimate_id no permite cambiar el servicio de una solicitud basada en una estimación.
+    public function test_request_draft_keeps_its_estimate_service_when_the_id_is_omitted(): void
+    {
+        $owner = $this->account();
+        $id = $this->projectRequest($owner);
+        $service = DB::table('project_requests')->where('id', $id)->value('service_id');
+        $estimate = DB::table('estimates')->insertGetId([
+            'user_id' => $owner->id, 'service_id' => $service, 'summary' => 'Referencia original', 'answers_snapshot' => '[]', 'request_key' => (string) \Illuminate\Support\Str::uuid(),
+            'status' => 'manual', 'currency_snapshot' => 'ARS',
+        ]);
+        DB::table('project_requests')->where('id', $id)->update(['status' => 'draft', 'estimate_id' => $estimate]);
+        $otherService = DB::table('services')->where('id', '!=', $service)->value('id');
+        $data = [
+            'id' => $id, 'service_id' => $otherService, 'title' => 'Solicitud modificada',
+            'description' => 'Un alcance con descripción suficiente.', 'visibility' => 'private', 'publish' => true,
+        ];
+
+        $this->actingAs($owner)->post('/acciones/solicitud', $data)->assertSessionHasErrors('service_id');
+        $this->assertDatabaseHas('project_requests', ['id' => $id, 'status' => 'draft', 'service_id' => $service, 'estimate_id' => $estimate]);
+        $this->post('/acciones/solicitud', [...$data, 'service_id' => $service])->assertSessionHasNoErrors()->assertRedirect('/solicitudes/'.$id);
+    }
+
     public function test_estimator_rejects_forged_options(): void
     {
         $qid = DB::table('estimator_questions')->value('id');
