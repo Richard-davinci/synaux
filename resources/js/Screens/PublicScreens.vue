@@ -49,6 +49,10 @@ const estimateHref = computed(() => {
     if (['Particular', 'PyME', 'Empresa'].includes(chosenPrice.value?.label)) query.set('cliente', chosenPrice.value.label);
     return '/estimador?' + query.toString();
 });
+// El detalle reutiliza las escenas de trabajo digital que ya forman parte de los recursos de Synaux.
+const detailImage = computed(() => ['Desarrollo web', 'UX/UI'].includes(selected.value.category)
+    ? { src: '/images/landing/planificacion.webp', alt: 'Planificación de una interfaz con bocetos y una computadora.' }
+    : { src: '/images/landing/colaboracion.webp', alt: 'Dos personas revisando una propuesta digital.' });
 const segmentDescriptions = {
     Particular: 'Personas, organizaciones sin fines de lucro y ONG',
     PyME: 'PyMEs e instituciones',
@@ -101,9 +105,12 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
     <section v-else-if="data.screen === 'servicio'" class="page shell service-detail">
         <B href="/plataforma" variant="ghost" class="back">← Volver a servicios</B>
         <header class="service-intro">
-            <p class="eyebrow">{{ selected.category }}</p>
-            <h1>{{ selected.name }}</h1>
-            <p class="lead">{{ selected.description }}</p>
+            <div>
+                <div class="service-category"><I :name="categoryIcons[selected.category] ?? 'folder'" class="catalog-service-icon" /><p class="eyebrow">{{ selected.category }}</p></div>
+                <h1>{{ selected.name }}</h1>
+                <p class="lead">{{ selected.description }}</p>
+            </div>
+            <img class="service-image" :src="detailImage.src" :alt="detailImage.alt" width="1200" height="800" fetchpriority="high" />
         </header>
 
         <!-- Los tres precios permiten comparar el alcance sin salir de esta página. -->
@@ -135,7 +142,7 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
 
         <div class="content-grid">
             <article><h2>Qué incluye</h2><ul class="check-list"><li v-for="item in selected.includes" :key="item"><I name="check" />{{ item }}</li></ul></article>
-            <aside class="soft-panel"><h2>Cómo seguimos</h2><p>Completá la estimación y enviá tu solicitud privada. Synaux revisará tus necesidades y preparará una propuesta con precio, plazo y condiciones.</p></aside>
+            <aside class="soft-panel service-next-steps"><I name="file" /><h2>Cómo seguimos</h2><p>Completá la estimación y enviá tu solicitud privada. Synaux revisará tus necesidades y preparará una propuesta con precio, plazo y condiciones.</p></aside>
         </div>
     </section>
     <!-- Las imágenes se sirven localmente y cada tarjeta abre el trabajo correspondiente. -->
@@ -195,8 +202,9 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
 @media (max-width: 600px) { .catalog-page .catalog-tools, .catalog-page .service-card { padding: 1.15rem; } }
 
 /* La vista independiente agrupa alcance, precios e información con la identidad de Synaux. */
-.service-intro { max-width: 850px; margin-block: 1rem 2rem; }
-.service-intro h1 { margin-bottom: 1rem; }
+.service-intro { display: grid; grid-template-columns: minmax(0,1.2fr) minmax(0,1fr); align-items: center; gap: 2rem; margin-block: 1.5rem 2.5rem; }
+.service-image { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 1.25rem; }
+.service-intro h1 { margin-bottom: 1rem; font-size: clamp(2.25rem,4vw,3.75rem); line-height: 1.08; }
 .detail-pricing { margin-bottom: 2rem; }
 .detail-pricing h2 { margin: 0; }
 .detail-price-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-block: 1.5rem; }
@@ -215,6 +223,13 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
 .detail-price-info { display: flex; align-items: start; gap: .75rem; margin-block: 1.25rem; padding: 1rem; background: #f5f9fa; border-radius: .75rem; }
 .detail-price-info p { margin: 0; }
 .service-detail .content-grid { align-items: start; }
+/* El panel de próximos pasos conserva espacio interior y una jerarquía menor que el título de la página. */
+.service-detail .service-next-steps { padding: 1.5rem; border: 1px solid rgb(31 111 127 / 18%); border-radius: .875rem; background: #f5f9fa; }
+.service-detail .content-grid h2 { margin: 0 0 1rem; font-size: clamp(1.5rem,2.5vw,2rem); font-weight: 700; line-height: 1.2; }
+.service-next-steps p { margin-bottom: 0; line-height: 1.65; color: #446075; }
+.service-next-steps > .icon { width: 1.5rem; height: 1.5rem; color: #1f6f7f; margin-bottom: .75rem; }
+.detail-pricing > .soft-panel { padding: 1.25rem; border-radius: .75rem; }
+@media (max-width: 900px) { .service-intro { grid-template-columns: minmax(0,1fr); } .service-image { max-height: 360px; } }
 .service-detail .content-grid article h2 { margin-top: 0; }
 @media (max-width: 700px) {
     .detail-price-grid { grid-template-columns: minmax(0, 1fr); }
