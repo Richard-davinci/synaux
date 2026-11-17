@@ -21,6 +21,24 @@ class SynauxCatalogSeeder extends Seeder
             ['Marketing', 'Campaña digital', 'campana-digital', 'Estrategia, piezas y seguimiento para una campaña con objetivos concretos.',
                 'Conectamos objetivos, mensajes y canales en una campaña digital pensada para llegar a las personas correctas.',
                 ['Definición de objetivos y públicos', 'Estrategia de contenidos y canales', 'Piezas para los formatos acordados', 'Seguimiento e informe de resultados']],
+            ['Desarrollo web', 'Landing page', 'landing-page', 'Una página enfocada en presentar una oferta y facilitar una acción.',
+                'Diseñamos y desarrollamos una página para presentar un producto, una campaña o un lanzamiento con un objetivo concreto.',
+                ['Estructura y jerarquía de contenidos', 'Diseño responsive', 'Formulario o enlace de conversión']],
+            ['Desarrollo web', 'Tienda online', 'tienda-online', 'Un catálogo con carrito y un proceso de compra adaptado a tu negocio.',
+                'Definimos la navegación de la tienda y configuramos el proceso de compra según tus productos y operaciones.',
+                ['Estructura del catálogo', 'Carrito y checkout', 'Configuración de medios de pago y envío']],
+            ['Diseño', 'Diseño UX/UI', 'diseno-ux-ui', 'Interfaces claras para sitios y productos digitales.',
+                'Diseñamos los flujos y las pantallas prioritarias de tu producto para que puedas evaluarlos antes del desarrollo.',
+                ['Flujos de navegación', 'Diseño de pantallas', 'Prototipo interactivo']],
+            ['Diseño', 'Piezas para redes sociales', 'piezas-redes-sociales', 'Recursos gráficos coherentes para comunicar en tus redes.',
+                'Adaptamos la identidad visual a los formatos que usás para comunicar en redes sociales.',
+                ['Dirección visual', 'Diseño de piezas acordadas', 'Exportaciones por formato']],
+            ['Marketing', 'Auditoría SEO', 'auditoria-seo', 'Un diagnóstico de tu sitio para priorizar mejoras en buscadores.',
+                'Revisamos la estructura, la indexación y el contenido de las páginas prioritarias para proponer mejoras concretas.',
+                ['Revisión técnica y de contenidos', 'Informe de hallazgos', 'Lista priorizada de mejoras']],
+            ['Marketing', 'Estrategia de contenidos', 'estrategia-contenidos', 'Una planificación para comunicar con objetivos y consistencia.',
+                'Definimos qué comunicar, para quién y en qué formatos según tus recursos y canales.',
+                ['Definición de públicos y objetivos', 'Temas y formatos de contenido', 'Calendario editorial inicial']],
         ];
         foreach ($content as [$category, $name, $slug, $summary, $description, $includes]) {
             $categorySlug = Str::slug($category);
@@ -53,7 +71,12 @@ class SynauxCatalogSeeder extends Seeder
                 }
             }
         }
-        foreach (['identidad-visual', 'campana-digital'] as $slug) {
+        // Cada servicio de revisión profesional necesita una pregunta inicial sobre el alcance.
+        foreach ($content as [, , $slug]) {
+            if ($slug === 'sitio-institucional') {
+                continue;
+            }
+
             $id = DB::table('services')->where('slug', $slug)->value('id');
             if (! DB::table('estimator_questions')->where('service_id', $id)->exists()) {
                 DB::table('estimator_questions')->insert(['service_id' => $id, 'question' => '¿Qué objetivo querés lograr y qué necesitás resolver?', 'input_type' => 'text', 'sort_order' => 0, 'active' => 1]);

@@ -43,17 +43,18 @@ class HomeTest extends TestCase
                 ->component('Catalog')
                 ->where('homeUrl', '/')
                 ->where('platformUrl', '/plataforma')
-                ->has('services', 3)
+                ->has('services', 9)
                 ->where('services.0.id', 'sitio-institucional')
                 ->where('services.1.category', 'Diseño')
                 ->where('services.2.category', 'Marketing')
+                ->where('services.8.id', 'estrategia-contenidos')
             );
     }
 
     // El estimador recibe el servicio del detalle, incluso cuando no es el servicio predeterminado.
     public function test_estimator_uses_the_service_selected_from_the_catalog(): void
     {
-        $slug = 'identidad-visual';
+        $slug = 'tienda-online';
 
         $this->get('/servicios/'.$slug)
             ->assertInertia(fn (Assert $page) => $page
