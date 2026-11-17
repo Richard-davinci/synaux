@@ -14,18 +14,28 @@ const query = ref('');
 const category = ref('Todos');
 const submit = useSubmit();
 const form = useForm({ name: '', email: '', topic: 'Consulta general', message: '' });
-const categories = computed(() => ['Todos', ...new Set(props.data.services.map(s => s.category))]);
-const services = computed(() => props.data.services.filter(s => (category.value === 'Todos' || s.category === category.value) && `${s.name} ${s.category} ${s.summary}`.toLocaleLowerCase('es').includes(query.value.toLocaleLowerCase('es').trim())));
+const categories = computed(() => ['Todos', ...new Set(props.data.services.map(service => service.category))]);
+
+// La búsqueda admite palabras en cualquier orden, con o sin tildes, y respeta el filtro activo.
+const normalizeSearch = (text) => text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('es');
+const searchWords = computed(() => normalizeSearch(query.value).trim().split(/\s+/).filter(Boolean));
+const services = computed(() => props.data.services.filter(service => {
+    if (category.value !== 'Todos' && service.category !== category.value) return false;
+
+    const searchableText = normalizeSearch([service.name, service.category, service.summary].join(' '));
+    return searchWords.value.every(word => searchableText.includes(word));
+}));
+const resultsLabel = computed(() => services.value.length === 1 ? '1 resultado' : `${services.value.length} resultados`);
 const selected = computed(() => props.data.selected ?? {});
 const sent = computed(() => page.url.includes('enviado=1') || props.data.referenceKey === 'contacto-enviado');
 const clear = () => { query.value = ''; category.value = 'Todos'; };
 </script>
 <template>
-    <!-- El catálogo reproduce el panel de búsqueda y los tres tipos de servicio del diseño. -->
+    <!-- Los filtros se generan a partir de los servicios publicados y el contador anuncia cada cambio. -->
     <section v-if="data.screen === 'servicios'" class="page shell catalog-page">
         <T eyebrow="Catálogo de servicios" title="Encontrá por dónde empezar." description="Explorá las propuestas y conocé qué puede aportar cada servicio a tu próximo proyecto digital." />
-        <div class="catalog-tools"><div class="catalog-tools-row"><F v-model="query" label="Buscar un servicio" placeholder="Ej. sitio, identidad o campaña" /><div class="filter-row" role="group" aria-label="Filtrar servicios"><button v-for="item in categories" :key="item" :class="{active:category === item}" :aria-pressed="category === item" @click="category = item">{{ item }}</button></div></div><p class="catalog-count" aria-live="polite">{{ services.length }} resultados</p></div>
-        <div v-if="services.length && data.referenceKey !== 'catalogo-vacio'" class="service-grid"><v-card v-for="(service, index) in services" :key="service.id" class="card service-card" tag="article"><span class="service-number">0{{ index + 1 }}</span><p class="eyebrow">{{ service.category }}</p><h2>{{ service.name }}</h2><p>{{ service.summary }}</p><div class="card-link"><B :href="`/servicios/${service.id}`" variant="ghost" arrow>Ver alcance</B></div></v-card></div>
+        <div class="catalog-tools"><div class="catalog-tools-row"><F v-model="query" label="Buscar un servicio" placeholder="Ej. tienda online o auditoría SEO" /><div class="filter-row" role="group" aria-label="Filtrar servicios"><button v-for="item in categories" :key="item" :class="{active:category === item}" :aria-pressed="category === item" @click="category = item">{{ item }}</button></div></div><p class="catalog-count" aria-live="polite">{{ resultsLabel }}</p></div>
+        <div v-if="services.length && data.referenceKey !== 'catalogo-vacio'" class="service-grid"><v-card v-for="(service, index) in services" :key="service.id" class="card service-card" tag="article"><span v-if="data.preview" class="service-number">0{{ index + 1 }}</span><p class="eyebrow">{{ service.category }}</p><h2>{{ service.name }}</h2><p>{{ service.summary }}</p><div class="card-link"><B :href="`/servicios/${service.id}`" variant="ghost" :aria-label="`Ver alcance de ${service.name}`" arrow>Ver alcance</B></div></v-card></div>
         <Empty v-else title="No encontramos servicios con esos filtros." text="Probá otra búsqueda o volvé a ver todas las propuestas."><B @click="clear">Limpiar filtros</B></Empty>
         <div class="notice"><I name="info" /><p>Cada proyecto tiene su propio alcance. Los entregables, el precio y las condiciones se definen en una propuesta profesional.</p></div>
     </section>
