@@ -6,6 +6,7 @@ import B from '../Components/SynauxButton.vue';
 import F from '../Components/SynauxField.vue';
 import T from '../Components/SynauxTitle.vue';
 import ServiceReference from '../Components/ServiceReference.vue';
+import DeleteEstimateButton from '../Components/DeleteEstimateButton.vue';
 import { money, date, useSubmit } from '../support/synaux';
 
 // El formulario conserva sus respuestas al recorrer los pasos; Laravel valida y calcula los importes.
@@ -180,6 +181,7 @@ function save(toRequest) {
                 <div class="button-stack">
                     <template v-if="$page.props.auth || data.preview">
                         <B v-if="saved" :href="'/solicitudes/nueva?estimacion=' + data.selected.id" arrow>Continuar con la solicitud</B>
+                        <DeleteEstimateButton v-if="saved" :estimate="data.selected" />
                         <B v-else :disabled="saveForm.processing" arrow @click="save(true)">Continuar con la solicitud</B>
                         <B v-if="!saved" variant="secondary" :disabled="saveForm.processing" @click="save(false)">Guardar estimación</B>
                     </template>

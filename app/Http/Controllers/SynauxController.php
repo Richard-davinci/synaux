@@ -187,6 +187,12 @@ class SynauxController extends Controller
         $source = ['solicitud' => 'requests', 'presupuesto' => 'quotes', 'proyecto' => 'projects', 'estimacion' => 'estimates', 'editor-trabajo' => 'works', 'editor-presupuesto' => 'quotes'];
         abort_unless(isset($source[$kind]), 404);
         $data['selected'] = $id ? collect($data[$source[$kind]])->firstWhere('id', $id) ?? abort(404) : null;
+        // Un borrador propio puede conservar una estimación retirada de la lista sin habilitar su reutilización en pedidos nuevos.
+        if ($kind === 'solicitud' && $data['selected']['status'] === 'draft' && $data['selected']['estimate_id']) {
+            $origin = DB::table('estimates')->where('id', $data['selected']['estimate_id'])->where('user_id', $request->user()->id)->first();
+            if ($origin) $data['selectedEstimate'] = [...(array) $origin,
+                'answers' => json_decode($origin->answers_snapshot, true), 'items' => json_decode($origin->items_snapshot ?? '[]', true)];
+        }
         if ($kind === 'editor-presupuesto' && $id) {
             abort_unless($data['selected']['issuer_id'] === $request->user()->id, 403);
         }
@@ -221,7 +227,7 @@ class SynauxController extends Controller
             'quotes' => $quotes, 'projects' => $this->workspace->projects($quotes),
             'proposals' => $this->workspace->proposals($id, $management), 'invitations' => $this->workspace->invitations($id, $management),
             'profile' => $profile ? $this->workspace->profile($profile) : null, 'professionals' => $this->workspace->professionals(),
-            'works' => $this->workspace->works($id), 'estimates' => DB::table('estimates')->where('user_id', $id)->orderByDesc('id')->get()->map(fn ($e) => [
+            'works' => $this->workspace->works($id), 'estimates' => DB::table('estimates')->where('user_id', $id)->whereNull('deleted_at')->orderByDesc('id')->get()->map(fn ($e) => [
                 ...((array) $e), 'answers' => json_decode($e->answers_snapshot, true), 'items' => json_decode($e->items_snapshot ?? '[]', true),
             ])->all()];
     }

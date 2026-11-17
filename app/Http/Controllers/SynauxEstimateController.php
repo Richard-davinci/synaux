@@ -20,4 +20,15 @@ class SynauxEstimateController extends Controller
         return redirect($request->boolean('to_request') ? '/solicitudes/nueva?estimacion='.$id : '/estimaciones/'.$id)
             ->with('notice', 'Estimación guardada. Podés crear una solicitud con estas respuestas.');
     }
+    // Elimina de la lista solo una estimación propia; los documentos vinculados conservan su referencia histórica.
+    public function destroy(Request $request, int $id): RedirectResponse
+    {
+        $request->validate(['confirmed' => 'required|accepted']);
+        $estimate = \Illuminate\Support\Facades\DB::table('estimates')->where('id', $id)
+            ->where('user_id', $request->user()->id)->whereNull('deleted_at')->firstOrFail();
+        \Illuminate\Support\Facades\DB::table('estimates')->where('id', $estimate->id)
+            ->where('user_id', $request->user()->id)->update(['deleted_at' => now(), 'updated_at' => now()]);
+
+        return redirect('/cliente/estimaciones')->with('notice', 'Estimación eliminada de tu lista. Las solicitudes vinculadas conservan su historial.');
+    }
 }

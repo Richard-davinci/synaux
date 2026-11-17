@@ -32,6 +32,9 @@ class SynauxEstimates
         $estimate = DB::table('estimates')->where('request_key', $pending['key'])->firstOrFail();
         abort_unless($estimate->user_id === $userId, 403);
 
+        // Guardar explícitamente el mismo cálculo recupera su registro inmutable si se había quitado de la lista.
+        if ($estimate->deleted_at) DB::table('estimates')->where('id', $estimate->id)->update(['deleted_at' => null, 'updated_at' => now()]);
+
         return $estimate->id;
     }
 }

@@ -66,6 +66,8 @@ Route::middleware('auth')->group(function () {
     }
     // El formulario de solicitudes conserva su URL y el mismo límite de envíos.
     Route::post('/acciones/solicitud', [SynauxRequestController::class, 'store'])->middleware('throttle:60,1');
+    // El borrado requiere una sesión y vuelve a comprobar la propiedad en el controlador.
+    Route::delete('/estimaciones/{id}', [SynauxEstimateController::class, 'destroy'])->whereNumber('id')->middleware('throttle:20,1');
     // El guardado de estimaciones mantiene la URL y los límites que usa el frontend.
     Route::post('/acciones/guardar-estimacion', [SynauxEstimateController::class, 'store'])->middleware('throttle:60,1');
     Route::post('/acciones/{action}', [SynauxController::class, 'action'])->middleware('throttle:60,1');

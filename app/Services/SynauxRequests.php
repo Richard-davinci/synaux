@@ -26,6 +26,10 @@ class SynauxRequests
             // Recupera también la estimación del borrador cuando el formulario omite su identificador.
             $estimateId = $d['estimate_id'] ?? $existing?->estimate_id;
             $estimate = $estimateId ? DB::table('estimates')->where('id', $estimateId)->where('user_id', $userId)->firstOrFail() : null;
+            // Solo el borrador que ya estaba vinculado puede seguir usando una estimación eliminada.
+            if ($estimate?->deleted_at && (! $existing || $existing->estimate_id !== $estimate->id)) {
+                throw ValidationException::withMessages(['estimate_id' => 'Esta estimación fue eliminada. Prepará una nueva estimación.']);
+            }
             if ($estimate && $estimate->service_id !== (int) $d['service_id']) {
                 throw ValidationException::withMessages(['service_id' => 'El servicio debe coincidir con la estimación de origen.']);
             }
