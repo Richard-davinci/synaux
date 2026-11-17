@@ -17,3 +17,20 @@ Artisan::command('synaux:admin {email}', function () {
 
     return 0;
 })->purpose('Habilita la gestión de Synaux para una cuenta registrada');
+
+// Importa únicamente la ficha vinculada a Sitio institucional. Las fallas conservan la última versión válida.
+Artisan::command('synaux:tarifario', function (\App\Services\SynauxTariffImport $import) {
+    try {
+        $result = $import->sync();
+        $this->info(($result['created'] ? 'Nueva versión importada. ' : 'Sin cambios. ').'Referencia PyME: ARS '.$result['pyme']);
+        return 0;
+    } catch (\Throwable $exception) {
+        report($exception);
+        $this->error('Importación cancelada: '.$exception->getMessage());
+        return 1;
+    }
+})->purpose('Actualiza Sitio institucional desde Tarifario.ar');
+
+// Laravel ejecuta esta tarea cuando el planificador está activo en el servidor.
+\Illuminate\Support\Facades\Schedule::command('synaux:tarifario')
+    ->dailyAt('08:00')->timezone('America/Argentina/Buenos_Aires')->withoutOverlapping(10);

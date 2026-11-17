@@ -1,0 +1,87 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Services\SynauxCatalog;
+use App\Services\SynauxTariffImport;
+use Database\Seeders\SynauxCatalogSeeder;
+use Database\Seeders\SynauxInstitutionalTariffSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Tests\TestCase;
+
+class TariffImportTest extends TestCase
+{
+    use RefreshDatabase;
+
+    // Las respuestas controladas reproducen el formato público sin depender de Internet durante las pruebas.
+    private function remote(string $scope = 'Sitio (hasta 7 secciones). UI/UX. Form. Blog básico. Responsive. CMS (WP) básico. SEO on-page inicial. 2 rondas.', bool $validRate = true): void
+    {
+        Http::preventStrayRequests();
+        Http::fake([
+            'https://tarifario.ar/' => Http::response('<script src="/_next/static/chunks/catalog.js"></script>'),
+            'https://tarifario.ar/_next/static/chunks/catalog.js' => Http::response(
+                '{id:"pd-3",category:"dev-web-app",title:"Institucional",description:'.json_encode($scope, JSON_UNESCAPED_UNICODE).',priceUSD:800,priceType:"minimum"}'
+            ),
+            SynauxTariffImport::RATE => Http::response(['casa' => 'contadoconliqui', 'venta' => $validRate ? 1690.9 : 0, 'fechaActualizacion' => now()->toIso8601String()]),
+        ]);
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(SynauxCatalogSeeder::class);
+        $this->seed(SynauxInstitutionalTariffSeeder::class);
+    }
+
+    public function test_import_creates_a_version_with_provenance_and_is_idempotent(): void
+    {
+        $this->remote();
+        $import = app(SynauxTariffImport::class);
+        $result = $import->sync();
+        $this->assertTrue($result['created']);
+        $this->assertSame(1352720, $result['pyme']);
+        $this->assertFalse($import->sync()['created']);
+        $this->assertDatabaseCount('tariff_versions', 2);
+        $this->assertDatabaseHas('tariff_versions', ['id' => $result['id'], 'source_usd' => 800, 'source_rate' => 1690.9]);
+
+        $catalog = app(SynauxCatalog::class);
+        $service = $catalog->service('sitio-institucional');
+        $question = $catalog->questions($service['database_id'])[0];
+        foreach ($question['options'] as $position => $option) {
+            $estimate = $catalog->calculate('sitio-institucional', [$question['id'] => $option->id]);
+            $this->assertEquals([676360, 1352720, 2029080][$position], $estimate['min']);
+            $this->assertSame($result['id'], $estimate['tariff_id']);
+        }
+    }
+
+    public function test_scope_change_or_network_failure_preserves_the_existing_version(): void
+    {
+        $this->remote('Paquete modificado de doce secciones.');
+        try {
+            app(SynauxTariffImport::class)->sync();
+            $this->fail('Un alcance diferente debe detener la importación.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('alcance', $exception->getMessage());
+        }
+        $this->assertDatabaseCount('tariff_versions', 1);
+    }
+
+    public function test_network_failure_keeps_the_current_tariff(): void
+    {
+        Http::preventStrayRequests();
+        Http::fake(['https://tarifario.ar/' => Http::response('', 503)]);
+        $this->artisan('synaux:tarifario')->assertExitCode(1);
+        $this->assertDatabaseCount('tariff_versions', 1);
+    }
+
+    public function test_only_admin_can_import_and_invalid_currency_conversion_is_rejected(): void
+    {
+        $this->actingAs(\App\Models\User::factory()->create())->post('/admin/tarifario/importar')->assertForbidden();
+        $this->remote(validRate: false);
+
+        $this->expectException(\RuntimeException::class);
+        app(SynauxTariffImport::class)->sync();
+    }
+}

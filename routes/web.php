@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\SynauxAdminController;
+use App\Http\Controllers\SynauxTariffImportController;
 use App\Http\Controllers\SynauxAuthController;
 use App\Http\Controllers\SynauxAccountController;
 use App\Http\Controllers\SynauxController;
@@ -64,6 +65,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/acciones/{action}', [SynauxController::class, 'action'])->middleware('throttle:60,1');
     // Gestión y Administración comparten autorización de área, además de la autenticación del grupo exterior.
     Route::middleware('synaux.management')->group(function () {
+        Route::post('/admin/tarifario/importar', [SynauxTariffImportController::class, 'store'])->middleware('throttle:2,1');
         // Entrada administrativa de revisión para las funciones de la segunda etapa.
         Route::get('/admin/etapa-2', fn () => Inertia::render('StageTwo'))->name('stage-two');
         foreach (['gestion', 'admin'] as $area) {
