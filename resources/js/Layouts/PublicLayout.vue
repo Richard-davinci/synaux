@@ -2,7 +2,6 @@
 import { computed, ref, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import BrandLogo from '../Components/BrandLogo.vue';
-import AccountMenu from '../Components/AccountMenu.vue';
 import SynauxNotifications from '../Components/SynauxNotifications.vue';
 import WorkspaceNavigation from '../Components/WorkspaceNavigation.vue';
 import I from '../Components/SynauxIcon.vue';
@@ -34,6 +33,7 @@ const nav = computed(() => allNav.value.filter(([, href]) =>
 
 // El contexto de trabajo identifica también los detalles y formularios abiertos desde cada área.
 const hasWorkspace = computed(() => area.value !== 'public' && !!(page.props.auth || page.props.preview));
+const accountName = computed(() => page.props.auth?.name ?? (page.props.preview ? 'Cuenta de ejemplo' : ''));
 const workspaceTitle = computed(() => area.value === 'gestion' ? 'Panel de gestión' : area.value === 'profesional' ? 'Área profesional' : 'Mi espacio');
 const currentSection = computed(() => {
     if (page.url.split('?')[0].split('#')[0] === '/mi-perfil' || ['cuenta-admin', 'cuenta-cliente'].includes(page.props.referenceKey)) return 'mi-perfil';
@@ -54,7 +54,8 @@ watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false;
             <nav :class="['main-nav', { 'mobile-open': mobile }]" aria-label="Navegación principal">
                 <a v-for="[label, href] in publicNav" :key="href" :href="referenceHref(href, $page.props)" :aria-current="$page.url.split('?')[0] === href ? 'page' : undefined">{{ label }}</a>
                 <div v-if="!$page.props.auth && !$page.props.preview" class="nav-actions"><SynauxButton href="/ingresar" variant="ghost">Ingresar</SynauxButton><SynauxButton href="/crear-cuenta">Crear cuenta</SynauxButton></div>
-                <AccountMenu v-if="$page.props.auth && !$page.props.preview" />
+                <!-- Fuera del área privada solo hace falta un acceso directo al panel de la cuenta. -->
+                <SynauxButton v-if="$page.props.auth && !$page.props.preview && !hasWorkspace" :href="$page.props.auth.is_admin ? '/gestion' : '/cliente'">Ir a mi panel</SynauxButton>
             </nav>
         </header>
         <!-- El componente compartido anuncia resultados y errores sin perderse al desplazar la página. -->
@@ -62,12 +63,12 @@ watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false;
         <!-- El panel es adicional al sitio y solo acompaña las pantallas privadas. -->
         <div v-if="hasWorkspace" class="workspace-mobile-bar"><span>{{ workspaceTitle }}</span><button ref="workspaceToggle" type="button" :aria-expanded="workspaceOpen" aria-controls="workspace-mobile-panel" @click="workspaceOpen = true"><I name="menu" />Menú del panel</button></div>
         <div :class="['workspace-layout', { 'with-workspace': hasWorkspace }]">
-            <aside v-if="hasWorkspace" class="workspace-sidebar"><div class="workspace-sidebar-sticky"><WorkspaceNavigation :items="nav" :area="area" :current="currentSection" /></div></aside>
+            <aside v-if="hasWorkspace" class="workspace-sidebar"><div class="workspace-sidebar-sticky"><WorkspaceNavigation :items="nav" :area="area" :current="currentSection" :account-name="accountName" /></div></aside>
             <v-main id="contenido" class="workspace-content" tabindex="-1"><slot /></v-main>
         </div>
         <!-- Vuetify mantiene el foco en el panel móvil y permite cerrarlo con Escape o fuera de él. -->
         <v-dialog v-if="hasWorkspace" v-model="workspaceOpen" class="workspace-mobile-dialog" max-width="340" @after-leave="restoreWorkspaceFocus" aria-labelledby="workspace-mobile-title">
-            <div id="workspace-mobile-panel" class="synaux-app workspace-mobile-panel"><div class="workspace-mobile-heading"><strong id="workspace-mobile-title">Menú del panel</strong><button type="button" aria-label="Cerrar menú del panel" @click="workspaceOpen = false"><I name="close" /></button></div><WorkspaceNavigation :items="nav" :area="area" :current="currentSection" @navigate="workspaceOpen = false" /></div>
+            <div id="workspace-mobile-panel" class="synaux-app workspace-mobile-panel"><div class="workspace-mobile-heading"><strong id="workspace-mobile-title">Menú del panel</strong><button type="button" aria-label="Cerrar menú del panel" @click="workspaceOpen = false"><I name="close" /></button></div><WorkspaceNavigation :items="nav" :area="area" :current="currentSection" :account-name="accountName" @navigate="workspaceOpen = false" /></div>
         </v-dialog>
         <!-- La firma de cierre mantiene el fondo blanco del diseño y el original a color con eslogan. -->
         <!-- El pie de la landing aplica la guía de marca sobre el diseño compartido. -->

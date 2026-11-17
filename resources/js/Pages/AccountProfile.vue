@@ -16,7 +16,6 @@ const form = useForm({ ...personalValues(), current_password: '' });
 const passwordForm = useForm({ current_password: '', password: '', password_confirmation: '' });
 const issuerValues = () => Object.fromEntries(['name', 'email', 'phone', 'address'].map(key => [key, props.issuer?.[key] ?? '']));
 const issuerForm = useForm(issuerValues());
-const logoutForm = useForm({});
 const emailChanged = computed(() => form.email.trim().toLowerCase() !== props.profile.email);
 const accountHref = computed(() => props.profile.is_admin ? '/gestion' : '/cliente');
 function isPreview() {
@@ -47,22 +46,20 @@ function saveIssuer() {
         onSuccess: () => { issuerForm.defaults(issuerValues()); issuerForm.reset(); },
     });
 }
-function logout() {
-    if (!isPreview()) logoutForm.post('/salir');
-}
+
 </script>
 
 <template>
     <Head title="Mi perfil" />
     <PublicLayout>
         <section class="page shell account-profile">
-            <B :href="accountHref" variant="ghost">← Volver a mi cuenta</B>
+            <B :href="accountHref" variant="ghost">← Volver al panel</B>
             <header class="account-heading"><p class="eyebrow">Mi cuenta</p><h1>Mi perfil</h1><p>{{ profile.is_admin ? 'Administrá tus datos de contacto, el acceso a tu cuenta y tus datos de emisión.' : 'Administrá tus datos de contacto y la seguridad de tu cuenta.' }}</p></header>
             <div class="account-grid">
                 <aside class="account-sidebar">
                     <v-card class="card"><span class="account-avatar" aria-hidden="true">{{ initials(profile.name) }}</span><h2>{{ profile.name }}</h2><p class="account-email">{{ profile.email }}</p><span class="account-role"><I name="user" />{{ profile.is_admin ? 'Administrador' : 'Cliente' }}</span><p v-if="profile.created_at" class="account-help">Cuenta creada el {{ date(profile.created_at) }}</p>
                         <nav aria-label="Secciones de Mi perfil"><a href="#datos-personales">Datos personales y contacto</a><a href="#seguridad">Seguridad</a><a v-if="profile.is_admin" href="#emision">Datos de emisión</a></nav>
-                        <B variant="secondary" :disabled="logoutForm.processing" @click="logout">{{ logoutForm.processing ? 'Cerrando sesión…' : 'Cerrar sesión' }}</B>
+                        
                     </v-card>
                 </aside>
                 <div class="account-panels">
