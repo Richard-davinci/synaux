@@ -18,6 +18,7 @@ defineProps({ name: { type: String, default: 'arrow' } });
         <g v-else-if="name === 'web'"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M7 6.5h.01M10 6.5h.01m-1 6-3 2 3 2m6-4 3 2-3 2" /></g>
         <g v-else-if="name === 'palette'"><path d="M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 1-3.7c-.7-.5-.4-1.6.5-1.6H17a4 4 0 0 0 4-4A9 9 0 0 0 12 3Z" /><circle cx="7.5" cy="10" r=".75" /><circle cx="10" cy="6.5" r=".75" /><circle cx="15" cy="6.5" r=".75" /><circle cx="18" cy="10" r=".75" /></g>
         <g v-else-if="name === 'megaphone'"><path d="m4 10 15-5v14L4 14v-4Zm3 5 1 5h3l-1-4M4 10H2v4h2M22 8v8" /></g>
+        <g v-else-if="name === 'layout'"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 8h18M9 8v13" /></g>
         <g v-else><circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7h.01" /></g>
     </svg>
 </template>

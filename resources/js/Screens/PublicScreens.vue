@@ -17,6 +17,14 @@ const submit = useSubmit();
 const form = useForm({ name: '', email: '', topic: 'Consulta general', message: '' });
 const categories = computed(() => ['Todos', ...new Set(props.data.services.map(service => service.category))]);
 
+// El catálogo utiliza los mismos iconos que la landing y asigna una composición propia a UX/UI.
+const categoryIcons = { 'Desarrollo web': 'web', Diseño: 'palette', Marketing: 'megaphone', 'UX/UI': 'layout' };
+const categoryCounts = computed(() => {
+    const counts = { Todos: props.data.services.length };
+    for (const item of props.data.services) counts[item.category] = (counts[item.category] ?? 0) + 1;
+    return counts;
+});
+
 // La búsqueda admite palabras en cualquier orden, con o sin tildes, y respeta el filtro activo.
 const normalizeSearch = (text) => text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('es');
 const searchWords = computed(() => normalizeSearch(query.value).trim().split(/\s+/).filter(Boolean));
@@ -49,9 +57,35 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
     <!-- Los filtros se generan a partir de los servicios publicados y el contador anuncia cada cambio. -->
     <section v-if="data.screen === 'servicios'" class="page shell catalog-page">
         <T eyebrow="Catálogo de servicios" title="Encontrá por dónde empezar." description="Explorá las propuestas y conocé qué puede aportar cada servicio a tu próximo proyecto digital." />
-        <div class="catalog-tools"><div class="catalog-tools-row"><F v-model="query" label="Buscar un servicio" placeholder="Ej. tienda online o auditoría SEO" /><div class="filter-row" role="group" aria-label="Filtrar servicios"><button v-for="item in categories" :key="item" :class="{active:category === item}" :aria-pressed="category === item" @click="category = item">{{ item }}</button></div></div><p class="catalog-count" aria-live="polite">{{ resultsLabel }}</p></div>
-        <div v-if="services.length && data.referenceKey !== 'catalogo-vacio'" class="service-grid"><v-card v-for="(service, index) in services" :key="service.id" class="card service-card" tag="article"><span v-if="data.preview" class="service-number">0{{ index + 1 }}</span><p class="eyebrow">{{ service.category }}</p><h2>{{ service.name }}</h2><p>{{ service.summary }}</p><CatalogServicePrice :reference="data.references?.[service.id]" :service-name="service.name" /><div class="card-link"><B :href="`/servicios/${service.id}`" variant="ghost" :aria-label="`Ver alcance de ${service.name}`" arrow>Ver alcance</B></div></v-card></div>
-        <Empty v-else title="No encontramos servicios con esos filtros." text="Probá otra búsqueda o volvé a ver todas las propuestas."><B @click="clear">Limpiar filtros</B></Empty>
+        <div class="catalog-tools">
+            <div class="catalog-tools-row">
+                <F v-model="query" type="search" label="Buscar un servicio" placeholder="Ej. tienda online o auditoría SEO" />
+                <div class="filter-row" role="group" aria-label="Filtrar servicios">
+                    <button v-for="item in categories" :key="item" type="button" :class="{active:category === item}" :aria-pressed="category === item" @click="category = item">
+                        {{ item }} <span class="category-count">{{ categoryCounts[item] }}</span>
+                    </button>
+                </div>
+            </div>
+            <div class="catalog-results-bar">
+                <p class="catalog-count" aria-live="polite">{{ resultsLabel }}{{ category !== 'Todos' ? ' en ' + category : '' }}</p>
+                <button v-if="query || category !== 'Todos'" type="button" class="clear-catalog" @click="clear">Limpiar filtros</button>
+            </div>
+        </div>
+        <div v-if="services.length && data.referenceKey !== 'catalogo-vacio'" class="service-grid">
+            <v-card v-for="service in services" :key="service.id" class="card service-card" tag="article">
+                <div class="service-category">
+                    <I :name="categoryIcons[service.category] ?? 'folder'" class="catalog-service-icon" />
+                    <p class="eyebrow">{{ service.category }}</p>
+                </div>
+                <h2>{{ service.name }}</h2>
+                <p class="service-description">{{ service.summary }}</p>
+                <ul v-if="service.includes?.length" class="service-deliverables" aria-label="Incluye">
+                    <li v-for="item in service.includes.slice(0, 3)" :key="item"><I name="check" /><span>{{ item }}</span></li>
+                </ul>
+                <CatalogServicePrice :reference="data.references?.[service.id]" :service-name="service.name" />
+                <div class="card-link"><B :href="'/servicios/' + service.id" variant="secondary" :aria-label="'Ver detalles de ' + service.name" arrow>Ver detalles</B></div>
+            </v-card>
+        </div>        <Empty v-else title="No encontramos servicios con esos filtros." text="Probá otra búsqueda o volvé a ver todas las propuestas."><B @click="clear">Limpiar filtros</B></Empty>
         <div class="notice"><I name="info" /><p>Cada proyecto tiene su propio alcance. Los entregables, el precio y las condiciones se definen en una propuesta profesional.</p></div>
     </section>
 
@@ -122,6 +156,31 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
 
 
 <style scoped>
+/* La búsqueda, las categorías y la limpieza comparten un panel con estados de foco visibles. */
+.catalog-page .catalog-tools { background: #f5f9fa; padding: 1.5rem; }
+.catalog-page .catalog-tools-row { grid-template-columns: minmax(220px,.8fr) minmax(0,1.6fr); align-items: center; gap: 1.5rem; }
+.catalog-page .filter-row button { display: inline-flex; align-items: center; gap: .5rem; font-family: 'Nunito',sans-serif; font-size: .875rem; padding: .55rem .8rem; }
+.category-count { font-size: .8rem; opacity: .8; }
+.catalog-results-bar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-top: 1rem; }
+.catalog-page .catalog-count { margin: 0; color: #446075; }
+.clear-catalog { border: 0; background: transparent; color: #1f6f7f; font: inherit; font-size: .875rem; text-decoration: underline; cursor: pointer; }
+.catalog-page button:focus-visible { outline: 2px solid #153b64; outline-offset: 3px; }
+
+/* Cada tarjeta mantiene categoría, alcance y precio en un orden común para facilitar la comparación. */
+.catalog-page .service-card { padding: 1.5rem; border-top: 3px solid #2db3a3; }
+.service-category { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.25rem; }
+.catalog-page .service-category .eyebrow { margin: 0; color: #1f6f7f; font-size: .75rem; letter-spacing: .08em; }
+.catalog-service-icon { width: 2rem; height: 2rem; color: #1f6f7f; flex-shrink: 0; }
+.catalog-page .service-card h2 { font-weight: 700; line-height: 1.2; margin-bottom: .75rem; }
+.service-description { color: #446075; }
+.service-deliverables { display: grid; gap: .5rem; margin: .25rem 0 1rem; padding: 0; list-style: none; }
+.service-deliverables li { display: flex; align-items: start; gap: .5rem; font-size: .875rem; color: #446075; }
+.service-deliverables .icon { width: 1.1rem; height: 1.1rem; margin-top: .15rem; color: #1f6f7f; flex-shrink: 0; }
+.catalog-page .service-card .card-link { margin-top: 1rem; }
+.catalog-page .service-card .card-link .btn { width: 100%; padding-inline: .9rem; }
+@media (max-width: 1000px) { .catalog-page .catalog-tools-row { grid-template-columns: minmax(0,1fr); } }
+@media (max-width: 600px) { .catalog-page .catalog-tools, .catalog-page .service-card { padding: 1.15rem; } }
+
 /* La vista independiente agrupa alcance, precios e información con la identidad de Synaux. */
 .service-intro { max-width: 850px; margin-block: 1rem 2rem; }
 .service-intro h1 { margin-bottom: 1rem; }
