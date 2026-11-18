@@ -68,6 +68,26 @@ class UnifiedRequestJourneyTest extends TestCase
             ->where('budgetRequests.0.additional_services.1.pricing_reference.recovered', true));
     }
 
+    // El rol de Gestión conserva su panel y no puede crear pedidos ni retomar un borrador de cliente.
+    public function test_admin_uses_management_without_submitting_a_client_request(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $data = $this->project();
+        $this->post('/solicitudes/preparar', [...$data, 'destination' => 'review'])
+            ->assertRedirect('/solicitudes/nueva?continuar=1');
+        $this->post('/ingresar', ['email' => $admin->email, 'password' => 'password'])->assertRedirect('/gestion');
+        foreach (['/cliente', '/cliente/solicitudes', '/estimador', '/solicitudes/nueva'] as $path) {
+            $this->get($path)->assertRedirect('/gestion');
+        }
+        foreach (['/solicitudes/preparar', '/estimador/calcular', '/acciones/guardar-estimacion', '/acciones/solicitud'] as $path) {
+            $this->post($path, [...$data, 'visibility' => 'private', 'publish' => true])->assertForbidden();
+        }
+        $this->get('/gestion')->assertInertia(fn (Assert $page) => $page->where('area', 'gestion'));
+        $this->get('/editor/presupuesto')->assertOk();
+        $this->assertDatabaseCount('project_requests', 0);
+        $this->assertDatabaseCount('estimates', 0);
+    }
+
     public function test_public_entry_points_share_one_form_without_exposing_private_records(): void
     {
         foreach (['/estimador', '/solicitudes/nueva'] as $url) {

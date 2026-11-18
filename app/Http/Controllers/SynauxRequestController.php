@@ -14,6 +14,9 @@ class SynauxRequestController extends Controller
     // Valida el formulario autenticado y redirige al detalle del borrador o la solicitud publicada.
     public function store(Request $request): RedirectResponse
     {
+        // La cuenta de Gestión puede responder pedidos de clientes, pero no emitir pedidos propios.
+        abort_if($request->user()->is_admin, 403);
+
         $data = $request->validate([
             'id' => 'nullable|integer',
             'estimate_id' => 'nullable|integer',
@@ -40,7 +43,7 @@ class SynauxRequestController extends Controller
         ]);
 
         // La publicación en el muro pertenece al marketplace y requiere acceso a la segunda etapa.
-        if ($data['visibility'] === 'public' && ! config('synaux.stage_two_enabled') && ! $request->user()->is_admin) {
+        if ($data['visibility'] === 'public' && ! config('synaux.stage_two_enabled')) {
             throw \Illuminate\Validation\ValidationException::withMessages(['visibility' => 'En esta etapa las solicitudes se envían de forma privada a synaux.']);
         }
 

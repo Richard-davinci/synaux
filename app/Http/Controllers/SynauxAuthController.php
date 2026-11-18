@@ -51,14 +51,14 @@ class SynauxAuthController extends Controller
         RateLimiter::clear($key);
         $request->session()->regenerate();
 
-        // El proyecto preparado por esta sesión se retoma antes de mostrar el panel habitual.
-        if (app(\App\Services\SynauxRequestJourney::class)->pending($request)) {
+        // El borrador previo al ingreso solo se puede retomar con una cuenta de cliente.
+        $admin = $request->user()->is_admin;
+        if (! $admin && app(\App\Services\SynauxRequestJourney::class)->pending($request)) {
             $request->session()->forget('url.intended');
             return redirect('/solicitudes/nueva?continuar=1');
         }
 
         // Gestión es el inicio del administrador. Un acceso previo al resumen cliente no reemplaza ese destino.
-        $admin = $request->user()->is_admin;
         $intended = $request->session()->get('url.intended');
         if ($admin && is_string($intended) && parse_url($intended, PHP_URL_PATH) === '/cliente') {
             $request->session()->forget('url.intended');

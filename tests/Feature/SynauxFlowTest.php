@@ -474,9 +474,10 @@ class SynauxFlowTest extends TestCase
         $this->assertDatabaseCount('tariff_versions', 0);
         $this->post('/admin/guardar/tarifario', $tariff)->assertSessionHasNoErrors();
         $answers = DB::table('estimator_questions')->where('service_id', $service)->get()->mapWithKeys(fn ($q) => [$q->id => (string) DB::table('estimator_options')->where('question_id', $q->id)->value('id')])->all();
+        $this->actingAs($this->account());
         $this->post('/estimador/calcular', ['service' => 'sitio-institucional', 'answers' => $answers])->assertSessionHas('pending_estimate', fn ($p) => $p['mode'] === 'automatic' && $p['min'] === 140 && $p['max'] === 280 && $p['currency'] === 'USD');
         $this->post('/acciones/guardar-estimacion', [])->assertRedirect();
-        $this->post('/admin/guardar/tarifario', [...$tariff, 'name' => 'Versión siguiente', 'currency_code' => 'ARS'])->assertSessionHasNoErrors();
+        $this->actingAs($admin)->post('/admin/guardar/tarifario', [...$tariff, 'name' => 'Versión siguiente', 'currency_code' => 'ARS'])->assertSessionHasNoErrors();
         $this->assertDatabaseCount('tariff_versions', 2);
         $this->assertDatabaseHas('estimates', ['currency_snapshot' => 'USD', 'price_min' => 140, 'price_max' => 280]);
     }

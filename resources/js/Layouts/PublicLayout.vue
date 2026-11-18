@@ -94,12 +94,12 @@ watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false;
                 <!-- En móvil, los accesos de visitantes acompañan al menú desplegado. -->
                 <div v-if="!$page.props.auth && !$page.props.preview" class="nav-actions mobile-auth"><SynauxButton compact href="/ingresar" variant="ghost">Ingresar</SynauxButton><SynauxButton compact href="/crear-cuenta">Crear cuenta</SynauxButton></div>
                 <!-- La cuenta administradora puede cambiar de área también desde el menú superior móvil. -->
-                <div v-if="showAreaSwitch" class="mobile-area-links"><a :href="referenceHref('/gestion', $page.props)" :aria-current="area === 'gestion' && !adminView ? 'page' : undefined">Ir al panel</a><a :href="referenceHref('/admin/servicios', $page.props)" :aria-current="adminView ? 'page' : undefined">Ir a administración</a></div>
+                <div v-if="showAreaSwitch" class="mobile-area-links"><a :href="referenceHref('/gestion', $page.props)" :aria-current="area === 'gestion' && !adminView ? 'page' : undefined">Ir a Gestión</a><a :href="referenceHref('/admin/servicios', $page.props)" :aria-current="adminView ? 'page' : undefined">Ir a administración</a></div>
             </nav>
             <!-- Cuenta y notificaciones comparten un grupo alineado al extremo derecho. -->
             <div v-if="!$page.props.preview || showAreaSwitch" class="header-account" :class="{ 'guest-account': !$page.props.auth && !$page.props.preview }">
                 <!-- La galería convierte estos destinos en referencias; en la sesión real las rutas mantienen autorización del servidor. -->
-                <nav v-if="showAreaSwitch" class="header-area-links" aria-label="Áreas de la cuenta"><a :href="referenceHref('/gestion', $page.props)" :aria-current="area === 'gestion' && !adminView ? 'page' : undefined">Panel</a><a :href="referenceHref('/admin/servicios', $page.props)" :aria-current="adminView ? 'page' : undefined">Administración</a></nav>
+                <nav v-if="showAreaSwitch" class="header-area-links" aria-label="Áreas de la cuenta"><a :href="referenceHref('/gestion', $page.props)" :aria-current="area === 'gestion' && !adminView ? 'page' : undefined">Gestión</a><a :href="referenceHref('/admin/servicios', $page.props)" :aria-current="adminView ? 'page' : undefined">Administración</a></nav>
                 <template v-if="!$page.props.preview && !$page.props.auth"><SynauxButton compact href="/ingresar" variant="ghost">Ingresar</SynauxButton><SynauxButton compact href="/crear-cuenta">Crear cuenta</SynauxButton></template>
                 <template v-else-if="!$page.props.preview"><SynauxButton v-if="!hasWorkspace && !$page.props.auth.is_admin" compact class="panel-access" href="/cliente">Ir a mi panel</SynauxButton><SynauxNotificationCenter /></template>
             </div>

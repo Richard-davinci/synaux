@@ -162,7 +162,7 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
                 </template>
                 <p v-else>Contanos qué necesitás. Revisamos tu objetivo y preparamos una propuesta con entregables, precio, plazo y condiciones.</p>
                 <div class="editorial-actions detail-actions">
-                    <B :href="detailReference ? estimateHref : '/solicitudes/nueva?servicio=' + encodeURIComponent(selected.id)" arrow>{{ detailReference ? 'Iniciar estimación' : 'Solicitar presupuesto' }}</B>
+                    <B v-if="!$page.props.auth?.is_admin || data.preview" :href="detailReference ? estimateHref : '/solicitudes/nueva?servicio=' + encodeURIComponent(selected.id)" arrow>{{ detailReference ? 'Iniciar estimación' : 'Solicitar presupuesto' }}</B>
                     <B href="/contacto" variant="secondary">Hacer una consulta</B>
                 </div>
             </section>
@@ -260,7 +260,7 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
                 <I name="file" class="editorial-icon" />
                 <h2>¿Ya sabés qué servicio necesitás?</h2>
                 <p>Elegí un servicio y prepará una solicitud para que podamos cotizar tu proyecto.</p>
-                <B href="/solicitudes/nueva" variant="secondary" arrow>Preparar mi solicitud</B>
+                <B v-if="!$page.props.auth?.is_admin || data.preview" href="/solicitudes/nueva" variant="secondary" arrow>Preparar mi solicitud</B>
             </aside>
         </div>
     </section>

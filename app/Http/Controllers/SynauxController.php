@@ -19,6 +19,10 @@ class SynauxController extends Controller
     // Prepara una pantalla pública y agrega únicamente los datos que su recorrido necesita.
     public function publicPage(Request $request, string $screen = 'servicios', ?string $id = null)
     {
+        // Una sesión administrativa usa Gestión como entrada, aun desde el estimador público.
+        if ($screen === 'estimador' && $request->user()?->is_admin) {
+            return redirect('/gestion');
+        }
         $data = ['screen' => $screen, 'services' => $this->catalog->services()];
         // El catálogo y el estimador comparten la referencia de la versión vigente.
         if (in_array($screen, ['servicios', 'servicio', 'estimador'], true)) {
@@ -99,6 +103,9 @@ class SynauxController extends Controller
     // Abre una solicitud nueva y recupera la estimación elegida solo si pertenece a la cuenta actual.
     public function newRequest(Request $request)
     {
+        if ($request->user()?->is_admin) {
+            return redirect('/gestion');
+        }
         $id = (int) $request->query('estimacion', 0);
         if ($id && ! $request->user()) return redirect()->guest('/ingresar');
         $data = $request->user() ? $this->privateData($request) : [
@@ -111,12 +118,16 @@ class SynauxController extends Controller
     // Conserva el proyecto en la sesión antes del ingreso y vuelve después al paso de contacto.
     public function prepareRequest(Request $request)
     {
+        abort_if($request->user()?->is_admin, 403);
+
         return redirect(app(\App\Services\SynauxRequestJourney::class)->prepare($request));
     }
 
     // Valida las respuestas, calcula en el servidor y conserva el resultado en la sesión para continuar.
     public function calculate(Request $request)
     {
+        abort_if($request->user()?->is_admin, 403);
+
         $data = $request->validate(['service' => 'required|string', 'answers' => 'required|array|max:100']);
         $result = $this->catalog->calculate($data['service'], $data['answers']);
         $request->session()->put('pending_estimate', $result);
@@ -167,6 +178,11 @@ class SynauxController extends Controller
             'admin' => ['', 'servicios', 'categorias', 'preguntas', 'componentes', 'reglas', 'tarifario'],
         ];
         abort_unless(isset($allowed[$area]) && in_array($section, $allowed[$area], true), 404);
+        // Las vistas de cliente de la etapa 2 siguen disponibles desde su entrada de revisión.
+        if ($area === 'cliente' && $request->user()->is_admin
+            && ! in_array($section, ['publicaciones', 'propuestas', 'invitaciones'], true)) {
+            return redirect('/gestion');
+        }
         // Los accesos anteriores llevan a la configuración del servicio, sin duplicar administraciones.
         if ($area === 'admin' && in_array($section, ['preguntas', 'componentes', 'reglas'], true)) {
             $serviceId = DB::table('services')->when($request->integer('servicio'), fn ($q) => $q->where('id', $request->integer('servicio')))->orderBy('id')->value('id');
@@ -213,6 +229,7 @@ class SynauxController extends Controller
                 abort_unless($data['selected']['issuer_id'] === $request->user()->id, 403);
             }
             // Los adicionales antiguos se pueden sugerir desde la versión asociada, identificada como referencia recuperada.
+            $data['budgetRequests'] = array_values(array_filter($data['budgetRequests'], fn ($source) => $source['user_id'] !== $request->user()->id));
             $referencesByTariff = [];
             $slugs = array_column($data['services'], 'id', 'database_id');
             foreach ($data['budgetRequests'] as &$sourceRequest) {

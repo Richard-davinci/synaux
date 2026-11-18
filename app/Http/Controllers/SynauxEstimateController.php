@@ -13,6 +13,9 @@ class SynauxEstimateController extends Controller
     // Recupera el cálculo de sesión y conduce al detalle o a una solicitud basada en esa estimación.
     public function store(Request $request): RedirectResponse
     {
+        // Guardar una estimación personal forma parte del recorrido de cliente.
+        abort_if($request->user()->is_admin, 403);
+
         $pending = $request->session()->get('pending_estimate');
         abort_unless($pending, 422, 'Primero completá el estimador.');
         $id = $this->estimates->save($request->user()->id, $pending);
