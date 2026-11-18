@@ -199,13 +199,13 @@
 
     /* El pie usa la misma cuadrícula de la landing y la jerarquía tipográfica de la marca. */
 
-    .landing-footer strong { font-family: 'Space Grotesk', sans-serif; font-size: 1rem; font-weight: 600; line-height: 1.5; text-wrap: balance; }
-    .landing-footer p, .landing-footer nav { font-family: 'Nunito', sans-serif; font-size: .875rem; font-weight: 500; }
+    .site-footer strong { font-family: 'Space Grotesk', sans-serif; font-size: 1rem; font-weight: 600; line-height: 1.5; text-wrap: balance; }
+    .site-footer p, .site-footer nav { font-family: 'Nunito', sans-serif; font-size: .875rem; font-weight: 500; }
     /* La frase y el copyright comparten línea cuando el ancho disponible lo permite. */
-    .landing-footer .footer-grid > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
-    .landing-footer p { margin: 0; color: #446075; white-space: nowrap; }
-    .landing-footer nav a { color: #153b64; }
-    .landing-footer nav a:hover, .landing-footer nav a:focus-visible { color: #1f6f7f; text-decoration: underline; }
+    .site-footer .footer-grid > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+    .site-footer p { margin: 0; color: #446075; white-space: nowrap; }
+    .site-footer nav a { color: #153b64; }
+    .site-footer nav a:hover, .site-footer nav a:focus-visible { color: #1f6f7f; text-decoration: underline; }
 
     /* Adaptación a tablet y celular manteniendo completos el logo y los controles del prototipo. */
     @media (max-width: 1100px) { .header { flex-wrap: wrap; } .main-nav { flex-wrap: wrap; } .stats-four { grid-template-columns: repeat(2, 1fr); } }
@@ -247,14 +247,14 @@
 }
 
 /* El pie ocupa todo el ancho y solo su contenedor .shell define los márgenes laterales. */
-.synaux-app footer.landing-footer {
+.synaux-app footer.site-footer {
     display: block;
-    width: 100%;
+    width: auto;
     padding: 0;
     background: #f5f9fa;
 }
 
-.landing-footer > .footer-grid {
+.site-footer > .footer-grid {
     display: grid;
     grid-template-columns: 160px minmax(240px, 1fr) auto;
     align-items: center;
@@ -263,24 +263,27 @@
 }
 
 @media (max-width: 900px) {
-    .landing-footer > .footer-grid {
+    .site-footer > .footer-grid {
         grid-template-columns: minmax(0, 1fr);
     }
 }
 /* El logo del pie de la landing ocupa menos espacio y conserva su proporción. */
-.synaux-app .landing-footer .footer-grid .brand-logo {
+.synaux-app .site-footer .footer-grid .brand-logo {
     width: 160px;
     height: auto;
 }
 
 /* Los bloques de marca, firma y navegación comparten el centro vertical del pie. */
-.landing-footer .footer-copy { max-width: 410px; row-gap: 8px; }
-.landing-footer .footer-copy strong { max-width: 100%; }
-.landing-footer .footer-nav-links a { min-height: 32px; display: inline-flex; align-items: center; }
-@media (max-width: 900px) { .landing-footer > .footer-grid { grid-template-columns: 160px minmax(0,1fr); align-items: center; gap: 24px; } .landing-footer .footer-grid nav { grid-column: 1 / -1; } }
-@media (max-width: 540px) { .landing-footer > .footer-grid { grid-template-columns: minmax(0,1fr); } .landing-footer .footer-grid nav { grid-column: auto; } .landing-footer .footer-copy { display: grid; } }
+.site-footer .footer-copy { max-width: 410px; row-gap: 8px; }
+.site-footer .footer-copy strong { max-width: 100%; }
+.site-footer .footer-nav-links a { min-height: 32px; display: inline-flex; align-items: center; }
+@media (max-width: 900px) { .site-footer > .footer-grid { grid-template-columns: 160px minmax(0,1fr); align-items: center; gap: 24px; } .site-footer .footer-grid nav { grid-column: 1 / -1; } }
+@media (max-width: 540px) { .site-footer > .footer-grid { grid-template-columns: minmax(0,1fr); } .site-footer .footer-grid nav { grid-column: auto; } .site-footer .footer-copy { display: grid; } }
 
-/* El SVG extendido cubre el borde completo sin mosaicos ni deformación.
+/* El SVG transparente cubre todos los pies de navegación sin mosaicos ni deformación.
    2682 px conserva la escala de las piezas (3600 × 380 / 510); solo se amplía en pantallas superiores a ese ancho. */
-.synaux-brand-pattern { background-image: url('../images/brand/synaux-trama-extendida.svg'); background-repeat: no-repeat; background-size: max(100%, 2682px) auto; pointer-events: none; }
-.landing-footer-pattern { width: 100%; height: 64px; background-position: center; opacity: .35; }
+.synaux-brand-pattern { background-image: url('../images/brand/synaux-trama-transparente.svg'); background-repeat: no-repeat; background-size: max(100%, 2682px) auto; pointer-events: none; }
+.site-footer-pattern { width: 100%; height: 64px; background-position: center; opacity: .35; }
+
+/* La firma mantiene contraste en todas las vistas que comparten el pie. */
+.synaux-app .site-footer .footer-copy strong { color: #153b64; }

@@ -42,3 +42,8 @@ Dimensiones nativas: 405 × 140. Se utiliza completo y proporcional en el navbar
 ## Fragmento de portada con piezas completas
 
 `./synaux-trama-fragmento.json` contiene trazos y colores copiados literalmente del primer grupo de piezas de `synaux-trama-extendida.svg`. El componente `BrandPatternFragment.vue` muestra solo piezas completas que caben en su superficie, a escala 380 / 510, sin degradados, repeticiones ni modificación de los SVG originales. El footer conserva el SVG extendido completo.
+
+
+## Trama transparente para todos los pies · 18/11/2026
+
+`./synaux-trama-transparente.svg` es una copia exacta de `07 - Recursos finales/Group 2.svg` (3600 × 1400), entregada por el usuario. Se utiliza en todos los pies de navegación mediante `PublicLayout.vue`, conservando la escala compartida, sin agregar fondo blanco al SVG. El fragmento de portada y los documentos de presupuesto conservan su tratamiento específico.
