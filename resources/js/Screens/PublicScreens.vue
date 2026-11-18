@@ -86,7 +86,6 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
         <!-- La introducción orienta sin desplazar los servicios por debajo del primer pantallazo. -->
         <header class="catalog-intro">
             <T eyebrow="Catálogo de servicios" title="Dale forma a tu próximo proyecto." description="Encontrá el servicio que necesitás, explorá su alcance y prepará tu solicitud de presupuesto." />
-            <div class="catalog-intro-notes"><span><I name="folder" />{{ data.services.length }} servicios disponibles</span><span><I name="check" />Alcance y precios orientativos</span></div>
         </header>
         <div class="catalog-tools">
             <div class="catalog-tools-row">
@@ -194,14 +193,11 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
 /* El encabezado queda liviano: la profundidad visual se reserva para las tarjetas de servicio. */
 .catalog-page { padding-top: 32px; }
 .catalog-intro { padding: 0; margin-bottom: 20px; }
-.catalog-intro :deep(.page-title) { display: block; margin-bottom: 12px; }
+.catalog-intro :deep(.page-title) { display: block; margin-bottom: 0; }
 .catalog-intro :deep(.page-title > div) { width: 100%; }
 .catalog-page .catalog-intro :deep(.page-title h1) { max-width: none; margin-bottom: 10px; font-weight: 700; font-size: clamp(1.75rem, 2.8vw, 2.2rem); line-height: 1.15; text-wrap: balance; }
 .catalog-intro :deep(.eyebrow) { margin-bottom: 8px; color: #1f6f7f; font-weight: 700; }
 .catalog-intro :deep(.page-title p:last-child) { font-size: .95rem; line-height: 1.5; text-wrap: pretty; }
-.catalog-intro-notes { display: flex; flex-wrap: wrap; gap: 8px 20px; }
-.catalog-intro-notes span { display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; color: #446075; }
-.catalog-intro-notes .icon { color: #1f6f7f; width: 16px; height: 16px; }
 .catalog-page .catalog-tools { background: #f5f9fa; padding: 14px 18px; margin-bottom: 24px; border-color: #1f6f7f22; box-shadow: 0 2px 8px #153b640a; }
 .catalog-page .catalog-tools-row { grid-template-columns: repeat(2, minmax(0,1fr)) auto; align-items: end; gap: 1rem; }
 /* El buscador y el autocompletado comparten altura y etiquetas alineadas. */
