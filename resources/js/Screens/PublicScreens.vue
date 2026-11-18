@@ -90,7 +90,7 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
                         variant="outlined" density="compact" color="primary" hide-details clearable :custom-filter="filterCategory" :menu-props="{ maxHeight: 260 }"
                         no-data-text="No encontramos esa categoría." @update:model-value="category = $event ?? 'Todos'" />
                 </div>
-                <button v-if="query || category !== 'Todos'" type="button" class="clear-catalog" @click="clear">Limpiar filtros</button>
+                <button type="button" class="clear-catalog" :disabled="!query && category === 'Todos'" @click="clear">Limpiar filtros</button>
             </div>
         </div>
         <div v-if="services.length && data.referenceKey !== 'catalogo-vacio'" class="service-grid">
@@ -206,7 +206,9 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
 .catalog-page .catalog-tools :deep(input[type='search']) { min-height: 40px; padding: 7px 10px; font-size: .875rem; }
 @media (pointer: coarse) { .catalog-page .clear-catalog, .catalog-page .catalog-tools :deep(input[type='search']) { min-height: 44px; } }
 .clear-catalog { min-height: 32px; padding: .3rem .65rem; border: 1px solid #1f6f7f; border-radius: .5rem; background: #fff; color: #1f6f7f; font: inherit; font-size: .875rem; font-weight: 700; cursor: pointer; }
-.clear-catalog:hover { background: #f5f9fa; }
+/* La acción mantiene su lugar para evitar desplazamientos al aplicar o quitar filtros. */
+.clear-catalog:hover:not(:disabled) { background: #f5f9fa; }
+.clear-catalog:disabled { opacity: .5; cursor: default; }
 .catalog-page button:focus-visible { outline: 2px solid #153b64; outline-offset: 3px; }
 
 /* Cada tarjeta mantiene categoría, alcance y precio en un orden común para facilitar la comparación. */
