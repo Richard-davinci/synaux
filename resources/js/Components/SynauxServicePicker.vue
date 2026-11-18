@@ -44,6 +44,7 @@ function changeCategory(value) {
 .service-picker > p { grid-column: 1 / -1; margin: 0; font-size: .85rem; color: #446075; }
 @media (max-width: 600px) { .service-picker { grid-template-columns: minmax(0, 1fr); gap: 12px; } }
 .service-picker :deep(.v-field) { border-radius: 10px; background: white; }
-.service-picker :deep(.v-field input) { min-height: 0; border: 0; border-radius: 0; background: transparent; padding: 0; outline: none; }
+/* Vuetify posiciona la búsqueda sobre el valor elegido: debe heredar el margen interno para no tocar el borde. */
+.service-picker :deep(.v-field input) { min-height: 0; border: 0; border-radius: 0; background: transparent; padding: 0; padding-inline: inherit; outline: none; }
 .service-picker :deep(.v-messages) { font-size: .875rem; line-height: 1.45; color: #446075; opacity: 1; }
 </style>
