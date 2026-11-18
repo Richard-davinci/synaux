@@ -77,7 +77,7 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
 .document-conditions > div { border: 1px solid #1f6f7f1f; border-radius: 6px; background: #fff; padding: 12px; font-size: .8rem; }
 .document-conditions p { margin: 0 0 8px; }
 .document-conditions p:last-child { margin-bottom: 0; }
-.document-footer { padding: 12px 24px; background: #f5f9fa; border-top: 1px solid #1f6f7f1f; color: #446075; text-align: center; font-size: .75rem; overflow-wrap: anywhere; }
+.document-footer { display: block; padding: 12px 24px; background: #f5f9fa; border-top: 1px solid #1f6f7f1f; color: #446075; text-align: center; font-size: .75rem; overflow-wrap: anywhere; }
 @container (max-width: 420px) { .document-heading { padding: 18px; gap: 12px; } .document-label { font-size: 1.1rem; } .document-content { padding: 16px; } .document-dates { padding-inline: 16px; } .document-parties { gap: 8px; } .party-content { padding: 10px; font-size: .8rem; } .document-conditions { padding: 16px; } .document-items table { min-width: 380px; } }
 @container (max-width: 320px) { .document-parties { grid-template-columns: 1fr; } }
 </style>

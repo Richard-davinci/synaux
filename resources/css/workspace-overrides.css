@@ -193,11 +193,13 @@
     .footer-grid { display: grid; grid-template-columns: 200px 1fr auto; align-items: center; gap: 40px; }
     .footer-grid .brand-logo { width: 200px; height: auto; }
     .footer-grid p { font-size: .8rem; margin: 6px 0 0; }
-    .footer-grid nav { display: flex; gap: 18px; font-size: .9rem; flex-wrap: wrap; }
+    .footer-grid nav { display: grid; gap: 10px; font-size: .9rem; }
+    .footer-nav-links { display: flex; flex-wrap: wrap; gap: 12px 18px; }
+    .footer-nav-title { font-size: .75rem; font-weight: 700; color: #446075; letter-spacing: .06em; text-transform: uppercase; }
 
     /* El pie usa la misma cuadrícula de la landing y la jerarquía tipográfica de la marca. */
 
-    .landing-footer strong { font-family: 'Space Grotesk', sans-serif; font-size: 1.125rem; font-weight: 700; }
+    .landing-footer strong { font-family: 'Space Grotesk', sans-serif; font-size: 1rem; font-weight: 600; line-height: 1.5; text-wrap: balance; }
     .landing-footer p, .landing-footer nav { font-family: 'Nunito', sans-serif; font-size: .875rem; font-weight: 500; }
     /* La frase y el copyright comparten línea cuando el ancho disponible lo permite. */
     .landing-footer .footer-grid > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
@@ -248,13 +250,13 @@
 .synaux-app footer.landing-footer {
     display: block;
     width: 100%;
-    padding: 44px 0;
+    padding: 32px 0;
     background: #f5f9fa;
 }
 
 .landing-footer > .footer-grid {
     display: grid;
-    grid-template-columns: 160px minmax(0, 1fr) auto;
+    grid-template-columns: 160px minmax(240px, 1fr) auto;
     align-items: end;
     gap: clamp(20px, 3.4vw, 40px);
 }
@@ -269,3 +271,10 @@
     width: 160px;
     height: auto;
 }
+
+/* La firma mantiene la alineación inferior elegida y agrupa cada función en un bloque reconocible. */
+.landing-footer .footer-copy { max-width: 410px; row-gap: 8px; }
+.landing-footer .footer-copy strong { max-width: 100%; }
+.landing-footer .footer-nav-links a { min-height: 32px; display: inline-flex; align-items: center; }
+@media (max-width: 900px) { .landing-footer > .footer-grid { grid-template-columns: 160px minmax(0,1fr); align-items: end; gap: 24px; } .landing-footer .footer-grid nav { grid-column: 1 / -1; } }
+@media (max-width: 540px) { .landing-footer > .footer-grid { grid-template-columns: minmax(0,1fr); } .landing-footer .footer-grid nav { grid-column: auto; } .landing-footer .footer-copy { display: grid; } }

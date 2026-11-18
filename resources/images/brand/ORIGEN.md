@@ -22,3 +22,8 @@ Los recursos horizontales anteriores permanecen en esta carpeta como referencia 
 El usuario entregó el archivo `Z:/Escritorio/logo Synauz horizontal.svg` el 17 de noviembre de 2026 para actualizar la variante horizontal de la web. Se copió sin cambios a `synaux-horizontal-sin-slogan-color.svg` y se verificó la coincidencia SHA-256 con el original.
 
 Dimensiones nativas: 405 × 140. Se utiliza completo y proporcional en el navbar de la landing y de la plataforma, reemplazando el PNG horizontal anterior. Los SVG verticales con eslogan mantienen su uso en la presentación y el pie.
+
+
+## Trama de intensidad uniforme
+
+`./synaux-trama-uniforme.svg` es una copia sin modificaciones de `07 - Recursos finales/Contenido de trama · Intensidad uniforme.svg`, indicada por el usuario el 18/11/2026. Se utiliza como decoración en dos puntos de la landing, conservando los trazos y colores del original.
