@@ -21,7 +21,7 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
         <div class="document-content">
             <h2 class="document-title">{{ budget.title || 'Tu proyecto' }}</h2>
             <div class="document-parties">
-                <section><h3><I name="user" />Cliente</h3><div class="party-content"><strong>{{ client?.company || client?.name || 'Cliente de la solicitud' }}</strong><p v-if="client?.company && client?.name">{{ client.name }}</p><p v-for="field in ['email','phone','address']" :key="field">{{ client?.[field] }}</p></div></section>
+                <section><h3><I name="user" />Cliente</h3><div class="party-content"><strong>{{ client?.company || client?.name || 'Cliente por definir' }}</strong><p v-if="client?.company && client?.name">{{ client.name }}</p><p v-for="field in ['email','phone','address']" :key="field">{{ client?.[field] }}</p></div></section>
                 <section><h3><I name="folder" />Proveedor</h3><div class="party-content"><strong>{{ issuer?.name || 'synaux' }}</strong><p>{{ issuer?.contact }}</p><p>{{ issuer?.email }}</p><p v-if="issuer?.phone">{{ issuer.phone }}</p><p v-if="issuer?.address">{{ issuer.address }}</p></div></section>
             </div>
             <h3 class="document-section-title"><I name="file" />Detalle de servicios</h3>
@@ -34,7 +34,7 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
         </div>
         <!-- La landing resume las condiciones; las vistas de trabajo conservan el documento completo. -->
         <section v-if="compact" class="document-conditions document-conditions-summary"><p>Entrega estimada: {{ budget.estimated_delivery_days }} días. Alcance y condiciones a acordar en la propuesta formal.</p></section>
-        <section v-else class="document-conditions"><h3 class="document-section-title"><I name="check" />Plazos y condiciones</h3><div><p>Entrega estimada: {{ budget.estimated_delivery_days }} días desde el inicio acordado.</p><p class="preserve-lines">{{ budget.terms || 'Las condiciones se completarán antes de enviar el presupuesto.' }}</p></div></section>
+        <section v-else class="document-conditions"><h3 class="document-section-title"><I name="check" />Plazos y condiciones</h3><div><p>Entrega estimada: {{ budget.estimated_delivery_days }} días desde el inicio acordado.</p><p class="preserve-lines">{{ budget.terms || 'Las condiciones se completarán antes de emitir el presupuesto.' }}</p></div></section>
         <footer v-if="!compact" class="document-footer">{{ issuer?.name || 'synaux' }}<template v-if="issuer?.email"> · {{ issuer.email }}</template><template v-if="issuer?.phone"> · {{ issuer.phone }}</template></footer>
     </article>
 </template>

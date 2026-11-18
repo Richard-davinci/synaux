@@ -293,6 +293,46 @@ class SynauxFlowTest extends TestCase
         $this->actingAs($this->account())->get('/presupuestos/'.$version->id.'/pdf')->assertNotFound();
     }
 
+    // Gestión puede emitir y versionar para un contacto externo sin crear una solicitud ni una cuenta.
+    public function test_management_can_issue_and_download_a_direct_external_budget(): void
+    {
+        $manager = $this->account(true);
+        $this->profile($manager);
+        $client = $this->account();
+        $payload = [...$this->quoteData(0), 'request_id' => null, 'direct' => true,
+            'client' => ['name' => 'Contacto externo', 'email' => $client->email], 'send' => false];
+
+        $this->actingAs($client)->get('/editor/presupuesto?directo=1')->assertForbidden();
+        $this->post('/acciones/presupuesto', $payload)->assertForbidden();
+        $this->actingAs($manager)->get('/editor/presupuesto?directo=1')
+            ->assertInertia(fn (Assert $page) => $page->where('directBudget', true));
+        $this->post('/acciones/presupuesto', [...$payload, 'client' => ['email' => $client->email]])
+            ->assertSessionHasErrors('client.name');
+        $this->post('/acciones/presupuesto', $payload)->assertSessionHasNoErrors();
+        $draft = DB::table('budget_versions')->firstOrFail();
+        $this->assertSame('draft', $draft->status);
+        $this->assertDatabaseHas('budgets', ['id' => $draft->budget_id, 'project_request_id' => null, 'client_user_id' => null, 'direct_service_id' => null]);
+        $this->get('/editor/presupuesto/'.$draft->id)->assertInertia(fn (Assert $page) => $page
+            ->where('directBudget', true)->where('selected.client.name', 'Contacto externo'));
+        $this->post('/acciones/presupuesto', [...$payload, 'budget_id' => $draft->budget_id, 'send' => true])
+            ->assertSessionHasNoErrors()->assertRedirect('/presupuestos/'.$draft->id);
+        $this->get('/presupuestos/'.$draft->id)->assertInertia(fn (Assert $page) => $page
+            ->where('selected.external', true)->where('selected.display_status', 'issued')->where('selected.version_number', 1));
+        $pdf = $this->get('/presupuestos/'.$draft->id.'/pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF-', $pdf->getContent());
+        $this->post('/acciones/presupuesto', [...$payload, 'budget_id' => $draft->budget_id, 'send' => true,
+            'client' => ['name' => 'Contacto actualizado']])->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('budget_versions', ['budget_id' => $draft->budget_id, 'version_number' => 2, 'status' => 'sent']);
+        $this->get('/presupuestos/'.$draft->id)->assertInertia(fn (Assert $page) => $page
+            ->where('selected.client.name', 'Contacto externo')->where('selected.current', false));
+
+        $this->actingAs($client)->get('/presupuestos/'.$draft->id.'/pdf')->assertNotFound();
+        $this->post('/acciones/decidir-presupuesto', ['id' => $draft->id, 'decision' => 'accepted', 'confirmed' => true])->assertForbidden();
+        $this->assertDatabaseCount('project_requests', 0);
+        $this->assertDatabaseCount('projects', 0);
+        $this->assertDatabaseCount('synaux_notifications', 0);
+    }
+
     // Gestión recibe el pedido al enviarlo; el borrador continúa reservado a su dueño.
     public function test_management_cannot_read_a_client_request_draft_before_submission(): void
     {

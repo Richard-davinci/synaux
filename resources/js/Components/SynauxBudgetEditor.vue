@@ -16,17 +16,22 @@ const selected = props.data.selected ?? {};
 const submit = useSubmit();
 const step = ref(1);
 const preview = ref(false);
-const labels = ['Solicitud', 'Servicios', 'Condiciones'];
+// El presupuesto directo solicita solo los datos del destinatario y comienza con un concepto editable.
+const direct = Boolean(props.data.directBudget);
+const labels = [direct ? 'Cliente' : 'Solicitud', 'Servicios', 'Condiciones'];
+const emptyItem = () => ({ description: '', quantity: 1, unit_price: '' });
 const quote = useForm({
     budget_id: selected.budget_id ?? null,
-    request_id: selected.request_id ?? props.data.requestId ?? '',
+    direct,
+    request_id: direct ? null : (selected.request_id ?? props.data.requestId ?? ''),
+    client: direct ? { name: '', email: '', company: '', phone: '', address: '', ...selected.client } : null,
     title: selected.title ?? '',
     currency_code: selected.currency_code ?? 'ARS',
     tax_rate: selected.tax_rate ?? 0,
     valid_until: selected.valid_until ?? new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
     estimated_delivery_days: selected.estimated_delivery_days ?? 30,
     terms: selected.terms ?? '',
-    items: selected.items?.map(item => ({ description: item.description, quantity: item.quantity, unit_price: item.unit_price })) ?? [],
+    items: selected.items?.map(item => ({ description: item.description, quantity: item.quantity, unit_price: item.unit_price })) ?? (direct ? [emptyItem()] : []),
     send: false,
 });
 // El interruptor aplica IVA a todo el presupuesto; desactivarlo conserva la tasa para volver a incluirlo.
@@ -43,13 +48,13 @@ const source = computed(() => requests.value.find(item => item.id == quote.reque
 const requestOptions = computed(() => requests.value.filter(item =>
     (item.status === 'open' && item.user_id !== props.data.auth?.id) || item.id == selected.request_id
 ).map(item => ({ value: item.id, label: 'SOL-' + item.id + ' · ' + item.title })));
-const client = computed(() => source.value?.contact ?? selected.client);
+const client = computed(() => direct ? quote.client : (source.value?.contact ?? selected.client));
 const issuer = computed(() => props.data.issuerDetails ?? ({
     name: props.data.profile?.brand_name ?? selected.issuer?.name ?? 'synaux',
     contact: props.data.auth?.name ?? selected.issuer?.contact,
     email: props.data.auth?.email ?? selected.issuer?.email,
 }));
-const canPrepare = computed(() => source.value?.status === 'open');
+const canPrepare = computed(() => direct ? Boolean(quote.client.name?.trim()) : source.value?.status === 'open');
 const needsIssuer = computed(() => !props.data.profile && !props.data.preview);
 
 // Cada concepto se redondea a centavos, igual que el documento calculado por el servidor.
@@ -90,7 +95,7 @@ function priceHint(reference) {
 
 // Al elegir otro pedido se reconstruyen los conceptos con las referencias de ese pedido.
 watch(() => quote.request_id, () => {
-    if (selected.budget_id || !source.value) return;
+    if (direct || selected.budget_id || !source.value) return;
     quote.title = source.value.title;
     quote.currency_code = source.value.pricing_reference?.currency ?? 'ARS';
     quote.items = [
@@ -121,7 +126,7 @@ function save(send) {
         onError: errors => {
             preview.value = false;
             const fields = Object.keys(errors);
-            step.value = fields.some(field => ['request_id', 'title', 'currency_code', 'budget_id'].includes(field)) ? 1
+            step.value = fields.some(field => ['client', 'direct', 'request_id', 'title', 'currency_code', 'budget_id'].includes(field) || field.startsWith('client.')) ? 1
                 : fields.some(field => field === 'items' || field.startsWith('items.')) ? 2 : 3;
         },
     });
@@ -131,7 +136,7 @@ function save(send) {
 <template>
     <section class="page shell budget-editor">
         <B href="/gestion/presupuestos" variant="ghost">← Volver a presupuestos</B>
-        <div class="budget-heading"><p class="eyebrow">Gestión · Presupuesto formal</p><h1>{{ selected.budget_id ? 'Prepará la próxima versión' : 'Prepará el presupuesto' }}</h1><p>Revisá el pedido del cliente, definí los servicios y comprobá el documento antes de enviarlo.</p><p v-if="selected.budget_id" class="editor-note">Los documentos enviados se conservan. {{ selected.status === 'draft' ? 'Estás editando el borrador de la versión' : 'Se guardará una nueva versión:' }} {{ version }}.</p></div>
+        <div class="budget-heading"><p class="eyebrow">Gestión · Presupuesto formal</p><h1>{{ selected.budget_id ? 'Prepará la próxima versión' : 'Prepará el presupuesto' }}</h1><p>{{ direct ? 'Cargá los datos del cliente, definí los servicios y prepará el PDF.' : 'Revisá el pedido del cliente, definí los servicios y comprobá el documento antes de enviarlo.' }}</p><p v-if="selected.budget_id" class="editor-note">Los documentos enviados se conservan. {{ selected.status === 'draft' ? 'Estás editando el borrador de la versión' : 'Se guardará una nueva versión:' }} {{ version }}.</p></div>
         <ol class="budget-steps" aria-label="Pasos para preparar presupuesto"><li v-for="(label, index) in labels" :key="label"><button type="button" :disabled="index + 1 > step || quote.processing" :aria-current="step === index + 1 ? 'step' : undefined" @click="step = index + 1">{{ index + 1 }}. {{ label }}</button></li></ol>
         <div v-if="Object.keys(quote.errors).length" class="notice" role="alert"><div><strong>Revisá los datos del presupuesto</strong><ul><li v-for="(error, field) in quote.errors" :key="field">{{ error }}</li></ul></div></div>
         <div v-if="needsIssuer" class="editor-note" role="status"><p>Completá los datos del emisor antes de guardar o enviar el presupuesto.</p><B href="/mi-perfil#emision" variant="secondary">Completar datos del emisor</B></div>
@@ -141,6 +146,18 @@ function save(send) {
             <v-card class="card budget-panel">
                 <p class="eyebrow">Paso {{ step }} de 3</p>
                 <template v-if="step === 1">
+                    <B v-if="!selected.budget_id && data.auth?.is_admin && !data.preview" :href="direct ? '/editor/presupuesto' : '/editor/presupuesto?directo=1'" variant="ghost">{{ direct ? 'Crear desde una solicitud' : 'Crear presupuesto directo' }}</B>
+                    <template v-if="direct">
+                        <h2>Datos del cliente</h2>
+                        <F v-model="quote.client.name" label="Nombre del cliente" maxlength="255" :error="quote.errors['client.name']" required />
+                        <div class="form-grid">
+                            <F v-model="quote.client.company" label="Empresa" maxlength="255" :error="quote.errors['client.company']" />
+                            <F v-model="quote.client.email" label="Correo electrónico" type="email" maxlength="254" :error="quote.errors['client.email']" />
+                            <F v-model="quote.client.phone" label="Teléfono" type="tel" maxlength="50" :error="quote.errors['client.phone']" />
+                            <F v-model="quote.client.address" label="Dirección" maxlength="500" :error="quote.errors['client.address']" />
+                        </div>
+                    </template>
+                    <template v-else>
                     <h2>Revisá la solicitud</h2>
                     <F v-model="quote.request_id" label="Solicitud relacionada" type="select" :disabled="!!selected.budget_id || quote.processing" :options="requestOptions" :error="quote.errors.request_id" required />
                     <p v-if="!selected.budget_id" class="editor-hint">Si cambiás la solicitud, se reemplazan el título y los conceptos por los del pedido elegido.</p>
@@ -153,6 +170,7 @@ function save(send) {
                         <div v-if="source.answers?.length"><h3>Respuestas de la estimación</h3><dl><div v-for="answer in source.answers" :key="answer.id"><dt>{{ answer.question }}</dt><dd>{{ answer.label }}</dd></div></dl></div>
                     </section>
                     <section v-if="client" class="client-context"><h3>Contacto del pedido</h3><strong>{{ client.name }}</strong><p>{{ client.email }}</p><p v-if="client.company">{{ client.company }}</p><p v-if="client.phone">{{ client.phone }}</p><p v-if="client.address">{{ client.address }}</p></section>
+                    </template>
                     <F v-model="quote.title" label="Título del presupuesto" maxlength="255" :error="quote.errors.title" required />
                     <F v-model="quote.currency_code" label="Moneda del presupuesto" type="select" :options="['ARS', 'USD', 'EUR']" :error="quote.errors.currency_code" required />
                     <p class="editor-hint">Los importes se ingresan en la moneda elegida. Cambiarla no convierte los precios.</p>
@@ -165,14 +183,14 @@ function save(send) {
                         <div class="form-grid"><F v-model="item.quantity" label="Cantidad" type="number" min="0.001" max="10000" step="0.001" :error="quote.errors['items.' + index + '.quantity']" required /><F v-model="item.unit_price" :label="'Precio unitario · ' + quote.currency_code" type="number" min="0" max="100000000" step="0.01" :error="quote.errors['items.' + index + '.unit_price']" :hint="priceHint(item.reference)" required /></div>
                         <p class="item-subtotal">Subtotal del concepto <strong>{{ item.unit_price === '' ? 'Pendiente de cotizar' : money(lineCents(item) / 100, quote.currency_code) }}</strong></p>
                     </div>
-                    <B variant="secondary" :disabled="quote.items.length >= 100 || quote.processing" @click="quote.items.push({description:'',quantity:1,unit_price:''})">Agregar concepto</B>
+                    <B variant="secondary" :disabled="quote.items.length >= 100 || quote.processing" @click="quote.items.push(emptyItem())">Agregar concepto</B>
                 </template>
                 <template v-else>
                     <h2>Plazos y condiciones</h2>
                     <div class="form-grid"><F v-model="quote.estimated_delivery_days" label="Entrega estimada (días desde el inicio)" type="number" min="1" max="3650" step="1" :error="quote.errors.estimated_delivery_days" required /><F v-model="quote.valid_until" label="Presupuesto válido hasta" type="date" :min="new Date().toLocaleDateString('en-CA')" :error="quote.errors.valid_until" required /></div>
 
                     <F v-model="quote.terms" label="Condiciones, forma de pago y revisiones" type="textarea" maxlength="10000" hint="Detallá el anticipo, las entregas, las revisiones incluidas y cuándo comienza el plazo." :error="quote.errors.terms" required />
-                    <p class="editor-note"><I name="info" /> El cliente recibirá esta versión en su cuenta. Podrá descargarla y aceptar o rechazar el presupuesto vigente.</p>
+                    <p class="editor-note"><I name="info" /> {{ direct ? 'Al emitirlo, vas a poder descargar el PDF para compartirlo con el cliente.' : 'El cliente recibirá esta versión en su cuenta. Podrá descargarla y aceptar o rechazar el presupuesto vigente.' }}</p>
                 </template>
                 <!-- El IVA se configura una sola vez y se muestra desglosado en el documento completo. -->
                 <section v-if="step > 1" class="vat-settings" aria-label="IVA del presupuesto">
@@ -189,11 +207,11 @@ function save(send) {
             <aside class="budget-summary" aria-label="Vista previa del presupuesto">
                 <div class="preview-toolbar"><h2>Vista previa</h2><B variant="ghost" @click="preview = true">Ampliar</B></div>
                 <div class="document-preview-scroll"><BudgetDocument :budget="documentPreview" :client="client" :issuer="issuer" /></div>
-                <div class="preview-save"><B variant="secondary" :disabled="!canPrepare || needsIssuer || quote.processing" @click="save(false)">{{ quote.processing && !quote.send ? 'Guardando…' : 'Guardar borrador' }}</B><p class="editor-hint">El borrador queda en Gestión. El cliente lo verá cuando lo envíes.</p></div>
+                <div class="preview-save"><B variant="secondary" :disabled="!canPrepare || needsIssuer || quote.processing" @click="save(false)">{{ quote.processing && !quote.send ? 'Guardando…' : 'Guardar borrador' }}</B><p class="editor-hint">{{ direct ? 'El borrador queda disponible en Gestión.' : 'El borrador queda en Gestión. El cliente lo verá cuando lo envíes.' }}</p></div>
             </aside>
         </form>
         <SidePanel title="Vista previa del presupuesto" v-model="preview" max-width="800" :persistent="quote.processing">
-            <div class="synaux-app"><v-card class="card modal-card budget-preview"><div class="context-heading"><h2>Revisá antes de enviar</h2></div><BudgetDocument :budget="documentPreview" :client="client" :issuer="issuer" /><div class="form-actions"><B variant="secondary" :disabled="quote.processing" @click="preview = false">Volver a editar</B><B v-if="step === 3" :disabled="quote.processing || !canPrepare || needsIssuer" arrow @click="save(true)">{{ quote.processing ? 'Enviando…' : 'Enviar presupuesto al cliente' }}</B></div></v-card></div>
+            <div class="synaux-app"><v-card class="card modal-card budget-preview"><div class="context-heading"><h2>{{ direct ? 'Revisá antes de emitir' : 'Revisá antes de enviar' }}</h2></div><BudgetDocument :budget="documentPreview" :client="client" :issuer="issuer" /><div class="form-actions"><B variant="secondary" :disabled="quote.processing" @click="preview = false">Volver a editar</B><B v-if="step === 3" :disabled="quote.processing || !canPrepare || needsIssuer" arrow @click="save(true)">{{ direct ? (quote.processing ? 'Emitiendo…' : 'Emitir presupuesto') : (quote.processing ? 'Enviando…' : 'Enviar presupuesto al cliente') }}</B></div></v-card></div>
         </SidePanel>
     </section>
 </template>

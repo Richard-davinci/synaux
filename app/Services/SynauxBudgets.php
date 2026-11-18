@@ -13,7 +13,14 @@ class SynauxBudgets
     // Valida y guarda una versión formal sin sobrescribir ninguna versión ya enviada.
     public function save(Request $request): int
     {
-        $data = $request->validate(['budget_id' => 'nullable|integer', 'request_id' => 'required|integer|exists:project_requests,id',
+        // La emisión directa es exclusiva de Gestión y usa un contacto externo guardado en la versión.
+        $direct = $request->boolean('direct');
+        abort_if($direct && ! $request->user()->is_admin, 403);
+        $data = $request->validate(['direct' => 'sometimes|boolean', 'budget_id' => 'nullable|integer',
+            'request_id' => ['nullable', Rule::requiredIf(! $direct), Rule::prohibitedIf($direct), 'integer', 'exists:project_requests,id'],
+            'client' => [Rule::excludeIf(! $direct), Rule::requiredIf($direct), 'array:name,email,company,phone,address'],
+            'client.name' => 'required_with:client|string|max:255', 'client.email' => 'nullable|email|max:254',
+            'client.company' => 'nullable|string|max:255', 'client.phone' => 'nullable|string|max:50', 'client.address' => 'nullable|string|max:500',
             'title' => 'required|string|max:255', 'currency_code' => ['required', Rule::in(['ARS', 'USD', 'EUR'])],
             'tax_rate' => 'required|numeric|min:0|max:100', 'valid_until' => 'required|date|after_or_equal:today',
             'estimated_delivery_days' => 'required|integer|min:1|max:3650', 'terms' => 'required|string|max:10000',
@@ -21,16 +28,16 @@ class SynauxBudgets
             'items.*.quantity' => 'required|numeric|min:0.001|max:10000', 'items.*.unit_price' => 'required|numeric|min:0|max:100000000',
             'send' => 'required|boolean']);
 
-        return DB::transaction(function () use ($request, $data) {
-            $record = DB::table('project_requests')->where('id', $data['request_id'])->lockForUpdate()->firstOrFail();
+        return DB::transaction(function () use ($request, $data, $direct) {
+            $record = $direct ? null : DB::table('project_requests')->where('id', $data['request_id'])->lockForUpdate()->firstOrFail();
             // Los conflictos de estado vuelven al formulario con un mensaje y conservan sus datos.
-            if ($record->status !== 'open') {
+            if ($record && $record->status !== 'open') {
                 throw ValidationException::withMessages(['request_id' => 'La solicitud ya no está abierta. Revisá su estado antes de preparar el presupuesto.']);
             }
             $profile = DB::table('professional_profiles')->where('user_id', $request->user()->id)->first();
-            $proposal = $profile ? DB::table('proposals')->where('project_request_id', $record->id)->where('professional_profile_id', $profile->id)->where('status', 'accepted')->first() : null;
+            $proposal = $profile && $record ? DB::table('proposals')->where('project_request_id', $record->id)->where('professional_profile_id', $profile->id)->where('status', 'accepted')->first() : null;
             abort_unless($request->user()->is_admin || $proposal !== null, 403);
-            if ($record->user_id === $request->user()->id) {
+            if ($record?->user_id === $request->user()->id) {
                 throw ValidationException::withMessages(['request_id' => 'No podés preparar un presupuesto para tu propia solicitud.']);
             }
             if (! $profile) {
@@ -40,11 +47,14 @@ class SynauxBudgets
             if (! empty($data['budget_id'])) {
                 $budget = DB::table('budgets')->where('id', $data['budget_id'])->lockForUpdate()->firstOrFail();
                 $origin = $budget->proposal_id ? DB::table('proposals')->where('id', $budget->proposal_id)->first() : null;
-                abort_unless(($budget->professional_profile_id ?? $origin?->professional_profile_id) === $profile->id && ($budget->project_request_id ?? $origin?->project_request_id) === $record->id, 403);
+                // El editor solo puede continuar la misma relación y el mismo emisor.
+                abort_unless(($budget->professional_profile_id ?? $origin?->professional_profile_id) === $profile->id
+                    && ($budget->project_request_id ?? $origin?->project_request_id) === $record?->id
+                    && (! $direct || ($budget->client_user_id === null && $budget->direct_service_id === null)), 403);
                 $budgetId = $budget->id;
             } else {
                 $budgetId = DB::table('budgets')->insertGetId(['proposal_id' => $proposal?->id,
-                    'project_request_id' => $proposal ? null : $record->id, 'professional_profile_id' => $proposal ? null : $profile->id,
+                    'project_request_id' => $proposal ? null : $record?->id, 'professional_profile_id' => $proposal ? null : $profile->id,
                     'created_at' => now(), 'updated_at' => now()]);
             }
             if (DB::table('budget_versions')->where('budget_id', $budgetId)->where('status', 'accepted')->exists()) {
@@ -52,8 +62,11 @@ class SynauxBudgets
             }
             $draft = DB::table('budget_versions')->where('budget_id', $budgetId)->where('status', 'draft')->first();
             // El documento conserva las partes de esta versión aunque después cambien los perfiles.
-            $owner = DB::table('users')->where('id', $record->user_id)->firstOrFail();
-            $client = json_decode($record->contact_snapshot ?? 'null', true) ?? ['name' => $owner->name, 'email' => $owner->email];
+            $client = $data['client'] ?? null;
+            if ($record) {
+                $owner = DB::table('users')->where('id', $record->user_id)->firstOrFail();
+                $client = json_decode($record->contact_snapshot ?? 'null', true) ?? ['name' => $owner->name, 'email' => $owner->email];
+            }
             $issuer = $request->user()->issuerDetails($profile->brand_name);
             $attributes = ['title' => $data['title'], 'currency_code' => $data['currency_code'], 'tax_rate' => $data['tax_rate'],
                 'valid_until' => $data['valid_until'], 'terms' => $data['terms'], 'estimated_delivery_days' => $data['estimated_delivery_days'],
@@ -74,7 +87,7 @@ class SynauxBudgets
             }
 
             // El cliente recibe el aviso únicamente cuando se envía la versión, nunca por borradores.
-            if ($data['send']) {
+            if ($data['send'] && $record) {
                 app(SynauxNotificationCenter::class)->send('presupuesto', $versionId, 'presupuesto-enviado:'.$versionId,
                     'Nuevo presupuesto', $data['title'], [$record->user_id], actor: $request->user()->id);
             }

@@ -84,9 +84,12 @@ class SynauxWorkspace
                 $total = (int) round($subtotal * (1 + $v->tax_rate / 100));
                 $latestSent = DB::table('budget_versions')->where('budget_id', $v->budget_id)->whereNotNull('sent_at')->max('version_number');
 
-                return [...((array) $v), 'client' => json_decode($v->client_snapshot ?? 'null', true), 'issuer' => json_decode($v->issuer_snapshot ?? 'null', true), 'items' => $items, 'subtotal' => $subtotal / 100, 'total' => $total / 100,
+                // Los documentos emitidos para contactos externos se comparten como PDF.
+                $external = $v->request_id === null && $v->client_user_id === null;
+
+                return [...((array) $v), 'external' => $external, 'client' => json_decode($v->client_snapshot ?? 'null', true), 'issuer' => json_decode($v->issuer_snapshot ?? 'null', true), 'items' => $items, 'subtotal' => $subtotal / 100, 'total' => $total / 100,
                     'current' => (int) $latestSent === (int) $v->version_number,
-                    'display_status' => $v->status === 'sent' && $v->valid_until < today()->toDateString() ? 'expired' : $v->status];
+                    'display_status' => $v->status === 'sent' && $v->valid_until < today()->toDateString() ? 'expired' : ($external && $v->status === 'sent' ? 'issued' : $v->status)];
             })->values()->all();
     }
 

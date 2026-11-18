@@ -228,6 +228,9 @@ class SynauxController extends Controller
             if ($id) {
                 abort_unless($data['selected']['issuer_id'] === $request->user()->id, 403);
             }
+            // La edición directa se habilita para Gestión, con entrada explícita o desde una versión existente.
+            $data['directBudget'] = $id ? $data['selected']['external'] : ($request->boolean('directo') && ! $request->integer('solicitud'));
+            abort_if($data['directBudget'] && ! $request->user()->is_admin, 403);
             // Los adicionales antiguos se pueden sugerir desde la versión asociada, identificada como referencia recuperada.
             $data['budgetRequests'] = array_values(array_filter($data['budgetRequests'], fn ($source) => $source['user_id'] !== $request->user()->id));
             $referencesByTariff = [];
