@@ -74,8 +74,11 @@ class StageOneJourneyTest extends TestCase
                 ['description' => 'Identidad visual', 'quantity' => 1, 'unit_price' => 200000],
             ], 'send' => false,
         ];
-        $this->post('/acciones/presupuesto', $quote)->assertSessionHasNoErrors();
+        // El borrador permite excluir IVA; al incluirlo en la revisión el documento conserva subtotal, tasa y total.
+        $this->post('/acciones/presupuesto', [...$quote, 'tax_rate' => 0])->assertSessionHasNoErrors();
         $draft = DB::table('budget_versions')->first();
+        $this->get('/presupuestos/'.$draft->id)->assertInertia(fn (Assert $page) => $page
+            ->where('selected.tax_rate', 0)->where('selected.subtotal', 1552480)->where('selected.total', 1552480));
         $this->actingAs($client)->get('/presupuestos/'.$draft->id)->assertNotFound();
         $this->actingAs($manager)->post('/acciones/presupuesto', [...$quote, 'budget_id' => $draft->budget_id, 'send' => true])
             ->assertSessionHasNoErrors();
@@ -83,7 +86,8 @@ class StageOneJourneyTest extends TestCase
 
         // La aceptación de la versión enviada crea un solo proyecto y conserva el PDF acordado.
         $this->actingAs($client)->get('/presupuestos/'.$draft->id)->assertInertia(fn (Assert $page) => $page
-            ->where('selected.current', true)->where('selected.status', 'sent')->where('selected.total', 1878500.8));
+            ->where('selected.current', true)->where('selected.status', 'sent')->where('selected.tax_rate', 21)
+            ->where('selected.subtotal', 1552480)->where('selected.total', 1878500.8));
         $this->get('/presupuestos/'.$draft->id.'/pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $decision = ['id' => $draft->id, 'decision' => 'accepted', 'confirmed' => true];
         $this->post('/acciones/decidir-presupuesto', $decision)->assertRedirect();

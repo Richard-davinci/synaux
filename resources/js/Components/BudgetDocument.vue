@@ -1,38 +1,83 @@
 <script setup>
+import { computed } from 'vue';
 import BrandLogo from './BrandLogo.vue';
+import I from './SynauxIcon.vue';
 import { money, date } from '../support/synaux';
 
-// La vista previa y el documento recibido usan la misma estructura y los datos de la versión.
-defineProps({ budget: Object, client: Object, issuer: Object });
+// El editor y el documento recibido comparten los datos de una versión, sin consultar perfiles actuales.
+const props = defineProps({ budget: Object, client: Object, issuer: Object });
+const pending = computed(() => (props.budget.items ?? []).some(item => item.unit_price === '' || item.unit_price == null));
+const tax = computed(() => Math.round((Number(props.budget.total ?? 0) - Number(props.budget.subtotal ?? 0)) * 100) / 100);
+const scope = description => String(description ?? '').split('\n').slice(1).join('\n');
+const concept = description => String(description ?? '').split('\n')[0] || 'Servicio por definir';
 </script>
 <template>
     <article class="budget-document">
         <header class="document-heading">
-            <BrandLogo :with-slogan="false" />
-            <div><p class="eyebrow">Presupuesto formal</p><h2>{{ budget.title || 'Tu proyecto' }}</h2><p v-if="budget.budget_id">PRE-{{ budget.budget_id }} · Versión {{ budget.version_number }}</p><p v-else>Vista previa</p></div>
+            <BrandLogo :with-slogan="false" variant="white" />
+            <div><p class="document-label">Presupuesto</p><p class="document-number">{{ budget.budget_id ? 'PRE-' + budget.budget_id : 'Borrador' }} · Versión {{ budget.version_number ?? 1 }}</p></div>
         </header>
-        <div class="document-dates"><span>Fecha: {{ date(budget.sent_at ?? budget.created_at ?? new Date().toISOString()) }}</span><span>Vigente hasta {{ date(budget.valid_until) }}</span></div>
-        <div class="document-parties">
-            <section><h3>Cliente</h3><strong>{{ client?.company || client?.name || 'Cliente de la solicitud' }}</strong><p v-if="client?.company">{{ client.name }}</p><p v-for="field in ['email','phone','address']" :key="field">{{ client?.[field] }}</p></section>
-            <section><h3>Emisor</h3><strong>{{ issuer?.name || 'synaux' }}</strong><p>{{ issuer?.contact }}</p><p>{{ issuer?.email }}</p><p v-if="issuer?.phone">{{ issuer.phone }}</p><p v-if="issuer?.address">{{ issuer.address }}</p></section>
+        <div class="document-dates"><span><I name="clock" />Fecha: {{ date(budget.sent_at ?? budget.created_at ?? new Date().toISOString()) }}</span><span>Válido hasta: {{ date(budget.valid_until) }}</span></div>
+        <div class="document-content">
+            <h2 class="document-title">{{ budget.title || 'Tu proyecto' }}</h2>
+            <div class="document-parties">
+                <section><h3><I name="user" />Cliente</h3><div class="party-content"><strong>{{ client?.company || client?.name || 'Cliente de la solicitud' }}</strong><p v-if="client?.company && client?.name">{{ client.name }}</p><p v-for="field in ['email','phone','address']" :key="field">{{ client?.[field] }}</p></div></section>
+                <section><h3><I name="folder" />Proveedor</h3><div class="party-content"><strong>{{ issuer?.name || 'synaux' }}</strong><p>{{ issuer?.contact }}</p><p>{{ issuer?.email }}</p><p v-if="issuer?.phone">{{ issuer.phone }}</p><p v-if="issuer?.address">{{ issuer.address }}</p></div></section>
+            </div>
+            <h3 class="document-section-title"><I name="file" />Detalle de servicios</h3>
+            <div class="table-scroll document-items"><table><thead><tr><th>Concepto y alcance</th><th>Cant.</th><th>Precio unit.</th><th>Subtotal</th></tr></thead><tbody>
+                <tr v-for="(item,index) in budget.items" :key="index"><td><strong>{{ concept(item.description) }}</strong><p v-if="scope(item.description)" class="preserve-lines">{{ scope(item.description) }}</p></td><td>{{ item.quantity }}</td><td>{{ item.unit_price === '' || item.unit_price == null ? 'A cotizar' : money(item.unit_price,budget.currency_code) }}</td><td>{{ item.unit_price === '' || item.unit_price == null ? 'A cotizar' : money(Math.round(item.quantity * item.unit_price * 100) / 100,budget.currency_code) }}</td></tr>
+                <tr v-if="!budget.items?.length"><td colspan="4">Agregá los servicios para preparar el presupuesto.</td></tr>
+            </tbody></table></div>
+            <dl class="document-totals" aria-live="polite"><div><dt>Subtotal{{ pending ? ' cotizado' : '' }}</dt><dd>{{ money(budget.subtotal,budget.currency_code) }}</dd></div><div><dt>{{ Number(budget.tax_rate) > 0 ? 'IVA (' + budget.tax_rate + '%)' : 'IVA no incluido' }}</dt><dd>{{ money(tax,budget.currency_code) }}</dd></div><div class="document-grand-total"><dt>{{ pending ? 'Total parcial' : 'Total' }} · {{ budget.currency_code }}</dt><dd>{{ money(budget.total,budget.currency_code) }}</dd></div></dl>
+            <p v-if="pending" class="document-warning">Hay servicios pendientes de cotizar. El total se completará al definir sus precios.</p>
         </div>
-        <h3>Detalle de servicios</h3>
-        <div class="table-scroll"><table><thead><tr><th>Concepto y alcance</th><th>Cant.</th><th>Precio unitario</th><th>Subtotal</th></tr></thead><tbody><tr v-for="(item,index) in budget.items" :key="index"><td class="preserve-lines">{{ item.description }}</td><td>{{ item.quantity }}</td><td>{{ money(item.unit_price,budget.currency_code) }}</td><td>{{ money(item.quantity * item.unit_price,budget.currency_code) }}</td></tr></tbody></table></div>
-        <dl class="data-list document-totals"><div><dt>Subtotal</dt><dd>{{ money(budget.subtotal,budget.currency_code) }}</dd></div><div><dt>Impuestos ({{ budget.tax_rate }}%)</dt><dd>{{ money(budget.total - budget.subtotal,budget.currency_code) }}</dd></div><div><dt><strong>Total · {{ budget.currency_code }}</strong></dt><dd><strong>{{ money(budget.total,budget.currency_code) }}</strong></dd></div></dl>
-        <h3>Plazos y condiciones</h3><p>Entrega estimada: {{ budget.estimated_delivery_days }} días desde el inicio acordado.</p><p class="preserve-lines">{{ budget.terms }}</p>
+        <section class="document-conditions"><h3 class="document-section-title"><I name="check" />Plazos y condiciones</h3><div><p>Entrega estimada: {{ budget.estimated_delivery_days }} días desde el inicio acordado.</p><p class="preserve-lines">{{ budget.terms || 'Las condiciones se completarán antes de enviar el presupuesto.' }}</p></div></section>
+        <footer class="document-footer">{{ issuer?.name || 'synaux' }}<template v-if="issuer?.email"> · {{ issuer.email }}</template><template v-if="issuer?.phone"> · {{ issuer.phone }}</template></footer>
     </article>
 </template>
 <style scoped>
-/* El documento conserva superficies claras, marca proporcional y columnas legibles en móvil. */
-.budget-document { background: #fff; color: #153b64; padding: clamp(1rem, 3vw, 2rem); border: 1px solid rgb(31 111 127 / 18%); border-radius: .875rem; }
-.document-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.5rem; }
-.document-heading :deep(.brand-logo) { width: 100px; height: auto; }
-.document-heading h2 { margin-bottom: .5rem; font-size: 1.65rem; overflow-wrap: anywhere; }
-.document-dates { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; border-block: 1px solid rgb(31 111 127 / 18%); padding-block: .75rem; margin-block: 1.5rem; }
-.document-parties { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-.document-parties section { background: #f5f9fa; border-radius: .5rem; padding: 1rem; overflow-wrap: anywhere; }
-.document-parties p { margin: .25rem 0 0; }
-.document-parties p:empty { display: none; }
-.document-totals { margin: 1rem 0 1.5rem auto; max-width: 340px; }
-@media (max-width: 650px) { .document-parties { grid-template-columns: 1fr; } }
+/* El documento organiza marca, partes, conceptos y totales con la paleta de Synaux. */
+.budget-document { container-type: inline-size; background: #fff; color: #153b64; border: 1px solid #1f6f7f33; border-radius: 12px; overflow: hidden; }
+.document-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 24px; background: #153b64; color: #fff; }
+.document-heading :deep(.brand-logo) { width: 100px; height: auto; flex-shrink: 0; }
+.document-heading > div { text-align: right; min-width: 0; }
+.document-label { margin: 0 0 8px; text-transform: uppercase; font-family: 'Space Grotesk', sans-serif; font-size: 1.45rem; font-weight: 700; }
+.document-number { display: inline-block; padding: 4px 10px; border-radius: 6px; background: #ffffff1f; margin: 0; font-size: .8rem; }
+.document-dates { display: flex; flex-wrap: wrap; gap: 10px 20px; justify-content: space-between; padding: 12px 24px; background: #1f6f7f; color: white; font-size: .8rem; }
+.document-dates span { display: flex; align-items: center; gap: 6px; }
+.document-dates .icon { width: 16px; height: 16px; }
+.document-content { padding: 24px; }
+.document-title { margin: 0 0 20px; font-size: 1.25rem; line-height: 1.3; overflow-wrap: anywhere; }
+.document-parties { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; margin-bottom: 28px; }
+.document-parties section { background: #f5f9fa; border: 1px solid #1f6f7f1f; border-radius: 8px; overflow: hidden; overflow-wrap: anywhere; }
+.document-parties h3 { display: flex; align-items: center; gap: 6px; margin: 0; padding: 10px 12px; border-bottom: 1px solid #1f6f7f1f; font-size: .75rem; text-transform: uppercase; }
+.document-parties .icon { width: 14px; height: 14px; }
+.party-content { padding: 12px; font-size: .85rem; }
+.party-content p { margin: 4px 0 0; color: #446075; }
+.party-content p:empty { display: none; }
+.document-section-title { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: .85rem; color: #1f6f7f; text-transform: uppercase; }
+.document-section-title .icon { width: 18px; height: 18px; }
+.document-items { border: 1px solid #1f6f7f22; border-radius: 8px; }
+.document-items table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+.document-items th { background: #f5f9fa; text-align: left; color: #446075; font-weight: 600; }
+.document-items td, .document-items th { padding: 10px 8px; border-bottom: 1px solid #1f6f7f1f; vertical-align: top; }
+.document-items tr:last-child td { border-bottom: 0; }
+.document-items th:first-child { width: 45%; }
+.document-items td:first-child { overflow-wrap: anywhere; }
+.document-items td:not(:first-child), .document-items th:not(:first-child) { text-align: right; }
+.document-items td p { margin: 4px 0 0; color: #446075; font-size: .75rem; }
+.document-totals { max-width: 320px; margin: 24px 0 0 auto; border: 1px solid #1f6f7f22; border-radius: 8px; overflow: hidden; font-size: .85rem; }
+.document-totals > div { display: flex; justify-content: space-between; gap: 12px; padding: 12px; }
+.document-totals dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.document-grand-total { background: #f5f9fa; color: #153b64; font-weight: 700; border-top: 1px solid #1f6f7f22; }
+.document-grand-total dd { font-family: 'Space Grotesk', sans-serif; font-size: 1.15rem; }
+.document-warning { margin-top: 12px; color: #446075; font-size: .85rem; }
+.document-conditions { background: #f5f9fa; padding: 20px 24px; border-top: 1px solid #1f6f7f1f; }
+.document-conditions > div { border: 1px solid #1f6f7f1f; border-radius: 6px; background: #fff; padding: 12px; font-size: .8rem; }
+.document-conditions p { margin: 0 0 8px; }
+.document-conditions p:last-child { margin-bottom: 0; }
+.document-footer { padding: 12px 24px; background: #f5f9fa; border-top: 1px solid #1f6f7f1f; color: #446075; text-align: center; font-size: .75rem; overflow-wrap: anywhere; }
+@container (max-width: 420px) { .document-heading { padding: 18px; gap: 12px; } .document-label { font-size: 1.1rem; } .document-content { padding: 16px; } .document-dates { padding-inline: 16px; } .document-parties { gap: 8px; } .party-content { padding: 10px; font-size: .8rem; } .document-conditions { padding: 16px; } .document-items table { min-width: 380px; } }
+@container (max-width: 320px) { .document-parties { grid-template-columns: 1fr; } }
 </style>
