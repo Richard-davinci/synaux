@@ -134,21 +134,8 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
             <img class="service-image" :src="detailImage.src" :alt="detailImage.alt" width="1200" height="800" fetchpriority="high">
         </header>
 
-        <!-- La descripción completa conserva los saltos de línea ingresados en Administración. -->
-        <section v-if="detailDescription" class="service-description-section" aria-labelledby="service-description-title">
-            <h2 id="service-description-title">Descripción del servicio</h2>
-            <p class="service-description text-block">{{ detailDescription }}</p>
-        </section>
-
-        <!-- Los entregables tienen su propia tarjeta y el precio distingue referencias de cotizaciones manuales. -->
+        <!-- El presupuesto se muestra junto al alcance en escritorio y al inicio de la ficha en pantallas angostas. -->
         <div class="service-detail-grid">
-            <article v-if="selected.includes?.length" class="editorial-panel service-includes">
-                <h2>Qué incluye</h2>
-                <ul class="service-deliverables">
-                    <li v-for="item in selected.includes" :key="item"><I name="check" />{{ item }}</li>
-                </ul>
-            </article>
-
             <section class="editorial-panel detail-pricing" aria-labelledby="service-pricing-title">
                 <h2 id="service-pricing-title">{{ detailReference ? 'Precio orientativo' : 'Presupuesto a medida' }}</h2>
                 <template v-if="detailReference">
@@ -174,6 +161,18 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
                     <B href="/contacto" variant="secondary">Hacer una consulta</B>
                 </div>
             </section>
+
+            <section v-if="detailDescription" class="service-description-section" aria-labelledby="service-description-title">
+                <h2 id="service-description-title">Descripción del servicio</h2>
+                <p class="service-description text-block">{{ detailDescription }}</p>
+            </section>
+
+            <article v-if="selected.includes?.length" class="editorial-panel service-includes" aria-labelledby="service-includes-title">
+                <h2 id="service-includes-title">Qué incluye</h2>
+                <ul class="service-deliverables">
+                    <li v-for="item in selected.includes" :key="item"><I name="check" />{{ item }}</li>
+                </ul>
+            </article>
         </div>
     </section>
     <!-- Las imágenes se sirven localmente y cada tarjeta abre el trabajo correspondiente. -->
@@ -322,14 +321,25 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
 .service-intro { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: center; gap: clamp(20px, 4vw, 48px); margin-bottom: 22px; }
 .service-detail .service-intro :deep(.public-page-heading) { margin-bottom: 0; }
 .service-image { display: block; width: 100%; height: auto; aspect-ratio: 2 / 1; object-fit: cover; border: 1px solid #1f6f7f26; border-radius: 16px; box-shadow: 0 6px 20px #153b6412; }
-/* Un ancho de lectura cómodo permite publicar descripciones largas sin recortarlas. */
-.service-description-section { max-width: 75ch; margin-bottom: clamp(22px, 4vw, 36px); }
+/* Descripción y entregables comparten una columna amplia; el presupuesto conserva espacio para los segmentos. */
+.service-detail-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    align-items: start;
+    gap: clamp(18px, 3vw, 32px);
+}
+.service-description-section, .service-includes { grid-column: 1; }
+.service-description-section { max-width: 75ch; }
 .service-description-section p { margin: 0; }
-.service-detail-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 8fr); align-items: start; gap: clamp(18px, 3vw, 32px); }
-.detail-pricing:only-child { grid-column: 1 / -1; }
 .service-includes .service-deliverables { margin: 0; gap: 12px; }
 .service-detail .service-includes li { font-size: 1rem; text-wrap: pretty; }
-.detail-pricing { border-top: 3px solid #2db3a3; }
+.detail-pricing {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    border-top: 3px solid #2db3a3;
+    container-type: inline-size;
+}
+.detail-pricing:only-child { grid-column: 1 / -1; grid-row: auto; }
 .detail-price-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-block: 16px; }
 .detail-price-option { display: flex; flex-direction: column; gap: 6px; min-width: 0; text-align: left; font: inherit; color: #153b64; padding: 12px; border: 1px solid #1f6f7f33; border-radius: 10px; background: #fff; cursor: pointer; }
 .detail-price-label { display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; font-weight: 700; }
@@ -344,11 +354,16 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
 .detail-price-info .icon { flex-shrink: 0; color: #1f6f7f; }
 .detail-price-info p { margin: 0; }
 .detail-actions { margin-top: 18px; }
+/* Al apilar la ficha, la acción queda visible antes del contenido extenso. */
 @media (max-width: 900px) {
     .service-detail-grid { grid-template-columns: minmax(0, 1fr); }
+    .detail-pricing { grid-column: 1; grid-row: auto; }
 }
 @media (max-width: 620px) {
-    .service-intro, .detail-price-grid { grid-template-columns: minmax(0, 1fr); }
+    .service-intro { grid-template-columns: minmax(0, 1fr); }
+}
+@container (max-width: 380px) {
+    .detail-price-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* Las páginas públicas comparten la escala del catálogo y las tipografías de marca. */
