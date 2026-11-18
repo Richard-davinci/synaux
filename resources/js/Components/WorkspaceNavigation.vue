@@ -64,7 +64,8 @@ function logout() {
 /* El color identifica el área; el texto y la selección activa mantienen contraste en los tres roles. */
 .workspace-navigation { --role-accent: #153b64; --role-on-accent: #fff; --role-tint: #153b640a; border-top: 3px solid var(--role-accent); display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; height: 100%; padding: 26px 18px; color: #153b64; }
 .workspace-navigation[data-role='profesional'] { --role-accent: #2db3a3; --role-on-accent: #153b64; --role-tint: #2db3a31a; }
-.workspace-navigation[data-role='gestion'] { --role-accent: #1f6f7f; --role-tint: #1f6f7f12; }
+/* Gestión recibe el turquesa del navbar; la selección usa su transparencia sobre el fondo claro para dar contraste al texto azul. */
+.workspace-navigation[data-role='gestion'] { --role-accent: #2db3a3; --role-active: #2db3a3f2; --role-on-accent: #153b64; --role-tint: #2db3a31a; }
 .workspace-sections { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 .workspace-eyebrow { border-left: 3px solid var(--role-accent); padding-left: 8px; text-wrap: balance; margin: 0 0 8px; color: #446075; font-size: .75rem; letter-spacing: .12em; font-weight: 700; text-transform: uppercase; }
 .workspace-user { margin: -12px 0 22px; color: #446075; font-size: .95rem; overflow-wrap: anywhere; }
@@ -72,7 +73,7 @@ function logout() {
 .workspace-navigation nav { display: grid; gap: 5px; }
 .workspace-navigation a, .workspace-navigation summary, .workspace-logout { display: flex; gap: 11px; align-items: center; min-height: 46px; padding: 12px; border-radius: 10px; color: #153b64; text-decoration: none; font-weight: 600; line-height: 1.3; cursor: pointer; }
 .workspace-navigation a:hover, .workspace-navigation summary:hover, .workspace-logout:hover { background: var(--role-tint); }
-.workspace-navigation a[aria-current='page'] { color: var(--role-on-accent); background: var(--role-accent); }
+.workspace-navigation a[aria-current='page'] { color: var(--role-on-accent); background: var(--role-active, var(--role-accent)); }
 .workspace-navigation a:focus-visible, .workspace-navigation summary:focus-visible, .workspace-logout:focus-visible { outline: 3px solid var(--role-accent); outline-offset: 2px; }
 .workspace-logout { width: 100%; border: 0; background: transparent; font: inherit; text-align: left; }
 .workspace-logout:disabled { opacity: .5; cursor: wait; }
