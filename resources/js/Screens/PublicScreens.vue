@@ -107,7 +107,7 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
                     <li v-for="item in service.includes.slice(0, 3)" :key="item"><I name="check" /><span>{{ item }}</span></li>
                 </ul>
                 <CatalogServicePrice v-model="catalogSegments[service.id]" :reference="data.references?.[service.id]" :service-name="service.name" />
-                <div class="card-link"><B :href="serviceHref(service)" :aria-label="'Ver detalles de ' + service.name" arrow>Ver detalles</B></div>
+                <div class="card-link"><B compact :href="serviceHref(service)" :aria-label="'Ver detalles de ' + service.name" arrow>Ver detalles</B></div>
             </v-card>
         </div>        <Empty v-else title="No encontramos servicios con esos filtros." text="Probá otra búsqueda o volvé a ver todas las propuestas."><B @click="clear">Limpiar filtros</B></Empty>
         <div class="notice"><I name="info" /><p>Cada proyecto tiene su propio alcance. Los entregables, el precio y las condiciones se definen en una propuesta profesional.</p></div>
@@ -207,22 +207,23 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
 .catalog-page button:focus-visible { outline: 2px solid #153b64; outline-offset: 3px; }
 
 /* Cada tarjeta mantiene categoría, alcance y precio en un orden común para facilitar la comparación. */
-.catalog-page .service-card { padding: 1.5rem; border: 1px solid #1f6f7f26; border-top: 4px solid #2db3a3; box-shadow: var(--card-shadow); border-radius: 18px; }
+.catalog-page .service-card { min-height: 0; padding: 1.25rem; border: 1px solid #1f6f7f26; border-top: 4px solid #2db3a3; box-shadow: var(--card-shadow); border-radius: 18px; }
 .catalog-page .service-card:focus-within { border-color: #1f6f7f; box-shadow: var(--card-shadow-raised); }
 @media (hover: hover) { .catalog-page .service-card:hover { box-shadow: var(--card-shadow-raised); border-color: #1f6f7f66; border-top-color: #2db3a3; } }
-.catalog-page .service-category { padding-bottom: 16px; border-bottom: 1px solid #1f6f7f1f; margin-bottom: 16px; }
-.catalog-page .catalog-service-icon { box-sizing: content-box; width: 24px; height: 24px; padding: 12px; border-radius: 14px; color: #153b64; background: #2db3a326; }
-.service-pricing-badge { align-self: flex-start; display: inline-flex; width: fit-content; padding: 4px 10px; margin-bottom: 12px; border-radius: 20px; background: #f5f9fa; color: #446075; font-size: .75rem; font-weight: 700; }
+.catalog-page .service-category { padding-bottom: 12px; border-bottom: 1px solid #1f6f7f1f; margin-bottom: 12px; }
+.catalog-page .catalog-service-icon { box-sizing: content-box; width: 22px; height: 22px; padding: 9px; border-radius: 10px; color: #153b64; background: #2db3a326; }
+.service-pricing-badge { align-self: flex-start; display: inline-flex; width: fit-content; padding: 3px 8px; margin-bottom: 10px; border-radius: 20px; background: #f5f9fa; color: #446075; font-size: .75rem; font-weight: 700; }
 .service-pricing-badge.has-reference { background: #1f6f7f14; color: #1f6f7f; }
 .service-category { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.25rem; }
 .catalog-page .service-category .eyebrow { margin: 0; color: #1f6f7f; font-size: .75rem; letter-spacing: .08em; }
 .catalog-service-icon { width: 2rem; height: 2rem; color: #1f6f7f; flex-shrink: 0; }
-.catalog-page .service-card h2 { font-weight: 700; line-height: 1.2; margin-bottom: .75rem; }
+.catalog-page .service-card h2 { font-size: 1.3rem; font-weight: 700; line-height: 1.2; margin-bottom: .6rem; }
+.catalog-page .service-description { line-height: 1.5; margin-bottom: 12px; font-size: .9rem; }
 .service-description { color: #446075; }
-.service-deliverables { display: grid; gap: .5rem; margin: .25rem 0 1rem; padding: 0; list-style: none; }
+.service-deliverables { display: grid; gap: .3rem; margin: .25rem 0 .5rem; padding: 0; list-style: none; }
 .service-deliverables li { display: flex; align-items: start; gap: .5rem; font-size: .875rem; color: #446075; }
 .service-deliverables .icon { width: 1.1rem; height: 1.1rem; margin-top: .15rem; color: #1f6f7f; flex-shrink: 0; }
-.catalog-page .service-card .card-link { margin-top: 1rem; }
+.catalog-page .service-card .card-link { margin-top: .75rem; }
 .catalog-page .service-card .card-link .btn { width: 100%; padding-inline: .9rem; }
 @media (max-width: 1000px) { .catalog-page .catalog-tools-row { grid-template-columns: minmax(0,1fr); } }
 @media (max-width: 600px) { .catalog-page .catalog-tools, .catalog-page .service-card { padding: 1.15rem; } }

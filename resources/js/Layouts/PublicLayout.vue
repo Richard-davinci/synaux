@@ -83,7 +83,7 @@ watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false;
                 <a v-for="[label, href] in publicNav" :key="href" :href="referenceHref(href, $page.props)" :aria-current="$page.url.split('?')[0] === href ? 'page' : undefined">{{ label }}</a>
                 <div v-if="!$page.props.auth && !$page.props.preview" class="nav-actions"><SynauxButton href="/ingresar" variant="ghost">Ingresar</SynauxButton><SynauxButton href="/crear-cuenta">Crear cuenta</SynauxButton></div>
                 <!-- Fuera del área privada solo hace falta un acceso directo al panel de la cuenta. -->
-                <SynauxButton v-if="$page.props.auth && !$page.props.preview && !hasWorkspace" :href="$page.props.auth.is_admin ? '/gestion' : '/cliente'">Ir a mi panel</SynauxButton>
+                <SynauxButton compact v-if="$page.props.auth && !$page.props.preview && !hasWorkspace" :href="$page.props.auth.is_admin ? '/gestion' : '/cliente'">Ir a mi panel</SynauxButton>
             </nav>
             <!-- Solo una sesión real consulta notificaciones; el prototipo no accede a actividad privada. -->
             <SynauxNotificationCenter v-if="$page.props.auth && !$page.props.preview" />

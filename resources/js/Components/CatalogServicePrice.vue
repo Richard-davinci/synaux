@@ -27,14 +27,16 @@ const price = computed(() => options.value.find(item => item.label === segment.v
 </template>
 <style scoped>
 /* Las referencias mantienen un pie común en las tarjetas y usan únicamente la paleta de synaux. */
-.catalog-price { margin-top: auto; padding-top: 1.25rem; }
-.price-segments { display: flex; flex-wrap: wrap; gap: .35rem; padding-bottom: 1rem; }
-.price-segments button { flex: 1; min-height: 44px; border: 1px solid #446075; border-radius: .5rem; padding: .4rem .55rem; color: #446075; background: #fff; font: inherit; font-size: .875rem; font-weight: 600; cursor: pointer; }
-.price-segments button[aria-pressed='true'] { background: #153b64; border-color: #153b64; color: #fff; }
-.price-segments button:hover:not([aria-pressed='true']) { color: #153b64; border-color: #153b64; background: #f5f9fa; }
+.catalog-price { margin-top: auto; padding-top: .75rem; }
+/* El segmento es un selector secundario; su estado activo no compite con la acción de ver detalles. */
+.price-segments { display: flex; gap: 3px; padding: 3px; margin-bottom: 10px; border: 1px solid #1f6f7f22; border-radius: 8px; background: #f5f9fa; }
+.price-segments button { flex: 1; min-width: 0; min-height: 30px; border: 0; border-radius: 5px; padding: 4px 5px; color: #446075; background: transparent; font: inherit; font-size: .75rem; font-weight: 600; cursor: pointer; }
+.price-segments button[aria-pressed='true'] { background: #fff; color: #153b64; box-shadow: 0 1px 4px #153b6426; }
+.price-segments button:hover:not([aria-pressed='true']) { color: #153b64; background: #fff; }
+@media (pointer: coarse) { .price-segments button { min-height: 44px; } }
 .price-segments button:focus-visible { outline: 2px solid #153b64; outline-offset: 2px; }
 /* El precio ocupa una superficie propia y conserva contraste con los controles de segmento. */
-.price-summary { display: grid; gap: .35rem; padding: 16px; background: #f5f9fa; border: 1px solid #1f6f7f22; border-radius: 12px; }
-.price-summary span, .price-summary small { color: #446075; font-size: .875rem; }
-.price-summary strong { color: #153b64; font-family: 'Space Grotesk', sans-serif; font-size: 1.6rem; line-height: 1.25; overflow-wrap: anywhere; }
+.price-summary { display: grid; gap: .2rem; padding: 12px; background: #f5f9fa; border: 1px solid #1f6f7f22; border-radius: 12px; }
+.price-summary span, .price-summary small { color: #446075; font-size: .8rem; }
+.price-summary strong { color: #153b64; font-family: 'Space Grotesk', sans-serif; font-size: 1.4rem; line-height: 1.25; overflow-wrap: anywhere; }
 </style>
