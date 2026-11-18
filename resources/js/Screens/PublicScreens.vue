@@ -117,48 +117,51 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
         <div class="notice"><I name="info" /><p>Cada proyecto tiene su propio alcance. Los entregables, el precio y las condiciones se definen en una propuesta profesional.</p></div>
     </section>
 
-    <!-- Cada detalle conserva el servicio elegido; sus entregables no se confunden con un contrato. -->
-    <section v-else-if="data.screen === 'servicio'" class="page shell service-detail">
-        <B href="/plataforma" variant="ghost" class="back">← Volver a servicios</B>
+    <!-- La ficha reúne el alcance y la modalidad de presupuesto de cada servicio. -->
+    <section v-else-if="data.screen === 'servicio'" class="page shell service-detail public-editorial public-typography">
+        <B href="/plataforma" variant="ghost" compact class="project-back">← Volver al catálogo</B>
         <header class="service-intro">
             <div>
-                <div class="service-category"><I :name="categoryIcons[selected.category] ?? 'folder'" class="catalog-service-icon" /><p class="eyebrow">{{ selected.category }}</p></div>
-                <h1>{{ selected.name }}</h1>
-                <p class="lead">{{ selected.description }}</p>
+                <I :name="categoryIcons[selected.category] ?? 'folder'" class="editorial-icon" />
+                <T class="public-page-heading" :eyebrow="selected.category" :title="selected.name" :description="selected.description" />
             </div>
-            <img class="service-image" :src="detailImage.src" :alt="detailImage.alt" width="1200" height="800" fetchpriority="high" />
+            <img class="service-image" :src="detailImage.src" :alt="detailImage.alt" width="1200" height="800" fetchpriority="high">
         </header>
 
-        <!-- Los tres precios permiten comparar el alcance sin salir de esta página. -->
-        <v-card class="card detail-pricing">
-            <div class="section-head">
-                <h2>Precios estimativos por cliente</h2>
-                <span v-if="detailReference">Moneda: {{ detailReference.currency }}</span>
-            </div>
-            <p v-if="detailReference?.segments?.length">Elegí el tipo de cliente para continuar con esa referencia.</p>
-            <div v-if="detailPrices.length" class="detail-price-grid" role="group" aria-label="Precio por tipo de cliente">
-                <button v-for="price in detailPrices" :key="price.label" type="button" class="detail-price-option" :aria-pressed="price.label === chosenPrice?.label" @click="detailSegment = price.label">
-                    <span class="detail-price-label">{{ price.label }}</span>
-                    <strong>{{ detailPrice(price.min, price.max) }}</strong>
-                    <span v-if="segmentDescriptions[price.label]" class="detail-price-description">{{ segmentDescriptions[price.label] }}</span>
-                    <span class="detail-price-status">{{ price.label === chosenPrice?.label ? 'Seleccionado' : 'Elegir' }}</span>
-                </button>
-            </div>
-            <div v-else class="soft-panel"><h3>Presupuesto a medida</h3><p>Contanos qué necesitás para definir los entregables y el importe de tu proyecto.</p></div>
-            <p v-if="detailReference" class="detail-price-date">Valores vigentes desde {{ date(detailReference.date) }}.</p>
-            <div class="detail-price-info">
-                <I name="info" />
-                <p>Los precios son orientativos. El importe final puede variar según la complejidad, los entregables, los plazos y las revisiones acordadas. synaux confirma el alcance y las condiciones en el presupuesto formal.</p>
-            </div>
-            <div class="button-row">
-                <B :href="estimateHref" arrow>Continuar con mi estimación</B>
-                <B href="/contacto" variant="secondary">Hacer una consulta</B>
-            </div>
-        </v-card>
+        <!-- Los entregables tienen su propia tarjeta y el precio distingue referencias de cotizaciones manuales. -->
+        <div class="service-detail-grid">
+            <article v-if="selected.includes?.length" class="editorial-panel service-includes">
+                <h2>Qué incluye</h2>
+                <ul class="service-deliverables">
+                    <li v-for="item in selected.includes" :key="item"><I name="check" />{{ item }}</li>
+                </ul>
+            </article>
 
-        <div class="content-grid">
-            <article><h2>Qué incluye</h2><ul class="check-list"><li v-for="item in selected.includes" :key="item"><I name="check" />{{ item }}</li></ul></article>
-            <aside class="soft-panel service-next-steps"><I name="file" /><h2>Cómo seguimos</h2><p>Completá la estimación y enviá tu solicitud privada. synaux revisará tus necesidades y preparará una propuesta con precio, plazo y condiciones.</p></aside>
+            <section class="editorial-panel detail-pricing" aria-labelledby="service-pricing-title">
+                <h2 id="service-pricing-title">{{ detailReference ? 'Precio orientativo' : 'Presupuesto a medida' }}</h2>
+                <template v-if="detailReference">
+                    <p v-if="detailReference.segments?.length">Elegí el tipo de cliente para ver el importe en {{ detailReference.currency }}.</p>
+                    <div v-if="detailReference.segments?.length" class="detail-price-grid" role="group" aria-label="Precio por tipo de cliente">
+                        <button v-for="price in detailPrices" :key="price.label" type="button" class="detail-price-option"
+                            :aria-pressed="price.label === chosenPrice?.label" @click="detailSegment = price.label">
+                            <span class="detail-price-label">{{ price.label }} <I v-if="price.label === chosenPrice?.label" name="check" /></span>
+                            <strong>{{ detailPrice(price.min, price.max) }}</strong>
+                            <span v-if="segmentDescriptions[price.label]" class="detail-price-description">{{ segmentDescriptions[price.label] }}</span>
+                        </button>
+                    </div>
+                    <p v-else-if="chosenPrice" class="detail-base-price"><strong>{{ detailPrice(chosenPrice.min, chosenPrice.max) }}</strong> {{ detailReference.currency }}</p>
+                    <p class="detail-price-date">Valores vigentes desde {{ date(detailReference.date) }}.</p>
+                    <div class="detail-price-info">
+                        <I name="info" />
+                        <p>El importe final depende del alcance, los entregables y los plazos acordados. Se confirma en el presupuesto formal.</p>
+                    </div>
+                </template>
+                <p v-else>Contanos qué necesitás. Revisamos tu objetivo y preparamos una propuesta con entregables, precio, plazo y condiciones.</p>
+                <div class="editorial-actions detail-actions">
+                    <B :href="detailReference ? estimateHref : '/solicitudes/nueva?servicio=' + encodeURIComponent(selected.id)" arrow>{{ detailReference ? 'Continuar con mi estimación' : 'Solicitar presupuesto' }}</B>
+                    <B href="/contacto" variant="secondary">Hacer una consulta</B>
+                </div>
+            </section>
         </div>
     </section>
     <!-- Las imágenes se sirven localmente y cada tarjeta abre el trabajo correspondiente. -->
@@ -303,38 +306,34 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
 @media (max-width: 1000px) { .catalog-page .catalog-tools-row { grid-template-columns: minmax(0,1fr); gap: 10px; } .catalog-page .clear-catalog { justify-self: end; } }
 @media (max-width: 600px) { .catalog-page .catalog-tools { padding: 14px; } .catalog-page .service-card { padding: 1.15rem; } }
 
-/* La vista independiente agrupa alcance, precios e información con la identidad de synaux. */
-.service-intro { display: grid; grid-template-columns: minmax(0,1.2fr) minmax(0,1fr); align-items: center; gap: 2rem; margin-block: 1.5rem 2.5rem; }
-.service-image { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 1.25rem; }
-.service-intro h1 { margin-bottom: 1rem; font-size: clamp(2.25rem,4vw,3.75rem); line-height: 1.08; }
-.detail-pricing { margin-bottom: 2rem; }
-.detail-pricing h2 { margin: 0; }
-.detail-price-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-block: 1.5rem; }
-.detail-price-option { display: flex; flex-direction: column; align-items: start; text-align: left; font: inherit; cursor: pointer; padding: 1.5rem; border: 1px solid rgb(31 111 127 / 20%); border-radius: .875rem; background: #f5f9fa; }
-.detail-price-label { display: block; font-weight: 700; font-size: 1.1rem; margin-bottom: .75rem; }
-.detail-price-option strong { display: block; color: #153b64; font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.25rem, 2vw, 1.75rem); overflow-wrap: anywhere; }
-.detail-price-description { display: block; margin: .75rem 0 0; color: #446075; font-size: .875rem; }
-.detail-price-option:hover { border-color: #1f6f7f; }
-.detail-price-option[aria-pressed='true'] { border: 2px solid #1f6f7f; box-shadow: 0 0 0 2px rgb(45 179 163 / 15%); }
-.detail-price-option:focus-visible { outline: 3px solid #153b64; outline-offset: 3px; }
-.detail-price-status { margin-top: auto; padding-top: 1rem; color: #1f6f7f; font-size: .875rem; font-weight: 700; }
-.service-intro h1 { font-weight: 700; }
-.detail-actions { gap: 1rem; padding-top: 1rem; border-top: 1px solid rgb(31 111 127 / 18%); }
-@media (max-width: 700px) { .detail-actions .btn { width: 100%; } }
-.detail-price-date { font-size: .875rem; color: #446075; }
-.detail-price-info { display: flex; align-items: start; gap: .75rem; margin-block: 1.25rem; padding: 1rem; background: #f5f9fa; border-radius: .75rem; }
+/* La ficha usa la escala pública y une los entregables con el siguiente paso. */
+.service-intro { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: center; gap: clamp(20px, 4vw, 48px); margin-bottom: 28px; }
+.service-detail .service-intro :deep(.public-page-heading) { margin-bottom: 0; }
+.service-image { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; border: 1px solid #1f6f7f26; border-radius: 16px; box-shadow: 0 6px 20px #153b6412; }
+.service-detail-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 8fr); align-items: start; gap: clamp(18px, 3vw, 32px); }
+.detail-pricing:only-child { grid-column: 1 / -1; }
+.service-includes .service-deliverables { margin: 0; gap: 12px; }
+.service-detail .service-includes li { font-size: 1rem; text-wrap: pretty; }
+.detail-pricing { border-top: 3px solid #2db3a3; }
+.detail-price-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-block: 16px; }
+.detail-price-option { display: flex; flex-direction: column; gap: 6px; min-width: 0; text-align: left; font: inherit; color: #153b64; padding: 12px; border: 1px solid #1f6f7f33; border-radius: 10px; background: #fff; cursor: pointer; }
+.detail-price-label { display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; font-weight: 700; }
+.detail-price-label .icon { width: 16px; height: 16px; color: #1f6f7f; }
+.detail-price-option strong, .detail-base-price strong { font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; line-height: 1.25; overflow-wrap: anywhere; }
+.detail-price-description { color: #446075; font-size: .875rem; text-wrap: pretty; }
+.detail-price-option:hover, .detail-price-option[aria-pressed='true'] { border-color: #1f6f7f; }
+.detail-price-option[aria-pressed='true'] { background: #2db3a31a; }
+.detail-price-option:focus-visible { outline: 2px solid #153b64; outline-offset: 2px; }
+.service-detail .detail-pricing .detail-price-date { font-size: .875rem; margin-bottom: 12px; }
+.detail-price-info { display: flex; align-items: start; gap: 10px; padding: 12px; background: #f5f9fa; border-radius: 10px; }
+.detail-price-info .icon { flex-shrink: 0; color: #1f6f7f; }
 .detail-price-info p { margin: 0; }
-.service-detail .content-grid { align-items: start; }
-/* El panel de próximos pasos conserva espacio interior y una jerarquía menor que el título de la página. */
-.service-detail .service-next-steps { padding: 1.5rem; border: 1px solid rgb(31 111 127 / 18%); border-radius: .875rem; background: #f5f9fa; }
-.service-detail .content-grid h2 { margin: 0 0 1rem; font-size: clamp(1.5rem,2.5vw,2rem); font-weight: 700; line-height: 1.2; }
-.service-next-steps p { margin-bottom: 0; line-height: 1.65; color: #446075; }
-.service-next-steps > .icon { width: 1.5rem; height: 1.5rem; color: #1f6f7f; margin-bottom: .75rem; }
-.detail-pricing > .soft-panel { padding: 1.25rem; border-radius: .75rem; }
-@media (max-width: 900px) { .service-intro { grid-template-columns: minmax(0,1fr); } .service-image { max-height: 360px; } }
-.service-detail .content-grid article h2 { margin-top: 0; }
-@media (max-width: 700px) {
-    .detail-price-grid { grid-template-columns: minmax(0, 1fr); }
+.detail-actions { margin-top: 18px; }
+@media (max-width: 900px) {
+    .service-detail-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 620px) {
+    .service-intro, .detail-price-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* Las páginas públicas comparten la escala del catálogo y las tipografías de marca. */
