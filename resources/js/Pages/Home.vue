@@ -72,7 +72,8 @@ h1 em { color: #1f6f7f; font-style: normal; }
 /* La firma compacta ocupa el borde inferior derecho y deja libre la pantalla de la notebook. */
 .landing-brand-signature { position: absolute; bottom: 0; right: -12px; width: min(288px,80%); padding: 16px; background: #fff; border: 1px solid #1f6f7f14; border-radius: 16px; box-shadow: 0 4px 16px #153b640a; }
 .landing-brand-signature :deep(.brand-logo) { display: block; width: 100%; height: auto; }
-.landing-hero-pattern { position: absolute; top: -12px; right: -16px; width: min(76%,380px); aspect-ratio: 510 / 184; background-position: right top; opacity: .4; }
+/* La trama asoma 50 px sobre la foto y 24 px a su derecha, conservando la escala compartida. */
+.landing-hero-pattern { position: absolute; top: -30px; right: -24px; width: min(76%,380px); height: 180px; background-position: right top; opacity: .4; }
 .landing-visual { position: relative; margin: 0; border: 1px solid #1f6f7f22; border-radius: 20px; overflow: hidden; background: #fff; box-shadow: 0 6px 20px #153b6412; }
 .landing-visual img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; }
 .landing-section { padding-block: clamp(40px,5vw,64px); }
@@ -103,5 +104,6 @@ h1 em { color: #1f6f7f; font-style: normal; }
 .landing-close-actions { display: grid; gap: 12px; }
 @media (max-width: 1000px) { .landing-service-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media (max-width: 780px) { .landing-hero, .landing-budget { grid-template-columns: minmax(0,1fr); } .landing-hero { gap: 28px; } h1 { max-width: 20ch; } .landing-visual img { aspect-ratio: 3 / 2; } .landing-steps { grid-template-columns: minmax(0,1fr); gap: 24px; } .step-top { margin-bottom: 12px; } .landing-close { padding: 24px; } }
-@media (max-width: 540px) { .landing-visual-wrap { padding-bottom: 80px; } .landing-brand-signature { right: 0; width: min(240px,80%); padding: 16px; } .landing-service-grid { grid-template-columns: minmax(0,1fr); } .landing-close-actions { width: 100%; } .landing-actions { gap: 16px; } }
+/* En móvil la esquina respeta el margen lateral para evitar desbordamientos. */
+@media (max-width: 540px) { .landing-hero-pattern { top: -24px; right: -10px; height: 160px; } .landing-visual-wrap { padding-bottom: 80px; } .landing-brand-signature { right: 0; width: min(240px,80%); padding: 16px; } .landing-service-grid { grid-template-columns: minmax(0,1fr); } .landing-close-actions { width: 100%; } .landing-actions { gap: 16px; } }
 </style>
