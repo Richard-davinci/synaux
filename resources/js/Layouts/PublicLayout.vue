@@ -46,7 +46,7 @@ const area = computed(() => page.props.area ?? (page.url.startsWith('/gestion') 
 const publicNav = [['Catálogo', '/plataforma'], ['Portfolio', '/portfolio'], ['Nosotros', '/nosotros'], ['Contacto', '/contacto']];
 const allNav = computed(() => area.value === 'cliente' ? [['Resumen', '/cliente'], ['Estimaciones', '/cliente/estimaciones'], ['Solicitudes', '/cliente/solicitudes'], ['Publicaciones', '/cliente/publicaciones'], ['Propuestas', '/cliente/propuestas'], ['Presupuestos', '/cliente/presupuestos'], ['Proyectos', '/cliente/proyectos']]
     : area.value === 'profesional' ? [['Resumen', '/profesional'], ['Oportunidades', '/oportunidades'], ['Mis propuestas', '/profesional/propuestas'], ['Invitaciones', '/profesional/invitaciones'], ['Presupuestos', '/profesional/presupuestos'], ['Proyectos', '/profesional/proyectos'], ['Mi perfil', '/profesional/perfil']]
-    : area.value === 'gestion' ? [['Resumen', '/gestion'], ['Solicitudes', '/gestion/solicitudes'], ['Presupuestos', '/gestion/presupuestos'], ['Proyectos', '/gestion/proyectos'], ['Consultas', '/gestion/contactos'], ['Portfolio', '/gestion/portfolio'], ['Administración', '/admin/servicios']]
+    : area.value === 'gestion' ? [['Resumen', '/gestion'], ['Solicitudes', '/gestion/solicitudes'], ['Presupuestos', '/gestion/presupuestos'], ['Proyectos', '/gestion/proyectos'], ['Consultas', '/gestion/contactos'], ['Portfolio', '/gestion/portfolio']]
     : publicNav);
 // Las entradas del marketplace solo aparecen para quien tiene acceso a la segunda etapa.
 const stageTwoPaths = ['/cliente/publicaciones', '/cliente/propuestas', '/cliente/invitaciones'];
@@ -66,7 +66,6 @@ const navbarRole = computed(() => {
     return page.props.auth ? (area.value === 'profesional' ? 'profesional' : 'cliente') : null;
 });
 const accountName = computed(() => page.props.auth?.name ?? (page.props.preview ? 'Cuenta de ejemplo' : ''));
-const workspaceTitle = computed(() => area.value === 'gestion' ? 'Panel de gestión' : area.value === 'profesional' ? 'Área profesional' : 'Mi espacio');
 const currentSection = computed(() => {
     if (page.url.split('?')[0].split('#')[0] === '/mi-perfil' || ['cuenta-admin', 'cuenta-cliente'].includes(page.props.referenceKey)) return 'mi-perfil';
     if (page.props.screen === 'admin' || page.url.startsWith('/admin')) return 'administracion';
@@ -74,6 +73,11 @@ const currentSection = computed(() => {
         proyecto: 'proyectos', estimacion: 'estimaciones', 'editor-trabajo': 'portfolio' })[page.props.screen]
         ?? (page.props.section || 'resumen');
 });
+// Los dos destinos superiores separan gestión de administración; la sección actual determina el enlace destacado y el título móvil.
+const adminView = computed(() => area.value === 'gestion' && currentSection.value === 'administracion');
+const workspaceTitle = computed(() => adminView.value ? 'Administración' : area.value === 'gestion' ? 'Panel de gestión' : area.value === 'profesional' ? 'Área profesional' : 'Mi espacio');
+// Los enlaces de áreas aparecen para administradores reales y, con rutas aisladas, en las pantallas de gestión de la galería.
+const showAreaSwitch = computed(() => page.props.preview ? area.value === 'gestion' : !!page.props.auth?.is_admin);
 watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false; });
 </script>
 <template>
@@ -89,11 +93,15 @@ watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false;
                 <a v-for="[label, href] in publicNav" :key="href" :href="referenceHref(href, $page.props)" :aria-current="$page.url.split('?')[0] === href ? 'page' : undefined">{{ label }}</a>
                 <!-- En móvil, los accesos de visitantes acompañan al menú desplegado. -->
                 <div v-if="!$page.props.auth && !$page.props.preview" class="nav-actions mobile-auth"><SynauxButton compact href="/ingresar" variant="ghost">Ingresar</SynauxButton><SynauxButton compact href="/crear-cuenta">Crear cuenta</SynauxButton></div>
+                <!-- La cuenta administradora puede cambiar de área también desde el menú superior móvil. -->
+                <div v-if="showAreaSwitch" class="mobile-area-links"><a :href="referenceHref('/gestion', $page.props)" :aria-current="area === 'gestion' && !adminView ? 'page' : undefined">Ir al panel</a><a :href="referenceHref('/admin/servicios', $page.props)" :aria-current="adminView ? 'page' : undefined">Ir a administración</a></div>
             </nav>
             <!-- Cuenta y notificaciones comparten un grupo alineado al extremo derecho. -->
-            <div v-if="!$page.props.preview" class="header-account" :class="{ 'guest-account': !$page.props.auth }">
-                <template v-if="!$page.props.auth"><SynauxButton compact href="/ingresar" variant="ghost">Ingresar</SynauxButton><SynauxButton compact href="/crear-cuenta">Crear cuenta</SynauxButton></template>
-                <template v-else><SynauxButton v-if="!hasWorkspace" compact class="panel-access" :href="$page.props.auth.is_admin ? '/gestion' : '/cliente'">Ir a mi panel</SynauxButton><SynauxNotificationCenter /></template>
+            <div v-if="!$page.props.preview || showAreaSwitch" class="header-account" :class="{ 'guest-account': !$page.props.auth && !$page.props.preview }">
+                <!-- La galería convierte estos destinos en referencias; en la sesión real las rutas mantienen autorización del servidor. -->
+                <nav v-if="showAreaSwitch" class="header-area-links" aria-label="Áreas de la cuenta"><a :href="referenceHref('/gestion', $page.props)" :aria-current="area === 'gestion' && !adminView ? 'page' : undefined">Panel</a><a :href="referenceHref('/admin/servicios', $page.props)" :aria-current="adminView ? 'page' : undefined">Administración</a></nav>
+                <template v-if="!$page.props.preview && !$page.props.auth"><SynauxButton compact href="/ingresar" variant="ghost">Ingresar</SynauxButton><SynauxButton compact href="/crear-cuenta">Crear cuenta</SynauxButton></template>
+                <template v-else-if="!$page.props.preview"><SynauxButton v-if="!hasWorkspace && !$page.props.auth.is_admin" compact class="panel-access" href="/cliente">Ir a mi panel</SynauxButton><SynauxNotificationCenter /></template>
             </div>
         </header>
         </div>
@@ -148,17 +156,29 @@ watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false;
 .header .main-nav { grid-column: 2; grid-row: 1; justify-self: center; }
 .header-account { grid-column: 3; grid-row: 1; justify-self: end; display: flex; align-items: center; gap: 12px; }
 .header-account :deep(.panel-access) { box-shadow: none; }
-.header .mobile-toggle, .header .mobile-auth { display: none; }
+/* Los accesos de la cuenta administradora usan la misma línea turquesa para señalar el área abierta. */
+.header-area-links { display: flex; align-items: center; gap: 4px; }
+.header-area-links a { display: inline-flex; align-items: center; min-height: 40px; padding: 8px 10px; border-radius: 8px; color: #153b64; font-weight: 700; text-decoration: none; white-space: nowrap; }
+.header-area-links a:hover { background: #2db3a31a; }
+.header-area-links a[aria-current='page'] { box-shadow: inset 0 -3px 0 #2db3a3; }
+/* El cambio de área conserva una referencia visible para navegación con teclado en escritorio y móvil. */
+.header-area-links a:focus-visible, .mobile-area-links a:focus-visible { outline: 2px solid #2db3a3; outline-offset: 2px; }
+.header .mobile-toggle, .header .mobile-auth, .header .mobile-area-links { display: none; }
 @media (max-width: 900px) {
     .header { display: flex; flex-wrap: wrap; gap: 12px; }
     .header .logo-button { flex: 1 1 0; min-width: 0; }
     .header .logo-button img { max-width: 100%; }
     .header-account { order: 1; gap: 8px; }
+    .header .header-area-links { display: none; }
     .header .guest-account { display: none; }
     .header .mobile-toggle { order: 2; display: block; margin-left: 0; }
     .header .main-nav { order: 3; top: 100%; }
     .header .main-nav.mobile-open { display: flex; }
     .header .mobile-auth { display: grid; }
+    /* En pantallas angostas el cambio de área aparece dentro del menú desplegable y mantiene objetivos táctiles amplios. */
+    .header .mobile-area-links { display: grid; gap: 4px; padding-top: 12px; border-top: 1px solid #2db3a344; }
+    .mobile-area-links a { display: flex; align-items: center; min-height: 44px; padding: 10px 12px; color: #153b64; font-weight: 700; text-decoration: none; }
+    .mobile-area-links a[aria-current='page'] { box-shadow: inset 3px 0 0 #2db3a3; background: #2db3a31a; }
 }
 @media (max-width: 1100px) {
     .with-workspace { display: block; }
