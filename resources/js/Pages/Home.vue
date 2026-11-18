@@ -72,8 +72,8 @@ h1 em { color: #1f6f7f; font-style: normal; }
 /* La firma compacta ocupa el borde inferior derecho y deja libre la pantalla de la notebook. */
 .landing-brand-signature { position: absolute; bottom: 0; right: -12px; width: min(288px,80%); padding: 16px; background: #fff; border: 1px solid #1f6f7f14; border-radius: 16px; box-shadow: 0 4px 16px #153b640a; }
 .landing-brand-signature :deep(.brand-logo) { display: block; width: 100%; height: auto; }
-/* La trama asoma 50 px sobre la foto y 24 px a su derecha, conservando la escala compartida. */
-.landing-hero-pattern { position: absolute; top: -30px; right: -24px; width: min(76%,380px); height: 180px; background-position: right top; opacity: .4; }
+/* La trama conserva su escala y se desvanece en los extremos para evitar el corte rectangular de las piezas. */
+.landing-hero-pattern { position: absolute; top: -30px; right: -24px; width: min(76%,380px); height: 180px; background-position: right top; opacity: .4; mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent), linear-gradient(to bottom, transparent, #000 12px, #000 calc(100% - 28px), transparent); mask-composite: intersect; }
 .landing-visual { position: relative; margin: 0; border: 1px solid #1f6f7f22; border-radius: 20px; overflow: hidden; background: #fff; box-shadow: 0 6px 20px #153b6412; }
 .landing-visual img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; }
 .landing-section { padding-block: clamp(40px,5vw,64px); }
