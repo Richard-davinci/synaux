@@ -106,7 +106,8 @@ watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false;
         </v-dialog>
         <!-- La firma de cierre mantiene el fondo blanco del diseño y el original a color con eslogan. -->
         <!-- El pie de la landing aplica la guía de marca sobre el diseño compartido. -->
-        <footer :class="{ 'landing-footer': landing, 'workspace-footer': hasWorkspace }"><div class="shell footer-grid"><a :href="referenceHref('/', $page.props)" aria-label="synaux: presentación"><BrandLogo /></a><div class="footer-copy"><strong>Conexión, transparencia y crecimiento digital.</strong><p>© {{ year }} synaux.</p></div><nav aria-label="Navegación del pie"><span v-if="landing" class="footer-nav-title">Explorá</span><div class="footer-nav-links"><a v-for="[label, href] in publicNav" :key="href" :href="referenceHref(href, $page.props)">{{ label }}</a></div></nav></div></footer>
+        <!-- La trama forma el borde del pie de la landing y comparte escala con la portada. -->
+        <footer :class="{ 'landing-footer': landing, 'workspace-footer': hasWorkspace }"><div v-if="landing" class="shell synaux-brand-pattern landing-footer-pattern" aria-hidden="true"></div><div class="shell footer-grid"><a :href="referenceHref('/', $page.props)" aria-label="synaux: presentación"><BrandLogo /></a><div class="footer-copy"><strong>Conexión, transparencia y crecimiento digital.</strong><p>© {{ year }} synaux.</p></div><nav aria-label="Navegación del pie"><span v-if="landing" class="footer-nav-title">Explorá</span><div class="footer-nav-links"><a v-for="[label, href] in publicNav" :key="href" :href="referenceHref(href, $page.props)">{{ label }}</a></div></nav></div></footer>
     </v-app>
 </template>
 

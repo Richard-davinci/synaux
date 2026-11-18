@@ -250,14 +250,15 @@
 .synaux-app footer.landing-footer {
     display: block;
     width: 100%;
-    padding: 32px 0;
+    padding: 0;
     background: #f5f9fa;
 }
 
 .landing-footer > .footer-grid {
     display: grid;
     grid-template-columns: 160px minmax(240px, 1fr) auto;
-    align-items: end;
+    align-items: center;
+    padding-block: 28px;
     gap: clamp(20px, 3.4vw, 40px);
 }
 
@@ -272,9 +273,14 @@
     height: auto;
 }
 
-/* La firma mantiene la alineación inferior elegida y agrupa cada función en un bloque reconocible. */
+/* Los bloques de marca, firma y navegación comparten el centro vertical del pie. */
 .landing-footer .footer-copy { max-width: 410px; row-gap: 8px; }
 .landing-footer .footer-copy strong { max-width: 100%; }
 .landing-footer .footer-nav-links a { min-height: 32px; display: inline-flex; align-items: center; }
-@media (max-width: 900px) { .landing-footer > .footer-grid { grid-template-columns: 160px minmax(0,1fr); align-items: end; gap: 24px; } .landing-footer .footer-grid nav { grid-column: 1 / -1; } }
+@media (max-width: 900px) { .landing-footer > .footer-grid { grid-template-columns: 160px minmax(0,1fr); align-items: center; gap: 24px; } .landing-footer .footer-grid nav { grid-column: 1 / -1; } }
 @media (max-width: 540px) { .landing-footer > .footer-grid { grid-template-columns: minmax(0,1fr); } .landing-footer .footer-grid nav { grid-column: auto; } .landing-footer .footer-copy { display: grid; } }
+
+/* La última trama amplia se muestra sin repetición ni deformación.
+   Su ancho fijo conserva el tamaño anterior de las piezas (1800 × 380 / 510). */
+.synaux-brand-pattern { background-image: url('../images/brand/synaux-trama-amplia.png'); background-repeat: no-repeat; background-size: 1341px auto; pointer-events: none; }
+.landing-footer-pattern { height: 64px; background-position: center; opacity: .35; }
