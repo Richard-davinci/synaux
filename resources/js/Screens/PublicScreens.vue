@@ -1,5 +1,6 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, useId } from 'vue';
+import { VAutocomplete } from 'vuetify/components';
 import { useForm, usePage } from '@inertiajs/vue3';
 import B from '../Components/SynauxButton.vue';
 import F from '../Components/SynauxField.vue';
@@ -13,20 +14,21 @@ const props = defineProps({ data: Object });
 const page = usePage();
 const query = ref('');
 const category = ref('Todos');
+const categorySearch = ref('');
+const categoryInputId = useId();
 const submit = useSubmit();
 const form = useForm({ name: '', email: '', topic: 'Consulta general', message: '' });
-const categories = computed(() => ['Todos', ...new Set(props.data.services.map(service => service.category))]);
+// El selector mantiene altura fija aunque crezca el catálogo; las categorías publicadas se ordenan por nombre.
+const categories = computed(() => [{ value: 'Todos', label: 'Todas las categorías' },
+    ...[...new Set(props.data.services.map(service => service.category))].sort((a, b) => a.localeCompare(b, 'es'))
+        .map(name => ({ value: name, label: name })),
+]);
 
 // El catálogo utiliza los mismos iconos que la landing y asigna una composición propia a UX/UI.
 const categoryIcons = { 'Desarrollo web': 'web', Diseño: 'palette', Marketing: 'megaphone', 'UX/UI': 'layout' };
-const categoryCounts = computed(() => {
-    const counts = { Todos: props.data.services.length };
-    for (const item of props.data.services) counts[item.category] = (counts[item.category] ?? 0) + 1;
-    return counts;
-});
-
 // La búsqueda admite palabras en cualquier orden, con o sin tildes, y respeta el filtro activo.
 const normalizeSearch = (text) => text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('es');
+const filterCategory = (value, query) => normalizeSearch(query).trim().split(/\s+/).every(word => normalizeSearch(String(value)).includes(word));
 const searchWords = computed(() => normalizeSearch(query.value).trim().split(/\s+/).filter(Boolean));
 const services = computed(() => props.data.services.filter(service => {
     if (category.value !== 'Todos' && service.category !== category.value) return false;
@@ -34,7 +36,6 @@ const services = computed(() => props.data.services.filter(service => {
     const searchableText = normalizeSearch([service.name, service.category, service.summary].join(' '));
     return searchWords.value.every(word => searchableText.includes(word));
 }));
-const resultsLabel = computed(() => services.value.length === 1 ? '1 resultado' : `${services.value.length} resultados`);
 // El enlace del catálogo conserva el segmento elegido y solo transmite su etiqueta, nunca un importe.
 const catalogSegments = ref({});
 function serviceHref(service) {
@@ -70,10 +71,10 @@ function detailPrice(min, max) {
     return min === max ? money(min, currency) : money(min, currency) + ' – ' + money(max, currency);
 }
 const sent = computed(() => page.url.includes('enviado=1') || props.data.referenceKey === 'contacto-enviado');
-const clear = () => { query.value = ''; category.value = 'Todos'; };
+const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch.value = ''; };
 </script>
 <template>
-    <!-- Los filtros se generan a partir de los servicios publicados y el contador anuncia cada cambio. -->
+    <!-- Los filtros se generan a partir de los servicios publicados y no alteran sus precios. -->
     <section v-if="data.screen === 'servicios'" class="page shell catalog-page">
         <!-- El catálogo reúne ambos públicos con la paleta compartida y una introducción de mayor jerarquía. -->
         <header class="catalog-intro">
@@ -83,14 +84,12 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
         <div class="catalog-tools">
             <div class="catalog-tools-row">
                 <F v-model="query" type="search" label="Buscar un servicio" placeholder="Ej. tienda online o auditoría SEO" />
-                <div class="filter-row" role="group" aria-label="Filtrar servicios">
-                    <button v-for="item in categories" :key="item" type="button" :class="{active:category === item}" :aria-pressed="category === item" @click="category = item">
-                        {{ item }} <span class="category-count">{{ categoryCounts[item] }}</span>
-                    </button>
+                <!-- La lista buscable evita filas de chips cuando hay muchas categorías. -->
+                <div class="category-picker"><label :for="categoryInputId">Categoría</label>
+                    <VAutocomplete :id="categoryInputId" :model-value="category" v-model:search="categorySearch" :items="categories" item-title="label" item-value="value" aria-label="Categoría"
+                        variant="outlined" density="compact" color="primary" hide-details clearable :custom-filter="filterCategory" :menu-props="{ maxHeight: 260 }"
+                        no-data-text="No encontramos esa categoría." @update:model-value="category = $event ?? 'Todos'" />
                 </div>
-            </div>
-            <div class="catalog-results-bar">
-                <p class="catalog-count" aria-live="polite">{{ resultsLabel }}{{ category !== 'Todos' ? ' en ' + category : '' }}</p>
                 <button v-if="query || category !== 'Todos'" type="button" class="clear-catalog" @click="clear">Limpiar filtros</button>
             </div>
         </div>
@@ -195,19 +194,19 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
 .catalog-intro-notes span { display: inline-flex; align-items: center; gap: 8px; font-size: .9rem; color: #446075; }
 .catalog-intro-notes .icon { color: #1f6f7f; width: 18px; height: 18px; }
 .catalog-page .catalog-tools { background: #fff; padding: 16px 20px; border-color: #1f6f7f33; }
-.catalog-page .catalog-tools-row { grid-template-columns: minmax(220px,.8fr) minmax(0,1.6fr); align-items: center; gap: 1rem; }
-.catalog-page .filter-row button { display: inline-flex; align-items: center; gap: .5rem; font-family: 'Nunito',sans-serif; font-size: .8rem; min-height: 32px; padding: .3rem .65rem; font-weight: 600; border-color: #1f6f7f33; }
-.category-count { font-size: .8rem; opacity: .8; }
-.catalog-results-bar { display: flex; justify-content: space-between; align-items: center; gap: .75rem; margin-top: 8px; }
+.catalog-page .catalog-tools-row { grid-template-columns: minmax(0,1.4fr) minmax(0,1fr) auto; align-items: end; gap: 1rem; }
+/* El buscador y el autocompletado comparten altura y etiquetas alineadas. */
+.category-picker { display: grid; gap: 5px; min-width: 0; }
+.category-picker > label { font-size: .8rem; font-weight: 600; color: #153b64; }
+.category-picker :deep(.v-field) { border-radius: 8px; background: white; }
+.category-picker :deep(.v-field input) { min-height: 0; border: 0; border-radius: 0; background: transparent; padding: 0; padding-inline: inherit; outline: none; }
+.catalog-page .clear-catalog { min-height: 40px; align-self: end; white-space: nowrap; }
 /* El filtro ocupa menos alto; el buscador y las categorías conservan sus etiquetas y foco visible. */
 .catalog-page .catalog-tools :deep(.field) { gap: 5px; font-size: .8rem; }
-.catalog-page .catalog-tools :deep(input[type='search']) { min-height: 36px; padding: 7px 10px; font-size: .875rem; }
-@media (pointer: coarse) { .catalog-page .filter-row button, .catalog-page .catalog-tools :deep(input[type='search']) { min-height: 44px; } }
-.catalog-page .catalog-count { margin: 0; color: #446075; font-size: .75rem; }
+.catalog-page .catalog-tools :deep(input[type='search']) { min-height: 40px; padding: 7px 10px; font-size: .875rem; }
+@media (pointer: coarse) { .catalog-page .clear-catalog, .catalog-page .catalog-tools :deep(input[type='search']) { min-height: 44px; } }
 .clear-catalog { min-height: 32px; padding: .3rem .65rem; border: 1px solid #1f6f7f; border-radius: .5rem; background: #fff; color: #1f6f7f; font: inherit; font-size: .875rem; font-weight: 700; cursor: pointer; }
 .clear-catalog:hover { background: #f5f9fa; }
-.catalog-page .filter-row button:hover:not(.active) { background: #fff; border-color: #153b64; color: #153b64; }
-.catalog-page .filter-row button.active { background: #153b64; border-color: #153b64; color: #fff; }
 .catalog-page button:focus-visible { outline: 2px solid #153b64; outline-offset: 3px; }
 
 /* Cada tarjeta mantiene categoría, alcance y precio en un orden común para facilitar la comparación. */
@@ -229,7 +228,7 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
 .service-deliverables .icon { width: 1.1rem; height: 1.1rem; margin-top: .15rem; color: #1f6f7f; flex-shrink: 0; }
 .catalog-page .service-card .card-link { margin-top: .75rem; }
 .catalog-page .service-card .card-link .btn { width: 100%; padding-inline: .9rem; }
-@media (max-width: 1000px) { .catalog-page .catalog-tools-row { grid-template-columns: minmax(0,1fr); } }
+@media (max-width: 1000px) { .catalog-page .catalog-tools-row { grid-template-columns: minmax(0,1fr); gap: 10px; } .catalog-page .clear-catalog { justify-self: end; } }
 @media (max-width: 600px) { .catalog-page .catalog-tools { padding: 14px; } .catalog-page .service-card { padding: 1.15rem; } }
 
 /* La vista independiente agrupa alcance, precios e información con la identidad de synaux. */
