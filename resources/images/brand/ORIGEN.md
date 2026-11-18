@@ -26,24 +26,6 @@ Dimensiones nativas: 405 × 140. Se utiliza completo y proporcional en el navbar
 
 ## Trama de intensidad uniforme
 
-`./synaux-trama-uniforme.svg` es una copia sin modificaciones de `07 - Recursos finales/Contenido de trama · Intensidad uniforme.svg`, indicada por el usuario el 18/11/2026. Se utiliza como decoración en dos puntos de la landing, conservando los trazos y colores del original.
+## Trama vigente · Group 3
 
-
-## Trama amplia · 18/11/2026
-
-`./synaux-trama-amplia.png` es una copia exacta de `07 - Recursos finales/00 · Referencia/Originales aprobados y tramas.png`, entregada por el usuario. Sustituye la trama corta en la landing. Se muestran fragmentos sin repetición, con un ancho de fondo compartido de 1341 px para conservar la escala de las piezas del hero anterior (380 / 510). La ventana visible cambia según el espacio disponible, sin estirar el dibujo ni aplicar `cover`. El original corto se conserva como referencia.
-
-
-## Trama extendida vectorial · 18/11/2026
-
-`./synaux-trama-extendida.svg` es una copia exacta de `07 - Recursos finales/Group 1.svg` (3600 × 1400), entregada por el usuario para cubrir el footer de borde a borde. Reemplaza la trama PNG en portada y pie. Se conserva la escala anterior con un ancho de fondo de 2682 px, sin repetir; en pantallas superiores a ese ancho se amplía proporcionalmente para cubrirlas. Los originales anteriores se conservan como referencia.
-
-
-## Fragmento de portada con piezas completas
-
-`./synaux-trama-fragmento.json` contiene trazos y colores copiados literalmente del primer grupo de piezas de `synaux-trama-extendida.svg`. El componente `BrandPatternFragment.vue` muestra solo piezas completas que caben en su superficie, a escala 380 / 510, sin degradados, repeticiones ni modificación de los SVG originales. El footer conserva el SVG extendido completo.
-
-
-## Trama transparente para todos los pies · 18/11/2026
-
-`./synaux-trama-transparente.svg` es una copia exacta de `07 - Recursos finales/Group 2.svg` (3600 × 1400), entregada por el usuario. Se utiliza en todos los pies de navegación mediante `PublicLayout.vue`, conservando la escala compartida, sin agregar fondo blanco al SVG. El fragmento de portada y los documentos de presupuesto conservan su tratamiento específico.
+`./synaux-trama.svg` es una copia exacta de `07 - Recursos finales/Group 3.svg` (3600 × 90), entregada por el usuario. Es el único archivo de trama del repositorio y se utiliza en todos los pies de navegación. `BrandPatternFragment.vue` lee los trazos de ese mismo SVG para mostrar piezas completas detrás de la fotografía, sin conservar duplicados ni modificar el original. La escala compartida es 380 / 510 (2682 px para el original completo); el footer solo amplía proporcionalmente en pantallas superiores a ese ancho.

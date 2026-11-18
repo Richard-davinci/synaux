@@ -282,7 +282,7 @@
 
 /* El SVG transparente cubre todos los pies de navegación sin mosaicos ni deformación.
    2682 px conserva la escala de las piezas (3600 × 380 / 510); solo se amplía en pantallas superiores a ese ancho. */
-.synaux-brand-pattern { background-image: url('../images/brand/synaux-trama-transparente.svg'); background-repeat: no-repeat; background-size: max(100%, 2682px) auto; pointer-events: none; }
+.synaux-brand-pattern { background-image: url('../images/brand/synaux-trama.svg'); background-repeat: no-repeat; background-size: max(100%, 2682px) auto; pointer-events: none; }
 .site-footer-pattern { width: 100%; height: 64px; background-position: center; opacity: .35; }
 
 /* La firma mantiene contraste en todas las vistas que comparten el pie. */
