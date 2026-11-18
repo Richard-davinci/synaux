@@ -50,11 +50,13 @@ function catalogBenefit(service) {
     }
     return service.summary;
 }
-// La ficha institucional presenta el beneficio y deja el alcance técnico en los entregables.
+// La ficha usa ambos textos de Administración y muestra una sola vez las descripciones iguales.
 const selected = computed(() => props.data.selected ?? {});
-const detailIntro = computed(() => selected.value.id === 'sitio-institucional'
-    ? 'Presentá tu organización con un sitio claro y facilitá que tus clientes encuentren información y se pongan en contacto.'
-    : selected.value.summary || selected.value.description);
+const detailDescription = computed(() => selected.value.description?.trim() || '');
+const detailIntro = computed(() => {
+    const summary = selected.value.summary?.trim();
+    return summary !== detailDescription.value ? summary : undefined;
+});
 // El detalle reutiliza los importes publicados del catálogo, con todos los segmentos visibles.
 const detailReference = computed(() => props.data.references?.[selected.value.id]);
 const detailPrices = computed(() => detailReference.value?.segments?.length
@@ -131,6 +133,12 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
             </div>
             <img class="service-image" :src="detailImage.src" :alt="detailImage.alt" width="1200" height="800" fetchpriority="high">
         </header>
+
+        <!-- La descripción completa conserva los saltos de línea ingresados en Administración. -->
+        <section v-if="detailDescription" class="service-description-section" aria-labelledby="service-description-title">
+            <h2 id="service-description-title">Descripción del servicio</h2>
+            <p class="service-description text-block">{{ detailDescription }}</p>
+        </section>
 
         <!-- Los entregables tienen su propia tarjeta y el precio distingue referencias de cotizaciones manuales. -->
         <div class="service-detail-grid">
@@ -314,6 +322,9 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
 .service-intro { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: center; gap: clamp(20px, 4vw, 48px); margin-bottom: 22px; }
 .service-detail .service-intro :deep(.public-page-heading) { margin-bottom: 0; }
 .service-image { display: block; width: 100%; height: auto; aspect-ratio: 2 / 1; object-fit: cover; border: 1px solid #1f6f7f26; border-radius: 16px; box-shadow: 0 6px 20px #153b6412; }
+/* Un ancho de lectura cómodo permite publicar descripciones largas sin recortarlas. */
+.service-description-section { max-width: 75ch; margin-bottom: clamp(22px, 4vw, 36px); }
+.service-description-section p { margin: 0; }
 .service-detail-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 8fr); align-items: start; gap: clamp(18px, 3vw, 32px); }
 .detail-pricing:only-child { grid-column: 1 / -1; }
 .service-includes .service-deliverables { margin: 0; gap: 12px; }
