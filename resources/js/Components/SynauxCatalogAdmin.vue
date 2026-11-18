@@ -75,30 +75,30 @@ function saveCategory() {
 </script>
 
 <template>
-    <section class="page shell catalog-admin">
+    <section class="page shell catalog-admin" :class="{ 'catalog-editor': editor }">
         <!-- Cada paso muestra solo los campos comerciales necesarios y conserva los valores al retroceder. -->
         <template v-if="editor">
             <B href="/admin/servicios" variant="ghost">← Volver a servicios</B>
-            <T eyebrow="Catálogo" :title="selected ? 'Editar servicio' : 'Nuevo servicio'" description="Administrá el alcance, las preguntas y la estimación de este servicio." />
+            <T eyebrow="Catálogo" :title="selected ? 'Editar servicio' : 'Nuevo servicio'" :description="selected ? 'Administrá el alcance, las preguntas y la estimación de este servicio.' : 'Completá los datos del servicio. Después podés configurar sus preguntas, estimación y precios.'" />
             <!-- Las pestañas conservan el contexto del servicio sin repetir pantallas administrativas. -->
             <nav v-if="selected" class="service-tabs" aria-label="Configuración del servicio"><B v-for="[key,label] in tabs" :key="key" compact :variant="configurationTab === key ? 'primary' : 'secondary'" :aria-current="configurationTab === key ? 'page' : undefined" @click="configurationTab = key">{{ label }}</B></nav>
             <v-card v-if="selected && configurationTab !== 'informacion'" class="card"><SynauxServiceConfiguration :key="selected.id" :service="selected" :administration="catalog" :section="configurationTab" /></v-card>
             <template v-else>
             <ol class="catalog-steps" aria-label="Pasos del servicio"><li v-for="(label, index) in steps" :key="label" :aria-current="step === index ? 'step' : undefined"><span>{{ index + 1 }}</span>{{ label }}</li></ol>
             <v-card class="card form-card">
-                <form @submit.prevent="advance">
+                <form class="catalog-form" @submit.prevent="advance">
                     <template v-if="step === 0">
                         <h2>Información general</h2><p>Identificá el servicio y cómo aparecerá en el catálogo.</p>
-                        <F v-model="service.name" label="Nombre del servicio" required :error="service.errors.name" maxlength="255" />
-                        <F v-model="service.service_category_id" label="Categoría" type="select" :options="categoryOptions" required :error="service.errors.service_category_id" />
+                        <F class="catalog-half" v-model="service.name" label="Nombre del servicio" required :error="service.errors.name" maxlength="255" />
+                        <F class="catalog-half" v-model="service.service_category_id" label="Categoría" type="select" :options="categoryOptions" required :error="service.errors.service_category_id" />
                         <p v-if="!categoryOptions.length">Primero creá una categoría desde <a href="/admin/categorias">Catálogo → Categorías</a>.</p>
                         <F v-model="service.summary" label="Descripción breve" type="textarea" required maxlength="1000" :error="service.errors.summary" />
                         <F :model-value="service.slug" @update:model-value="service.slug = $event; slugEdited = true" label="Identificador en la dirección (slug)" required maxlength="150" hint="Se genera desde el nombre. Podés ajustarlo usando letras, números y guiones." :error="service.errors.slug" />
                     </template>
                     <template v-else-if="step === 1">
                         <h2>Alcance del servicio</h2><p>Explicá qué ofrecés y qué recibirá el cliente.</p>
-                        <F v-model="service.description" label="Descripción completa" type="textarea" required maxlength="10000" :error="service.errors.description" />
-                        <F v-model="service.deliverables" label="Entregables (uno por línea)" type="textarea" required maxlength="10000" :error="service.errors.deliverables" />
+                        <F class="catalog-half catalog-long-field" v-model="service.description" label="Descripción completa" type="textarea" required maxlength="10000" :error="service.errors.description" />
+                        <F class="catalog-half catalog-long-field" v-model="service.deliverables" label="Entregables (uno por línea)" type="textarea" required maxlength="10000" :error="service.errors.deliverables" />
                     </template>
                     <template v-else-if="step === 2">
                         <h2>Modalidad de estimación</h2>
@@ -145,6 +145,34 @@ function saveCategory() {
 .catalog-summary dt { font-weight: 700; }
 .catalog-summary dd { margin: 0; overflow-wrap: anywhere; }
 .service-tabs { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:24px; }
-.catalog-admin .form-card { max-width: 800px; }
+/* El asistente ocupa una columna centrada amplia; los campos breves y de alcance usan dos columnas. */
+.catalog-admin.catalog-editor { max-width:1040px; margin-inline:auto; padding-top:32px; }
+.catalog-editor :deep(.page-title) { margin-bottom:24px; }
+.catalog-editor :deep(.page-title h1) { font-family:'Space Grotesk',sans-serif; font-size:clamp(1.75rem,3vw,2rem); font-weight:700; line-height:1.2; margin:0 0 10px; }
+.catalog-editor :deep(.page-title p:not(.eyebrow)) { max-width:68ch; margin:0; font-size:1rem; line-height:1.6; text-wrap:pretty; }
+.catalog-editor .form-card { width:100%; max-width:none; padding:28px; }
+.catalog-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px 24px; }
+.catalog-form > * { grid-column:1 / -1; min-width:0; }
+.catalog-form > :deep(.catalog-half) { grid-column:auto; }
+.catalog-form > :deep(.field) { margin:0; }
+.catalog-form > h2 { font-family:'Space Grotesk',sans-serif; font-size:1.5rem; font-weight:600; line-height:1.3; margin:0; }
+.catalog-form > p { margin:0; color:#446075; text-wrap:pretty; }
+.catalog-form :deep(textarea) { min-height:104px; }
+.catalog-form :deep(.catalog-long-field textarea) { min-height:200px; }
+.catalog-form .form-actions { display:flex; align-items:center; justify-content:flex-end; gap:12px; margin:8px 0 0; padding-top:20px; border-top:1px solid #1f6f7f22; }
+.catalog-form .form-actions > :first-child:not(:last-child) { margin-right:auto; }
+/* Los cuatro pasos aprovechan el ancho del formulario sin agrandar sus títulos. */
+.catalog-editor .catalog-steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-bottom:20px; font-size:.875rem; }
+.catalog-editor .catalog-steps li { gap:8px; padding:10px 12px; border:1px solid #1f6f7f22; border-radius:8px; background:#f5f9fa; }
+.catalog-editor .catalog-steps li[aria-current] { background:#153b640a; border-color:#153b64; }
+.catalog-editor .catalog-steps li span { width:26px; height:26px; flex-shrink:0; }
+@media (max-width:680px) {
+    .catalog-admin.catalog-editor { padding-top:24px; }
+    .catalog-editor .form-card { padding:20px; }
+    .catalog-form { grid-template-columns:minmax(0,1fr); gap:16px; }
+    .catalog-form > :deep(.catalog-half) { grid-column:1; }
+    .catalog-editor .catalog-steps { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .catalog-form :deep(.catalog-long-field textarea) { min-height:140px; }
+}
 .catalog-admin a:not(.btn) { color: #1f6f7f; text-decoration: underline; }
 </style>
