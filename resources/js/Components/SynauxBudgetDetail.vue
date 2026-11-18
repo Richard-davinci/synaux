@@ -79,7 +79,7 @@ function decide() {
             </aside>
         </div>
         <!-- La decisión se envía solamente desde la confirmación y nunca al abrir el diálogo. -->
-        <SidePanel title="Confirmar decisión" :model-value="!!decision && canDecide" :persistent="form.processing" max-width="600" @update:model-value="decision = $event ? decision : ''">
+        <SidePanel title="Confirmar decisión" :model-value="!!decision && canDecide" :persistent="form.processing" max-width="480" @update:model-value="decision = $event ? decision : ''">
             <div class="synaux-app"><v-card class="card modal-card budget-decision">
                 <p class="eyebrow">Confirmar decisión · Versión {{ record.version_number }}</p><h2>{{ decision === 'accepted' ? '¿Aceptás este presupuesto?' : '¿Querés rechazar este presupuesto?' }}</h2>
                 <p>{{ decision === 'accepted' ? 'Se creará un proyecto con los servicios, el total y las condiciones de esta versión.' : 'Esta versión quedará rechazada. Podrás consultarla y descargarla desde el historial.' }}</p>

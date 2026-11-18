@@ -27,7 +27,7 @@ function save() {
 </script>
 
 <template>
-    <SidePanel title="Seguimiento del proyecto" :model-value="true" :persistent="form.processing" max-width="760" @update:model-value="!$event && emit('close')">
+    <SidePanel title="Seguimiento del proyecto" :model-value="true" :persistent="form.processing" max-width="560" @update:model-value="!$event && emit('close')">
         <div class="synaux-app"><v-card class="card modal-card project-update">
             <p class="eyebrow">Gestión · PRY-{{ project.id }}</p><h2>Actualizar seguimiento</h2><p><strong>{{ project.title }}</strong></p>
             <p>El cliente verá esta actualización y sus próximos pasos. Los avances anteriores quedan en el historial.</p>

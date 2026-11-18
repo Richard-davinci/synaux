@@ -29,7 +29,7 @@ function read(item, navigate = false) {
 <template>
     <!-- El acceso está fuera del menú público para mantenerlo visible también en celulares. -->
     <button class="notification-trigger" type="button" :aria-label="`Notificaciones: ${notifications.unread_count} sin leer`" aria-haspopup="dialog" :aria-expanded="open" @click="open = true"><I name="bell" /><span v-if="notifications.unread_count" class="notification-count">{{ notifications.unread_count > 99 ? '99+' : notifications.unread_count }}</span></button>
-    <SidePanel title="Actividad de tu cuenta" v-model="open" max-width="540" aria-labelledby="notification-center-title">
+    <SidePanel title="Actividad de tu cuenta" v-model="open" max-width="400" aria-labelledby="notification-center-title">
         <section class="notification-center">
             <header><div><h2 id="notification-center-title">Notificaciones</h2><p aria-live="polite">{{ notifications.unread_count ? `${notifications.unread_count} sin leer` : 'Estás al día' }}</p></div></header>
             <div v-if="notifications.unread_count" class="notification-toolbar"><button type="button" :disabled="busy" @click="read(null)">Marcar todas como leídas</button></div>

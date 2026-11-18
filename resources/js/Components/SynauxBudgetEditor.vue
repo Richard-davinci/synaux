@@ -162,7 +162,7 @@ function save(send) {
                 <div class="preview-save"><B variant="secondary" :disabled="!canPrepare || needsIssuer || quote.processing" @click="save(false)">{{ quote.processing && !quote.send ? 'Guardando…' : 'Guardar borrador' }}</B><p class="editor-hint">El borrador queda en Gestión. El cliente lo verá cuando lo envíes.</p></div>
             </aside>
         </form>
-        <SidePanel title="Vista previa del presupuesto" v-model="preview" max-width="1000" :persistent="quote.processing">
+        <SidePanel title="Vista previa del presupuesto" v-model="preview" max-width="800" :persistent="quote.processing">
             <div class="synaux-app"><v-card class="card modal-card budget-preview"><div class="context-heading"><h2>Revisá antes de enviar</h2></div><BudgetDocument :budget="documentPreview" :client="client" :issuer="issuer" /><div class="form-actions"><B variant="secondary" :disabled="quote.processing" @click="preview = false">Volver a editar</B><B v-if="step === 3" :disabled="quote.processing || !canPrepare || needsIssuer" arrow @click="save(true)">{{ quote.processing ? 'Enviando…' : 'Enviar presupuesto al cliente' }}</B></div></v-card></div>
         </SidePanel>
     </section>

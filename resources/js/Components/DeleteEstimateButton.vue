@@ -25,7 +25,7 @@ function remove() {
 </script>
 <template>
     <B variant="ghost" :aria-label="'Eliminar estimación EST-' + estimate.id" @click="ask">Eliminar</B>
-    <SidePanel title="Eliminar estimación" :model-value="open" max-width="520" :persistent="form.processing" @update:model-value="value => { if (!value) close(); }" :aria-labelledby="titleId">
+    <SidePanel title="Eliminar estimación" :model-value="open" max-width="440" :persistent="form.processing" @update:model-value="value => { if (!value) close(); }" :aria-labelledby="titleId">
         <div class="synaux-app"><v-card class="card modal-card">
             <h2 :id="titleId">¿Eliminar esta estimación?</h2>
             <p><strong>EST-{{ estimate.id }} · {{ estimate.summary }}</strong></p>

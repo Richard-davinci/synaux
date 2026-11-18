@@ -3,7 +3,7 @@ import I from './SynauxIcon.vue';
 
 // Vuetify conserva el foco, Escape y el bloqueo de scroll; la presentación abre desde la derecha.
 defineOptions({ inheritAttrs:false });
-const props = defineProps({ modelValue:Boolean, persistent:Boolean, maxWidth:{type:[Number,String],default:640}, title:{type:String,default:'Detalles'} });
+const props = defineProps({ modelValue:Boolean, persistent:Boolean, maxWidth:{type:[Number,String],default:560}, title:{type:String,default:'Detalles'} });
 const emit = defineEmits(['update:modelValue']);
 function update(value) {
     if (!value && props.persistent) return;
@@ -21,9 +21,9 @@ function update(value) {
 </template>
 
 <style>
-/* El panel ocupa el alto disponible, llega al borde y usa el ancho completo en móviles. */
+/* El ancho compacto depende del contenido; el panel ocupa como máximo el ancho disponible en móvil. */
 .v-dialog.synaux-side-panel { justify-content:flex-end; align-items:stretch; }
-.v-dialog.synaux-side-panel > .v-overlay__content { position:fixed; inset:0 0 0 auto; margin:0 !important; width:min(100vw,var(--side-panel-width,640px)); max-width:100vw; height:100dvh; max-height:100dvh !important; }
+.v-dialog.synaux-side-panel > .v-overlay__content { position:fixed; inset:0 0 0 auto; margin:0 !important; width:min(100vw,var(--side-panel-width,560px)); max-width:100vw; height:100dvh; max-height:100dvh !important; }
 .synaux-side-panel .side-panel-surface { display:flex; flex-direction:column; width:100%; height:100%; min-height:0; border-radius:0; background:#fff; color:#153b64; box-shadow:-8px 0 32px #153b6424; font-family:'Nunito',sans-serif; }
 .synaux-side-panel .side-panel-heading { display:flex; align-items:center; justify-content:space-between; flex-shrink:0; gap:16px; min-height:64px; padding:8px max(16px,env(safe-area-inset-right)) 8px 24px; border-bottom:1px solid #1f6f7f22; background:#f5f9fa; }
 .synaux-side-panel .side-panel-heading > span { font-family:'Space Grotesk',sans-serif; font-weight:600; color:#153b64; }
