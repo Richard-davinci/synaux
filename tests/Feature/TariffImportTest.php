@@ -31,6 +31,8 @@ class TariffImportTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Esta prueba simula solo Tarifario y la cotización; no depende del servidor SSR local de Vite.
+        config(['inertia.ssr.enabled' => false]);
         $this->seed(SynauxCatalogSeeder::class);
         $this->seed(SynauxInstitutionalTariffSeeder::class);
     }

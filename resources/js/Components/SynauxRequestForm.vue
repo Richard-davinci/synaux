@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, useId, watch } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 import B from './SynauxButton.vue';
 import F from './SynauxField.vue';
@@ -17,6 +17,13 @@ const pending = props.data.requestDraft ?? {};
 const step = ref(props.data.requestStep ?? (props.data.referenceKey === 'publicar-revision' ? 4 : 1));
 const authenticated = computed(() => !!(page.props.auth || props.data.preview));
 const handoff = useForm({});
+// Los pasos permanecen visibles y el cambio de paso vuelve al inicio del formulario.
+const wizard = ref(null);
+watch(step, async () => { await nextTick(); wizard.value?.scrollIntoView({ block: 'start', behavior: 'instant' }); });
+// Solo el adicional en edición despliega sus campos; cerrarlo conserva los valores y el total.
+const expandedExtra = ref(null);
+const extrasId = useId();
+
 const labels = ['Servicio', 'Tu proyecto', 'Contacto', 'Revisión'];
 const submit = useSubmit();
 // Un borrador conserva su instantánea, incluso si luego cambia el contacto de la cuenta.
@@ -45,6 +52,10 @@ const form = useForm({
     answers: { ...(pending.answers ?? props.data.requestInitialAnswers ?? {}) },
     publish: false,
 });
+watch(() => form.errors, errors => {
+    const field = Object.keys(errors).find(field => field.startsWith('additional_services.'));
+    if (field) expandedExtra.value = form.additional_services[Number(field.split('.')[1])] ?? null;
+}, { deep: true });
 const selectedService = computed(() => props.data.services.find(item => item.database_id == form.service_id));
 const questions = computed(() => (props.data.requestQuestions?.[form.service_id] ?? []).filter(question => !question.from_project_description));
 const initializeAnswers = () => {
@@ -97,6 +108,13 @@ watch(selectedService, (service, previous) => {
     if (service) form.category = service.category;
     form.additional_services = form.additional_services.filter(item => item.service_id != form.service_id);
 }, { immediate: true });
+// Si un campo plegado falla la validación nativa, se abre y recibe el foco para poder corregirlo.
+async function revealExtra(event, item) {
+    expandedExtra.value = item;
+    await nextTick();
+    event.target.focus();
+    event.target.scrollIntoView({ block: 'center' });
+}
 function extraName(id) {
     return props.data.services.find(item => item.database_id == id)?.name ?? 'Elegí un servicio';
 }
@@ -107,7 +125,10 @@ function extraOptions(index) {
 function addService() {
     const used = form.additional_services.map(item => Number(item.service_id));
     const next = extras.value.find(item => !used.includes(item.database_id));
-    if (next) form.additional_services.push({ service_id: next.database_id, quantity: 1, notes: '' });
+    if (next) {
+        form.additional_services.push({ service_id: next.database_id, quantity: 1, notes: '' });
+        expandedExtra.value = form.additional_services.at(-1);
+    }
 }
 
 // El visitante prepara el proyecto antes de ingresar; no se envía una solicitud hasta su confirmación autenticada.
@@ -144,13 +165,14 @@ function save(publish) {
 }
 </script>
 <template>
-    <div class="request-wizard">
-        <div>
+    <div ref="wizard" class="request-wizard">
+            <!-- La navegación ocupa su propia fila y se fija debajo de las barras reales del sitio. -->
             <ol class="request-steps" aria-label="Pasos para solicitar presupuesto">
                 <li v-for="(label, index) in labels" :key="label">
                     <button type="button" :disabled="index + 1 > step || form.processing || handoff.processing" :aria-current="step === index + 1 ? 'step' : undefined" @click="step = index + 1">{{ index + 1 }}. {{ label }}</button>
                 </li>
             </ol>
+        <div class="request-main">
             <v-card class="card">
                 <p class="eyebrow">Paso {{ step }} de 4</p>
                 <h2>{{ ['Elegí el servicio', 'Contanos qué necesitás', 'Revisá tus datos de contacto', 'Revisá tu solicitud'][step - 1] }}</h2>
@@ -176,12 +198,21 @@ function save(publish) {
                         <section v-if="estimateAnswers.length" class="request-answers"><h3>Respuestas de tu estimación</h3><dl><div v-for="answer in estimateAnswers" :key="answer.id"><dt>{{ answer.question }}</dt><dd>{{ answer.label }}</dd></div></dl></section>
                         <h3>Servicios adicionales</h3>
                         <p>Agregá otros servicios que quieras incluir en la consulta.</p>
-                        <div v-for="(item, index) in form.additional_services" :key="index" class="request-extra">
-                            <!-- Cada acción de quitar pertenece al encabezado del adicional que modifica. -->
-                            <div class="request-extra-heading"><h4>Adicional {{ index + 1 }}</h4><B variant="ghost" class="remove-extra" :aria-label="'Quitar servicio adicional ' + (index + 1)" @click="form.additional_services.splice(index, 1)"><I name="close" />Quitar</B></div>
-                            <F v-model="item.service_id" :label="'Servicio adicional ' + (index + 1)" type="select" :options="extraOptions(index)" required :error="form.errors['additional_services.' + index + '.service_id']" />
-                            <F v-model="item.quantity" label="Cantidad" type="number" min="1" max="1000" step="1" required :error="form.errors['additional_services.' + index + '.quantity']" />
-                            <F v-model="item.notes" label="Qué necesitás de este servicio" type="textarea" maxlength="2000" :error="form.errors['additional_services.' + index + '.notes']" />
+                        <div v-for="(item, index) in form.additional_services" :key="index" class="request-extra" :class="{ 'is-expanded': expandedExtra === item }">
+                            <!-- El encabezado permite editar o quitar sin desplegar todos los campos de la lista. -->
+                            <div class="request-extra-heading">
+                                <button type="button" class="request-extra-toggle" :aria-expanded="expandedExtra === item" :aria-controls="extrasId + '-' + index" @click="expandedExtra = expandedExtra === item ? null : item">
+                                    <I name="arrow" /><span><strong>{{ extraName(item.service_id) }} × {{ item.quantity }}</strong><small>{{ expandedExtra === item ? 'Ocultar datos' : 'Editar datos' }} · <template v-if="additionalPrices[index].priced">{{ money(additionalPrices[index].min, summaryCurrency) }}<template v-if="additionalPrices[index].max !== additionalPrices[index].min"> – {{ money(additionalPrices[index].max, summaryCurrency) }}</template></template><template v-else>Pendiente de cotización</template></small></span>
+                                </button>
+                                <B variant="ghost" class="remove-extra" :aria-label="'Quitar servicio adicional ' + (index + 1)" @click="form.additional_services.splice(index, 1)"><I name="close" />Quitar</B>
+                            </div>
+                            <div v-show="expandedExtra === item" :id="extrasId + '-' + index" class="request-extra-body" @invalid.capture="revealExtra($event, item)">
+                                <div class="request-extra-fields">
+                                    <F v-model="item.service_id" :label="'Servicio adicional ' + (index + 1)" type="select" :options="extraOptions(index)" required :error="form.errors['additional_services.' + index + '.service_id']" />
+                                    <F v-model="item.quantity" label="Cantidad" type="number" min="1" max="1000" step="1" required :error="form.errors['additional_services.' + index + '.quantity']" />
+                                </div>
+                                <F v-model="item.notes" label="Qué necesitás de este servicio (opcional)" type="textarea" maxlength="2000" :error="form.errors['additional_services.' + index + '.notes']" />
+                            </div>
                         </div>
                         <!-- Agregar es una acción de la lista; queda separada del avance al siguiente paso. -->
                         <div class="request-add-row"><B variant="secondary" :disabled="form.additional_services.length >= Math.min(extras.length, 20)" @click="addService"><I name="plus" />Agregar servicio</B></div>
@@ -261,24 +292,33 @@ function save(publish) {
 </template>
 <style scoped>
 /* La grilla mantiene el resumen a la vista sin cubrir los campos ni el pie de página. */
-.request-wizard { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 2rem; align-items: start; }
-.request-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; padding: 0; margin: 0 0 1.25rem; list-style: none; }
+.request-wizard { --steps-height: 72px; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px 2rem; align-items: start; scroll-margin-top: calc(var(--navbar-height, 108px) + var(--workspace-bar-height, 0px)); }
+.request-main { min-width: 0; }
+.request-steps { grid-column: 1 / -1; position: sticky; top: calc(var(--navbar-height, 108px) + var(--workspace-bar-height, 0px)); z-index: 45; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; padding: 12px 0; margin: 0; list-style: none; background: #fff; border-bottom: 1px solid #1f6f7f22; }
 .request-steps button { width: 100%; min-height: 48px; font-weight: 700; padding: .6rem .75rem; border: 1px solid rgb(31 111 127 / 20%); border-radius: .5rem; font: inherit; color: #153b64; background: #fff; cursor: pointer; }
 .request-steps button[aria-current='step'] { background: #153b64; color: #fff; }
 .request-steps button:disabled { color: #446075; cursor: default; }
-.request-summary { position: sticky; top: 1.5rem; }
+.request-summary { position: sticky; top: calc(var(--navbar-height, 108px) + var(--workspace-bar-height, 0px) + var(--steps-height) + 16px); }
 .request-summary ul { padding-left: 1.25rem; margin-bottom: 1rem; }
 .summary-extra { border-top: 1px solid rgb(31 111 127 / 18%); padding-top: 1rem; margin-top: 1rem; }
 /* El adicional agrupa sus campos y su acción local; agregar ocupa una fila independiente antes de continuar. */
-.request-extra { padding: 20px; margin-top: 20px; border: 1px solid #1f6f7f33; border-radius: 12px; background: #f5f9fa; }
-.request-extra-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
-.request-extra-heading h4 { margin: 0; font-size: 1rem; font-weight: 700; }
+.request-extra { padding: 12px 16px; margin-top: 12px; border: 1px solid #1f6f7f33; border-radius: 12px; background: #f5f9fa; }
+.request-extra-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.request-extra-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0; text-align: left; color: #153b64; background: transparent; border: 0; border-radius: 6px; cursor: pointer; }
+.request-extra-toggle strong { display: block; font-size: .95rem; overflow-wrap: anywhere; }
+.request-extra-toggle small { display: block; color: #446075; margin-top: 3px; }
+.request-extra-toggle:focus-visible { outline: 2px solid #1f6f7f; outline-offset: 3px; }
+.request-extra-toggle > .icon { width: 16px; height: 16px; flex-shrink: 0; }
+.is-expanded .request-extra-toggle > .icon { transform: rotate(90deg); }
+.request-extra-body { padding-top: 16px; }
+.request-extra-fields { display: grid; grid-template-columns: minmax(0, 2fr) minmax(80px, 1fr); gap: 16px; }
+.request-extra-body :deep(textarea) { min-height: 88px; }
 .request-extra-heading :deep(.remove-extra) { min-height: 40px; padding: 8px 10px; box-shadow: none; }
-.request-extra-heading :deep(.icon), .request-add-row :deep(.icon) { width: 18px; height: 18px; margin-right: 8px; flex: 0 0 auto; }
+.request-extra-heading :deep(.remove-extra .icon), .request-add-row :deep(.icon) { width: 18px; height: 18px; margin-right: 8px; flex: 0 0 auto; }
 .request-add-row { margin: 20px 0 28px; }
 .request-add-row :deep(.btn) { width: 100%; border-style: dashed; box-shadow: none; }
 .request-extra :deep(.field:last-child) { margin-bottom: 0; }
-@media (max-width: 600px) { .request-extra { padding: 16px; } }
+@media (max-width: 600px) { .request-extra { padding: 12px; } .request-extra-fields { grid-template-columns: minmax(0, 1fr); gap: 0; } }
 .draft-action { margin-top: 1rem; }
 .summary-note { color: #446075; margin-top: 1.25rem; }
 @media (max-width: 900px) { .request-wizard { grid-template-columns: minmax(0, 1fr); } .request-summary { position: static; } }
@@ -304,5 +344,5 @@ function save(publish) {
 .request-auth-gate > .icon { width: 28px; height: 28px; color: #1f6f7f; margin-bottom: 14px; }
 .request-question { padding: 16px; border: 1px solid #1f6f7f33; border-radius: 10px; margin-bottom: 20px; }
 .draft-help { font-size: .9rem; margin: 8px 0 0; }
-@media (max-width: 600px) { .request-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } .request-wizard :deep(.form-actions) { flex-wrap: wrap; gap: 12px; } .request-wizard :deep(.form-actions .btn) { flex: 1 1 100%; } }
+@media (max-width: 600px) { .request-wizard { --steps-height: 128px; } .request-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } .request-wizard :deep(.form-actions) { flex-wrap: wrap; gap: 12px; } .request-wizard :deep(.form-actions .btn) { flex: 1 1 100%; } }
 </style>

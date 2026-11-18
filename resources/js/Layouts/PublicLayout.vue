@@ -20,14 +20,27 @@ const workspaceToggle = ref(null);
 // Se mide el encabezado real para compensar cambios de ancho, menú móvil y barra de referencia.
 const fixedHeader = ref(null);
 const headerHeight = ref(108);
+// La altura real del menú del panel permite ubicar también los pasos fijos sin superponer barras en móvil.
+const workspaceBar = ref(null);
+const workspaceBarHeight = ref(0);
 let headerObserver;
 onMounted(() => {
-    headerObserver = new ResizeObserver(([entry]) => {
-        headerHeight.value = entry.target.getBoundingClientRect().height;
+    headerObserver = new ResizeObserver(entries => {
+        for (const entry of entries) {
+            const height = entry.target.getBoundingClientRect().height;
+            if (entry.target === fixedHeader.value) headerHeight.value = height;
+            if (entry.target === workspaceBar.value) workspaceBarHeight.value = height;
+        }
     });
     if (fixedHeader.value) headerObserver.observe(fixedHeader.value);
+    if (workspaceBar.value) headerObserver.observe(workspaceBar.value);
 });
 onBeforeUnmount(() => headerObserver?.disconnect());
+watch(workspaceBar, (bar, previous) => {
+    if (previous) headerObserver?.unobserve(previous);
+    workspaceBarHeight.value = bar?.getBoundingClientRect().height ?? 0;
+    if (bar) headerObserver?.observe(bar);
+});
 function restoreWorkspaceFocus() { workspaceToggle.value?.focus(); }
 const area = computed(() => page.props.area ?? (page.url.startsWith('/gestion') || page.url.startsWith('/admin') ? 'gestion' : page.url.startsWith('/profesional') ? 'profesional' : page.url.startsWith('/cliente') ? 'cliente' : 'public'));
 const publicNav = [['Catálogo', '/plataforma'], ['Portfolio', '/portfolio'], ['Nosotros', '/nosotros'], ['Contacto', '/contacto']];
@@ -58,7 +71,7 @@ const currentSection = computed(() => {
 watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false; });
 </script>
 <template>
-    <v-app class="synaux-app" :style="{ '--navbar-height': headerHeight + 'px' }">
+    <v-app class="synaux-app" :style="{ '--navbar-height': headerHeight + 'px', '--workspace-bar-height': workspaceBarHeight + 'px' }">
         <!-- El encabezado fijo conserva su espacio mediante una altura medida, sin tapar el contenido. -->
         <div ref="fixedHeader" class="fixed-header">
         <!-- En la referencia se puede revisar cada estado sin modificar registros ni conceder permisos. -->
@@ -80,7 +93,7 @@ watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false;
         <!-- El componente compartido anuncia resultados y errores sin perderse al desplazar la página. -->
         <SynauxNotifications :message="demoNotice || $page.props.notice" :errors="$page.props.errors" :page-key="$page.url" @close-message="demoNotice = ''" />
         <!-- El panel es adicional al sitio y solo acompaña las pantallas privadas. -->
-        <div v-if="hasWorkspace" class="workspace-mobile-bar"><span>{{ workspaceTitle }}</span><button ref="workspaceToggle" type="button" :aria-expanded="workspaceOpen" aria-controls="workspace-mobile-panel" @click="workspaceOpen = true"><I name="menu" />Menú del panel</button></div>
+        <div v-if="hasWorkspace" ref="workspaceBar" class="workspace-mobile-bar"><span>{{ workspaceTitle }}</span><button ref="workspaceToggle" type="button" :aria-expanded="workspaceOpen" aria-controls="workspace-mobile-panel" @click="workspaceOpen = true"><I name="menu" />Menú del panel</button></div>
         <div :class="['workspace-layout', { 'with-workspace': hasWorkspace }]">
             <aside v-if="hasWorkspace" class="workspace-sidebar"><div class="workspace-sidebar-sticky"><WorkspaceNavigation :items="nav" :area="area" :current="currentSection" :account-name="accountName" /></div></aside>
             <v-main id="contenido" class="workspace-content" tabindex="-1"><slot /></v-main>
