@@ -91,20 +91,17 @@ h1 em { color: #1f6f7f; font-style: normal; }
 .landing-service-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; }
 .landing-service-grid article { padding: 22px; border: 1px solid #1f6f7f22; border-top: 3px solid #2db3a3; border-radius: 14px; background: #fff; box-shadow: 0 3px 12px #153b640a; }
 .landing-service-grid p { font-size: .95rem; margin: 0; }
-/* Los servicios presentan cada pictograma en una placa de marca para distinguirlo del texto sin alterar el SVG reutilizable. */
-.landing-service-icon { width: 48px; height: 48px; padding: 11px; border-radius: 12px; color: #fff; background: #1f6f7f; stroke-width: 2.2; margin-bottom: 16px; }
+.landing-service-icon { width: 28px; height: 28px; color: #1f6f7f; margin-bottom: 20px; }
 .landing-steps { list-style: none; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 28px; padding: 0; margin: 0; counter-reset: landing-step; }
 .landing-steps li { min-width: 0; padding-top: 16px; border-top: 2px solid #1f6f7f26; }
-.step-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; color: #1f6f7f; }
+/* El número y el ícono de cada paso forman una sola referencia visual; los datos de steps mantienen su orden y estilo original. */
+.step-top { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; color: #1f6f7f; }
 .step-top span { font-family: 'Space Grotesk',sans-serif; font-size: 1.5rem; font-weight: 700; }
-/* Cada paso conserva el número a la izquierda y amplía el ícono a la derecha con contraste blanco sobre turquesa. */
-.step-top .icon { width: 52px; height: 52px; padding: 13px; border-radius: 14px; color: #fff; background: #1f6f7f; stroke-width: 2.2; }
 .landing-steps p { margin: 0; }
 .landing-budget { display: grid; grid-template-columns: minmax(0,.9fr) minmax(0,1.1fr); gap: clamp(24px,5vw,64px); align-items: center; }
 .landing-benefits { list-style: none; display: grid; gap: 20px; padding: 0; margin: 28px 0; }
 .landing-benefits li { display: flex; gap: 12px; color: #446075; line-height: 1.5; }
-/* Los beneficios usan una placa más compacta para acompañar cada texto sin competir con el documento de ejemplo. */
-.landing-benefits .icon { width: 40px; height: 40px; padding: 9px; border-radius: 10px; color: #fff; background: #1f6f7f; stroke-width: 2.2; flex-shrink: 0; }
+.landing-benefits .icon { color: #1f6f7f; flex-shrink: 0; margin-top: 3px; }
 .landing-benefits strong { display: block; color: #153b64; margin-bottom: 3px; }
 .landing-budget-example { min-width: 0; padding: 12px; background: #fff; border: 1px solid #1f6f7f26; border-radius: 16px; box-shadow: 0 10px 28px #153b6412; }
 .example-label { margin: 0; padding: 4px 8px 12px; font-size: .8rem; color: #446075; }
