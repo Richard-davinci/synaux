@@ -22,16 +22,22 @@ const steps = [
     { icon: 'edit', title: 'Prepará tu solicitud', text: 'Contanos el objetivo, agregá los servicios que necesitás y revisá el resumen. Ingresá a tu cuenta para confirmar el envío.' },
     { icon: 'check', title: 'Revisá el presupuesto', text: 'Recibí la propuesta con servicios, precio, plazos y condiciones. Podés descargarla y aceptar o rechazar la versión vigente.' },
 ];
+// Los dos renglones ilustrativos reciben los conceptos e importes del ejemplo; la cantidad unitaria permite sumar sus precios sin depender del catálogo.
+const exampleItems = [
+    { description: 'Desarrollo Sitio Web Corporativo / Institucional', quantity: 1, unit_price: 676360 },
+    { description: 'Desarrollo Manual de Identidad Visual', quantity: 1, unit_price: 537164 },
+];
+// El subtotal suma los renglones y el total aplica el IVA del ejemplo en centavos para conservar los decimales del documento.
+const exampleSubtotal = exampleItems.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
+const exampleTaxRate = 21;
+const exampleTotal = Math.round(exampleSubtotal * (1 + exampleTaxRate / 100) * 100) / 100;
 // El documento es ilustrativo y no consulta ni modifica cuentas, solicitudes o precios publicados.
 const exampleDate = new Date();
 const exampleBudget = {
     title: 'Sitio e identidad para tu organización', version_number: 1, created_at: exampleDate.toISOString(),
     valid_until: new Date(exampleDate.getTime() + 30 * 86400000).toISOString().slice(0, 10),
-    currency_code: 'ARS', tax_rate: 21, estimated_delivery_days: 30,
-    items: [
-        { description: 'Sitio institucional\nDiseño responsive y formulario de contacto.', quantity: 1, unit_price: 300000 },
-        { description: 'Identidad visual\nLogotipo, paleta y guía básica de uso.', quantity: 1, unit_price: 200000 },
-    ], subtotal: 500000, total: 605000,
+    currency_code: 'ARS', tax_rate: exampleTaxRate, estimated_delivery_days: 30,
+    items: exampleItems, subtotal: exampleSubtotal, total: exampleTotal,
     terms: 'Ejemplo ilustrativo. El alcance, la forma de pago y las revisiones se acuerdan en cada presupuesto.',
 };
 </script>
