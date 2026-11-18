@@ -20,7 +20,7 @@ const icons = { Resumen: 'layout', Estimaciones: 'edit', Solicitudes: 'file', Pr
 // Los grupos separan la información comercial de los recursos que calculan estimaciones orientativas.
 const administration = [
     { title: 'Catálogo', items: [['Servicios', 'servicios'], ['Categorías', 'categorias']] },
-    { title: 'Presupuestador', items: [['Preguntas y opciones', 'preguntas'], ['Componentes', 'componentes'], ['Reglas de cálculo', 'reglas'], ['Tarifarios', 'tarifario']] },
+    { title: 'Precios', items: [['Tarifarios', 'tarifario']] },
 ];
 const sectionFor = href => href.split('/').filter(Boolean).slice(1).join('/') || 'resumen';
 function isActive(href) {

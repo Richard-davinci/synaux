@@ -185,13 +185,13 @@ function save(publish) {
                         <template v-if="!estimate">
                             <template v-for="question in questions" :key="question.id">
                                 <fieldset v-if="question.input_type === 'multiple_choice'" class="request-question">
-                                    <legend>{{ question.question }}</legend>
+                                    <legend>{{ question.question }}{{ question.required === false || question.required === 0 ? ' (opcional)' : ' *' }}</legend>
                                     <label v-for="option in question.options" :key="option.id" class="select-row"><input v-model="form.answers[question.id]" type="checkbox" :value="String(option.id)">{{ option.label }}</label>
                                     <small v-if="form.errors['answers.' + question.id]" class="error" role="alert">{{ form.errors['answers.' + question.id] }}</small>
                                 </fieldset>
                                 <F v-else v-model="form.answers[question.id]" :label="question.question" :type="question.input_type === 'single_choice' ? 'select' : question.input_type === 'number' ? 'number' : 'textarea'"
                                     :options="question.options" :min="question.input_type === 'number' ? 1 : undefined" :max="question.input_type === 'number' ? 10000 : undefined" :maxlength="5000"
-                                    :error="form.errors['answers.' + question.id]" required />
+                                    :error="form.errors['answers.' + question.id]" :required="Boolean(question.required ?? true)" />
                             </template>
                         </template>
                         <p v-if="estimate" class="request-origin"><I name="check" /> Servicio y respuestas recuperados de tu estimación. Podés agregar otros servicios a la consulta.</p>

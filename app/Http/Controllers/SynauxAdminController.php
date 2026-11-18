@@ -28,6 +28,7 @@ class SynauxAdminController extends Controller
     public function save(Request $request, string $resource)
     {
         abort_unless($request->user()->is_admin, 403);
+        if ($resource === 'precios-servicio') return $this->servicePrices($request);
         $table = match ($resource) {
             'servicios' => 'services', 'preguntas' => 'estimator_questions', 'componentes' => 'service_components', 'reglas' => 'estimation_rules', 'categorias' => 'service_categories', 'tarifario' => 'tariff_versions', default => abort(404),
         };
@@ -42,14 +43,29 @@ class SynauxAdminController extends Controller
                 'estimation_mode' => ['required', Rule::in(['manual', 'automatic'])], 'deliverables' => 'required|string|max:10000'],
             'preguntas' => [...$common, 'service_id' => 'nullable|integer|exists:services,id', 'question' => 'required|string|max:1000',
                 'input_type' => ['required', Rule::in(['single_choice', 'multiple_choice', 'number', 'text'])], 'sort_order' => 'required|integer|min:0|max:1000', 'options_text' => 'nullable|string|max:5000',
-                'quantity_component_id' => 'nullable|integer|exists:service_components,id'],
+                'quantity_component_id' => 'nullable|integer|exists:service_components,id', 'required' => 'sometimes|boolean'],
             'componentes' => [...$common, 'service_id' => 'required|integer|exists:services,id', 'name' => 'required|string|max:255', 'slug' => 'required|alpha_dash|max:150',
                 'description' => 'required|string|max:10000', 'unit_code' => 'required|string|max:32', 'is_default' => 'required|boolean', 'default_quantity' => 'required|numeric|gt:0|max:10000'],
             'reglas' => [...$common, 'estimator_option_id' => 'required|integer|exists:estimator_options,id', 'service_component_id' => 'required|integer|exists:service_components,id', 'quantity' => 'required|numeric|min:0|max:10000'],
             'categorias' => [...$common, 'name' => 'required|string|max:255', 'slug' => ['required', 'alpha_dash', Rule::unique('service_categories', 'slug')->ignore($id)], 'description' => 'required|string|max:10000'],
         };
         $data = $request->validate($rules);
-        DB::transaction(function () use ($resource, $table, $id, $data) {
+        // El contexto del editor impide modificar por accidente registros de otro servicio.
+        $context = $request->validate(['catalog_service_id' => 'nullable|integer|exists:services,id'])['catalog_service_id'] ?? null;
+        if ($context && in_array($resource, ['preguntas', 'componentes'], true)) {
+            $old = $id ? DB::table($table)->where('id', $id)->firstOrFail() : null;
+            abort_if($old && $old->service_id !== null && (int) $old->service_id !== (int) $context, 422, 'El registro pertenece a otro servicio.');
+            abort_if($data['service_id'] !== null && (int) $data['service_id'] !== (int) $context, 422, 'Elegí el servicio de este editor.');
+        }
+        if ($context && $resource === 'reglas') {
+            $component = DB::table('service_components')->where('id', $data['service_component_id'])->firstOrFail();
+            abort_unless((int) $component->service_id === (int) $context, 422, 'El componente pertenece a otro servicio.');
+            if ($id) {
+                $old = DB::table('estimation_rules as r')->join('service_components as c', 'c.id', '=', 'r.service_component_id')->where('r.id', $id)->select('c.service_id')->firstOrFail();
+                abort_unless((int) $old->service_id === (int) $context, 422);
+            }
+        }
+        $savedId = DB::transaction(function () use ($resource, $table, $id, $data) {
             if ($id) {
                 DB::table($table)->where('id', $id)->firstOrFail();
             }
@@ -71,6 +87,7 @@ class SynauxAdminController extends Controller
             }
             $options = null;
             if ($resource === 'preguntas') {
+                if (! empty($data['required']) || ! array_key_exists('required', $data)) $data['required'] = true;
                 $options = $data['options_text'] ?? '';
                 unset($data['options_text']);
                 if (! empty($data['quantity_component_id'])) {
@@ -98,9 +115,39 @@ class SynauxAdminController extends Controller
                     }
                 }
             }
+            return $id;
         });
 
+        if ($resource === 'servicios' && $request->boolean('configure_after_save')) {
+            return redirect("/admin/servicios/$savedId/editar?config=preguntas")->with('notice', 'Servicio guardado. Podés completar sus preguntas y estimación.');
+        }
         return back()->with('notice', 'Configuración guardada.');
+    }
+
+    // Editar los precios de un servicio publica otra versión completa sin reescribir el historial.
+    private function servicePrices(Request $request)
+    {
+        $values = $request->validate([
+            'service_id' => 'required|integer|exists:services,id', 'name' => 'required|string|max:255',
+            'min' => 'required|numeric|decimal:0,2|min:0|max:100000000', 'max' => 'required|numeric|decimal:0,2|min:0|max:100000000',
+            'components' => 'present|array|max:1000', 'components.*.id' => 'required|integer|distinct|exists:service_components,id',
+            'components.*.min' => 'required|numeric|decimal:0,2|min:0|max:100000000', 'components.*.max' => 'required|numeric|decimal:0,2|min:0|max:100000000',
+        ]);
+        return DB::transaction(function () use ($request, $values) {
+            $tariff = DB::table('tariff_versions')->where('active', 1)->where('effective_from', '<=', now())->orderByDesc('effective_from')->orderByDesc('id')->lockForUpdate()->first();
+            $components = DB::table('service_components')->where('service_id', $values['service_id'])->where('active', 1)->pluck('id');
+            if ($components->diff(array_column($values['components'], 'id'))->isNotEmpty()
+                || collect(array_column($values['components'], 'id'))->diff($components)->isNotEmpty()) {
+                throw ValidationException::withMessages(['components' => 'Completá únicamente los componentes activos de este servicio.']);
+            }
+            $services = $tariff ? DB::table('service_prices')->where('tariff_version_id', $tariff->id)->get()->map(fn ($p) => ['id' => $p->service_id, 'min' => $p->price_min, 'max' => $p->price_max])->keyBy('id') : collect();
+            $prices = $tariff ? DB::table('component_prices')->where('tariff_version_id', $tariff->id)->get()->map(fn ($p) => ['id' => $p->service_component_id, 'min' => $p->price_min, 'max' => $p->price_max])->keyBy('id') : collect();
+            $services[$values['service_id']] = ['id' => $values['service_id'], 'min' => $values['min'], 'max' => $values['max']];
+            foreach ($values['components'] as $price) $prices[$price['id']] = $price;
+            $request->merge(['name' => $values['name'], 'currency_code' => $tariff->currency_code ?? 'ARS', 'active' => true,
+                'services' => $services->values()->all(), 'components' => $prices->values()->all()]);
+            return $this->tariff($request);
+        });
     }
 
     // Valida rangos y cobertura antes de crear una versión nueva e independiente del tarifario.

@@ -105,6 +105,8 @@ class SynauxCatalog
             $value = $answers[$q['id']] ?? null;
             $values = $q['input_type'] === 'multiple_choice' ? (array) $value : [$value];
             if ($value === null || $value === '' || $values === []) {
+                // Una respuesta opcional vacía no agrega componentes ni altera el importe.
+                if (! ($q['required'] ?? true)) continue;
                 throw ValidationException::withMessages(["answers.{$q['id']}" => 'Completá esta respuesta.']);
             }
             $labels = [];

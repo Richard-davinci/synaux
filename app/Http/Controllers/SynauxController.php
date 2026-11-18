@@ -167,6 +167,11 @@ class SynauxController extends Controller
             'admin' => ['', 'servicios', 'categorias', 'preguntas', 'componentes', 'reglas', 'tarifario'],
         ];
         abort_unless(isset($allowed[$area]) && in_array($section, $allowed[$area], true), 404);
+        // Los accesos anteriores llevan a la configuración del servicio, sin duplicar administraciones.
+        if ($area === 'admin' && in_array($section, ['preguntas', 'componentes', 'reglas'], true)) {
+            $serviceId = DB::table('services')->when($request->integer('servicio'), fn ($q) => $q->where('id', $request->integer('servicio')))->orderBy('id')->value('id');
+            return redirect($serviceId ? "/admin/servicios/$serviceId/editar?config=".($section === 'preguntas' ? 'preguntas' : 'estimacion') : '/admin/servicios');
+        }
         $data = $this->privateData($request, $admin);
         $data['screen'] = $area;
         $data['area'] = $area === 'admin' ? 'gestion' : $area;

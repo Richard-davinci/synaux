@@ -119,6 +119,10 @@ class SynauxReferenceController extends Controller
             $data['area'] = 'gestion';
             $data['section'] = substr($screen, 6);
             $data['administration'] = app(SynauxAdminController::class)->data();
+            // La vista local permite revisar el editor con escrituras deshabilitadas.
+            if ($screen === 'admin-servicios' && request()->integer('servicio')) {
+                $data['catalogServiceId'] = collect($data['administration']['services'])->firstWhere('id', request()->integer('servicio'))['id'] ?? null;
+            }
         } elseif (in_array($screen, ['mis-propuestas', 'invitaciones-recibidas', 'mi-perfil', 'profesional-presupuestos', 'profesional-proyectos', 'profesional-presupuestos-cargados'], true)) {
             $data['screen'] = 'profesional';
             $data['area'] = 'profesional';
