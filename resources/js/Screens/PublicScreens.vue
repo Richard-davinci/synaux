@@ -75,7 +75,11 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
 <template>
     <!-- Los filtros se generan a partir de los servicios publicados y el contador anuncia cada cambio. -->
     <section v-if="data.screen === 'servicios'" class="page shell catalog-page">
-        <T eyebrow="Catálogo de servicios" title="Encontrá por dónde empezar." description="Explorá las propuestas y conocé qué puede aportar cada servicio a tu próximo proyecto digital." />
+        <!-- El catálogo reúne ambos públicos con la paleta compartida y una introducción de mayor jerarquía. -->
+        <header class="catalog-intro">
+            <T eyebrow="Catálogo de servicios" title="Dale forma a tu próximo proyecto." description="Encontrá el servicio que necesitás, explorá su alcance y prepará tu solicitud de presupuesto." />
+            <div class="catalog-intro-notes"><span><I name="folder" />{{ data.services.length }} servicios disponibles</span><span><I name="check" />Alcance y precios orientativos</span><span><I name="user" />Acompañamiento de Synaux</span></div>
+        </header>
         <div class="catalog-tools">
             <div class="catalog-tools-row">
                 <F v-model="query" type="search" label="Buscar un servicio" placeholder="Ej. tienda online o auditoría SEO" />
@@ -96,6 +100,7 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
                     <I :name="categoryIcons[service.category] ?? 'folder'" class="catalog-service-icon" />
                     <p class="eyebrow">{{ service.category }}</p>
                 </div>
+                <span class="service-pricing-badge" :class="{ 'has-reference': data.references?.[service.id] }">{{ data.references?.[service.id] ? 'Con precio de referencia' : 'Cotización a medida' }}</span>
                 <h2>{{ service.name }}</h2>
                 <p class="service-description">{{ service.summary }}</p>
                 <ul v-if="service.includes?.length" class="service-deliverables" aria-label="Incluye">
@@ -181,7 +186,15 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
 
 <style scoped>
 /* La búsqueda, las categorías y la limpieza comparten un panel con estados de foco visibles. */
-.catalog-page .catalog-tools { background: #f5f9fa; padding: 1.5rem; }
+/* La profundidad y los acentos de marca distinguen introducción, filtros y resultados. */
+.catalog-intro { padding: clamp(24px, 4vw, 40px); margin-bottom: 28px; border: 1px solid #1f6f7f22; border-left: 5px solid #2db3a3; border-radius: 18px; background: linear-gradient(115deg, #f5f9fa, #fff); box-shadow: var(--card-shadow); }
+.catalog-intro :deep(.page-title) { margin-bottom: 24px; }
+.catalog-intro :deep(h1) { font-weight: 700; font-size: clamp(2rem, 3.6vw, 3rem); line-height: 1.12; max-width: 760px; }
+.catalog-intro :deep(.eyebrow) { color: #1f6f7f; font-weight: 700; }
+.catalog-intro-notes { display: flex; flex-wrap: wrap; gap: 12px 24px; padding-top: 18px; border-top: 1px solid #1f6f7f22; }
+.catalog-intro-notes span { display: inline-flex; align-items: center; gap: 8px; font-size: .9rem; color: #446075; }
+.catalog-intro-notes .icon { color: #1f6f7f; width: 18px; height: 18px; }
+.catalog-page .catalog-tools { background: #fff; padding: 1.5rem; border-color: #1f6f7f33; }
 .catalog-page .catalog-tools-row { grid-template-columns: minmax(220px,.8fr) minmax(0,1.6fr); align-items: center; gap: 1.5rem; }
 .catalog-page .filter-row button { display: inline-flex; align-items: center; gap: .5rem; font-family: 'Nunito',sans-serif; font-size: .875rem; min-height: 44px; padding: .55rem .85rem; font-weight: 600; border-color: #446075; }
 .category-count { font-size: .8rem; opacity: .8; }
@@ -194,7 +207,13 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
 .catalog-page button:focus-visible { outline: 2px solid #153b64; outline-offset: 3px; }
 
 /* Cada tarjeta mantiene categoría, alcance y precio en un orden común para facilitar la comparación. */
-.catalog-page .service-card { padding: 1.5rem; border-top: 3px solid #2db3a3; }
+.catalog-page .service-card { padding: 1.5rem; border: 1px solid #1f6f7f26; border-top: 4px solid #2db3a3; box-shadow: var(--card-shadow); border-radius: 18px; }
+.catalog-page .service-card:focus-within { border-color: #1f6f7f; box-shadow: var(--card-shadow-raised); }
+@media (hover: hover) { .catalog-page .service-card:hover { box-shadow: var(--card-shadow-raised); border-color: #1f6f7f66; border-top-color: #2db3a3; } }
+.catalog-page .service-category { padding-bottom: 16px; border-bottom: 1px solid #1f6f7f1f; margin-bottom: 16px; }
+.catalog-page .catalog-service-icon { box-sizing: content-box; width: 24px; height: 24px; padding: 12px; border-radius: 14px; color: #153b64; background: #2db3a326; }
+.service-pricing-badge { align-self: flex-start; display: inline-flex; width: fit-content; padding: 4px 10px; margin-bottom: 12px; border-radius: 20px; background: #f5f9fa; color: #446075; font-size: .75rem; font-weight: 700; }
+.service-pricing-badge.has-reference { background: #1f6f7f14; color: #1f6f7f; }
 .service-category { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.25rem; }
 .catalog-page .service-category .eyebrow { margin: 0; color: #1f6f7f; font-size: .75rem; letter-spacing: .08em; }
 .catalog-service-icon { width: 2rem; height: 2rem; color: #1f6f7f; flex-shrink: 0; }

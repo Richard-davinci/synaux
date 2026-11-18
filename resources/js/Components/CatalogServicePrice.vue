@@ -30,10 +30,11 @@ const price = computed(() => options.value.find(item => item.label === segment.v
 .catalog-price { margin-top: auto; padding-top: 1.25rem; }
 .price-segments { display: flex; flex-wrap: wrap; gap: .35rem; padding-bottom: 1rem; }
 .price-segments button { flex: 1; min-height: 44px; border: 1px solid #446075; border-radius: .5rem; padding: .4rem .55rem; color: #446075; background: #fff; font: inherit; font-size: .875rem; font-weight: 600; cursor: pointer; }
-.price-segments button[aria-pressed='true'] { background: #1f6f7f; border-color: #1f6f7f; color: #fff; }
+.price-segments button[aria-pressed='true'] { background: #153b64; border-color: #153b64; color: #fff; }
 .price-segments button:hover:not([aria-pressed='true']) { color: #153b64; border-color: #153b64; background: #f5f9fa; }
 .price-segments button:focus-visible { outline: 2px solid #153b64; outline-offset: 2px; }
-.price-summary { display: grid; gap: .25rem; padding-top: 1rem; border-top: 1px solid rgb(31 111 127 / 18%); }
+/* El precio ocupa una superficie propia y conserva contraste con los controles de segmento. */
+.price-summary { display: grid; gap: .35rem; padding: 16px; background: #f5f9fa; border: 1px solid #1f6f7f22; border-radius: 12px; }
 .price-summary span, .price-summary small { color: #446075; font-size: .875rem; }
-.price-summary strong { color: #153b64; font-family: 'Space Grotesk', sans-serif; font-size: 1.4rem; }
+.price-summary strong { color: #153b64; font-family: 'Space Grotesk', sans-serif; font-size: 1.6rem; line-height: 1.25; overflow-wrap: anywhere; }
 </style>
