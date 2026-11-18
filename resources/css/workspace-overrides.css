@@ -246,13 +246,13 @@
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 }
 
-/* La trama y el fondo separan el pie; el contenedor .shell define los márgenes del contenido. */
+/* La trama separa el pie sobre fondo blanco; .shell define los márgenes del contenido. */
 .synaux-app footer.site-footer {
     border-top: 0;
     display: block;
     width: auto;
     padding: 0;
-    background: #f5f9fa;
+    background: #fff;
 }
 
 .site-footer > .footer-grid {
