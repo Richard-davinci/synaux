@@ -19,7 +19,7 @@ const workspaceOpen = ref(false);
 const workspaceToggle = ref(null);
 // Se mide el encabezado real para compensar cambios de ancho, menú móvil y barra de referencia.
 const fixedHeader = ref(null);
-const headerHeight = ref(108);
+const headerHeight = ref(76);
 // La altura real del menú del panel permite ubicar también los pasos fijos sin superponer barras en móvil.
 const workspaceBar = ref(null);
 const workspaceBarHeight = ref(0);
@@ -71,7 +71,7 @@ const currentSection = computed(() => {
 watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false; });
 </script>
 <template>
-    <v-app class="synaux-app" :style="{ '--navbar-height': headerHeight + 'px', '--workspace-bar-height': workspaceBarHeight + 'px' }">
+    <v-app class="synaux-app" :data-workspace-role="hasWorkspace ? area : undefined" :style="{ '--navbar-height': headerHeight + 'px', '--workspace-bar-height': workspaceBarHeight + 'px' }">
         <!-- El encabezado fijo conserva su espacio mediante una altura medida, sin tapar el contenido. -->
         <div ref="fixedHeader" class="fixed-header">
         <!-- En la referencia se puede revisar cada estado sin modificar registros ni conceder permisos. -->
@@ -81,7 +81,7 @@ watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false;
         <header class="header"><a :href="referenceHref('/', $page.props)" class="logo-button" aria-label="synaux: inicio"><img :src="navbarLogo" class="brand-logo" width="405" height="140" alt="synaux"></a><button class="mobile-toggle" :aria-expanded="mobile" aria-label="Abrir navegación" @click="mobile = !mobile">☰</button>
             <nav :class="['main-nav', { 'mobile-open': mobile }]" aria-label="Navegación principal">
                 <a v-for="[label, href] in publicNav" :key="href" :href="referenceHref(href, $page.props)" :aria-current="$page.url.split('?')[0] === href ? 'page' : undefined">{{ label }}</a>
-                <div v-if="!$page.props.auth && !$page.props.preview" class="nav-actions"><SynauxButton href="/ingresar" variant="ghost">Ingresar</SynauxButton><SynauxButton href="/crear-cuenta">Crear cuenta</SynauxButton></div>
+                <div v-if="!$page.props.auth && !$page.props.preview" class="nav-actions"><SynauxButton compact href="/ingresar" variant="ghost">Ingresar</SynauxButton><SynauxButton compact href="/crear-cuenta">Crear cuenta</SynauxButton></div>
                 <!-- Fuera del área privada solo hace falta un acceso directo al panel de la cuenta. -->
                 <SynauxButton compact v-if="$page.props.auth && !$page.props.preview && !hasWorkspace" :href="$page.props.auth.is_admin ? '/gestion' : '/cliente'">Ir a mi panel</SynauxButton>
             </nav>
@@ -110,6 +110,11 @@ watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false;
 
 <style scoped>
 /* El navbar queda sobre la página; la compensación usa su altura real incluso en el prototipo. */
+/* El sitio público conserva la marca común; el panel identifica el rol con un acento, sin recolorear el logo. */
+.synaux-app[data-workspace-role='cliente'] { --workspace-accent: #153b64; }
+.synaux-app[data-workspace-role='profesional'] { --workspace-accent: #2db3a3; }
+.synaux-app[data-workspace-role='gestion'] { --workspace-accent: #1f6f7f; }
+.synaux-app[data-workspace-role] .header { border-bottom: 3px solid var(--workspace-accent); }
 .fixed-header { position: fixed; inset: 0 0 auto; z-index: 100; background: #fff; }
 .navbar-space { flex: 0 0 var(--navbar-height); height: var(--navbar-height); }
 .workspace-content { scroll-margin-top: calc(var(--navbar-height) + 24px); }
@@ -133,7 +138,7 @@ watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false;
     .header { gap: 12px; }
     .header .logo-button { flex: 1 1 0; min-width: 0; }
     .header .logo-button img { max-width: 100%; }
-    .header .main-nav { order: 4; }
+    .header .main-nav { order: 4; top: 100%; }
     .header .mobile-toggle { margin-left: 0; }
 }
 @media (max-width: 1100px) {

@@ -194,13 +194,17 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
 .catalog-intro-notes { display: flex; flex-wrap: wrap; gap: 12px 24px; padding-top: 18px; border-top: 1px solid #1f6f7f22; }
 .catalog-intro-notes span { display: inline-flex; align-items: center; gap: 8px; font-size: .9rem; color: #446075; }
 .catalog-intro-notes .icon { color: #1f6f7f; width: 18px; height: 18px; }
-.catalog-page .catalog-tools { background: #fff; padding: 1.5rem; border-color: #1f6f7f33; }
-.catalog-page .catalog-tools-row { grid-template-columns: minmax(220px,.8fr) minmax(0,1.6fr); align-items: center; gap: 1.5rem; }
-.catalog-page .filter-row button { display: inline-flex; align-items: center; gap: .5rem; font-family: 'Nunito',sans-serif; font-size: .875rem; min-height: 44px; padding: .55rem .85rem; font-weight: 600; border-color: #446075; }
+.catalog-page .catalog-tools { background: #fff; padding: 16px 20px; border-color: #1f6f7f33; }
+.catalog-page .catalog-tools-row { grid-template-columns: minmax(220px,.8fr) minmax(0,1.6fr); align-items: center; gap: 1rem; }
+.catalog-page .filter-row button { display: inline-flex; align-items: center; gap: .5rem; font-family: 'Nunito',sans-serif; font-size: .8rem; min-height: 32px; padding: .3rem .65rem; font-weight: 600; border-color: #1f6f7f33; }
 .category-count { font-size: .8rem; opacity: .8; }
-.catalog-results-bar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-top: 1rem; }
-.catalog-page .catalog-count { margin: 0; color: #446075; }
-.clear-catalog { min-height: 44px; padding: .5rem .85rem; border: 1px solid #1f6f7f; border-radius: .5rem; background: #fff; color: #1f6f7f; font: inherit; font-size: .875rem; font-weight: 700; cursor: pointer; }
+.catalog-results-bar { display: flex; justify-content: space-between; align-items: center; gap: .75rem; margin-top: 8px; }
+/* El filtro ocupa menos alto; el buscador y las categorías conservan sus etiquetas y foco visible. */
+.catalog-page .catalog-tools :deep(.field) { gap: 5px; font-size: .8rem; }
+.catalog-page .catalog-tools :deep(input[type='search']) { min-height: 36px; padding: 7px 10px; font-size: .875rem; }
+@media (pointer: coarse) { .catalog-page .filter-row button, .catalog-page .catalog-tools :deep(input[type='search']) { min-height: 44px; } }
+.catalog-page .catalog-count { margin: 0; color: #446075; font-size: .75rem; }
+.clear-catalog { min-height: 32px; padding: .3rem .65rem; border: 1px solid #1f6f7f; border-radius: .5rem; background: #fff; color: #1f6f7f; font: inherit; font-size: .875rem; font-weight: 700; cursor: pointer; }
 .clear-catalog:hover { background: #f5f9fa; }
 .catalog-page .filter-row button:hover:not(.active) { background: #fff; border-color: #153b64; color: #153b64; }
 .catalog-page .filter-row button.active { background: #153b64; border-color: #153b64; color: #fff; }
@@ -226,7 +230,7 @@ const clear = () => { query.value = ''; category.value = 'Todos'; };
 .catalog-page .service-card .card-link { margin-top: .75rem; }
 .catalog-page .service-card .card-link .btn { width: 100%; padding-inline: .9rem; }
 @media (max-width: 1000px) { .catalog-page .catalog-tools-row { grid-template-columns: minmax(0,1fr); } }
-@media (max-width: 600px) { .catalog-page .catalog-tools, .catalog-page .service-card { padding: 1.15rem; } }
+@media (max-width: 600px) { .catalog-page .catalog-tools { padding: 14px; } .catalog-page .service-card { padding: 1.15rem; } }
 
 /* La vista independiente agrupa alcance, precios e información con la identidad de synaux. */
 .service-intro { display: grid; grid-template-columns: minmax(0,1.2fr) minmax(0,1fr); align-items: center; gap: 2rem; margin-block: 1.5rem 2.5rem; }
