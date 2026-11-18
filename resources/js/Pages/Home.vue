@@ -42,7 +42,7 @@ const exampleBudget = {
         <!-- La marca principal se presenta sobre blanco, integrada a la foto sin alterar el SVG original. -->
         <section class="landing-hero shell" aria-labelledby="landing-title">
             <div class="landing-hero-copy"><p class="eyebrow">Diseño · Desarrollo · Estrategia</p><h1 id="landing-title">De tu idea a un <em>proyecto digital.</em></h1><p class="landing-lead">Explorá servicios digitales, prepará tu solicitud y revisá tu presupuesto en un mismo lugar. Con synaux, sabés qué incluye tu proyecto antes de avanzar.</p><div class="landing-actions"><B href="/plataforma" arrow>Explorar servicios</B><a href="#como-funciona">Cómo funciona</a></div><p class="landing-support">Podés empezar sin registrarte. Te pedimos una cuenta al enviar tu solicitud.</p></div>
-            <div class="landing-visual-wrap"><img class="landing-hero-pattern" :src="brandPattern" alt="" aria-hidden="true" width="510" height="184"><figure class="landing-visual"><img src="/images/landing/colaboracion-ricardo.webp" alt="Colaboración en el diseño de un proyecto digital." width="1536" height="1024" fetchpriority="high"></figure><div class="landing-brand-signature"><BrandLogo /></div></div>
+            <div class="landing-visual-wrap"><img class="landing-hero-pattern" :src="brandPattern" alt="" aria-hidden="true" width="510" height="184"><figure class="landing-visual"><img src="/images/landing/colaboracion-ricardo-catalogo.webp" alt="Colaboración en el diseño de un proyecto digital." width="1536" height="1024" fetchpriority="high"></figure><div class="landing-brand-signature"><BrandLogo /></div></div>
         </section>
         <!-- Las áreas orientan al catálogo sin repetir su listado completo ni prometer servicios futuros. -->
         <section class="landing-services" aria-labelledby="services-title"><div class="shell landing-section"><div class="landing-section-heading"><div><p class="eyebrow">Qué necesitás resolver</p><h2 id="services-title">Servicios que acompañan tu idea</h2></div><B compact href="/plataforma" variant="secondary" arrow>Ver catálogo</B></div><div class="landing-service-grid"><article v-for="area in areas" :key="area.title"><I :name="area.icon" class="landing-service-icon" /><h3>{{ area.title }}</h3><p>{{ area.text }}</p></article></div></div></section>
@@ -61,7 +61,7 @@ const exampleBudget = {
 h1, h2, h3 { color: #153b64; font-family: 'Space Grotesk', sans-serif; font-weight: 700; text-wrap: balance; }
 .eyebrow { color: #1f6f7f; font-size: .8rem; font-weight: 700; letter-spacing: .1em; margin-bottom: 12px; }
 p { color: #446075; text-wrap: pretty; line-height: 1.6; }
-.landing-hero { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); gap: clamp(24px,5vw,64px); align-items: center; padding-block: clamp(40px,5vw,72px); }
+.landing-hero { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); gap: clamp(24px,5vw,64px); align-items: center; padding-block: clamp(32px,4vw,52px); }
 h1 { font-size: clamp(2.5rem,4.7vw,4.25rem); line-height: 1.05; margin: 0 0 20px; max-width: 17ch; }
 h1 em { color: #1f6f7f; font-style: normal; }
 .landing-lead { max-width: 52ch; font-size: 1.075rem; margin-top: 20px; }
@@ -69,13 +69,13 @@ h1 em { color: #1f6f7f; font-style: normal; }
 .landing-actions > a:last-child { color: #153b64; font-weight: 700; text-underline-offset: 4px; }
 .landing-actions > a:last-child:hover { text-decoration: underline; }
 .landing-support { font-size: .85rem; max-width: 50ch; margin: 16px 0 0; }
-.landing-visual-wrap { position: relative; min-width: 0; padding-top: 20px; padding-bottom: 100px; }
-/* La firma vertical se superpone al borde inferior de la imagen sobre una superficie blanca propia. */
-.landing-brand-signature { position: absolute; bottom: 0; left: -20px; width: min(360px,80%); padding: 20px; background: #fff; border: 1px solid #1f6f7f14; border-radius: 16px; box-shadow: 0 4px 16px #153b640a; }
+.landing-visual-wrap { position: relative; min-width: 0; padding-top: 20px; padding-bottom: 90px; }
+/* La firma compacta ocupa el borde inferior derecho y deja libre la pantalla de la notebook. */
+.landing-brand-signature { position: absolute; bottom: 0; right: -12px; width: min(288px,80%); padding: 16px; background: #fff; border: 1px solid #1f6f7f14; border-radius: 16px; box-shadow: 0 4px 16px #153b640a; }
 .landing-brand-signature :deep(.brand-logo) { display: block; width: 100%; height: auto; }
 .landing-hero-pattern { position: absolute; top: -12px; right: -16px; width: min(76%,380px); height: auto; opacity: .4; pointer-events: none; }
 .landing-visual { position: relative; margin: 0; border: 1px solid #1f6f7f22; border-radius: 20px; overflow: hidden; background: #fff; box-shadow: 0 6px 20px #153b6412; }
-.landing-visual img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; }
+.landing-visual img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; }
 .landing-section { padding-block: clamp(40px,5vw,64px); }
 .landing-section h2 { font-size: clamp(1.75rem,3vw,2.6rem); line-height: 1.15; margin: 0; max-width: 26ch; }
 .landing-section h3 { font-size: 1.15rem; margin: 0 0 10px; }
@@ -105,5 +105,5 @@ h1 em { color: #1f6f7f; font-style: normal; }
 .landing-pattern-strip { height: 48px; margin-top: 28px; border-radius: 6px; background: url('../../images/brand/synaux-trama-uniforme.svg') no-repeat center; background-size: cover; opacity: .35; }
 @media (max-width: 1000px) { .landing-service-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media (max-width: 780px) { .landing-hero, .landing-budget { grid-template-columns: minmax(0,1fr); } .landing-hero { gap: 28px; } h1 { max-width: 20ch; } .landing-visual img { aspect-ratio: 3 / 2; } .landing-steps { grid-template-columns: minmax(0,1fr); gap: 24px; } .step-top { margin-bottom: 12px; } .landing-close { padding: 24px; } }
-@media (max-width: 540px) { .landing-visual-wrap { padding-bottom: 80px; } .landing-brand-signature { left: 0; width: min(260px,80%); padding: 16px; } .landing-service-grid { grid-template-columns: minmax(0,1fr); } .landing-close-actions { width: 100%; } .landing-actions { gap: 16px; } }
+@media (max-width: 540px) { .landing-visual-wrap { padding-bottom: 80px; } .landing-brand-signature { right: 0; width: min(240px,80%); padding: 16px; } .landing-service-grid { grid-template-columns: minmax(0,1fr); } .landing-close-actions { width: 100%; } .landing-actions { gap: 16px; } }
 </style>
