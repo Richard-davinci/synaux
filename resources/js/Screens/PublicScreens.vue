@@ -43,6 +43,13 @@ function serviceHref(service) {
     const available = props.data.references?.[service.id]?.segments ?? [];
     return '/servicios/' + service.id + (available.some(item => item.label === segment) ? '?cliente=' + encodeURIComponent(segment) : '');
 }
+// El texto inicial destaca el beneficio; los límites del paquete quedan en los entregables y el detalle.
+function catalogBenefit(service) {
+    if (service.id === 'sitio-institucional' && service.summary === 'Sitio institucional en WordPress de hasta 7 secciones.') {
+        return 'Presentá tu organización y facilitá el contacto con tus clientes.';
+    }
+    return service.summary;
+}
 const selected = computed(() => props.data.selected ?? {});
 // El detalle reutiliza los importes publicados del catálogo, con todos los segmentos visibles.
 const detailReference = computed(() => props.data.references?.[selected.value.id]);
@@ -99,9 +106,8 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
                     <I :name="categoryIcons[service.category] ?? 'folder'" class="catalog-service-icon" />
                     <p class="eyebrow">{{ service.category }}</p>
                 </div>
-                <span class="service-pricing-badge" :class="{ 'has-reference': data.references?.[service.id] }">{{ data.references?.[service.id] ? 'Con precio de referencia' : 'Cotización a medida' }}</span>
                 <h2>{{ service.name }}</h2>
-                <p class="service-description">{{ service.summary }}</p>
+                <p class="service-description">{{ catalogBenefit(service) }}</p>
                 <ul v-if="service.includes?.length" class="service-deliverables" aria-label="Incluye">
                     <li v-for="item in service.includes.slice(0, 3)" :key="item"><I name="check" /><span>{{ item }}</span></li>
                 </ul>
@@ -212,13 +218,11 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
 .catalog-page button:focus-visible { outline: 2px solid #153b64; outline-offset: 3px; }
 
 /* Cada tarjeta mantiene categoría, alcance y precio en un orden común para facilitar la comparación. */
-.catalog-page .service-card { min-height: 0; padding: 1.25rem; border: 1px solid #1f6f7f26; border-top: 4px solid #2db3a3; box-shadow: var(--card-shadow); border-radius: 18px; }
-.catalog-page .service-card:focus-within { border-color: #1f6f7f; box-shadow: var(--card-shadow-raised); }
-@media (hover: hover) { .catalog-page .service-card:hover { box-shadow: var(--card-shadow-raised); border-color: #1f6f7f66; border-top-color: #2db3a3; } }
+.catalog-page .service-card { min-height: 0; padding: 1.25rem; border: 1px solid #1f6f7f26; border-top: 4px solid #2db3a3; box-shadow: 0 2px 5px #153b640a, 0 8px 18px #153b6412; border-radius: 18px; }
+.catalog-page .service-card:focus-within { border-color: #1f6f7f; box-shadow: 0 4px 14px #153b641a; }
+@media (hover: hover) { .catalog-page .service-card:hover { box-shadow: 0 4px 14px #153b641a; border-color: #1f6f7f66; border-top-color: #2db3a3; } }
 .catalog-page .service-category { padding-bottom: 12px; border-bottom: 1px solid #1f6f7f1f; margin-bottom: 12px; }
 .catalog-page .catalog-service-icon { box-sizing: content-box; width: 22px; height: 22px; padding: 9px; border-radius: 10px; color: #153b64; background: #2db3a326; }
-.service-pricing-badge { align-self: flex-start; display: inline-flex; width: fit-content; padding: 3px 8px; margin-bottom: 10px; border-radius: 20px; background: #f5f9fa; color: #446075; font-size: .75rem; font-weight: 700; }
-.service-pricing-badge.has-reference { background: #1f6f7f14; color: #1f6f7f; }
 .service-category { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.25rem; }
 .catalog-page .service-category .eyebrow { margin: 0; color: #1f6f7f; font-size: .75rem; letter-spacing: .08em; }
 .catalog-service-icon { width: 2rem; height: 2rem; color: #1f6f7f; flex-shrink: 0; }

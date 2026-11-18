@@ -81,12 +81,14 @@ watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false;
         <header class="header"><a :href="referenceHref('/', $page.props)" class="logo-button" aria-label="synaux: inicio"><img :src="navbarLogo" class="brand-logo" width="405" height="140" alt="synaux"></a><button class="mobile-toggle" :aria-expanded="mobile" aria-label="Abrir navegación" @click="mobile = !mobile">☰</button>
             <nav :class="['main-nav', { 'mobile-open': mobile }]" aria-label="Navegación principal">
                 <a v-for="[label, href] in publicNav" :key="href" :href="referenceHref(href, $page.props)" :aria-current="$page.url.split('?')[0] === href ? 'page' : undefined">{{ label }}</a>
-                <div v-if="!$page.props.auth && !$page.props.preview" class="nav-actions"><SynauxButton compact href="/ingresar" variant="ghost">Ingresar</SynauxButton><SynauxButton compact href="/crear-cuenta">Crear cuenta</SynauxButton></div>
-                <!-- Fuera del área privada solo hace falta un acceso directo al panel de la cuenta. -->
-                <SynauxButton compact v-if="$page.props.auth && !$page.props.preview && !hasWorkspace" :href="$page.props.auth.is_admin ? '/gestion' : '/cliente'">Ir a mi panel</SynauxButton>
+                <!-- En móvil, los accesos de visitantes acompañan al menú desplegado. -->
+                <div v-if="!$page.props.auth && !$page.props.preview" class="nav-actions mobile-auth"><SynauxButton compact href="/ingresar" variant="ghost">Ingresar</SynauxButton><SynauxButton compact href="/crear-cuenta">Crear cuenta</SynauxButton></div>
             </nav>
-            <!-- Solo una sesión real consulta notificaciones; el prototipo no accede a actividad privada. -->
-            <SynauxNotificationCenter v-if="$page.props.auth && !$page.props.preview" />
+            <!-- Cuenta y notificaciones comparten un grupo alineado al extremo derecho. -->
+            <div v-if="!$page.props.preview" class="header-account" :class="{ 'guest-account': !$page.props.auth }">
+                <template v-if="!$page.props.auth"><SynauxButton compact href="/ingresar" variant="ghost">Ingresar</SynauxButton><SynauxButton compact href="/crear-cuenta">Crear cuenta</SynauxButton></template>
+                <template v-else><SynauxButton v-if="!hasWorkspace" compact class="panel-access" :href="$page.props.auth.is_admin ? '/gestion' : '/cliente'">Ir a mi panel</SynauxButton><SynauxNotificationCenter /></template>
+            </div>
         </header>
         </div>
         <div class="navbar-space" aria-hidden="true"></div>
@@ -130,16 +132,23 @@ watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false;
 .with-workspace :deep(.page) { padding-block: 40px 72px; }
 .with-workspace :deep(.admin-layout) { grid-template-columns: minmax(0, 1fr); }
 .workspace-mobile-bar { display: none; }
-/* Los controles de cuenta se mantienen en el primer renglón y el menú abierto ocupa el siguiente en móvil. */
-.header .main-nav { order: 1; }
-.header :deep(.notification-trigger) { order: 2; }
-.header .mobile-toggle { order: 3; }
-@media (max-width: 760px) {
-    .header { gap: 12px; }
+/* Tres bloques mantienen el menú centrado independientemente del ancho del logo o de las acciones. */
+.header { display: grid; grid-template-columns: minmax(150px, 1fr) auto minmax(150px, 1fr); }
+.header .logo-button { grid-column: 1; grid-row: 1; justify-self: start; }
+.header .main-nav { grid-column: 2; grid-row: 1; justify-self: center; }
+.header-account { grid-column: 3; grid-row: 1; justify-self: end; display: flex; align-items: center; gap: 12px; }
+.header-account :deep(.panel-access) { box-shadow: none; }
+.header .mobile-toggle, .header .mobile-auth { display: none; }
+@media (max-width: 900px) {
+    .header { display: flex; flex-wrap: wrap; gap: 12px; }
     .header .logo-button { flex: 1 1 0; min-width: 0; }
     .header .logo-button img { max-width: 100%; }
-    .header .main-nav { order: 4; top: 100%; }
-    .header .mobile-toggle { margin-left: 0; }
+    .header-account { order: 1; gap: 8px; }
+    .header .guest-account { display: none; }
+    .header .mobile-toggle { order: 2; display: block; margin-left: 0; }
+    .header .main-nav { order: 3; top: 100%; }
+    .header .main-nav.mobile-open { display: flex; }
+    .header .mobile-auth { display: grid; }
 }
 @media (max-width: 1100px) {
     .with-workspace { display: block; }

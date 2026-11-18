@@ -19,7 +19,6 @@ const price = computed(() => options.value.find(item => item.label === segment.v
             <template v-if="reference">
                 <span>Precio estimativo · {{ reference.currency }}</span>
                 <strong>{{ money(price.min, reference.currency) }}<template v-if="price.max !== price.min"> – {{ money(price.max, reference.currency) }}</template></strong>
-                <small>{{ options.length ? 'Referencia para ' + price.label : 'Alcance base' }}</small>
             </template>
             <template v-else><span>Presupuesto a medida</span><strong>Consultar precio</strong></template>
         </div>
@@ -32,12 +31,12 @@ const price = computed(() => options.value.find(item => item.label === segment.v
 .price-segments { display: flex; gap: 3px; padding: 3px; margin-bottom: 10px; border: 1px solid #1f6f7f22; border-radius: 8px; background: #f5f9fa; }
 .price-segments button { flex: 1; min-width: 0; min-height: 30px; border: 1px solid transparent; border-radius: 5px; padding: 4px 5px; color: #446075; background: transparent; font: inherit; font-size: .75rem; font-weight: 600; cursor: pointer; }
 /* El fondo turquesa y el borde firme hacen reconocible la selección sin convertirla en otra acción principal. */
-.price-segments button[aria-pressed='true'] { background: #2db3a32e; color: #153b64; border-color: #1f6f7f; font-weight: 800; box-shadow: inset 0 -2px 0 #1f6f7f; }
+.price-segments button[aria-pressed='true'] { background: #2db3a32e; color: #153b64; border-color: #1f6f7f; font-weight: 700; box-shadow: none; }
 .price-segments button:hover:not([aria-pressed='true']) { color: #153b64; background: #fff; }
 @media (pointer: coarse) { .price-segments button { min-height: 44px; } }
 .price-segments button:focus-visible { outline: 2px solid #153b64; outline-offset: 2px; }
-/* El precio ocupa una superficie propia y conserva contraste con los controles de segmento. */
-.price-summary { display: grid; gap: .2rem; padding: 12px; background: #f5f9fa; border: 1px solid #1f6f7f22; border-radius: 12px; }
+/* El precio usa el fondo de la tarjeta y una separación simple, sin otro recuadro. */
+.price-summary { display: grid; gap: .2rem; padding: 12px 0 0; border-top: 1px solid #1f6f7f22; }
 .price-summary span, .price-summary small { color: #446075; font-size: .8rem; }
 .price-summary strong { color: #153b64; font-family: 'Space Grotesk', sans-serif; font-size: 1.4rem; line-height: 1.25; overflow-wrap: anywhere; }
 </style>
