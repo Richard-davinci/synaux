@@ -59,6 +59,12 @@ const nav = computed(() => allNav.value.filter(([, href]) =>
 
 // El contexto de trabajo identifica también los detalles y formularios abiertos desde cada área.
 const hasWorkspace = computed(() => area.value !== 'public' && !!(page.props.auth || page.props.preview));
+// La línea del navbar recibe el rol de la sesión en páginas reales; la galería usa el área mostrada solo como referencia visual.
+const navbarRole = computed(() => {
+    if (page.props.preview) return hasWorkspace.value ? (area.value === 'gestion' ? 'admin' : area.value) : null;
+    if (page.props.auth?.is_admin) return 'admin';
+    return page.props.auth ? (area.value === 'profesional' ? 'profesional' : 'cliente') : null;
+});
 const accountName = computed(() => page.props.auth?.name ?? (page.props.preview ? 'Cuenta de ejemplo' : ''));
 const workspaceTitle = computed(() => area.value === 'gestion' ? 'Panel de gestión' : area.value === 'profesional' ? 'Área profesional' : 'Mi espacio');
 const currentSection = computed(() => {
@@ -71,7 +77,7 @@ const currentSection = computed(() => {
 watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false; });
 </script>
 <template>
-    <v-app class="synaux-app" :data-workspace-role="hasWorkspace ? area : undefined" :style="{ '--navbar-height': headerHeight + 'px', '--workspace-bar-height': workspaceBarHeight + 'px' }">
+    <v-app class="synaux-app" :data-workspace-role="hasWorkspace ? area : undefined" :data-navbar-role="navbarRole || undefined" :style="{ '--navbar-height': headerHeight + 'px', '--workspace-bar-height': workspaceBarHeight + 'px' }">
         <!-- El encabezado fijo conserva su espacio mediante una altura medida, sin tapar el contenido. -->
         <div ref="fixedHeader" class="fixed-header">
         <!-- En la referencia se puede revisar cada estado sin modificar registros ni conceder permisos. -->
@@ -113,11 +119,14 @@ watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false;
 
 <style scoped>
 /* El navbar queda sobre la página; la compensación usa su altura real incluso en el prototipo. */
-/* El sitio público conserva la marca común; el panel identifica el rol con un acento, sin recolorear el logo. */
+/* El panel conserva su acento y la línea del navbar identifica la sesión sin recolorear el logo ni alterar el acceso. */
 .synaux-app[data-workspace-role='cliente'] { --workspace-accent: #153b64; }
 .synaux-app[data-workspace-role='profesional'] { --workspace-accent: #2db3a3; }
-.synaux-app[data-workspace-role='gestion'] { --workspace-accent: #1f6f7f; }
-.synaux-app[data-workspace-role] .header { border-bottom: 3px solid var(--workspace-accent); }
+.synaux-app[data-workspace-role='gestion'] { --workspace-accent: #2db3a3; }
+/* Azul para cliente y turquesa para administración o profesionales; el visitante mantiene el borde discreto del sitio. */
+.synaux-app[data-navbar-role='cliente'] { --navbar-accent: #153b64; }
+.synaux-app[data-navbar-role='admin'], .synaux-app[data-navbar-role='profesional'] { --navbar-accent: #2db3a3; }
+.synaux-app[data-navbar-role] .header { border-bottom: 3px solid var(--navbar-accent); }
 .fixed-header { position: fixed; inset: 0 0 auto; z-index: 100; background: #fff; }
 .navbar-space { flex: 0 0 var(--navbar-height); height: var(--navbar-height); }
 .workspace-content { scroll-margin-top: calc(var(--navbar-height) + 24px); }
