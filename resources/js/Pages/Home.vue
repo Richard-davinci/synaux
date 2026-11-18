@@ -47,7 +47,7 @@ const exampleBudget = {
     <PublicLayout landing>
         <!-- La marca principal se presenta sobre blanco, integrada a la foto sin alterar el SVG original. -->
         <section class="landing-hero shell" aria-labelledby="landing-title">
-            <div class="landing-hero-copy"><p class="eyebrow">Diseño · Desarrollo · Estrategia</p><h1 id="landing-title">De tu idea a un <em>proyecto digital.</em></h1><p class="landing-lead">Explorá servicios digitales, prepará tu solicitud y revisá tu presupuesto en un mismo lugar. Con synaux, sabés qué incluye tu proyecto antes de avanzar.</p><div class="landing-actions"><B href="/plataforma" arrow>Explorar servicios</B><a href="#como-funciona">Cómo funciona</a></div><p class="landing-support">Podés empezar sin registrarte. Te pedimos una cuenta al enviar tu solicitud.</p></div>
+            <div class="landing-hero-copy"><p class="eyebrow">Diseño · Desarrollo · Estrategia</p><h1 id="landing-title">De tu idea a un <em>proyecto digital.</em></h1><p class="landing-lead">Explorá servicios digitales, prepará tu solicitud y revisá tu presupuesto antes de avanzar.</p><div class="landing-actions"><B href="/plataforma" arrow>Explorar servicios</B><a href="#como-funciona">Cómo funciona</a></div><p class="landing-support">Podés empezar sin registrarte. Te pedimos una cuenta al enviar tu solicitud.</p></div>
             <div class="landing-visual-wrap"><BrandPatternFragment class="landing-hero-pattern" /><figure class="landing-visual"><img src="/images/landing/colaboracion-ricardo-catalogo.webp" alt="Colaboración en el diseño de un proyecto digital." width="1536" height="1024" fetchpriority="high"></figure><div class="landing-brand-signature"><BrandLogo /></div></div>
         </section>
         <!-- Las áreas orientan al catálogo sin repetir su listado completo ni prometer servicios futuros. -->
@@ -76,8 +76,8 @@ h1 em { color: #1f6f7f; font-style: normal; }
 .landing-actions > a:last-child:hover { text-decoration: underline; }
 .landing-support { font-size: .85rem; max-width: 50ch; margin: 16px 0 0; }
 .landing-visual-wrap { position: relative; min-width: 0; padding-top: 20px; padding-bottom: 90px; }
-/* La firma compacta ocupa el borde inferior derecho y deja libre la pantalla de la notebook. */
-.landing-brand-signature { position: absolute; bottom: 0; right: -12px; width: min(254px,80%); padding: 16px; background: #fff; border: 1px solid #1f6f7f0a; border-radius: 16px; box-shadow: 0 4px 16px #153b640a; }
+/* La firma mantiene el tamaño del logo con menos margen blanco y deja libre la pantalla. */
+.landing-brand-signature { position: absolute; bottom: 0; right: -12px; width: min(238px,80%); padding: 8px; background: #fff; border: 1px solid #1f6f7f0a; border-radius: 16px; box-shadow: 0 4px 16px #153b640a; }
 .landing-brand-signature :deep(.brand-logo) { display: block; width: 100%; height: auto; }
 /* El fragmento elimina piezas que no caben completas y deja visible la esquina derecha. */
 .landing-hero-pattern { position: absolute; top: -32px; right: -32px; width: min(76%,380px); height: 180px; opacity: .4; pointer-events: none; }
@@ -85,7 +85,7 @@ h1 em { color: #1f6f7f; font-style: normal; }
 .landing-visual img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; }
 .landing-section { padding-block: clamp(40px,5vw,64px); }
 .landing-section h2 { font-size: clamp(1.75rem,3vw,2.6rem); line-height: 1.15; margin: 0; max-width: 26ch; }
-.landing-section h3 { font-size: 1.15rem; margin: 0 0 10px; }
+.landing-section h3 { font-size: 1.25rem; line-height: 1.25; margin: 0 0 8px; }
 .landing-section-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 28px; }
 .landing-services, .landing-budget-section { background: #f5f9fa; border-block: 1px solid #1f6f7f14; }
 .landing-service-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; }
@@ -112,5 +112,5 @@ h1 em { color: #1f6f7f; font-style: normal; }
 @media (max-width: 1000px) { .landing-service-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media (max-width: 780px) { .landing-hero, .landing-budget { grid-template-columns: minmax(0,1fr); } .landing-hero { gap: 28px; } h1 { max-width: 20ch; } .landing-visual img { aspect-ratio: 3 / 2; } .landing-steps { grid-template-columns: minmax(0,1fr); gap: 24px; } .step-top { margin-bottom: 12px; } .landing-close { padding: 24px; } }
 /* En móvil la esquina respeta el margen lateral para evitar desbordamientos. */
-@media (max-width: 540px) { .landing-hero-pattern { top: -24px; right: -10px; } .landing-visual-wrap { padding-bottom: 80px; } .landing-brand-signature { right: 0; width: min(234px,80%); padding: 16px; } .landing-service-grid { grid-template-columns: minmax(0,1fr); } .landing-close-actions { width: 100%; } .landing-actions { gap: 16px; } }
+@media (max-width: 540px) { .landing-hero-pattern { top: -24px; right: -10px; } .landing-visual-wrap { padding-bottom: 80px; } .landing-brand-signature { right: 0; width: min(218px,80%); padding: 8px; } .landing-service-grid { grid-template-columns: minmax(0,1fr); } .landing-close-actions { width: 100%; } .landing-actions { gap: 16px; } }
 </style>
