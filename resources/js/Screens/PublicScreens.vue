@@ -83,10 +83,10 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
 <template>
     <!-- Los filtros se generan a partir de los servicios publicados y no alteran sus precios. -->
     <section v-if="data.screen === 'servicios'" class="page shell catalog-page">
-        <!-- El catálogo reúne ambos públicos con la paleta compartida y una introducción de mayor jerarquía. -->
+        <!-- La introducción orienta sin desplazar los servicios por debajo del primer pantallazo. -->
         <header class="catalog-intro">
             <T eyebrow="Catálogo de servicios" title="Dale forma a tu próximo proyecto." description="Encontrá el servicio que necesitás, explorá su alcance y prepará tu solicitud de presupuesto." />
-            <div class="catalog-intro-notes"><span><I name="folder" />{{ data.services.length }} servicios disponibles</span><span><I name="check" />Alcance y precios orientativos</span><span><I name="user" />Acompañamiento de Synaux</span></div>
+            <div class="catalog-intro-notes"><span><I name="folder" />{{ data.services.length }} servicios disponibles</span><span><I name="check" />Alcance y precios orientativos</span></div>
         </header>
         <div class="catalog-tools">
             <div class="catalog-tools-row">
@@ -191,16 +191,19 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
 
 <style scoped>
 /* La búsqueda, las categorías y la limpieza comparten un panel con estados de foco visibles. */
-/* La profundidad y los acentos de marca distinguen introducción, filtros y resultados. */
-.catalog-intro { padding: clamp(24px, 4vw, 40px); margin-bottom: 28px; border: 1px solid #1f6f7f22; border-left: 5px solid #2db3a3; border-radius: 18px; background: linear-gradient(115deg, #f5f9fa, #fff); box-shadow: var(--card-shadow); }
-.catalog-intro :deep(.page-title) { margin-bottom: 24px; }
-.catalog-intro :deep(h1) { font-weight: 700; font-size: clamp(2rem, 3.6vw, 3rem); line-height: 1.12; max-width: 760px; }
-.catalog-intro :deep(.eyebrow) { color: #1f6f7f; font-weight: 700; }
-.catalog-intro-notes { display: flex; flex-wrap: wrap; gap: 12px 24px; padding-top: 18px; border-top: 1px solid #1f6f7f22; }
-.catalog-intro-notes span { display: inline-flex; align-items: center; gap: 8px; font-size: .9rem; color: #446075; }
-.catalog-intro-notes .icon { color: #1f6f7f; width: 18px; height: 18px; }
-.catalog-page .catalog-tools { background: #fff; padding: 16px 20px; border-color: #1f6f7f33; }
-.catalog-page .catalog-tools-row { grid-template-columns: minmax(0,1.4fr) minmax(0,1fr) auto; align-items: end; gap: 1rem; }
+/* El encabezado queda liviano: la profundidad visual se reserva para las tarjetas de servicio. */
+.catalog-page { padding-top: 32px; }
+.catalog-intro { padding: 0; margin-bottom: 20px; }
+.catalog-intro :deep(.page-title) { display: block; margin-bottom: 12px; }
+.catalog-intro :deep(.page-title > div) { width: 100%; }
+.catalog-page .catalog-intro :deep(.page-title h1) { max-width: none; margin-bottom: 10px; font-weight: 700; font-size: clamp(1.75rem, 2.8vw, 2.2rem); line-height: 1.15; text-wrap: balance; }
+.catalog-intro :deep(.eyebrow) { margin-bottom: 8px; color: #1f6f7f; font-weight: 700; }
+.catalog-intro :deep(.page-title p:last-child) { font-size: .95rem; line-height: 1.5; text-wrap: pretty; }
+.catalog-intro-notes { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.catalog-intro-notes span { display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; color: #446075; }
+.catalog-intro-notes .icon { color: #1f6f7f; width: 16px; height: 16px; }
+.catalog-page .catalog-tools { background: #f5f9fa; padding: 14px 18px; margin-bottom: 24px; border-color: #1f6f7f22; box-shadow: 0 2px 8px #153b640a; }
+.catalog-page .catalog-tools-row { grid-template-columns: repeat(2, minmax(0,1fr)) auto; align-items: end; gap: 1rem; }
 /* El buscador y el autocompletado comparten altura y etiquetas alineadas. */
 .category-picker { display: grid; gap: 5px; min-width: 0; }
 .category-picker > label { font-size: .8rem; font-weight: 600; color: #153b64; }
