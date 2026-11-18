@@ -50,7 +50,11 @@ function catalogBenefit(service) {
     }
     return service.summary;
 }
+// La ficha institucional presenta el beneficio y deja el alcance técnico en los entregables.
 const selected = computed(() => props.data.selected ?? {});
+const detailIntro = computed(() => selected.value.id === 'sitio-institucional'
+    ? 'Presentá tu organización con un sitio claro y facilitá que tus clientes encuentren información y se pongan en contacto.'
+    : selected.value.summary || selected.value.description);
 // El detalle reutiliza los importes publicados del catálogo, con todos los segmentos visibles.
 const detailReference = computed(() => props.data.references?.[selected.value.id]);
 const detailPrices = computed(() => detailReference.value?.segments?.length
@@ -69,7 +73,7 @@ const detailImage = computed(() => ['Desarrollo web', 'UX/UI'].includes(selected
     ? { src: '/images/landing/planificacion.webp', alt: 'Planificación de una interfaz con bocetos y una computadora.' }
     : { src: '/images/landing/colaboracion.webp', alt: 'Dos personas revisando una propuesta digital.' });
 const segmentDescriptions = {
-    Particular: 'Personas, organizaciones sin fines de lucro y ONG',
+    Particular: 'Personas y entidades sin fines de lucro',
     PyME: 'PyMEs e instituciones',
     Empresa: 'Grandes empresas',
 };
@@ -123,7 +127,7 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
         <header class="service-intro">
             <div>
                 <I :name="categoryIcons[selected.category] ?? 'folder'" class="editorial-icon" />
-                <T class="public-page-heading" :eyebrow="selected.category" :title="selected.name" :description="selected.description" />
+                <T class="public-page-heading" :eyebrow="selected.category" :title="selected.name" :description="detailIntro" />
             </div>
             <img class="service-image" :src="detailImage.src" :alt="detailImage.alt" width="1200" height="800" fetchpriority="high">
         </header>
@@ -158,7 +162,7 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
                 </template>
                 <p v-else>Contanos qué necesitás. Revisamos tu objetivo y preparamos una propuesta con entregables, precio, plazo y condiciones.</p>
                 <div class="editorial-actions detail-actions">
-                    <B :href="detailReference ? estimateHref : '/solicitudes/nueva?servicio=' + encodeURIComponent(selected.id)" arrow>{{ detailReference ? 'Continuar con mi estimación' : 'Solicitar presupuesto' }}</B>
+                    <B :href="detailReference ? estimateHref : '/solicitudes/nueva?servicio=' + encodeURIComponent(selected.id)" arrow>{{ detailReference ? 'Iniciar estimación' : 'Solicitar presupuesto' }}</B>
                     <B href="/contacto" variant="secondary">Hacer una consulta</B>
                 </div>
             </section>
@@ -307,9 +311,9 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
 @media (max-width: 600px) { .catalog-page .catalog-tools { padding: 14px; } .catalog-page .service-card { padding: 1.15rem; } }
 
 /* La ficha usa la escala pública y une los entregables con el siguiente paso. */
-.service-intro { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: center; gap: clamp(20px, 4vw, 48px); margin-bottom: 28px; }
+.service-intro { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: center; gap: clamp(20px, 4vw, 48px); margin-bottom: 22px; }
 .service-detail .service-intro :deep(.public-page-heading) { margin-bottom: 0; }
-.service-image { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; border: 1px solid #1f6f7f26; border-radius: 16px; box-shadow: 0 6px 20px #153b6412; }
+.service-image { display: block; width: 100%; height: auto; aspect-ratio: 2 / 1; object-fit: cover; border: 1px solid #1f6f7f26; border-radius: 16px; box-shadow: 0 6px 20px #153b6412; }
 .service-detail-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 8fr); align-items: start; gap: clamp(18px, 3vw, 32px); }
 .detail-pricing:only-child { grid-column: 1 / -1; }
 .service-includes .service-deliverables { margin: 0; gap: 12px; }
