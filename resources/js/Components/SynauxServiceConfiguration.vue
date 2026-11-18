@@ -1,4 +1,5 @@
 <script setup>
+import SidePanel from './SynauxSidePanel.vue';
 import { computed, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import B from './SynauxButton.vue';
@@ -90,7 +91,7 @@ function publishPrices() { submit(prices, '/admin/guardar/precios-servicio'); }
                 <div class="form-actions"><B variant="secondary" href="/admin/tarifario">Ver tarifarios</B><B type="submit" :disabled="prices.processing">{{ prices.processing ? 'Publicando…' : 'Publicar nueva versión' }}</B></div>
             </form>
         </template>
-        <v-dialog v-model="dialog" max-width="720" :persistent="form.processing"><div class="synaux-app"><v-card class="card modal-card"><h2>{{ form.id ? 'Editar' : 'Agregar' }} {{ {preguntas:'pregunta',componentes:'componente',reglas:'regla'}[resource] }}</h2><p>{{ form.service_id === null ? 'Pregunta general para todos los servicios' : service.name }}</p><form @submit.prevent="save">
+        <SidePanel title="Configuración del servicio" v-model="dialog" max-width="720" :persistent="form.processing"><div class="synaux-app"><v-card class="card modal-card"><h2>{{ form.id ? 'Editar' : 'Agregar' }} {{ {preguntas:'pregunta',componentes:'componente',reglas:'regla'}[resource] }}</h2><p>{{ form.service_id === null ? 'Pregunta general para todos los servicios' : service.name }}</p><form @submit.prevent="save">
             <div v-if="Object.keys(form.errors).length" class="notice" role="alert"><p v-for="(error,key) in form.errors" :key="key">{{ error }}</p></div>
             <template v-if="resource === 'preguntas'">
                 <F v-model="form.question" label="Pregunta" required maxlength="1000" :error="form.errors.question" /><F v-model="form.input_type" label="Tipo de respuesta" type="select" :options="types" required />
@@ -104,7 +105,7 @@ function publishPrices() { submit(prices, '/admin/guardar/precios-servicio'); }
             <template v-else><F v-model="form.estimator_option_id" label="Respuesta que activa la regla" type="select" :options="options" required /><F v-model="form.service_component_id" label="Componente de este servicio" type="select" :options="componentOptions" required /><F v-model="form.quantity" label="Cantidad que incorpora" type="number" min="0" max="10000" step="0.001" required /></template>
             <label class="select-row"><input v-model="form.active" type="checkbox">{{ resource === 'preguntas' ? 'Pregunta activa' : 'Activo' }}</label><p>Desactivar conserva las respuestas y estimaciones anteriores.</p>
             <div class="form-actions"><B variant="secondary" :disabled="form.processing" @click="dialog=false">Cancelar</B><B type="submit" :disabled="form.processing">{{ form.processing ? 'Guardando…' : 'Guardar' }}</B></div>
-        </form></v-card></div></v-dialog>
+        </form></v-card></div></SidePanel>
     </div>
 </template>
 

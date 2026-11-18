@@ -1,4 +1,5 @@
 <script setup>
+import SidePanel from './SynauxSidePanel.vue';
 import { computed, ref, watch } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 import B from './SynauxButton.vue';
@@ -129,7 +130,7 @@ function saveCategory() {
             </tbody></table></div>
         </template>
         <!-- El formulario de categoría conserva campos y errores mientras Laravel valida el guardado. -->
-        <v-dialog v-model="categoryDialog" max-width="640" :persistent="category.processing"><div class="synaux-app"><v-card class="card modal-card"><h2>{{ category.id ? 'Editar categoría' : 'Nueva categoría' }}</h2><form @submit.prevent="saveCategory"><F v-model="category.name" label="Nombre" required maxlength="255" :error="category.errors.name" /><F :model-value="category.slug" @update:model-value="category.slug = $event; categorySlugEdited = true" label="Identificador (slug)" required :error="category.errors.slug" /><F v-model="category.description" label="Descripción" type="textarea" required maxlength="10000" :error="category.errors.description" /><label class="select-row"><input v-model="category.active" type="checkbox">Categoría activa</label><p v-if="category.errors.active" role="alert">{{ category.errors.active }}</p><p>Desactivar la categoría conserva los servicios vinculados y no cambia su publicación.</p><div class="form-actions"><B variant="secondary" :disabled="category.processing" @click="categoryDialog = false">Cancelar</B><B type="submit" :disabled="category.processing">{{ category.processing ? 'Guardando…' : 'Guardar categoría' }}</B></div></form></v-card></div></v-dialog>
+        <SidePanel title="Categorías de servicios" v-model="categoryDialog" max-width="640" :persistent="category.processing"><div class="synaux-app"><v-card class="card modal-card"><h2>{{ category.id ? 'Editar categoría' : 'Nueva categoría' }}</h2><form @submit.prevent="saveCategory"><F v-model="category.name" label="Nombre" required maxlength="255" :error="category.errors.name" /><F :model-value="category.slug" @update:model-value="category.slug = $event; categorySlugEdited = true" label="Identificador (slug)" required :error="category.errors.slug" /><F v-model="category.description" label="Descripción" type="textarea" required maxlength="10000" :error="category.errors.description" /><label class="select-row"><input v-model="category.active" type="checkbox">Categoría activa</label><p v-if="category.errors.active" role="alert">{{ category.errors.active }}</p><p>Desactivar la categoría conserva los servicios vinculados y no cambia su publicación.</p><div class="form-actions"><B variant="secondary" :disabled="category.processing" @click="categoryDialog = false">Cancelar</B><B type="submit" :disabled="category.processing">{{ category.processing ? 'Guardando…' : 'Guardar categoría' }}</B></div></form></v-card></div></SidePanel>
     </section>
 </template>
 

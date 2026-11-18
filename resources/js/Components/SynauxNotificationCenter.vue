@@ -1,4 +1,5 @@
 <script setup>
+import SidePanel from './SynauxSidePanel.vue';
 import { computed, ref, watch } from 'vue';
 import { router, usePage, usePoll } from '@inertiajs/vue3';
 import I from './SynauxIcon.vue';
@@ -28,14 +29,14 @@ function read(item, navigate = false) {
 <template>
     <!-- El acceso está fuera del menú público para mantenerlo visible también en celulares. -->
     <button class="notification-trigger" type="button" :aria-label="`Notificaciones: ${notifications.unread_count} sin leer`" aria-haspopup="dialog" :aria-expanded="open" @click="open = true"><I name="bell" /><span v-if="notifications.unread_count" class="notification-count">{{ notifications.unread_count > 99 ? '99+' : notifications.unread_count }}</span></button>
-    <v-dialog v-model="open" max-width="540" aria-labelledby="notification-center-title">
+    <SidePanel title="Actividad de tu cuenta" v-model="open" max-width="540" aria-labelledby="notification-center-title">
         <section class="notification-center">
-            <header><div><h2 id="notification-center-title">Notificaciones</h2><p aria-live="polite">{{ notifications.unread_count ? `${notifications.unread_count} sin leer` : 'Estás al día' }}</p></div><button type="button" class="notification-icon-button" aria-label="Cerrar notificaciones" @click="open = false"><I name="close" /></button></header>
+            <header><div><h2 id="notification-center-title">Notificaciones</h2><p aria-live="polite">{{ notifications.unread_count ? `${notifications.unread_count} sin leer` : 'Estás al día' }}</p></div></header>
             <div v-if="notifications.unread_count" class="notification-toolbar"><button type="button" :disabled="busy" @click="read(null)">Marcar todas como leídas</button></div>
             <ul v-if="notifications.items.length" class="notification-list"><li v-for="item in notifications.items" :key="item.id" :class="{ unread: !item.read_at }"><a :href="item.href" :aria-disabled="busy" @click.prevent="read(item, true)"><div class="notification-item-title"><strong>{{ item.title }}</strong><span v-if="!item.read_at">Nuevo</span></div><p>{{ item.message }}</p><small>{{ date(item.created_at) }}</small></a><button v-if="!item.read_at" type="button" class="notification-mark" :disabled="busy" :aria-label="`Marcar como leída: ${item.title}, ${item.message}`" @click="read(item)"><I name="check" /></button></li></ul>
             <p v-else class="notification-empty">Todavía no hay notificaciones. Acá vas a recibir las novedades de tus solicitudes, presupuestos y proyectos.</p>
         </section>
-    </v-dialog>
+    </SidePanel>
 </template>
 
 <style scoped>

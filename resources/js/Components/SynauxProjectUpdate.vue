@@ -1,4 +1,5 @@
 <script setup>
+import SidePanel from './SynauxSidePanel.vue';
 import { useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
 import B from './SynauxButton.vue';
@@ -26,7 +27,7 @@ function save() {
 </script>
 
 <template>
-    <v-dialog :model-value="true" :persistent="form.processing" max-width="760" @update:model-value="!$event && emit('close')">
+    <SidePanel title="Seguimiento del proyecto" :model-value="true" :persistent="form.processing" max-width="760" @update:model-value="!$event && emit('close')">
         <div class="synaux-app"><v-card class="card modal-card project-update">
             <p class="eyebrow">Gestión · PRY-{{ project.id }}</p><h2>Actualizar seguimiento</h2><p><strong>{{ project.title }}</strong></p>
             <p>El cliente verá esta actualización y sus próximos pasos. Los avances anteriores quedan en el historial.</p>
@@ -40,7 +41,7 @@ function save() {
                 <div class="form-actions"><B variant="secondary" :disabled="form.processing" @click="emit('close')">Cancelar</B><B type="submit" :disabled="form.processing">{{ form.processing ? 'Guardando…' : 'Guardar actualización' }}</B></div>
             </form>
         </v-card></div>
-    </v-dialog>
+    </SidePanel>
 </template>
 
 <style scoped>

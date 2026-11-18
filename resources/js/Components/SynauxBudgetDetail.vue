@@ -1,4 +1,5 @@
 <script setup>
+import SidePanel from './SynauxSidePanel.vue';
 import { computed, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import B from './SynauxButton.vue';
@@ -78,7 +79,7 @@ function decide() {
             </aside>
         </div>
         <!-- La decisión se envía solamente desde la confirmación y nunca al abrir el diálogo. -->
-        <v-dialog :model-value="!!decision && canDecide" :persistent="form.processing" max-width="600" @update:model-value="decision = $event ? decision : ''">
+        <SidePanel title="Confirmar decisión" :model-value="!!decision && canDecide" :persistent="form.processing" max-width="600" @update:model-value="decision = $event ? decision : ''">
             <div class="synaux-app"><v-card class="card modal-card budget-decision">
                 <p class="eyebrow">Confirmar decisión · Versión {{ record.version_number }}</p><h2>{{ decision === 'accepted' ? '¿Aceptás este presupuesto?' : '¿Querés rechazar este presupuesto?' }}</h2>
                 <p>{{ decision === 'accepted' ? 'Se creará un proyecto con los servicios, el total y las condiciones de esta versión.' : 'Esta versión quedará rechazada. Podrás consultarla y descargarla desde el historial.' }}</p>
@@ -87,7 +88,7 @@ function decide() {
                 <label class="decision-check"><input v-model="form.confirmed" type="checkbox" :disabled="form.processing"><span>{{ decision === 'accepted' ? 'Revisé el alcance, el total, los plazos y las condiciones y acepto esta versión.' : 'Confirmo que quiero rechazar esta versión del presupuesto.' }}</span></label>
                 <div class="form-actions"><B variant="secondary" :disabled="form.processing" @click="decision = ''">Volver al presupuesto</B><B :disabled="!form.confirmed || form.processing" @click="decide">{{ form.processing ? 'Guardando decisión…' : decision === 'accepted' ? 'Confirmar aceptación' : 'Confirmar rechazo' }}</B></div>
             </v-card></div>
-        </v-dialog>
+        </SidePanel>
     </div>
 </template>
 

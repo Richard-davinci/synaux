@@ -1,4 +1,5 @@
 <script setup>
+import SidePanel from './SynauxSidePanel.vue';
 import { computed, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { VSwitch } from 'vuetify/components';
@@ -161,9 +162,9 @@ function save(send) {
                 <div class="preview-save"><B variant="secondary" :disabled="!canPrepare || needsIssuer || quote.processing" @click="save(false)">{{ quote.processing && !quote.send ? 'Guardando…' : 'Guardar borrador' }}</B><p class="editor-hint">El borrador queda en Gestión. El cliente lo verá cuando lo envíes.</p></div>
             </aside>
         </form>
-        <v-dialog v-model="preview" max-width="1000" :persistent="quote.processing">
-            <div class="synaux-app"><v-card class="card modal-card budget-preview"><div class="context-heading"><h2>Revisá antes de enviar</h2><B variant="ghost" :disabled="quote.processing" aria-label="Cerrar vista previa" @click="preview = false">Cerrar</B></div><BudgetDocument :budget="documentPreview" :client="client" :issuer="issuer" /><div class="form-actions"><B variant="secondary" :disabled="quote.processing" @click="preview = false">Volver a editar</B><B v-if="step === 3" :disabled="quote.processing || !canPrepare || needsIssuer" arrow @click="save(true)">{{ quote.processing ? 'Enviando…' : 'Enviar presupuesto al cliente' }}</B></div></v-card></div>
-        </v-dialog>
+        <SidePanel title="Vista previa del presupuesto" v-model="preview" max-width="1000" :persistent="quote.processing">
+            <div class="synaux-app"><v-card class="card modal-card budget-preview"><div class="context-heading"><h2>Revisá antes de enviar</h2></div><BudgetDocument :budget="documentPreview" :client="client" :issuer="issuer" /><div class="form-actions"><B variant="secondary" :disabled="quote.processing" @click="preview = false">Volver a editar</B><B v-if="step === 3" :disabled="quote.processing || !canPrepare || needsIssuer" arrow @click="save(true)">{{ quote.processing ? 'Enviando…' : 'Enviar presupuesto al cliente' }}</B></div></v-card></div>
+        </SidePanel>
     </section>
 </template>
 
