@@ -162,28 +162,100 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
         </div>
     </section>
     <!-- Las imágenes se sirven localmente y cada tarjeta abre el trabajo correspondiente. -->
-    <section v-else-if="data.screen === 'portfolio'" class="page shell">
-        <T eyebrow="Portfolio" title="Trabajo real, decisiones con intención" description="Una selección de proyectos en los que estrategia, diseño y tecnología avanzaron juntos." />
-        <div v-if="data.works?.length" class="portfolio-grid"><a v-for="(work, index) in data.works" :key="work.id" :href="data.preview ? '/prototipo/trabajo' : `/trabajos/${work.id}`" :class="['work-card', `work-${index % 3}`]"><img v-if="work.cover_path" :src="work.cover_path" :alt="work.title"><span><small>{{ work.category }}</small><strong>{{ work.title }}</strong><i><I name="arrow" /></i></span></a></div>
-        <Empty v-else title="Estamos preparando nuestro portfolio." text="Próximamente vas a poder conocer los trabajos publicados por synaux." href="/contacto" action="Contanos tu proyecto" />
+    <!-- La grilla se adapta a los trabajos publicados y cada ficha mantiene su propia portada. -->
+    <section v-else-if="data.screen === 'portfolio'" class="page shell public-editorial">
+        <T class="editorial-heading" eyebrow="Portfolio" title="Proyectos de synaux" description="Conocé el desafío, las decisiones y el resultado de cada trabajo." />
+        <div v-if="data.works?.length" class="project-grid">
+            <a v-for="(work, index) in data.works" :key="work.id" class="project-card" :href="data.preview ? '/prototipo/trabajo' : `/trabajos/${work.id}`">
+                <div class="project-image">
+                    <img v-if="work.cover_path" :src="work.cover_path" alt="" :loading="index < 3 ? 'eager' : 'lazy'">
+                    <I v-else name="folder" />
+                </div>
+                <div class="project-copy">
+                    <p class="eyebrow">{{ work.category }}</p>
+                    <h2>{{ work.title }}</h2>
+                    <p v-if="work.description" class="project-description">{{ work.description }}</p>
+                    <span class="project-action">Ver proyecto <I name="arrow" /></span>
+                </div>
+            </a>
+        </div>
+        <div v-else class="editorial-panel portfolio-empty">
+            <I name="folder" class="editorial-icon" />
+            <h2>Todavía no hay proyectos publicados</h2>
+            <p>Mientras tanto, podés explorar los servicios o contarnos qué necesitás.</p>
+            <div class="editorial-actions"><B href="/plataforma" arrow>Explorar servicios</B><B href="/contacto" variant="secondary">Contanos tu proyecto</B></div>
+        </div>
         <p v-if="data.preview" class="photo-credit">Fotografías de Airlangga Jati, Creatvise y Branislav Rodman en Unsplash.</p>
     </section>
-    <section v-else-if="data.screen === 'trabajo'" class="page shell">
-        <B href="/portfolio" variant="ghost" class="back">← Volver al portfolio</B><T :eyebrow="selected.category" :title="selected.title" :description="selected.description" />
-        <div v-if="selected.cover_path" class="work-cover"><img :src="selected.cover_path" :alt="selected.title"></div>
-        <div class="story"><aside><strong>Servicio</strong><p>{{ selected.category }}</p><strong>Año</strong><p>{{ selected.year ?? 'A definir' }}</p><B v-if="selected.live_url" :href="selected.live_url" variant="secondary">Visitar proyecto</B></aside><article><h2>El desafío</h2><p class="text-block">{{ selected.challenge || selected.description }}</p><h2>La solución</h2><p class="text-block">{{ selected.result || 'Las decisiones y los entregables de este trabajo se documentan en su presentación.' }}</p><div class="gallery"><img v-for="image in selected.images ?? []" :key="image.id" :src="image.image_path" :alt="image.alt_text"></div><B href="/contacto" arrow>Hablemos de tu proyecto</B></article></div>
+
+    <!-- El caso de portfolio separa los datos del proyecto de su historia. -->
+    <section v-else-if="data.screen === 'trabajo'" class="page shell public-editorial">
+        <B href="/portfolio" variant="ghost" compact class="project-back">← Volver al portfolio</B>
+        <T class="editorial-heading" :eyebrow="selected.category" :title="selected.title" :description="selected.description" />
+        <div v-if="selected.cover_path" class="case-cover"><img :src="selected.cover_path" :alt="selected.title"></div>
+        <div class="editorial-split">
+            <article class="case-story">
+                <template v-if="selected.challenge && selected.challenge !== selected.description"><h2>El desafío</h2><p class="text-block">{{ selected.challenge }}</p></template>
+                <template v-if="selected.result"><h2>La solución</h2><p class="text-block">{{ selected.result }}</p></template>
+                <div v-if="selected.images?.length" class="case-gallery"><img v-for="image in selected.images" :key="image.id" :src="image.image_path" :alt="image.alt_text ?? ''" loading="lazy"></div>
+                <B href="/contacto" arrow>Hablemos de tu proyecto</B>
+            </article>
+            <aside class="editorial-panel case-facts">
+                <h2>Ficha del proyecto</h2>
+                <dl><div><dt>Área</dt><dd>{{ selected.category }}</dd></div><div v-if="selected.year"><dt>Año</dt><dd>{{ selected.year }}</dd></div></dl>
+                <B v-if="selected.live_url" :href="selected.live_url" variant="secondary">Visitar proyecto</B>
+            </aside>
+        </div>
     </section>
 
-    <!-- La presentación de synaux utiliza la identidad actual y las especialidades del prototipo. -->
-    <section v-else-if="data.screen === 'perfil'" class="page shell narrow">
-        <div class="profile-hero"><div class="profile-mark">{{ data.preview ? 'RS' : 'S' }}</div><div><p class="eyebrow">Quién está detrás de synaux</p><h1>{{ data.preview ? 'Ricardo Salvatierra' : 'synaux' }}</h1><p class="lead">Profesional digital enfocado en conectar estrategia, diseño y tecnología para crear soluciones que se entienden.</p></div></div>
-        <div class="content-grid"><article><h2>Trabajo cercano, proceso profesional</h2><p>synaux nace para ofrecer una forma más transparente de abordar proyectos digitales. Cada decisión se vincula con un objetivo, cada propuesta explicita su alcance y cada proyecto conserva la historia de lo acordado.</p><h2>Especialidades</h2><div class="tag-list"><span>Estrategia digital</span><span>UX/UI</span><span>Desarrollo web</span><span>Sistemas de diseño</span></div></article><v-card class="card summary-card"><h3>¿Hablamos de tu proyecto?</h3><p>Podemos empezar con una estimación o con una conversación si tu necesidad requiere una mirada particular.</p><B href="/contacto">Contactar</B></v-card></div>
+    <!-- La presentación explica cómo trabaja synaux con los recursos visuales de la landing. -->
+    <section v-else-if="data.screen === 'perfil'" class="page shell public-editorial">
+        <div class="about-hero">
+            <div>
+                <T class="editorial-heading" eyebrow="Nosotros" title="De la estrategia a la entrega" description="En synaux conectamos estrategia, diseño y desarrollo para que puedas avanzar con un objetivo y un alcance claros." />
+                <div class="editorial-actions"><B href="/contacto" arrow>Hablemos de tu proyecto</B><B href="/portfolio" variant="secondary">Ver portfolio</B></div>
+            </div>
+            <figure class="about-image"><img src="/images/landing/planificacion.webp" alt="Planificación de un sitio web con bocetos y una computadora."></figure>
+        </div>
+        <div class="about-principles">
+            <h2>Cómo trabajamos</h2>
+            <div class="principles-grid">
+                <article class="editorial-panel"><I name="user" class="editorial-icon" /><h3>Partimos de tu objetivo</h3><p>Revisamos qué querés resolver, qué recursos ya tenés y qué resultado esperás.</p></article>
+                <article class="editorial-panel"><I name="file" class="editorial-icon" /><h3>Acordamos el alcance</h3><p>La propuesta reúne los entregables, el precio y las condiciones para que puedas revisarlos antes de decidir.</p></article>
+                <article class="editorial-panel"><I name="check" class="editorial-icon" /><h3>Dejamos registro del avance</h3><p>Desde tu cuenta podés consultar el presupuesto y seguir los próximos pasos del proyecto.</p></article>
+            </div>
+        </div>
     </section>
 
-    <!-- El formulario guarda una consulta real; el estado enviado se muestra solo tras una respuesta válida. -->
-    <section v-else-if="data.screen === 'contacto'" class="page shell narrow">
-        <T eyebrow="Contacto" title="Contanos qué querés lograr" description="Si todavía no sabés qué servicio necesitás, describí el objetivo. Te orientamos sobre el próximo paso." />
-        <div class="contact-grid"><v-card class="card form-card"><div v-if="sent" class="success-state"><I name="check" /><h2>Recibimos tu consulta</h2><p>Tu mensaje quedó registrado para que podamos revisar tu necesidad.</p><B href="/contacto" variant="secondary">Enviar otra consulta</B></div><form v-else @submit.prevent="submit(form, '/contacto', {previewTarget:'contacto-enviado'})"><div class="field-row"><F v-model="form.name" label="Nombre" required autocomplete="name" :error="form.errors.name" /><F v-model="form.email" label="Correo" type="email" required autocomplete="email" :error="form.errors.email" /></div><F v-model="form.topic" label="Tema" type="select" :options="['Consulta general', ...data.services.map(s => s.name)]" required :error="form.errors.topic" /><F v-model="form.message" label="¿En qué podemos ayudarte?" type="textarea" required hint="No incluyas información sensible." placeholder="Contanos brevemente sobre tu proyecto, objetivos y tiempos." :error="form.errors.message" /><B type="submit" :disabled="form.processing">Enviar consulta</B></form></v-card><aside class="contact-aside"><h3>Hablemos de tu proyecto</h3><p>Contanos el objetivo, el contexto y los tiempos que tenés en mente.</p><hr><p>Si ya identificaste el servicio que necesitás, podés comenzar con el estimador.</p><B href="/estimador" variant="secondary">Estimar mi proyecto</B></aside></div>
+    <!-- Contacto separa la consulta general del recorrido para pedir un presupuesto. -->
+    <section v-else-if="data.screen === 'contacto'" class="page shell public-editorial">
+        <T class="editorial-heading" eyebrow="Contacto" title="Hablemos de tu proyecto" description="Si todavía estás definiendo qué necesitás, contanos tu idea y te orientamos sobre cómo empezar." />
+        <div class="editorial-split">
+            <div class="editorial-panel contact-form-panel">
+                <div v-if="sent" class="contact-success" role="status">
+                    <I name="check" class="editorial-icon" />
+                    <h2>Recibimos tu consulta</h2>
+                    <p>Tu mensaje quedó registrado para su revisión.</p>
+                    <B href="/contacto" variant="secondary">Enviar otra consulta</B>
+                </div>
+                <form v-else aria-labelledby="contact-form-title" @submit.prevent="submit(form, '/contacto', {previewTarget:'contacto-enviado'})">
+                    <h2 id="contact-form-title">Dejanos tu consulta</h2>
+                    <div class="field-row">
+                        <F v-model="form.name" label="Nombre" required autocomplete="name" :error="form.errors.name" />
+                        <F v-model="form.email" label="Correo" type="email" required autocomplete="email" :error="form.errors.email" />
+                    </div>
+                    <F v-model="form.topic" label="Tema" type="select" :options="['Consulta general', ...data.services.map(s => s.name)]" required :error="form.errors.topic" />
+                    <F v-model="form.message" label="Mensaje" type="textarea" required minlength="10" maxlength="10000" hint="No incluyas información sensible." placeholder="¿Qué querés lograr? Si tenés una fecha en mente, contanos cuál." :error="form.errors.message" />
+                    <B type="submit" :disabled="form.processing" arrow>{{ form.processing ? 'Enviando…' : 'Enviar consulta' }}</B>
+                </form>
+            </div>
+            <aside class="editorial-panel contact-next">
+                <I name="file" class="editorial-icon" />
+                <h2>¿Ya sabés qué servicio necesitás?</h2>
+                <p>Elegí un servicio y prepará una solicitud para que podamos cotizar tu proyecto.</p>
+                <B href="/solicitudes/nueva" variant="secondary" arrow>Preparar mi solicitud</B>
+            </aside>
+        </div>
     </section>
 </template>
 
@@ -268,5 +340,56 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
 .service-detail .content-grid article h2 { margin-top: 0; }
 @media (max-width: 700px) {
     .detail-price-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Las páginas públicas comparten escala editorial, superficies y ritmo con el catálogo. */
+.public-editorial { padding-block: clamp(32px, 5vw, 64px); }
+.public-editorial :deep(.editorial-heading) { margin-bottom: 28px; }
+.public-editorial :deep(.editorial-heading h1) { font-family: 'Space Grotesk', sans-serif; font-size: clamp(2rem, 4vw, 3.25rem); font-weight: 700; line-height: 1.1; text-wrap: balance; }
+.public-editorial :deep(.editorial-heading p), .public-editorial p { text-wrap: pretty; }
+.public-editorial h2 { font-size: clamp(1.25rem, 2.2vw, 1.65rem); font-weight: 700; line-height: 1.25; margin: 0 0 12px; text-wrap: balance; }
+.public-editorial h3 { font-size: 1.15rem; font-weight: 700; margin: 0 0 8px; }
+.editorial-panel, .project-card { border: 1px solid #1f6f7f26; border-radius: 16px; background: #fff; box-shadow: 0 4px 16px #153b640d; }
+.editorial-panel { padding: clamp(20px, 3vw, 32px); min-width: 0; }
+.editorial-panel p:last-child { margin-bottom: 0; }
+.editorial-icon { box-sizing: content-box; width: 20px; height: 20px; padding: 10px; border-radius: 10px; background: #2db3a326; color: #1f6f7f; margin-bottom: 14px; }
+.editorial-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.editorial-split { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); align-items: start; gap: clamp(18px, 3vw, 32px); }
+
+/* Las fichas mantienen un tamaño útil con pocos o muchos proyectos. */
+.project-grid, .principles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 20px; }
+.project-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.project-card { display: flex; flex-direction: column; overflow: hidden; text-decoration: none; color: #153b64; }
+.project-card:hover, .project-card:focus-visible { border-color: #1f6f7f; box-shadow: 0 8px 22px #153b641a; }
+.project-image { display: grid; place-items: center; aspect-ratio: 16 / 10; overflow: hidden; background: #f5f9fa; color: #1f6f7f; }
+.project-image img, .case-cover img, .about-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.project-image > .icon { width: 32px; height: 32px; }
+.project-copy { display: flex; flex-direction: column; flex: 1; padding: 20px; overflow-wrap: anywhere; }
+.project-copy .eyebrow { margin-bottom: 6px; }
+.project-description { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.project-action { display: inline-flex; align-items: center; gap: 8px; margin-top: auto; font-weight: 700; color: #1f6f7f; }
+.portfolio-empty { border-top: 3px solid #2db3a3; }
+.project-back { margin-bottom: 16px; }
+.case-cover, .about-image { overflow: hidden; border-radius: 16px; border: 1px solid #1f6f7f26; box-shadow: 0 6px 20px #153b6412; }
+.case-cover { max-height: 520px; margin-bottom: 28px; }
+.case-cover img { max-height: 520px; object-fit: contain; background: #f5f9fa; }
+.case-story { min-width: 0; overflow-wrap: anywhere; }
+.case-facts dl { margin: 0 0 16px; }
+.case-facts dl > div { padding-block: 8px; border-bottom: 1px solid #1f6f7f22; }
+.case-facts dt { font-size: .875rem; color: #446075; }
+.case-facts dd { margin: 0; font-weight: 700; }
+.case-gallery { display: grid; gap: 16px; margin-bottom: 24px; }
+.case-gallery img { width: 100%; border-radius: 12px; }
+
+/* La fotografía acompaña la presentación y la tarjeta de contacto conserva la acción principal. */
+.about-hero { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: center; gap: clamp(24px, 5vw, 56px); }
+.about-image { aspect-ratio: 3 / 2; margin: 0; }
+.about-principles { margin-top: clamp(28px, 5vw, 60px); }
+.principles-grid .editorial-panel { border-top: 3px solid #2db3a3; }
+.contact-form-panel { border-top: 3px solid #2db3a3; }
+.contact-form-panel h2 { margin-bottom: 20px; }
+.contact-next { background: #f5f9fa; }
+@media (max-width: 820px) {
+    .editorial-split, .about-hero { grid-template-columns: minmax(0, 1fr); }
 }
 </style>
