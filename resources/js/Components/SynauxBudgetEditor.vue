@@ -8,6 +8,7 @@ import F from './SynauxField.vue';
 import I from './SynauxIcon.vue';
 import BudgetDocument from './BudgetDocument.vue';
 import { money, date, useSubmit } from '../support/synaux';
+import { referenceLine } from '../support/requestPricing';
 
 // El editor recibe solo las solicitudes autorizadas; Laravel vuelve a comprobar permisos y valores al guardar.
 const props = defineProps({ data: Object });
@@ -69,17 +70,46 @@ const documentPreview = computed(() => ({
     created_at: selected.status === 'draft' ? selected.created_at : undefined, sent_at: null,
 }));
 
-// Al elegir otro pedido se reconstruyen los conceptos a cotizar; el aviso del selector explica este cambio.
+// Solo un importe fijo en la misma moneda se propone como precio editable del nuevo presupuesto.
+function suggestedPrice(reference, currency) {
+    const line = referenceLine(reference, 1, null, currency);
+    return line.priced && line.unitMin === line.unitMax && line.unitMin <= 100000000 ? line.unitMin : '';
+}
+
+function newItem(description, quantity, reference) {
+    return { description, quantity, unit_price: suggestedPrice(reference, quote.currency_code), reference };
+}
+
+function priceHint(reference) {
+    if (!reference) return;
+    const min = money(reference.min, reference.currency);
+    const amount = Number(reference.min) === Number(reference.max) ? min : `${min} a ${money(reference.max, reference.currency)}`;
+    const label = reference.recovered ? 'Referencia recuperada del tarifario asociado' : 'Referencia de la solicitud';
+    return `${label} · ${amount} ${reference.currency}`;
+}
+
+// Al elegir otro pedido se reconstruyen los conceptos con las referencias de ese pedido.
 watch(() => quote.request_id, () => {
     if (selected.budget_id || !source.value) return;
     quote.title = source.value.title;
+    quote.currency_code = source.value.pricing_reference?.currency ?? 'ARS';
     quote.items = [
-        { description: source.value.service_name + '\n' + source.value.description, quantity: 1, unit_price: '' },
-        ...(source.value.additional_services ?? []).map(item => ({
-            description: item.name + (item.notes ? '\n' + item.notes : ''), quantity: item.quantity, unit_price: '',
-        })),
+        newItem(source.value.service_name + '\n' + source.value.description, 1, source.value.pricing_reference),
+        ...(source.value.additional_services ?? []).map(item => newItem(
+            item.name + (item.notes ? '\n' + item.notes : ''), item.quantity, item.pricing_reference,
+        )),
     ];
 }, { immediate: true });
+// Un importe sugerido no se traslada automáticamente a otra moneda.
+watch(() => quote.currency_code, (currency, previous) => {
+    for (const item of quote.items) {
+        const original = suggestedPrice(item.reference, previous);
+        if (item.reference?.currency !== currency && original !== '' && item.unit_price !== '' && Number(item.unit_price) === original) {
+            item.unit_price = '';
+        }
+    }
+}, { flush: 'sync' });
+
 function advance() {
     if (step.value < 3) step.value += 1;
     else preview.value = true;
@@ -132,7 +162,7 @@ function save(send) {
                     <div v-for="(item, index) in quote.items" :key="index" class="quote-item">
                         <div class="context-heading"><h3>Concepto {{ index + 1 }}</h3><B variant="ghost" :disabled="quote.items.length === 1 || quote.processing" :aria-label="'Quitar concepto ' + (index + 1)" @click="quote.items.splice(index, 1)">Quitar</B></div>
                         <F v-model="item.description" label="Servicio y entregables" type="textarea" maxlength="2000" :error="quote.errors['items.' + index + '.description']" required />
-                        <div class="form-grid"><F v-model="item.quantity" label="Cantidad" type="number" min="0.001" max="10000" step="0.001" :error="quote.errors['items.' + index + '.quantity']" required /><F v-model="item.unit_price" :label="'Precio unitario · ' + quote.currency_code" type="number" min="0" max="100000000" step="0.01" :error="quote.errors['items.' + index + '.unit_price']" required /></div>
+                        <div class="form-grid"><F v-model="item.quantity" label="Cantidad" type="number" min="0.001" max="10000" step="0.001" :error="quote.errors['items.' + index + '.quantity']" required /><F v-model="item.unit_price" :label="'Precio unitario · ' + quote.currency_code" type="number" min="0" max="100000000" step="0.01" :error="quote.errors['items.' + index + '.unit_price']" :hint="priceHint(item.reference)" required /></div>
                         <p class="item-subtotal">Subtotal del concepto <strong>{{ item.unit_price === '' ? 'Pendiente de cotizar' : money(lineCents(item) / 100, quote.currency_code) }}</strong></p>
                     </div>
                     <B variant="secondary" :disabled="quote.items.length >= 100 || quote.processing" @click="quote.items.push({description:'',quantity:1,unit_price:''})">Agregar concepto</B>

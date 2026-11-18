@@ -208,8 +208,32 @@ class SynauxController extends Controller
             if ($origin) $data['selectedEstimate'] = [...(array) $origin,
                 'answers' => json_decode($origin->answers_snapshot, true), 'items' => json_decode($origin->items_snapshot ?? '[]', true)];
         }
-        if ($kind === 'editor-presupuesto' && $id) {
-            abort_unless($data['selected']['issuer_id'] === $request->user()->id, 403);
+        if ($kind === 'editor-presupuesto') {
+            if ($id) {
+                abort_unless($data['selected']['issuer_id'] === $request->user()->id, 403);
+            }
+            // Los adicionales antiguos se pueden sugerir desde la versión asociada, identificada como referencia recuperada.
+            $referencesByTariff = [];
+            $slugs = array_column($data['services'], 'id', 'database_id');
+            foreach ($data['budgetRequests'] as &$sourceRequest) {
+                $tariffId = $sourceRequest['tariff_version_id'];
+                if (! $tariffId) {
+                    continue;
+                }
+                foreach ($sourceRequest['additional_services'] as &$extra) {
+                    if (array_key_exists('pricing_reference', $extra)) {
+                        continue;
+                    }
+                    $references = $referencesByTariff[$tariffId] ??= $this->catalog->references((int) $tariffId);
+                    $slug = $slugs[$extra['service_id']] ?? '';
+                    $reference = $this->catalog->extraReference($references[$slug] ?? null, $sourceRequest['answers'], $sourceRequest['pricing_reference']['currency'] ?? 'ARS');
+                    if ($reference) {
+                        $extra['pricing_reference'] = [...$reference, 'recovered' => true];
+                    }
+                }
+                unset($extra);
+            }
+            unset($sourceRequest);
         }
         if ($kind === 'editor-trabajo') {
             $profile = DB::table('professional_profiles')->where('user_id', $request->user()->id)->first();

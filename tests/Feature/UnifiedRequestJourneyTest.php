@@ -37,6 +37,37 @@ class UnifiedRequestJourneyTest extends TestCase
             'destination' => 'login'];
     }
 
+    // El editor recibe el precio unitario histórico de cada servicio, aun con cantidades distintas.
+    public function test_budget_editor_gets_requested_prices_and_recovers_legacy_additional_references(): void
+    {
+        $this->seed(\Database\Seeders\SynauxLandingTariffSeeder::class);
+        $client = User::factory()->create();
+        $manager = User::factory()->create(['is_admin' => true]);
+        $data = $this->project();
+        $extra = DB::table('services')->where('slug', 'landing-page')->value('id');
+        $data['additional_services'][] = ['service_id' => $extra, 'quantity' => 2];
+        $this->actingAs($client)->post('/acciones/solicitud', [
+            ...$data, 'visibility' => 'private', 'publish' => true,
+        ])->assertSessionHasNoErrors();
+        $record = DB::table('project_requests')->where('user_id', $client->id)->first();
+        $extras = json_decode($record->requested_services, true);
+        $this->assertNull($extras[0]['pricing_reference']);
+        $this->assertEquals(509160, $extras[1]['pricing_reference']['min']);
+
+        $url = '/editor/presupuesto?solicitud='.$record->id;
+        $this->actingAs($manager)->get($url)->assertInertia(fn (Assert $page) => $page
+            ->where('budgetRequests.0.pricing_reference.min', 1352480)
+            ->where('budgetRequests.0.pricing_reference.currency', 'ARS')
+            ->where('budgetRequests.0.additional_services.1.quantity', 2)
+            ->where('budgetRequests.0.additional_services.1.pricing_reference.min', 509160));
+
+        unset($extras[1]['pricing_reference']);
+        DB::table('project_requests')->where('id', $record->id)->update(['requested_services' => json_encode($extras)]);
+        $this->get($url)->assertInertia(fn (Assert $page) => $page
+            ->where('budgetRequests.0.additional_services.1.pricing_reference.min', 509160)
+            ->where('budgetRequests.0.additional_services.1.pricing_reference.recovered', true));
+    }
+
     public function test_public_entry_points_share_one_form_without_exposing_private_records(): void
     {
         foreach (['/estimador', '/solicitudes/nueva'] as $url) {

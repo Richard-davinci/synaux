@@ -23,10 +23,13 @@ class SynauxCatalog
     }
 
     // Prepara referencias iniciales con la base y los componentes incluidos, sin calcular respuestas ficticias.
-    public function references(): array
+    public function references(?int $tariffId = null): array
     {
-        $tariff = DB::table('tariff_versions')->where('active', 1)->where('effective_from', '<=', now())
-            ->orderByDesc('effective_from')->orderByDesc('id')->first();
+        // Para pedidos anteriores se consulta su versión publicada, aunque ya no esté vigente.
+        $tariff = $tariffId !== null
+            ? DB::table('tariff_versions')->find($tariffId)
+            : DB::table('tariff_versions')->where('active', 1)->where('effective_from', '<=', now())
+                ->orderByDesc('effective_from')->orderByDesc('id')->first();
         if (! $tariff) {
             return [];
         }
@@ -73,6 +76,20 @@ class SynauxCatalog
         }
 
         return $references;
+    }
+
+    // Los adicionales comparten segmento y moneda con el resumen de la solicitud.
+    public function extraReference(?array $reference, array $answers, string $currency): ?array
+    {
+        if (! $reference || $reference['currency'] !== $currency) {
+            return null;
+        }
+
+        $segment = collect($answers)->pluck('label')->first(fn ($label) => in_array($label, ['Particular', 'PyME', 'Empresa'], true))
+            ?? 'Particular';
+        $price = $reference['segments'] ? collect($reference['segments'])->firstWhere('label', $segment) : $reference;
+
+        return $price ? ['min' => $price['min'], 'max' => $price['max'], 'currency' => $currency] : null;
     }
 
     // Resuelve un servicio activo por su identificador público; devuelve 404 si no existe.

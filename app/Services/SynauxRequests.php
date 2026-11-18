@@ -37,6 +37,10 @@ class SynauxRequests
             $additional = json_decode($existing?->requested_services ?? '[]', true);
             if (array_key_exists('additional_services', $d)) {
                 $additional = [];
+                $catalog = app(SynauxCatalog::class);
+                $references = $d['additional_services'] ? $catalog->references() : [];
+                $answers = json_decode($estimate?->answers_snapshot ?? '[]', true);
+                $currency = $estimate?->price_min !== null ? $estimate->currency_snapshot : 'ARS';
                 foreach ($d['additional_services'] as $index => $item) {
                     $extra = DB::table('services')->where('id', $item['service_id'])->where('active', 1)->first();
                     if (! $extra || $extra->id === (int) $d['service_id']) {
@@ -45,6 +49,7 @@ class SynauxRequests
                     $additional[] = [
                         'service_id' => $extra->id, 'name' => $extra->name,
                         'quantity' => $item['quantity'], 'notes' => $item['notes'] ?? '',
+                        'pricing_reference' => $catalog->extraReference($references[$extra->slug] ?? null, $answers, $currency),
                     ];
                 }
             }
