@@ -26,6 +26,17 @@
     .btn.v-btn { min-height: 46px; height: auto; min-width: 0; padding-block: 10px; font-family: 'Nunito', sans-serif; font-size: 1rem; text-transform: none; letter-spacing: 0; border-radius: 10px; }
     .btn .v-btn__content { gap: 9px; white-space: normal; }
     .card.v-card { border: 1px solid var(--line); border-radius: 14px; background: white; overflow: visible; }
+    /* La sombra compartida distingue las superficies del fondo; solo las tarjetas interactivas reaccionan al puntero. */
+    .card, .card.v-card { box-shadow: var(--card-shadow); }
+    .card.soft-panel { box-shadow: 0 3px 12px rgba(21, 59, 100, .06); }
+    .card.modal-card { box-shadow: var(--dialog-shadow); }
+    .catalog-tools, .budget-summary { box-shadow: var(--card-shadow); }
+    @media (hover: hover) {
+        .service-card { transition: box-shadow .2s ease, border-color .2s ease; }
+        .service-card:hover { box-shadow: var(--card-shadow-raised); }
+    }
+    @media (prefers-reduced-motion: reduce) { .service-card { transition: none; } }
+    @media print { .card, .card.v-card, .catalog-tools, .budget-summary { box-shadow: none; } }
     .card h2 { margin-bottom: 18px; }
     .field input, .field textarea, .field select { font-weight: 400; font-size: 1rem; }
     .field input[type='checkbox'] { width: 18px; min-height: 18px; }

@@ -37,6 +37,7 @@ export default createVuetify({
     // Aspecto inicial de botones y tarjetas; cada pantalla puede ajustar estas opciones si lo necesita.
     defaults: {
         VBtn: { rounded: 'lg', style: 'text-transform: none; letter-spacing: normal;' },
-        VCard: { rounded: 'xl', elevation: 0 },
+        // La profundidad se define con sombras de la marca en CSS; elevation: 0 las anulaba.
+        VCard: { rounded: 'xl' },
     },
 });
