@@ -123,7 +123,7 @@ function save(toRequest) {
                     <p class="service-count">{{ availableServices.length }} {{ availableServices.length === 1 ? 'servicio disponible' : 'servicios disponibles' }} en esta categoría.</p>
                     <VAutocomplete :model-value="service" v-model:search="serviceSearch" class="estimator-service-select"
                         :items="availableServices" item-title="name" item-value="id" label="Servicio" placeholder="Buscá o elegí un servicio"
-                        variant="outlined" color="primary" density="comfortable" clearable
+                        variant="outlined" color="primary" density="compact" clearable
                         :custom-filter="filterService" :menu-props="{ maxHeight: 280 }"
                         no-data-text="No encontramos servicios con esa búsqueda."
                         hint="Escribí parte del nombre para encontrar el servicio." persistent-hint

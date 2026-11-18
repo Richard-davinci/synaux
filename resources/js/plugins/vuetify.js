@@ -36,6 +36,11 @@ export default createVuetify({
     },
     // Aspecto inicial de botones y tarjetas; cada pantalla puede ajustar estas opciones si lo necesita.
     defaults: {
+        // Los controles de formulario usan una densidad consistente en todas las vistas.
+        VTextField: { density: 'compact', variant: 'outlined' },
+        VSelect: { density: 'compact', variant: 'outlined' },
+        VTextarea: { density: 'compact', variant: 'outlined' },
+        VAutocomplete: { density: 'compact', variant: 'outlined' },
         VBtn: { rounded: 'lg', style: 'text-transform: none; letter-spacing: normal;' },
         // La profundidad se define con sombras de la marca en CSS; elevation: 0 las anulaba.
         VCard: { rounded: 'xl' },

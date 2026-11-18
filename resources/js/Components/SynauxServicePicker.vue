@@ -27,7 +27,7 @@ function changeCategory(value) {
         <F :model-value="category" label="Categoría" type="select" :options="categories" :disabled="disabled" required @update:model-value="changeCategory" />
         <div class="service-picker-main"><label :for="serviceInputId">Servicio principal <span aria-hidden="true">*</span></label>
         <VAutocomplete :id="serviceInputId" :model-value="modelValue" v-model:search="search" :items="available" item-title="name" item-value="database_id" aria-label="Servicio principal" placeholder="Buscá o elegí un servicio"
-            variant="outlined" density="comfortable" color="primary" clearable :disabled="disabled || !available.length" :custom-filter="filter" :menu-props="{maxHeight:280}"
+            variant="outlined" density="compact" color="primary" clearable :disabled="disabled || !available.length" :custom-filter="filter" :menu-props="{maxHeight:280}"
             :error-messages="error" hide-details="auto" no-data-text="No encontramos servicios con esa búsqueda."
             @update:model-value="emit('update:modelValue', $event)">
             <template #item="{props: itemProps, item}"><VListItem v-bind="itemProps" :subtitle="item.raw.mode" /></template>
