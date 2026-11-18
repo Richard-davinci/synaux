@@ -23,8 +23,8 @@
     .record-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-block: 4px 8px; }
     .record-heading h3 { margin: 0; }
     [id^='consulta-'] { scroll-margin-top: 180px; }
-    /* Los enlaces se identifican con una línea inferior; el foco mantiene un contorno accesible. */
-    .main-nav > a:not(.btn) { display: inline-flex; align-items: center; min-height: 40px; padding: 8px 12px; border-radius: 0; font-weight: 500; transition: box-shadow .15s ease; }
+    /* La línea inferior sigue las esquinas redondeadas de las tarjetas; el fondo permanece transparente. */
+    .main-nav > a:not(.btn) { display: inline-flex; align-items: center; min-height: 40px; padding: 8px 12px; border-radius: 8px; font-weight: 500; transition: box-shadow .15s ease; }
     .main-nav > a:not(.btn):hover { color: #153b64; background: transparent; box-shadow: inset 0 -2px 0 var(--workspace-accent, #1f6f7f); text-decoration: none; }
     .main-nav > a:not(.btn)[aria-current='page'] { color: #153b64; background: transparent; font-weight: 600; box-shadow: inset 0 -3px 0 var(--workspace-accent, #1f6f7f); }
     .main-nav > a:not(.btn):focus-visible { color: #153b64; background: transparent; outline: 2px solid #1f6f7f; outline-offset: 3px; }
