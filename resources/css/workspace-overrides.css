@@ -246,8 +246,9 @@
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 }
 
-/* El pie ocupa todo el ancho y solo su contenedor .shell define los márgenes laterales. */
+/* La trama y el fondo separan el pie; el contenedor .shell define los márgenes del contenido. */
 .synaux-app footer.site-footer {
+    border-top: 0;
     display: block;
     width: auto;
     padding: 0;
