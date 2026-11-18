@@ -37,3 +37,8 @@ Dimensiones nativas: 405 × 140. Se utiliza completo y proporcional en el navbar
 ## Trama extendida vectorial · 18/11/2026
 
 `./synaux-trama-extendida.svg` es una copia exacta de `07 - Recursos finales/Group 1.svg` (3600 × 1400), entregada por el usuario para cubrir el footer de borde a borde. Reemplaza la trama PNG en portada y pie. Se conserva la escala anterior con un ancho de fondo de 2682 px, sin repetir; en pantallas superiores a ese ancho se amplía proporcionalmente para cubrirlas. Los originales anteriores se conservan como referencia.
+
+
+## Fragmento de portada con piezas completas
+
+`./synaux-trama-fragmento.json` contiene trazos y colores copiados literalmente del primer grupo de piezas de `synaux-trama-extendida.svg`. El componente `BrandPatternFragment.vue` muestra solo piezas completas que caben en su superficie, a escala 380 / 510, sin degradados, repeticiones ni modificación de los SVG originales. El footer conserva el SVG extendido completo.

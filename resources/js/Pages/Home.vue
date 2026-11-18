@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import PublicLayout from '../Layouts/PublicLayout.vue';
 import BrandLogo from '../Components/BrandLogo.vue';
+import BrandPatternFragment from '../Components/BrandPatternFragment.vue';
 import B from '../Components/SynauxButton.vue';
 import I from '../Components/SynauxIcon.vue';
 import BudgetDocument from '../Components/BudgetDocument.vue';
@@ -41,7 +42,7 @@ const exampleBudget = {
         <!-- La marca principal se presenta sobre blanco, integrada a la foto sin alterar el SVG original. -->
         <section class="landing-hero shell" aria-labelledby="landing-title">
             <div class="landing-hero-copy"><p class="eyebrow">Diseño · Desarrollo · Estrategia</p><h1 id="landing-title">De tu idea a un <em>proyecto digital.</em></h1><p class="landing-lead">Explorá servicios digitales, prepará tu solicitud y revisá tu presupuesto en un mismo lugar. Con synaux, sabés qué incluye tu proyecto antes de avanzar.</p><div class="landing-actions"><B href="/plataforma" arrow>Explorar servicios</B><a href="#como-funciona">Cómo funciona</a></div><p class="landing-support">Podés empezar sin registrarte. Te pedimos una cuenta al enviar tu solicitud.</p></div>
-            <div class="landing-visual-wrap"><div class="synaux-brand-pattern landing-hero-pattern" aria-hidden="true"></div><figure class="landing-visual"><img src="/images/landing/colaboracion-ricardo-catalogo.webp" alt="Colaboración en el diseño de un proyecto digital." width="1536" height="1024" fetchpriority="high"></figure><div class="landing-brand-signature"><BrandLogo /></div></div>
+            <div class="landing-visual-wrap"><BrandPatternFragment class="landing-hero-pattern" /><figure class="landing-visual"><img src="/images/landing/colaboracion-ricardo-catalogo.webp" alt="Colaboración en el diseño de un proyecto digital." width="1536" height="1024" fetchpriority="high"></figure><div class="landing-brand-signature"><BrandLogo /></div></div>
         </section>
         <!-- Las áreas orientan al catálogo sin repetir su listado completo ni prometer servicios futuros. -->
         <section class="landing-services" aria-labelledby="services-title"><div class="shell landing-section"><div class="landing-section-heading"><div><p class="eyebrow">Qué necesitás resolver</p><h2 id="services-title">Servicios que acompañan tu idea</h2></div><B compact href="/plataforma" variant="secondary" arrow>Ver catálogo</B></div><div class="landing-service-grid"><article v-for="area in areas" :key="area.title"><I :name="area.icon" class="landing-service-icon" /><h3>{{ area.title }}</h3><p>{{ area.text }}</p></article></div></div></section>
@@ -70,10 +71,10 @@ h1 em { color: #1f6f7f; font-style: normal; }
 .landing-support { font-size: .85rem; max-width: 50ch; margin: 16px 0 0; }
 .landing-visual-wrap { position: relative; min-width: 0; padding-top: 20px; padding-bottom: 90px; }
 /* La firma compacta ocupa el borde inferior derecho y deja libre la pantalla de la notebook. */
-.landing-brand-signature { position: absolute; bottom: 0; right: -12px; width: min(288px,80%); padding: 16px; background: #fff; border: 1px solid #1f6f7f14; border-radius: 16px; box-shadow: 0 4px 16px #153b640a; }
+.landing-brand-signature { position: absolute; bottom: 0; right: -12px; width: min(254px,80%); padding: 16px; background: #fff; border: 1px solid #1f6f7f0a; border-radius: 16px; box-shadow: 0 4px 16px #153b640a; }
 .landing-brand-signature :deep(.brand-logo) { display: block; width: 100%; height: auto; }
-/* La trama conserva su escala y se desvanece en los extremos para evitar el corte rectangular de las piezas. */
-.landing-hero-pattern { position: absolute; top: -30px; right: -24px; width: min(76%,380px); height: 180px; background-position: right top; opacity: .4; mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent), linear-gradient(to bottom, transparent, #000 12px, #000 calc(100% - 28px), transparent); mask-composite: intersect; }
+/* El fragmento elimina piezas que no caben completas y deja visible la esquina derecha. */
+.landing-hero-pattern { position: absolute; top: -32px; right: -32px; width: min(76%,380px); height: 180px; opacity: .4; pointer-events: none; }
 .landing-visual { position: relative; margin: 0; border: 1px solid #1f6f7f22; border-radius: 20px; overflow: hidden; background: #fff; box-shadow: 0 6px 20px #153b6412; }
 .landing-visual img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; }
 .landing-section { padding-block: clamp(40px,5vw,64px); }
@@ -105,5 +106,5 @@ h1 em { color: #1f6f7f; font-style: normal; }
 @media (max-width: 1000px) { .landing-service-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media (max-width: 780px) { .landing-hero, .landing-budget { grid-template-columns: minmax(0,1fr); } .landing-hero { gap: 28px; } h1 { max-width: 20ch; } .landing-visual img { aspect-ratio: 3 / 2; } .landing-steps { grid-template-columns: minmax(0,1fr); gap: 24px; } .step-top { margin-bottom: 12px; } .landing-close { padding: 24px; } }
 /* En móvil la esquina respeta el margen lateral para evitar desbordamientos. */
-@media (max-width: 540px) { .landing-hero-pattern { top: -24px; right: -10px; height: 160px; } .landing-visual-wrap { padding-bottom: 80px; } .landing-brand-signature { right: 0; width: min(240px,80%); padding: 16px; } .landing-service-grid { grid-template-columns: minmax(0,1fr); } .landing-close-actions { width: 100%; } .landing-actions { gap: 16px; } }
+@media (max-width: 540px) { .landing-hero-pattern { top: -24px; right: -10px; } .landing-visual-wrap { padding-bottom: 80px; } .landing-brand-signature { right: 0; width: min(234px,80%); padding: 16px; } .landing-service-grid { grid-template-columns: minmax(0,1fr); } .landing-close-actions { width: 100%; } .landing-actions { gap: 16px; } }
 </style>
