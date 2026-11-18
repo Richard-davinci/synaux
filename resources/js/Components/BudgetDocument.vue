@@ -5,14 +5,14 @@ import I from './SynauxIcon.vue';
 import { money, date } from '../support/synaux';
 
 // El editor y el documento recibido comparten los datos de una versión, sin consultar perfiles actuales.
-const props = defineProps({ budget: Object, client: Object, issuer: Object });
+const props = defineProps({ budget: Object, client: Object, issuer: Object, compact: Boolean });
 const pending = computed(() => (props.budget.items ?? []).some(item => item.unit_price === '' || item.unit_price == null));
 const tax = computed(() => Math.round((Number(props.budget.total ?? 0) - Number(props.budget.subtotal ?? 0)) * 100) / 100);
 const scope = description => String(description ?? '').split('\n').slice(1).join('\n');
 const concept = description => String(description ?? '').split('\n')[0] || 'Servicio por definir';
 </script>
 <template>
-    <article class="budget-document">
+    <article class="budget-document" :class="{ 'budget-document-compact': compact }">
         <header class="document-heading">
             <BrandLogo :with-slogan="false" variant="white" />
             <div><p class="document-label">Presupuesto</p><p class="document-number">{{ budget.budget_id ? 'PRE-' + budget.budget_id : 'Borrador' }} · Versión {{ budget.version_number ?? 1 }}</p></div>
@@ -25,15 +25,17 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
                 <section><h3><I name="folder" />Proveedor</h3><div class="party-content"><strong>{{ issuer?.name || 'synaux' }}</strong><p>{{ issuer?.contact }}</p><p>{{ issuer?.email }}</p><p v-if="issuer?.phone">{{ issuer.phone }}</p><p v-if="issuer?.address">{{ issuer.address }}</p></div></section>
             </div>
             <h3 class="document-section-title"><I name="file" />Detalle de servicios</h3>
-            <div class="table-scroll document-items"><table><thead><tr><th>Concepto y alcance</th><th>Cant.</th><th>Precio unit.</th><th>Subtotal</th></tr></thead><tbody>
-                <tr v-for="(item,index) in budget.items" :key="index"><td><strong>{{ concept(item.description) }}</strong><p v-if="scope(item.description)" class="preserve-lines">{{ scope(item.description) }}</p></td><td>{{ item.quantity }}</td><td>{{ item.unit_price === '' || item.unit_price == null ? 'A cotizar' : money(item.unit_price,budget.currency_code) }}</td><td>{{ item.unit_price === '' || item.unit_price == null ? 'A cotizar' : money(Math.round(item.quantity * item.unit_price * 100) / 100,budget.currency_code) }}</td></tr>
-                <tr v-if="!budget.items?.length"><td colspan="4">Agregá los servicios para preparar el presupuesto.</td></tr>
+            <div class="table-scroll document-items"><table><thead><tr><th>Concepto y alcance</th><th v-if="!compact">Cant.</th><th v-if="!compact">Precio unit.</th><th>{{ compact ? 'Importe' : 'Subtotal' }}</th></tr></thead><tbody>
+                <tr v-for="(item,index) in budget.items" :key="index"><td><strong>{{ concept(item.description) }}</strong><p v-if="!compact && scope(item.description)" class="preserve-lines">{{ scope(item.description) }}</p></td><td v-if="!compact">{{ item.quantity }}</td><td v-if="!compact">{{ item.unit_price === '' || item.unit_price == null ? 'A cotizar' : money(item.unit_price,budget.currency_code) }}</td><td>{{ item.unit_price === '' || item.unit_price == null ? 'A cotizar' : money(Math.round(item.quantity * item.unit_price * 100) / 100,budget.currency_code) }}</td></tr>
+                <tr v-if="!budget.items?.length"><td :colspan="compact ? 2 : 4">Agregá los servicios para preparar el presupuesto.</td></tr>
             </tbody></table></div>
             <dl class="document-totals" aria-live="polite"><div><dt>Subtotal{{ pending ? ' cotizado' : '' }}</dt><dd>{{ money(budget.subtotal,budget.currency_code) }}</dd></div><div><dt>{{ Number(budget.tax_rate) > 0 ? 'IVA (' + budget.tax_rate + '%)' : 'IVA no incluido' }}</dt><dd>{{ money(tax,budget.currency_code) }}</dd></div><div class="document-grand-total"><dt>{{ pending ? 'Total parcial' : 'Total' }} · {{ budget.currency_code }}</dt><dd>{{ money(budget.total,budget.currency_code) }}</dd></div></dl>
             <p v-if="pending" class="document-warning">Hay servicios pendientes de cotizar. El total se completará al definir sus precios.</p>
         </div>
-        <section class="document-conditions"><h3 class="document-section-title"><I name="check" />Plazos y condiciones</h3><div><p>Entrega estimada: {{ budget.estimated_delivery_days }} días desde el inicio acordado.</p><p class="preserve-lines">{{ budget.terms || 'Las condiciones se completarán antes de enviar el presupuesto.' }}</p></div></section>
-        <footer class="document-footer">{{ issuer?.name || 'synaux' }}<template v-if="issuer?.email"> · {{ issuer.email }}</template><template v-if="issuer?.phone"> · {{ issuer.phone }}</template></footer>
+        <!-- La landing resume las condiciones; las vistas de trabajo conservan el documento completo. -->
+        <section v-if="compact" class="document-conditions document-conditions-summary"><p>Entrega estimada: {{ budget.estimated_delivery_days }} días. Alcance y condiciones a acordar en la propuesta formal.</p></section>
+        <section v-else class="document-conditions"><h3 class="document-section-title"><I name="check" />Plazos y condiciones</h3><div><p>Entrega estimada: {{ budget.estimated_delivery_days }} días desde el inicio acordado.</p><p class="preserve-lines">{{ budget.terms || 'Las condiciones se completarán antes de enviar el presupuesto.' }}</p></div></section>
+        <footer v-if="!compact" class="document-footer">{{ issuer?.name || 'synaux' }}<template v-if="issuer?.email"> · {{ issuer.email }}</template><template v-if="issuer?.phone"> · {{ issuer.phone }}</template></footer>
     </article>
 </template>
 <style scoped>
@@ -41,6 +43,8 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
 .budget-document { container-type: inline-size; background: #fff; color: #153b64; border: 1px solid #1f6f7f33; border-radius: 12px; overflow: hidden; }
 .document-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 24px; background: #153b64; color: #fff; }
 .document-heading :deep(.brand-logo) { width: 100px; height: auto; flex-shrink: 0; }
+/* El encabezado mantiene contraste incluso dentro de páginas con estilos de párrafo propios. */
+.budget-document .document-heading p { color: #fff; }
 .document-heading > div { text-align: right; min-width: 0; }
 .document-label { margin: 0 0 8px; text-transform: uppercase; font-family: 'Space Grotesk', sans-serif; font-size: 1.45rem; font-weight: 700; }
 .document-number { display: inline-block; padding: 4px 10px; border-radius: 6px; background: #ffffff1f; margin: 0; font-size: .8rem; }
@@ -78,6 +82,26 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
 .document-conditions p { margin: 0 0 8px; }
 .document-conditions p:last-child { margin-bottom: 0; }
 .document-footer { display: block; padding: 12px 24px; background: #f5f9fa; border-top: 1px solid #1f6f7f1f; color: #446075; text-align: center; font-size: .75rem; overflow-wrap: anywhere; }
+/* La muestra pública prioriza conceptos, IVA y total sin reducir la legibilidad ni agregar scroll. */
+.budget-document-compact .document-heading { padding: 14px 16px; gap: 12px; }
+.budget-document-compact .document-heading :deep(.brand-logo) { width: 64px; }
+.budget-document-compact .document-label { font-size: 1.15rem; margin-bottom: 4px; }
+.budget-document-compact .document-number { font-size: .75rem; }
+.budget-document-compact .document-dates { padding: 8px 16px; gap: 6px 12px; font-size: .75rem; }
+.budget-document-compact .document-content { padding: 16px; }
+.budget-document-compact .document-title { font-size: 1.05rem; margin-bottom: 12px; }
+.budget-document-compact .document-parties { gap: 10px; margin-bottom: 16px; }
+.budget-document-compact .document-parties h3 { padding: 6px 10px; }
+.budget-document-compact .party-content { padding: 8px 10px; }
+.budget-document-compact .document-section-title { margin-bottom: 8px; font-size: .75rem; }
+.budget-document-compact .document-items table { min-width: 0; }
+.budget-document-compact .document-items th:first-child { width: auto; }
+.budget-document-compact .document-items td:last-child { white-space: nowrap; }
+.budget-document-compact .document-totals { margin-top: 12px; }
+.budget-document-compact .document-totals > div { padding: 8px 12px; }
+.budget-document-compact .document-conditions-summary { padding: 12px 16px; font-size: .75rem; }
+.budget-document-compact .document-conditions-summary p { margin: 0; }
 @container (max-width: 420px) { .document-heading { padding: 18px; gap: 12px; } .document-label { font-size: 1.1rem; } .document-content { padding: 16px; } .document-dates { padding-inline: 16px; } .document-parties { gap: 8px; } .party-content { padding: 10px; font-size: .8rem; } .document-conditions { padding: 16px; } .document-items table { min-width: 380px; } }
+.budget-document.budget-document-compact .document-items table { min-width: 0; }
 @container (max-width: 320px) { .document-parties { grid-template-columns: 1fr; } }
 </style>
