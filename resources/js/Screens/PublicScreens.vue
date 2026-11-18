@@ -82,10 +82,10 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
 </script>
 <template>
     <!-- Los filtros se generan a partir de los servicios publicados y no alteran sus precios. -->
-    <section v-if="data.screen === 'servicios'" class="page shell catalog-page">
+    <section v-if="data.screen === 'servicios'" class="page shell catalog-page public-typography">
         <!-- La introducción orienta sin desplazar los servicios por debajo del primer pantallazo. -->
         <header class="catalog-intro">
-            <T eyebrow="Catálogo de servicios" title="Dale forma a tu próximo proyecto." description="Encontrá el servicio que necesitás, explorá su alcance y prepará tu solicitud de presupuesto." />
+            <T class="public-page-heading" eyebrow="Catálogo de servicios" title="Dale forma a tu próximo proyecto." description="Encontrá el servicio que necesitás, explorá su alcance y prepará tu solicitud de presupuesto." />
         </header>
         <div class="catalog-tools">
             <div class="catalog-tools-row">
@@ -163,8 +163,8 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
     </section>
     <!-- Las imágenes se sirven localmente y cada tarjeta abre el trabajo correspondiente. -->
     <!-- La grilla se adapta a los trabajos publicados y cada ficha mantiene su propia portada. -->
-    <section v-else-if="data.screen === 'portfolio'" class="page shell public-editorial">
-        <T class="editorial-heading" eyebrow="Portfolio" title="Proyectos de synaux" description="Conocé el desafío, las decisiones y el resultado de cada trabajo." />
+    <section v-else-if="data.screen === 'portfolio'" class="page shell public-editorial public-typography">
+        <T class="public-page-heading" eyebrow="Portfolio" title="Proyectos de synaux" description="Conocé el desafío, las decisiones y el resultado de cada trabajo." />
         <div v-if="data.works?.length" class="project-grid">
             <a v-for="(work, index) in data.works" :key="work.id" class="project-card" :href="data.preview ? '/prototipo/trabajo' : `/trabajos/${work.id}`">
                 <div class="project-image">
@@ -189,9 +189,9 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
     </section>
 
     <!-- El caso de portfolio separa los datos del proyecto de su historia. -->
-    <section v-else-if="data.screen === 'trabajo'" class="page shell public-editorial">
+    <section v-else-if="data.screen === 'trabajo'" class="page shell public-editorial public-typography">
         <B href="/portfolio" variant="ghost" compact class="project-back">← Volver al portfolio</B>
-        <T class="editorial-heading" :eyebrow="selected.category" :title="selected.title" :description="selected.description" />
+        <T class="public-page-heading" :eyebrow="selected.category" :title="selected.title" :description="selected.description" />
         <div v-if="selected.cover_path" class="case-cover"><img :src="selected.cover_path" :alt="selected.title"></div>
         <div class="editorial-split">
             <article class="case-story">
@@ -209,10 +209,10 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
     </section>
 
     <!-- La presentación explica cómo trabaja synaux con los recursos visuales de la landing. -->
-    <section v-else-if="data.screen === 'perfil'" class="page shell public-editorial">
+    <section v-else-if="data.screen === 'perfil'" class="page shell public-editorial public-typography">
         <div class="about-hero">
             <div>
-                <T class="editorial-heading" eyebrow="Nosotros" title="De la estrategia a la entrega" description="En synaux conectamos estrategia, diseño y desarrollo para que puedas avanzar con un objetivo y un alcance claros." />
+                <T class="public-page-heading" eyebrow="Nosotros" title="De la estrategia a la entrega" description="En synaux conectamos estrategia, diseño y desarrollo para que puedas avanzar con un objetivo y un alcance claros." />
                 <div class="editorial-actions"><B href="/contacto" arrow>Hablemos de tu proyecto</B><B href="/portfolio" variant="secondary">Ver portfolio</B></div>
             </div>
             <figure class="about-image"><img src="/images/landing/planificacion.webp" alt="Planificación de un sitio web con bocetos y una computadora."></figure>
@@ -228,8 +228,8 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
     </section>
 
     <!-- Contacto separa la consulta general del recorrido para pedir un presupuesto. -->
-    <section v-else-if="data.screen === 'contacto'" class="page shell public-editorial">
-        <T class="editorial-heading" eyebrow="Contacto" title="Hablemos de tu proyecto" description="Si todavía estás definiendo qué necesitás, contanos tu idea y te orientamos sobre cómo empezar." />
+    <section v-else-if="data.screen === 'contacto'" class="page shell public-editorial public-typography">
+        <T class="public-page-heading" eyebrow="Contacto" title="Hablemos de tu proyecto" description="Si todavía estás definiendo qué necesitás, contanos tu idea y te orientamos sobre cómo empezar." />
         <div class="editorial-split">
             <div class="editorial-panel contact-form-panel">
                 <div v-if="sent" class="contact-success" role="status">
@@ -267,9 +267,6 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
 .catalog-intro { padding: 0; margin-bottom: 20px; }
 .catalog-intro :deep(.page-title) { display: block; margin-bottom: 0; }
 .catalog-intro :deep(.page-title > div) { width: 100%; }
-.catalog-page .catalog-intro :deep(.page-title h1) { max-width: none; margin-bottom: 10px; font-weight: 700; font-size: clamp(1.75rem, 2.8vw, 2.2rem); line-height: 1.15; text-wrap: balance; }
-.catalog-intro :deep(.eyebrow) { margin-bottom: 8px; color: #1f6f7f; font-weight: 700; }
-.catalog-intro :deep(.page-title p:last-child) { font-size: .95rem; line-height: 1.5; text-wrap: pretty; }
 .catalog-page .catalog-tools { background: #f5f9fa; padding: 14px 18px; margin-bottom: 24px; border-color: #1f6f7f22; box-shadow: 0 2px 8px #153b640a; }
 .catalog-page .catalog-tools-row { grid-template-columns: repeat(2, minmax(0,1fr)) auto; align-items: end; gap: 1rem; }
 /* El buscador y el autocompletado comparten altura y etiquetas alineadas. */
@@ -297,8 +294,6 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
 .service-category { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.25rem; }
 .catalog-page .service-category .eyebrow { margin: 0; color: #1f6f7f; font-size: .75rem; letter-spacing: .08em; }
 .catalog-service-icon { width: 2rem; height: 2rem; color: #1f6f7f; flex-shrink: 0; }
-.catalog-page .service-card h2 { font-size: 1.3rem; font-weight: 700; line-height: 1.2; margin-bottom: .6rem; }
-.catalog-page .service-description { line-height: 1.5; margin-bottom: 12px; font-size: .9rem; }
 .service-description { color: #446075; }
 .service-deliverables { display: grid; gap: .3rem; margin: .25rem 0 .5rem; padding: 0; list-style: none; }
 .service-deliverables li { display: flex; align-items: start; gap: .5rem; font-size: .875rem; color: #446075; }
@@ -342,13 +337,47 @@ const clear = () => { query.value = ''; category.value = 'Todos'; categorySearch
     .detail-price-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* Las páginas públicas comparten escala editorial, superficies y ritmo con el catálogo. */
+/* Las páginas públicas comparten la escala del catálogo y las tipografías de marca. */
+.public-typography { font-family: 'Nunito', sans-serif; }
+.public-typography :deep(.public-page-heading .eyebrow) {
+    margin: 0 0 8px;
+    color: #1f6f7f;
+    font-size: .8rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+}
+.public-typography :deep(.public-page-heading h1) {
+    max-width: none;
+    margin: 0 0 10px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(1.75rem, 2.8vw, 2.25rem);
+    font-weight: 700;
+    line-height: 1.15;
+    text-wrap: balance;
+}
+.public-typography :deep(.public-page-heading p:not(.eyebrow)),
+.public-typography :is(.service-description, .project-description, .editorial-panel p, .case-story p) {
+    color: #446075;
+    font-size: 1rem;
+    line-height: 1.55;
+    text-wrap: pretty;
+}
+.public-typography :is(h2, h3) {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    line-height: 1.25;
+    text-wrap: balance;
+}
+.public-typography h2 { font-size: 1.5rem; margin: 0 0 12px; }
+.public-typography :is(.service-card h2, .project-card h2, .principles-grid h3) {
+    font-size: 1.25rem;
+    margin: 0 0 8px;
+}
+.catalog-page .service-description { margin-bottom: 12px; }
+
+/* La composición conserva márgenes propios según el contenido de cada página. */
 .public-editorial { padding-block: clamp(32px, 5vw, 64px); }
-.public-editorial :deep(.editorial-heading) { margin-bottom: 28px; }
-.public-editorial :deep(.editorial-heading h1) { font-family: 'Space Grotesk', sans-serif; font-size: clamp(2rem, 4vw, 3.25rem); font-weight: 700; line-height: 1.1; text-wrap: balance; }
-.public-editorial :deep(.editorial-heading p), .public-editorial p { text-wrap: pretty; }
-.public-editorial h2 { font-size: clamp(1.25rem, 2.2vw, 1.65rem); font-weight: 700; line-height: 1.25; margin: 0 0 12px; text-wrap: balance; }
-.public-editorial h3 { font-size: 1.15rem; font-weight: 700; margin: 0 0 8px; }
+.public-editorial :deep(.public-page-heading) { margin-bottom: 28px; }
 .editorial-panel, .project-card { border: 1px solid #1f6f7f26; border-radius: 16px; background: #fff; box-shadow: 0 4px 16px #153b640d; }
 .editorial-panel { padding: clamp(20px, 3vw, 32px); min-width: 0; }
 .editorial-panel p:last-child { margin-bottom: 0; }
