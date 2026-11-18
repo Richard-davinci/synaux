@@ -24,6 +24,12 @@ defineProps({ name: { type: String, default: 'arrow' } });
         <g v-else-if="name === 'palette'"><path d="M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 1-3.7c-.7-.5-.4-1.6.5-1.6H17a4 4 0 0 0 4-4A9 9 0 0 0 12 3Z" /><circle cx="7.5" cy="10" r=".75" /><circle cx="10" cy="6.5" r=".75" /><circle cx="15" cy="6.5" r=".75" /><circle cx="18" cy="10" r=".75" /></g>
         <g v-else-if="name === 'megaphone'"><path d="m4 10 15-5v14L4 14v-4Zm3 5 1 5h3l-1-4M4 10H2v4h2M22 8v8" /></g>
         <g v-else-if="name === 'layout'"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 8h18M9 8v13" /></g>
+        <!-- Los módulos de administración y gestión usan símbolos distintos para cada función. -->
+        <g v-else-if="name === 'grid'"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></g>
+        <g v-else-if="name === 'tag'"><path d="M3 4h8l10 10-7 7L3 10z" /><circle cx="7.5" cy="8" r="1" /></g>
+        <g v-else-if="name === 'calculator'"><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M8 7h8M8 11h1m3 0h1m3 0h.01M8 15h1m3 0h1m3 0v3M8 18h1m3 0h1" /></g>
+        <g v-else-if="name === 'receipt'"><path d="M5 3h14v18l-3.5-2-3.5 2-3.5-2L5 21zM9 8h6m-6 4h6m-6 4h3" /></g>
+        <path v-else-if="name === 'message'" d="M4 4h16v12H9l-5 4zm4 4h8m-8 4h5" />
         <g v-else><circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7h.01" /></g>
     </svg>
 </template>

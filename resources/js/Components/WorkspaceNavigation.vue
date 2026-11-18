@@ -16,11 +16,11 @@ function unreadFor(label) {
 // Administración reemplaza las secciones de gestión dentro del mismo panel para evitar una lista desplegada que obligue a desplazarse.
 const isAdminView = computed(() => props.area === 'gestion' && props.current === 'administracion');
 const title = computed(() => isAdminView.value ? 'Administración' : props.area === 'gestion' ? 'Panel de gestión' : props.area === 'profesional' ? 'Área profesional' : 'Mi espacio');
-const icons = { Resumen: 'layout', Estimaciones: 'edit', Solicitudes: 'file', Presupuestos: 'file', Proyectos: 'folder', Portfolio: 'palette', Consultas: 'megaphone', Oportunidades: 'web', 'Mis propuestas': 'file', Propuestas: 'file', Publicaciones: 'web', Invitaciones: 'user' };
+const icons = { Resumen: 'layout', Estimaciones: 'edit', Solicitudes: 'file', Presupuestos: 'receipt', Proyectos: 'folder', Portfolio: 'palette', Consultas: 'message', Oportunidades: 'web', 'Mis propuestas': 'file', Propuestas: 'file', Publicaciones: 'web', Invitaciones: 'user' };
 // Los grupos separan la información comercial de los recursos que calculan estimaciones orientativas.
 const administration = [
-    { title: 'Catálogo', items: [['Servicios', 'servicios'], ['Categorías', 'categorias']] },
-    { title: 'Precios', items: [['Tarifarios', 'tarifario']] },
+    { title: 'Catálogo', items: [['Servicios', 'servicios', 'grid'], ['Categorías', 'categorias', 'tag']] },
+    { title: 'Precios', items: [['Tarifarios', 'tarifario', 'calculator']] },
 ];
 const sectionFor = href => href.split('/').filter(Boolean).slice(1).join('/') || 'resumen';
 function isActive(href) {
@@ -51,7 +51,14 @@ function logout() {
         <!-- En administración solo se muestran sus dos grupos; el navbar devuelve al panel de gestión. -->
         <div v-else class="workspace-admin">
             <!-- Los grupos conservan rutas y permisos existentes; la vista actual marca una sola sección activa. -->
-            <nav v-for="group in administration" :key="group.title" :aria-label="group.title"><p class="workspace-group-title">{{ group.title }}</p><a v-for="[label, section] in group.items" :key="section" :href="referenceHref('/admin/' + section, page.props)" :aria-current="page.props.screen === 'admin' && (page.props.section || 'servicios') === section ? 'page' : undefined" @click="emit('navigate')">{{ label }}</a></nav>
+            <nav v-for="group in administration" :key="group.title" :aria-label="group.title" class="workspace-group">
+                <h3 class="workspace-group-title">{{ group.title }}</h3>
+                <a v-for="[label, section, icon] in group.items" :key="section" :href="referenceHref('/admin/' + section, page.props)"
+                    :aria-current="page.props.screen === 'admin' && (page.props.section || 'servicios') === section ? 'page' : undefined"
+                    @click="emit('navigate')">
+                    <I :name="icon" /><span>{{ label }}</span>
+                </a>
+            </nav>
         </div>
         </div>
         <!-- Los accesos de cuenta permanecen al pie sin cambiar sus rutas ni el cierre de sesión. -->
@@ -78,13 +85,23 @@ function logout() {
 .workspace-navigation a:focus-visible, .workspace-logout:focus-visible { outline: 3px solid var(--role-accent); outline-offset: 2px; }
 .workspace-logout { width: 100%; border: 0; background: transparent; font: inherit; text-align: left; }
 .workspace-logout:disabled { opacity: .5; cursor: wait; }
-.workspace-navigation .icon { width: 20px; height: 20px; }
+.workspace-navigation .icon { width: 20px; height: 20px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 /* Los módulos administrativos ocupan el ancho del panel y dos grupos compactos, sin anidación ni lista extra. */
 .workspace-admin { display: grid; gap: 16px; }
 .workspace-admin nav { margin: 0; padding: 0; border: 0; }
 .workspace-admin nav a { font-size: .95rem; }
-/* Los títulos permiten reconocer catálogo y presupuestador sin agregar otro nivel desplegable. */
-.workspace-group-title { margin: 0 12px 4px; color: #446075; font-size: .8rem; font-weight: 700; }
+/* Los rótulos en mayúsculas y la línea entre grupos distinguen las secciones de los enlaces. */
+.workspace-admin .workspace-group + .workspace-group { border-top: 1px solid #1f6f7f26; padding-top: 16px; }
+.workspace-admin .workspace-group-title {
+    margin: 0 12px 4px;
+    color: #446075;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    line-height: 1.4;
+    text-transform: uppercase;
+}
 /* El contador acompaña la sección sin reemplazar su nombre ni el estado de navegación activo. */
 .workspace-unread { margin-left: auto; min-width: 22px; padding: 2px 6px; border-radius: 12px; color: #153b64; background: #2db3a333; font-size: .75rem; text-align: center; }
 .workspace-navigation a[aria-current='page'] .workspace-unread { color: var(--role-on-accent); background: #ffffff33; }
