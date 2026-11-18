@@ -280,7 +280,7 @@
 @media (max-width: 900px) { .landing-footer > .footer-grid { grid-template-columns: 160px minmax(0,1fr); align-items: center; gap: 24px; } .landing-footer .footer-grid nav { grid-column: 1 / -1; } }
 @media (max-width: 540px) { .landing-footer > .footer-grid { grid-template-columns: minmax(0,1fr); } .landing-footer .footer-grid nav { grid-column: auto; } .landing-footer .footer-copy { display: grid; } }
 
-/* La última trama amplia se muestra sin repetición ni deformación.
-   Su ancho fijo conserva el tamaño anterior de las piezas (1800 × 380 / 510). */
-.synaux-brand-pattern { background-image: url('../images/brand/synaux-trama-amplia.png'); background-repeat: no-repeat; background-size: 1341px auto; pointer-events: none; }
-.landing-footer-pattern { height: 64px; background-position: center; opacity: .35; }
+/* El SVG extendido cubre el borde completo sin mosaicos ni deformación.
+   2682 px conserva la escala de las piezas (3600 × 380 / 510); solo se amplía en pantallas superiores a ese ancho. */
+.synaux-brand-pattern { background-image: url('../images/brand/synaux-trama-extendida.svg'); background-repeat: no-repeat; background-size: max(100%, 2682px) auto; pointer-events: none; }
+.landing-footer-pattern { width: 100%; height: 64px; background-position: center; opacity: .35; }

@@ -32,3 +32,8 @@ Dimensiones nativas: 405 × 140. Se utiliza completo y proporcional en el navbar
 ## Trama amplia · 18/11/2026
 
 `./synaux-trama-amplia.png` es una copia exacta de `07 - Recursos finales/00 · Referencia/Originales aprobados y tramas.png`, entregada por el usuario. Sustituye la trama corta en la landing. Se muestran fragmentos sin repetición, con un ancho de fondo compartido de 1341 px para conservar la escala de las piezas del hero anterior (380 / 510). La ventana visible cambia según el espacio disponible, sin estirar el dibujo ni aplicar `cover`. El original corto se conserva como referencia.
+
+
+## Trama extendida vectorial · 18/11/2026
+
+`./synaux-trama-extendida.svg` es una copia exacta de `07 - Recursos finales/Group 1.svg` (3600 × 1400), entregada por el usuario para cubrir el footer de borde a borde. Reemplaza la trama PNG en portada y pie. Se conserva la escala anterior con un ancho de fondo de 2682 px, sin repetir; en pantallas superiores a ese ancho se amplía proporcionalmente para cubrirlas. Los originales anteriores se conservan como referencia.
