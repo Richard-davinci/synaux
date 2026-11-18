@@ -5,7 +5,6 @@ import BrandLogo from '../Components/BrandLogo.vue';
 import B from '../Components/SynauxButton.vue';
 import I from '../Components/SynauxIcon.vue';
 import BudgetDocument from '../Components/BudgetDocument.vue';
-import brandPattern from '../../images/brand/synaux-trama-uniforme.svg';
 import '../../css/workspace.css';
 import '../../css/workspace-overrides.css';
 
@@ -42,7 +41,7 @@ const exampleBudget = {
         <!-- La marca principal se presenta sobre blanco, integrada a la foto sin alterar el SVG original. -->
         <section class="landing-hero shell" aria-labelledby="landing-title">
             <div class="landing-hero-copy"><p class="eyebrow">Diseño · Desarrollo · Estrategia</p><h1 id="landing-title">De tu idea a un <em>proyecto digital.</em></h1><p class="landing-lead">Explorá servicios digitales, prepará tu solicitud y revisá tu presupuesto en un mismo lugar. Con synaux, sabés qué incluye tu proyecto antes de avanzar.</p><div class="landing-actions"><B href="/plataforma" arrow>Explorar servicios</B><a href="#como-funciona">Cómo funciona</a></div><p class="landing-support">Podés empezar sin registrarte. Te pedimos una cuenta al enviar tu solicitud.</p></div>
-            <div class="landing-visual-wrap"><img class="landing-hero-pattern" :src="brandPattern" alt="" aria-hidden="true" width="510" height="184"><figure class="landing-visual"><img src="/images/landing/colaboracion-ricardo-catalogo.webp" alt="Colaboración en el diseño de un proyecto digital." width="1536" height="1024" fetchpriority="high"></figure><div class="landing-brand-signature"><BrandLogo /></div></div>
+            <div class="landing-visual-wrap"><div class="landing-hero-pattern" aria-hidden="true"></div><figure class="landing-visual"><img src="/images/landing/colaboracion-ricardo-catalogo.webp" alt="Colaboración en el diseño de un proyecto digital." width="1536" height="1024" fetchpriority="high"></figure><div class="landing-brand-signature"><BrandLogo /></div></div>
         </section>
         <!-- Las áreas orientan al catálogo sin repetir su listado completo ni prometer servicios futuros. -->
         <section class="landing-services" aria-labelledby="services-title"><div class="shell landing-section"><div class="landing-section-heading"><div><p class="eyebrow">Qué necesitás resolver</p><h2 id="services-title">Servicios que acompañan tu idea</h2></div><B compact href="/plataforma" variant="secondary" arrow>Ver catálogo</B></div><div class="landing-service-grid"><article v-for="area in areas" :key="area.title"><I :name="area.icon" class="landing-service-icon" /><h3>{{ area.title }}</h3><p>{{ area.text }}</p></article></div></div></section>
@@ -56,7 +55,9 @@ const exampleBudget = {
 </template>
 
 <style scoped>
-/* Las tramas decorativas reutilizan el SVG original y acompañan las imágenes sin interferir con el texto. */
+/* Ambas ventanas muestran fragmentos del original amplio, sin mosaicos y con una escala fija.
+   1341 px conserva la escala anterior: 1800 px del nuevo original × 380 / 510. */
+.landing-hero-pattern, .landing-pattern-strip { background-image: url('../../images/brand/synaux-trama-amplia.png'); background-repeat: no-repeat; background-size: 1341px auto; pointer-events: none; }
 .landing-hero, .landing-section { font-family: 'Nunito', sans-serif; }
 h1, h2, h3 { color: #153b64; font-family: 'Space Grotesk', sans-serif; font-weight: 700; text-wrap: balance; }
 .eyebrow { color: #1f6f7f; font-size: .8rem; font-weight: 700; letter-spacing: .1em; margin-bottom: 12px; }
@@ -73,7 +74,7 @@ h1 em { color: #1f6f7f; font-style: normal; }
 /* La firma compacta ocupa el borde inferior derecho y deja libre la pantalla de la notebook. */
 .landing-brand-signature { position: absolute; bottom: 0; right: -12px; width: min(288px,80%); padding: 16px; background: #fff; border: 1px solid #1f6f7f14; border-radius: 16px; box-shadow: 0 4px 16px #153b640a; }
 .landing-brand-signature :deep(.brand-logo) { display: block; width: 100%; height: auto; }
-.landing-hero-pattern { position: absolute; top: -12px; right: -16px; width: min(76%,380px); height: auto; opacity: .4; pointer-events: none; }
+.landing-hero-pattern { position: absolute; top: -12px; right: -16px; width: min(76%,380px); aspect-ratio: 510 / 184; background-position: right top; opacity: .4; }
 .landing-visual { position: relative; margin: 0; border: 1px solid #1f6f7f22; border-radius: 20px; overflow: hidden; background: #fff; box-shadow: 0 6px 20px #153b6412; }
 .landing-visual img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; }
 .landing-section { padding-block: clamp(40px,5vw,64px); }
@@ -102,7 +103,7 @@ h1 em { color: #1f6f7f; font-style: normal; }
 .landing-close { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 28px; padding: 32px; border-radius: 16px; border: 1px solid #1f6f7f26; border-left: 4px solid #2db3a3; background: #f5f9fa; }
 .landing-close p:last-child { max-width: 54ch; margin: 16px 0 0; }
 .landing-close-actions { display: grid; gap: 12px; }
-.landing-pattern-strip { height: 48px; margin-top: 28px; border-radius: 6px; background: url('../../images/brand/synaux-trama-uniforme.svg') no-repeat center; background-size: cover; opacity: .35; }
+.landing-pattern-strip { height: 48px; margin-top: 28px; border-radius: 6px; background-position: center; opacity: .35; }
 @media (max-width: 1000px) { .landing-service-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media (max-width: 780px) { .landing-hero, .landing-budget { grid-template-columns: minmax(0,1fr); } .landing-hero { gap: 28px; } h1 { max-width: 20ch; } .landing-visual img { aspect-ratio: 3 / 2; } .landing-steps { grid-template-columns: minmax(0,1fr); gap: 24px; } .step-top { margin-bottom: 12px; } .landing-close { padding: 24px; } }
 @media (max-width: 540px) { .landing-visual-wrap { padding-bottom: 80px; } .landing-brand-signature { right: 0; width: min(240px,80%); padding: 16px; } .landing-service-grid { grid-template-columns: minmax(0,1fr); } .landing-close-actions { width: 100%; } .landing-actions { gap: 16px; } }

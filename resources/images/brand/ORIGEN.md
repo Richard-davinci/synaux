@@ -27,3 +27,8 @@ Dimensiones nativas: 405 × 140. Se utiliza completo y proporcional en el navbar
 ## Trama de intensidad uniforme
 
 `./synaux-trama-uniforme.svg` es una copia sin modificaciones de `07 - Recursos finales/Contenido de trama · Intensidad uniforme.svg`, indicada por el usuario el 18/11/2026. Se utiliza como decoración en dos puntos de la landing, conservando los trazos y colores del original.
+
+
+## Trama amplia · 18/11/2026
+
+`./synaux-trama-amplia.png` es una copia exacta de `07 - Recursos finales/00 · Referencia/Originales aprobados y tramas.png`, entregada por el usuario. Sustituye la trama corta en la landing. Se muestran fragmentos sin repetición, con un ancho de fondo compartido de 1341 px para conservar la escala de las piezas del hero anterior (380 / 510). La ventana visible cambia según el espacio disponible, sin estirar el dibujo ni aplicar `cover`. El original corto se conserva como referencia.
