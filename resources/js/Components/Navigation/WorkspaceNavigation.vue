@@ -5,7 +5,7 @@ import I from '../UI/AppIcon.vue';
 import { referenceHref, demoNotice } from '../../support/synaux';
 
 // Este panel organiza enlaces ya autorizados; mostrar un enlace no concede permisos de acceso.
-const props = defineProps({ items: Array, area: String, current: String, accountName: String });
+const props = defineProps({ items: Array, area: String, current: String, accountName: String, title: String });
 const emit = defineEmits(['navigate']);
 const page = usePage();
 // Los contadores se derivan de los mismos avisos sin leer que los badges de las tarjetas.
@@ -15,7 +15,6 @@ function unreadFor(label) {
 }
 // Administración reemplaza las secciones de gestión dentro del mismo panel para evitar una lista desplegada que obligue a desplazarse.
 const isAdminView = computed(() => props.area === 'gestion' && props.current === 'administracion');
-const title = computed(() => isAdminView.value ? 'Administración' : props.area === 'gestion' ? 'Panel de gestión' : props.area === 'profesional' ? 'Área profesional' : 'Mi espacio');
 const icons = { Resumen: 'layout', Estimaciones: 'edit', Solicitudes: 'file', Presupuestos: 'receipt', Proyectos: 'folder', Portfolio: 'palette', Consultas: 'message', Oportunidades: 'web', 'Mis propuestas': 'file', Propuestas: 'file', Publicaciones: 'web', Invitaciones: 'user' };
 // Los grupos separan la información comercial de los recursos que calculan estimaciones orientativas.
 const administration = [
