@@ -5,11 +5,11 @@ import B from '../UI/AppButton.vue';
 import F from '../UI/FormField.vue';
 import I from '../UI/AppIcon.vue';
 import ServicePicker from '../Catalog/ServicePicker.vue';
-import RequestQuestions from './RequestQuestions.vue';
-import AdditionalServices from './AdditionalServices.vue';
-import RequestReview from './RequestReview.vue';
-import RequestSummary from './RequestSummary.vue';
-import { useRequestPricing } from './useRequestPricing';
+import RequestQuestions from './PreguntasSolicitud.vue';
+import AdditionalServices from './ServiciosAdicionales.vue';
+import RequestReview from './RevisionSolicitud.vue';
+import RequestSummary from './ResumenSolicitud.vue';
+import { useRequestPricing } from './usePreciosSolicitud';
 import { useSubmit } from '../../support/useSubmit';
 
 // Los borradores existentes se recuperan con sus datos y las solicitudes nuevas parten de la cuenta actual.

@@ -5,7 +5,7 @@ import BrandLogo from '../Components/Brand/BrandLogo.vue';
 import BrandPatternFragment from '../Components/Brand/BrandPatternFragment.vue';
 import B from '../Components/UI/AppButton.vue';
 import I from '../Components/UI/AppIcon.vue';
-import BudgetDocument from '../Components/Budgets/BudgetDocument.vue';
+import BudgetDocument from '../Components/Presupuestos/DocumentoPresupuesto.vue';
 import '../../css/workspace.css';
 import '../../css/workspace-overrides.css';
 

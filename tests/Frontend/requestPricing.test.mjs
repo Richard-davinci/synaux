@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { referenceLine, requestBudgetLines, summarizePrices } from '../../resources/js/support/requestPricing.js';
+import { referenceLine, requestBudgetLines, summarizePrices } from '../../resources/js/support/calculoPreciosSolicitud.js';
 
 // Las referencias reales de ambos paquetes deben compartir segmento y multiplicarse por cantidad.
 test('suma principal y adicionales del mismo segmento y se actualiza al quitar o cambiar cantidades', () => {

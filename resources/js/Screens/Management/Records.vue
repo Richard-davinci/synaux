@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import RecordCard from '../../Components/Management/RecordCard.vue';
-import RequestsTable from '../../Components/Management/RequestsTable.vue';
+import RequestsTable from '../../Components/Management/TablaSolicitudes.vue';
 import ProjectUpdate from '../../Components/Projects/ProjectUpdate.vue';
 import B from '../../Components/UI/AppButton.vue';
 import E from '../../Components/UI/EmptyState.vue';

@@ -1,5 +1,5 @@
 import { computed } from 'vue';
-import { referenceLine, summarizePrices } from '../../support/requestPricing';
+import { referenceLine, summarizePrices } from '../../support/calculoPreciosSolicitud';
 
 // Contrasta todas las preguntas activas para invalidar la referencia al cambiar cualquier respuesta.
 function sameAnswers(questionsForService, snapshot, readValue) {

@@ -6,7 +6,7 @@ import B from '../UI/AppButton.vue';
 import T from '../UI/PageTitle.vue';
 import S from '../UI/StatusBadge.vue';
 import I from '../UI/AppIcon.vue';
-import BudgetDocument from './BudgetDocument.vue';
+import BudgetDocument from './DocumentoPresupuesto.vue';
 import { money, date } from '../../support/formatters';
 import { useSubmit } from '../../support/useSubmit';
 

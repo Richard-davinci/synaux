@@ -4,7 +4,7 @@ import { useForm } from '@inertiajs/vue3';
 import B from '../../Components/UI/AppButton.vue';
 import T from '../../Components/UI/PageTitle.vue';
 import S from '../../Components/UI/StatusBadge.vue';
-import RequestForm from '../../Components/Requests/RequestForm.vue';
+import RequestForm from '../../Components/Solicitudes/FormularioSolicitud.vue';
 import { date } from '../../support/formatters';
 import { useSubmit } from '../../support/useSubmit';
 

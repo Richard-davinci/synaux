@@ -3,15 +3,15 @@ import SidePanel from '../UI/SidePanel.vue';
 import { computed, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import B from '../UI/AppButton.vue';
-import BudgetDocument from './BudgetDocument.vue';
-import BudgetLines from './BudgetLines.vue';
-import BudgetPreviewSidebar from './BudgetPreviewSidebar.vue';
-import BudgetSourceFields from './BudgetSourceFields.vue';
-import BudgetTerms from './BudgetTerms.vue';
-import BudgetVatFields from './BudgetVatFields.vue';
+import BudgetDocument from './DocumentoPresupuesto.vue';
+import BudgetLines from './ConceptosPresupuesto.vue';
+import BudgetPreviewSidebar from './VistaPreviaPresupuesto.vue';
+import BudgetSourceFields from './OrigenPresupuesto.vue';
+import BudgetTerms from './CondicionesPresupuesto.vue';
+import BudgetVatFields from './CamposIva.vue';
 import { money } from '../../support/formatters';
 import { useSubmit } from '../../support/useSubmit';
-import { referenceLine, requestBudgetLines } from '../../support/requestPricing';
+import { referenceLine, requestBudgetLines } from '../../support/calculoPreciosSolicitud';
 
 // El editor recibe solo las solicitudes autorizadas; Laravel vuelve a comprobar permisos y valores al guardar.
 const props = defineProps({ data: Object });

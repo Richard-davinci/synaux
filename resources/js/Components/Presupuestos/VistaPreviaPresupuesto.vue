@@ -1,6 +1,6 @@
 <script setup>
 import B from '../UI/AppButton.vue';
-import BudgetDocument from './BudgetDocument.vue';
+import BudgetDocument from './DocumentoPresupuesto.vue';
 
 defineProps({
     budget: { type: Object, required: true },

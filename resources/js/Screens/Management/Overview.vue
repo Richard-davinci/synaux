@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import RequestsTable from '../../Components/Management/RequestsTable.vue';
+import RequestsTable from '../../Components/Management/TablaSolicitudes.vue';
 import B from '../../Components/UI/AppButton.vue';
 import I from '../../Components/UI/AppIcon.vue';
 import T from '../../Components/UI/PageTitle.vue';

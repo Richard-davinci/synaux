@@ -34,10 +34,10 @@ import AdminConfigurationPreview from '../Screens/Admin/ConfigurationPreview.vue
 import PortfolioWorkEditor from '../Screens/Portfolio/WorkEditor.vue';
 import CatalogList from '../Screens/Admin/CatalogList.vue';
 import ServiceEditor from '../Screens/Admin/ServiceEditor.vue';
-import BudgetEditor from '../Components/Budgets/BudgetEditor.vue';
-import BudgetDetail from '../Components/Budgets/BudgetDetail.vue';
+import BudgetEditor from '../Components/Presupuestos/EditorPresupuesto.vue';
+import BudgetDetail from '../Components/Presupuestos/DetallePresupuesto.vue';
 import ProjectDetail from '../Components/Projects/ProjectDetail.vue';
-import ManagementRequestDetail from '../Components/Management/RequestDetail.vue';
+import ManagementRequestDetail from '../Components/Management/DetalleSolicitud.vue';
 import '../../css/workspace.css';
 import '../../css/workspace-overrides.css';
 // La selección de pantalla vive en el punto de entrada y respeta el área autorizada por Laravel.

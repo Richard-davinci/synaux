@@ -1,6 +1,6 @@
 <script setup>
 import T from '../../Components/UI/PageTitle.vue';
-import RequestForm from '../../Components/Requests/RequestForm.vue';
+import RequestForm from '../../Components/Solicitudes/FormularioSolicitud.vue';
 
 // La entrada pública usa el mismo formulario con o sin una sesión iniciada.
 defineProps({ data: { type: Object, required: true } });

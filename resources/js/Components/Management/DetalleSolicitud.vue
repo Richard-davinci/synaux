@@ -7,7 +7,7 @@ import T from '../UI/PageTitle.vue';
 import SidePanel from '../UI/SidePanel.vue';
 import { date, money } from '../../support/formatters';
 import { useSubmit } from '../../support/useSubmit';
-import { referenceLine, summarizePrices } from '../../support/requestPricing';
+import { referenceLine, summarizePrices } from '../../support/calculoPreciosSolicitud';
 
 // Gestión recibe el pedido autorizado y lee los importes que quedaron guardados con la solicitud.
 const props = defineProps({ data: Object });
