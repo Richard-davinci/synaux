@@ -1,10 +1,10 @@
 <script setup>
-import SidePanel from './SynauxSidePanel.vue';
+import SidePanel from '../UI/SidePanel.vue';
 import { computed, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import B from './SynauxButton.vue';
-import F from './SynauxField.vue';
-import { date, money, useSubmit } from '../support/synaux';
+import B from '../UI/AppButton.vue';
+import F from '../UI/FormField.vue';
+import { date, money, useSubmit } from '../../support/synaux';
 
 // Cada panel filtra por el servicio actual; las preguntas generales se identifican explícitamente.
 const props = defineProps({ service: Object, administration: Object, section: String });

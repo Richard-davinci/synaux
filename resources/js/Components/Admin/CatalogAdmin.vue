@@ -1,13 +1,13 @@
 <script setup>
-import SidePanel from './SynauxSidePanel.vue';
+import SidePanel from '../UI/SidePanel.vue';
 import { computed, ref, watch } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
-import B from './SynauxButton.vue';
-import F from './SynauxField.vue';
-import T from './SynauxTitle.vue';
-import S from './SynauxStatus.vue';
-import SynauxServiceConfiguration from './SynauxServiceConfiguration.vue';
-import { useSubmit } from '../support/synaux';
+import B from '../UI/AppButton.vue';
+import F from '../UI/FormField.vue';
+import T from '../UI/PageTitle.vue';
+import S from '../UI/StatusBadge.vue';
+import ServiceConfiguration from './ServiceConfiguration.vue';
+import { useSubmit } from '../../support/synaux';
 
 // El catálogo concentra información, preguntas, reglas y publicación versionada de precios del servicio.
 const props = defineProps({ data: Object });
@@ -83,7 +83,7 @@ function saveCategory() {
             <T eyebrow="Catálogo" :title="selected ? selected.name : 'Nuevo servicio'" :description="selected ? 'Editá la ficha pública, las preguntas y los precios de este servicio.' : 'Completá los datos del servicio. Después podés configurar sus preguntas, estimación y precios.'" />
             <!-- Las pestañas conservan el contexto del servicio sin repetir pantallas administrativas. -->
             <nav v-if="selected" class="service-tabs" aria-label="Configuración del servicio"><B v-for="[key,label] in tabs" :key="key" compact :variant="configurationTab === key ? 'primary' : 'secondary'" :aria-current="configurationTab === key ? 'page' : undefined" @click="configurationTab = key">{{ label }}</B></nav>
-            <v-card v-if="selected && configurationTab !== 'informacion'" class="card"><SynauxServiceConfiguration :key="selected.id" :service="selected" :administration="catalog" :section="configurationTab" /></v-card>
+            <v-card v-if="selected && configurationTab !== 'informacion'" class="card"><ServiceConfiguration :key="selected.id" :service="selected" :administration="catalog" :section="configurationTab" /></v-card>
             <template v-else>
             <ol class="catalog-steps" aria-label="Pasos del servicio"><li v-for="(label, index) in steps" :key="label" :aria-current="step === index ? 'step' : undefined"><span>{{ index + 1 }}</span>{{ label }}</li></ol>
             <v-card class="card form-card">

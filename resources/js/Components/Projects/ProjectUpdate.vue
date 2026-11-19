@@ -1,10 +1,10 @@
 <script setup>
-import SidePanel from './SynauxSidePanel.vue';
+import SidePanel from '../UI/SidePanel.vue';
 import { useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
-import B from './SynauxButton.vue';
-import F from './SynauxField.vue';
-import { useSubmit } from '../support/synaux';
+import B from '../UI/AppButton.vue';
+import F from '../UI/FormField.vue';
+import { useSubmit } from '../../support/synaux';
 
 // El formulario parte del proyecto elegido y conserva sus campos ante errores de validación.
 const props = defineProps({ project: Object });

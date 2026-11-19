@@ -1,7 +1,7 @@
 <script setup>
-import B from '../SynauxButton.vue';
-import S from '../SynauxStatus.vue';
-import NewBadge from '../SynauxNewBadge.vue';
+import B from '../UI/AppButton.vue';
+import S from '../UI/StatusBadge.vue';
+import NewBadge from '../Notifications/NewBadge.vue';
 import { date } from '../../support/synaux';
 
 // El resumen y el listado usan las mismas columnas para comparar solicitudes.

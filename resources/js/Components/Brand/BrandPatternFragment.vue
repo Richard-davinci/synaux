@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
-import patternSource from '../../images/brand/synaux-trama.svg?raw';
+import patternSource from '../../../images/brand/synaux-trama.svg?raw';
 
 // Los trazos originales conservan su color y escala; solo se muestran piezas que caben completas.
 const surface = ref(null);

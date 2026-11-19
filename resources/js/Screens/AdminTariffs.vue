@@ -1,12 +1,12 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import B from '../Components/SynauxButton.vue';
-import F from '../Components/SynauxField.vue';
-import I from '../Components/SynauxIcon.vue';
-import S from '../Components/SynauxStatus.vue';
-import T from '../Components/SynauxTitle.vue';
-import SidePanel from '../Components/SynauxSidePanel.vue';
+import B from '../Components/UI/AppButton.vue';
+import F from '../Components/UI/FormField.vue';
+import I from '../Components/UI/AppIcon.vue';
+import S from '../Components/UI/StatusBadge.vue';
+import T from '../Components/UI/PageTitle.vue';
+import SidePanel from '../Components/UI/SidePanel.vue';
 import { date, money, useSubmit } from '../support/synaux';
 
 // Cada edición prepara una versión nueva y permite tomar los importes de una versión anterior.

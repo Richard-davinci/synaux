@@ -1,5 +1,5 @@
 <script setup>
-import I from './SynauxIcon.vue';
+import I from './AppIcon.vue';
 
 // Vuetify conserva el foco, Escape y el bloqueo de scroll; la presentación abre desde la derecha.
 defineOptions({ inheritAttrs:false });

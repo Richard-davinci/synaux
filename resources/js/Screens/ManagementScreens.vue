@@ -1,13 +1,13 @@
 <script setup>
 import { computed, ref } from 'vue';
-import B from '../Components/SynauxButton.vue';
-import F from '../Components/SynauxField.vue';
-import T from '../Components/SynauxTitle.vue';
-import S from '../Components/SynauxStatus.vue';
-import E from '../Components/SynauxEmpty.vue';
-import I from '../Components/SynauxIcon.vue';
-import NewBadge from '../Components/SynauxNewBadge.vue';
-import SynauxProjectUpdate from '../Components/SynauxProjectUpdate.vue';
+import B from '../Components/UI/AppButton.vue';
+import F from '../Components/UI/FormField.vue';
+import T from '../Components/UI/PageTitle.vue';
+import S from '../Components/UI/StatusBadge.vue';
+import E from '../Components/UI/EmptyState.vue';
+import I from '../Components/UI/AppIcon.vue';
+import NewBadge from '../Components/Notifications/NewBadge.vue';
+import ProjectUpdate from '../Components/Projects/ProjectUpdate.vue';
 import RequestsTable from '../Components/Management/RequestsTable.vue';
 import { money, date, referenceHref } from '../support/synaux';
 // Gestión reutiliza las lecturas, mientras cada edición vuelve a verificar el emisor en Laravel.
@@ -138,6 +138,6 @@ function editProject(p) { project.value = p; }
             <E v-else :title="hasFilters ? 'No encontramos resultados' : 'Todavía no hay registros'"
                 :text="hasFilters ? 'Probá con otro texto o limpiá los filtros.' : listing?.empty" />
         </template>
-        <SynauxProjectUpdate v-if="project" :project="project" @close="project = null" />
+        <ProjectUpdate v-if="project" :project="project" @close="project = null" />
     </section>
 </template>

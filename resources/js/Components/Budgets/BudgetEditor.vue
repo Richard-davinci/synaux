@@ -1,14 +1,14 @@
 <script setup>
-import SidePanel from './SynauxSidePanel.vue';
+import SidePanel from '../UI/SidePanel.vue';
 import { computed, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { VSwitch } from 'vuetify/components';
-import B from './SynauxButton.vue';
-import F from './SynauxField.vue';
-import I from './SynauxIcon.vue';
+import B from '../UI/AppButton.vue';
+import F from '../UI/FormField.vue';
+import I from '../UI/AppIcon.vue';
 import BudgetDocument from './BudgetDocument.vue';
-import { money, date, useSubmit } from '../support/synaux';
-import { referenceLine, requestBudgetLines } from '../support/requestPricing';
+import { money, date, useSubmit } from '../../support/synaux';
+import { referenceLine, requestBudgetLines } from '../../support/requestPricing';
 
 // El editor recibe solo las solicitudes autorizadas; Laravel vuelve a comprobar permisos y valores al guardar.
 const props = defineProps({ data: Object });

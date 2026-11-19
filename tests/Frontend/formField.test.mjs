@@ -9,7 +9,7 @@ import vue from '@vitejs/plugin-vue';
 // Comprueba el contrato HTML del campo compartido sin abrir cuentas ni modificar la base de datos.
 const server = await createServer({ configFile:false, root:fileURLToPath(new URL('../../', import.meta.url)), plugins:[vue()], ssr:{noExternal:['vuetify']}, server:{middlewareMode:true}, appType:'custom' });
 after(() => server.close());
-const { default: Field } = await server.ssrLoadModule('/resources/js/Components/SynauxField.vue');
+const { default: Field } = await server.ssrLoadModule('/resources/js/Components/UI/FormField.vue');
 const { createVuetify } = await server.ssrLoadModule('vuetify');
 const render = props => renderToString(createSSRApp({render:() => h(Field, props)}).use(createVuetify()));
 

@@ -1,13 +1,13 @@
 <script setup>
 import { computed, nextTick, ref, useId, watch } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
-import B from './SynauxButton.vue';
-import F from './SynauxField.vue';
-import I from './SynauxIcon.vue';
-import ServicePicker from './SynauxServicePicker.vue';
-import RequestQuestions from './SynauxRequestQuestions.vue';
-import { money, date, useSubmit } from '../support/synaux';
-import { referenceLine, summarizePrices } from '../support/requestPricing';
+import B from '../UI/AppButton.vue';
+import F from '../UI/FormField.vue';
+import I from '../UI/AppIcon.vue';
+import ServicePicker from '../Catalog/ServicePicker.vue';
+import RequestQuestions from './RequestQuestions.vue';
+import { money, date, useSubmit } from '../../support/synaux';
+import { referenceLine, summarizePrices } from '../../support/requestPricing';
 
 // Los borradores existentes se recuperan con sus datos y las solicitudes nuevas parten de la cuenta actual.
 const props = defineProps({ data: Object });

@@ -1,10 +1,10 @@
 <script setup>
 import { computed } from 'vue';
-import B from './SynauxButton.vue';
-import T from './SynauxTitle.vue';
-import S from './SynauxStatus.vue';
-import I from './SynauxIcon.vue';
-import { date, money } from '../support/synaux';
+import B from '../UI/AppButton.vue';
+import T from '../UI/PageTitle.vue';
+import S from '../UI/StatusBadge.vue';
+import I from '../UI/AppIcon.vue';
+import { date, money } from '../../support/synaux';
 
 // El presupuesto y el historial llegan filtrados por la cuenta; el cliente consulta el seguimiento.
 const props = defineProps({ data: Object });

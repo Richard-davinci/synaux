@@ -1,13 +1,13 @@
 <script setup>
-import SidePanel from '../Components/SynauxSidePanel.vue';
+import SidePanel from '../Components/UI/SidePanel.vue';
 import { computed, ref } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
-import B from '../Components/SynauxButton.vue';
-import F from '../Components/SynauxField.vue';
-import T from '../Components/SynauxTitle.vue';
-import S from '../Components/SynauxStatus.vue';
-import E from '../Components/SynauxEmpty.vue';
-import RequestForm from '../Components/SynauxRequestForm.vue';
+import B from '../Components/UI/AppButton.vue';
+import F from '../Components/UI/FormField.vue';
+import T from '../Components/UI/PageTitle.vue';
+import S from '../Components/UI/StatusBadge.vue';
+import E from '../Components/UI/EmptyState.vue';
+import RequestForm from '../Components/Requests/RequestForm.vue';
 import ClientScreens from './ClientScreens.vue';
 import { money, date, initials, useSubmit } from '../support/synaux';
 // El muro y el directorio solo usan información pública; invitaciones y propuestas llegan autorizadas.

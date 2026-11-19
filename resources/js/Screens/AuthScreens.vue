@@ -1,9 +1,9 @@
 <script setup>
 import { computed } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
-import BrandLogo from '../Components/BrandLogo.vue';
-import B from '../Components/SynauxButton.vue';
-import F from '../Components/SynauxField.vue';
+import BrandLogo from '../Components/Brand/BrandLogo.vue';
+import B from '../Components/UI/AppButton.vue';
+import F from '../Components/UI/FormField.vue';
 import { referenceHref, useSubmit } from '../support/synaux';
 // Un formulario conserva el correo ante errores y solo envía los campos necesarios para cada pantalla.
 const props = defineProps({ data: Object });

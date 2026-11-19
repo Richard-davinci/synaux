@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, useId, watch } from 'vue';
 import { VSelect, VTextarea, VTextField } from 'vuetify/components';
-import I from './SynauxIcon.vue';
+import I from './AppIcon.vue';
 
 // Todos los formularios comparten controles Vuetify compactos y conservan sus etiquetas externas.
 const props = defineProps({ modelValue:[String,Number,Boolean,Array], label:String, type:{type:String,default:'text'}, options:Array, error:String, hint:String, required:Boolean, autocomplete:String, min:[String,Number], max:[String,Number], step:[String,Number], placeholder:String, disabled:Boolean, minlength:[String,Number], maxlength:[String,Number] });

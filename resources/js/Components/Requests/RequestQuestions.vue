@@ -1,5 +1,5 @@
 <script setup>
-import F from './SynauxField.vue';
+import F from '../UI/FormField.vue';
 
 // Las preguntas usan las mismas entradas para el servicio principal y cada adicional.
 defineProps({ questions: Array, errors: Object, prefix: String });

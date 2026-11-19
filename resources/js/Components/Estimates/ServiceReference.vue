@@ -1,5 +1,5 @@
 <script setup>
-import { money, date } from '../support/synaux';
+import { money, date } from '../../support/synaux';
 
 // Muestra los datos del servicio seleccionado y la referencia inicial publicada por el servidor.
 defineProps({ service: Object, reference: Object, saved: Boolean });

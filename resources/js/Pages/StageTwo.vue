@@ -1,9 +1,9 @@
 <script setup>
 import { Head } from '@inertiajs/vue3';
 import PublicLayout from '../Layouts/PublicLayout.vue';
-import B from '../Components/SynauxButton.vue';
-import I from '../Components/SynauxIcon.vue';
-import T from '../Components/SynauxTitle.vue';
+import B from '../Components/UI/AppButton.vue';
+import I from '../Components/UI/AppIcon.vue';
+import T from '../Components/UI/PageTitle.vue';
 import '../../css/workspace.css';
 import '../../css/workspace-overrides.css';
 

@@ -11,8 +11,8 @@ import ManagementScreens from '../Screens/ManagementScreens.vue';
 import AdminTariffs from '../Screens/AdminTariffs.vue';
 import AdminConfigurationPreview from '../Screens/AdminConfigurationPreview.vue';
 import PortfolioWorkEditor from '../Screens/PortfolioWorkEditor.vue';
-import SynauxCatalogAdmin from '../Components/SynauxCatalogAdmin.vue';
-import SynauxBudgetEditor from '../Components/SynauxBudgetEditor.vue';
+import CatalogAdmin from '../Components/Admin/CatalogAdmin.vue';
+import BudgetEditor from '../Components/Budgets/BudgetEditor.vue';
 import RequestDetail from '../Components/Management/RequestDetail.vue';
 import '../../css/workspace.css';
 import '../../css/workspace-overrides.css';
@@ -27,9 +27,9 @@ const component = computed(() => {
     if (screen === 'admin') {
         if (section === 'tarifario') return AdminTariffs;
         if (preview && ['preguntas', 'componentes', 'reglas'].includes(section)) return AdminConfigurationPreview;
-        return SynauxCatalogAdmin;
+        return CatalogAdmin;
     }
-    if (screen === 'editor-presupuesto') return SynauxBudgetEditor;
+    if (screen === 'editor-presupuesto') return BudgetEditor;
     if (screen === 'editor-trabajo') return PortfolioWorkEditor;
     if (screen === 'solicitud' && area === 'gestion' && data.value.selected?.status !== 'draft') return RequestDetail;
     if (screen === 'gestion' || (screen === 'profesional' && section === 'portfolio')) return ManagementScreens;

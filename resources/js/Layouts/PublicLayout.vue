@@ -1,15 +1,15 @@
 <script setup>
 import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
-import BrandLogo from '../Components/BrandLogo.vue';
-import SynauxNotifications from '../Components/SynauxNotifications.vue';
+import BrandLogo from '../Components/Brand/BrandLogo.vue';
+import FlashMessages from '../Components/Notifications/FlashMessages.vue';
 // La campana de actividad persiste separada de los avisos transitorios de formularios.
-import SynauxNotificationCenter from '../Components/SynauxNotificationCenter.vue';
-import WorkspaceNavigation from '../Components/WorkspaceNavigation.vue';
-import I from '../Components/SynauxIcon.vue';
+import NotificationCenter from '../Components/Notifications/NotificationCenter.vue';
+import WorkspaceNavigation from '../Components/Navigation/WorkspaceNavigation.vue';
+import I from '../Components/UI/AppIcon.vue';
 // El navbar usa el SVG horizontal entregado por el usuario, sin modificar sus trazos ni colores.
 import navbarLogo from '../../images/brand/synaux-horizontal-sin-slogan-color.svg';
-import SynauxButton from '../Components/SynauxButton.vue';
+import AppButton from '../Components/UI/AppButton.vue';
 import { demoNotice, referenceHref } from '../support/synaux';
 // El navbar mantiene los enlaces públicos; el panel lateral organiza el área privada de la sesión.
 defineProps({ homeUrl: { type: String, default: '/' }, platformUrl: { type: String, default: '/plataforma' }, year: { type: Number, default: 2026 }, landing: Boolean });
@@ -92,7 +92,7 @@ watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false;
             <nav :class="['main-nav', { 'mobile-open': mobile }]" aria-label="Navegación principal">
                 <a v-for="[label, href] in publicNav" :key="href" :href="referenceHref(href, $page.props)" :aria-current="$page.url.split('?')[0] === href ? 'page' : undefined">{{ label }}</a>
                 <!-- En móvil, los accesos de visitantes acompañan al menú desplegado. -->
-                <div v-if="!$page.props.auth && !$page.props.preview" class="nav-actions mobile-auth"><SynauxButton compact href="/ingresar" variant="ghost">Ingresar</SynauxButton><SynauxButton compact href="/crear-cuenta">Crear cuenta</SynauxButton></div>
+                <div v-if="!$page.props.auth && !$page.props.preview" class="nav-actions mobile-auth"><AppButton compact href="/ingresar" variant="ghost">Ingresar</AppButton><AppButton compact href="/crear-cuenta">Crear cuenta</AppButton></div>
                 <!-- La cuenta administradora puede cambiar de área también desde el menú superior móvil. -->
                 <div v-if="showAreaSwitch" class="mobile-area-links"><a :href="referenceHref('/gestion', $page.props)" :aria-current="area === 'gestion' && !adminView ? 'page' : undefined">Ir a Gestión</a><a :href="referenceHref('/admin/servicios', $page.props)" :aria-current="adminView ? 'page' : undefined">Ir a administración</a></div>
             </nav>
@@ -100,14 +100,14 @@ watch(() => page.url, () => { mobile.value = false; workspaceOpen.value = false;
             <div v-if="!$page.props.preview || showAreaSwitch" class="header-account" :class="{ 'guest-account': !$page.props.auth && !$page.props.preview }">
                 <!-- La galería convierte estos destinos en referencias; en la sesión real las rutas mantienen autorización del servidor. -->
                 <nav v-if="showAreaSwitch" class="header-area-links" aria-label="Áreas de la cuenta"><a :href="referenceHref('/gestion', $page.props)" :aria-current="area === 'gestion' && !adminView ? 'page' : undefined">Gestión</a><a :href="referenceHref('/admin/servicios', $page.props)" :aria-current="adminView ? 'page' : undefined">Administración</a></nav>
-                <template v-if="!$page.props.preview && !$page.props.auth"><SynauxButton compact href="/ingresar" variant="ghost">Ingresar</SynauxButton><SynauxButton compact href="/crear-cuenta">Crear cuenta</SynauxButton></template>
-                <template v-else-if="!$page.props.preview"><SynauxButton v-if="!hasWorkspace && !$page.props.auth.is_admin" compact class="panel-access" href="/cliente">Ir a mi panel</SynauxButton><SynauxNotificationCenter /></template>
+                <template v-if="!$page.props.preview && !$page.props.auth"><AppButton compact href="/ingresar" variant="ghost">Ingresar</AppButton><AppButton compact href="/crear-cuenta">Crear cuenta</AppButton></template>
+                <template v-else-if="!$page.props.preview"><AppButton v-if="!hasWorkspace && !$page.props.auth.is_admin" compact class="panel-access" href="/cliente">Ir a mi panel</AppButton><NotificationCenter /></template>
             </div>
         </header>
         </div>
         <div class="navbar-space" aria-hidden="true"></div>
         <!-- El componente compartido anuncia resultados y errores sin perderse al desplazar la página. -->
-        <SynauxNotifications :message="demoNotice || $page.props.notice" :errors="$page.props.errors" :page-key="$page.url" @close-message="demoNotice = ''" />
+        <FlashMessages :message="demoNotice || $page.props.notice" :errors="$page.props.errors" :page-key="$page.url" @close-message="demoNotice = ''" />
         <!-- El panel es adicional al sitio y solo acompaña las pantallas privadas. -->
         <div v-if="hasWorkspace" ref="workspaceBar" class="workspace-mobile-bar"><span>{{ workspaceTitle }}</span><button ref="workspaceToggle" type="button" :aria-expanded="workspaceOpen" aria-controls="workspace-mobile-panel" @click="workspaceOpen = true"><I name="menu" />Menú del panel</button></div>
         <div :class="['workspace-layout', { 'with-workspace': hasWorkspace }]">

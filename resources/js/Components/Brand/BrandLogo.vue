@@ -1,9 +1,9 @@
 <script setup>
 // Los cuatro SVG son exportaciones del aprobado; no se reconstruye ni se recolorea la marca.
-import colorLogo from '../../images/brand/synaux-vertical-con-slogan-color.svg';
-import whiteLogo from '../../images/brand/synaux-vertical-con-slogan-blanco.svg';
-import compactColorLogo from '../../images/brand/synaux-vertical-sin-slogan-color.svg';
-import compactWhiteLogo from '../../images/brand/synaux-vertical-sin-slogan-blanco.svg';
+import colorLogo from '../../../images/brand/synaux-vertical-con-slogan-color.svg';
+import whiteLogo from '../../../images/brand/synaux-vertical-con-slogan-blanco.svg';
+import compactColorLogo from '../../../images/brand/synaux-vertical-sin-slogan-color.svg';
+import compactWhiteLogo from '../../../images/brand/synaux-vertical-sin-slogan-blanco.svg';
 
 // withSlogan elige la composición; variant permite usar el original a color o el blanco.
 defineProps({

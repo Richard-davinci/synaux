@@ -1,8 +1,8 @@
 <script setup>
 import { computed } from 'vue';
-import BrandLogo from './BrandLogo.vue';
-import I from './SynauxIcon.vue';
-import { money, date } from '../support/synaux';
+import BrandLogo from '../Brand/BrandLogo.vue';
+import I from '../UI/AppIcon.vue';
+import { money, date } from '../../support/synaux';
 
 // El editor y el documento recibido comparten los datos de una versión, sin consultar perfiles actuales.
 const props = defineProps({ budget: Object, client: Object, issuer: Object, compact: Boolean });

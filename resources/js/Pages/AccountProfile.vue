@@ -2,9 +2,9 @@
 import { computed } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import PublicLayout from '../Layouts/PublicLayout.vue';
-import B from '../Components/SynauxButton.vue';
-import F from '../Components/SynauxField.vue';
-import I from '../Components/SynauxIcon.vue';
+import B from '../Components/UI/AppButton.vue';
+import F from '../Components/UI/FormField.vue';
+import I from '../Components/UI/AppIcon.vue';
 import { date, initials, demoNotice } from '../support/synaux';
 import '../../css/workspace.css';
 import '../../css/workspace-overrides.css';

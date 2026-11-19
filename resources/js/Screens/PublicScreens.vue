@@ -2,12 +2,12 @@
 import { computed, ref, useId } from 'vue';
 import { VAutocomplete } from 'vuetify/components';
 import { useForm, usePage } from '@inertiajs/vue3';
-import B from '../Components/SynauxButton.vue';
-import F from '../Components/SynauxField.vue';
-import T from '../Components/SynauxTitle.vue';
-import I from '../Components/SynauxIcon.vue';
-import Empty from '../Components/SynauxEmpty.vue';
-import CatalogServicePrice from '../Components/CatalogServicePrice.vue';
+import B from '../Components/UI/AppButton.vue';
+import F from '../Components/UI/FormField.vue';
+import T from '../Components/UI/PageTitle.vue';
+import I from '../Components/UI/AppIcon.vue';
+import Empty from '../Components/UI/EmptyState.vue';
+import CatalogServicePrice from '../Components/Catalog/CatalogServicePrice.vue';
 import { money, date, useSubmit } from '../support/synaux';
 // Pantallas públicas: los datos llegan de Laravel; filtros y estados de interacción pertenecen a Vue.
 const props = defineProps({ data: Object });

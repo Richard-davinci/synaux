@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, useId, watch } from 'vue';
 import { VAutocomplete, VListItem } from 'vuetify/components';
-import F from './SynauxField.vue';
+import F from '../UI/FormField.vue';
 
 // Clasifica el catálogo y comunica solo un identificador; los precios siempre se resuelven en Laravel.
 const props = defineProps({ modelValue: [Number, String], services: Array, error: String, disabled: Boolean });

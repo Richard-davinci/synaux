@@ -1,10 +1,10 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import B from '../SynauxButton.vue';
-import S from '../SynauxStatus.vue';
-import T from '../SynauxTitle.vue';
-import SidePanel from '../SynauxSidePanel.vue';
+import B from '../UI/AppButton.vue';
+import S from '../UI/StatusBadge.vue';
+import T from '../UI/PageTitle.vue';
+import SidePanel from '../UI/SidePanel.vue';
 import { date, money, useSubmit } from '../../support/synaux';
 import { referenceLine, summarizePrices } from '../../support/requestPricing';
 

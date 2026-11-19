@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue';
-import SynauxIcon from './SynauxIcon.vue';
+import AppIcon from '../UI/AppIcon.vue';
 
 // Cada navegación o respuesta nueva vuelve a mostrar el aviso; cerrarlo no borra errores del formulario.
 const props = defineProps({ message: String, errors: Object, pageKey: String });
@@ -21,14 +21,14 @@ function closeMessage() {
     <!-- Los avisos permanecen visibles al desplazarse y hasta que la persona decide cerrarlos. -->
     <div class="synaux-notifications">
         <section v-if="message && !messageClosed" class="synaux-notification" role="status" aria-live="polite" aria-atomic="true">
-            <span class="notification-symbol"><SynauxIcon name="check" /></span>
+            <span class="notification-symbol"><AppIcon name="check" /></span>
             <div class="notification-copy"><strong>Operación realizada</strong><p>{{ message }}</p></div>
-            <button type="button" class="notification-close" aria-label="Cerrar notificación" @click="closeMessage"><SynauxIcon name="close" /></button>
+            <button type="button" class="notification-close" aria-label="Cerrar notificación" @click="closeMessage"><AppIcon name="close" /></button>
         </section>
         <section v-if="Object.keys(errors ?? {}).length && !errorsClosed" class="synaux-notification notification-error" role="alert" aria-atomic="true">
-            <span class="notification-symbol"><SynauxIcon name="info" /></span>
+            <span class="notification-symbol"><AppIcon name="info" /></span>
             <div class="notification-copy"><strong>Revisá los datos antes de continuar</strong><ul><li v-for="(error, key) in errors" :key="key">{{ error }}</li></ul></div>
-            <button type="button" class="notification-close" aria-label="Cerrar aviso de errores" @click="errorsClosed = true"><SynauxIcon name="close" /></button>
+            <button type="button" class="notification-close" aria-label="Cerrar aviso de errores" @click="errorsClosed = true"><AppIcon name="close" /></button>
         </section>
     </div>
 </template>

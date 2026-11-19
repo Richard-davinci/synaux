@@ -2,11 +2,11 @@
 import { computed, ref } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import { VAutocomplete, VListItem } from 'vuetify/components';
-import B from '../Components/SynauxButton.vue';
-import F from '../Components/SynauxField.vue';
-import T from '../Components/SynauxTitle.vue';
-import ServiceReference from '../Components/ServiceReference.vue';
-import DeleteEstimateButton from '../Components/DeleteEstimateButton.vue';
+import B from '../Components/UI/AppButton.vue';
+import F from '../Components/UI/FormField.vue';
+import T from '../Components/UI/PageTitle.vue';
+import ServiceReference from '../Components/Estimates/ServiceReference.vue';
+import DeleteEstimateButton from '../Components/Estimates/DeleteEstimateButton.vue';
 import { money, date, useSubmit } from '../support/synaux';
 
 // El formulario conserva sus respuestas al recorrer los pasos; Laravel valida y calcula los importes.
