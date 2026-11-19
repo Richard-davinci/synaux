@@ -1,7 +1,5 @@
 <script setup>
-import SidePanel from '../Components/SynauxSidePanel.vue';
 import { computed, ref } from 'vue';
-import { useForm } from '@inertiajs/vue3';
 import B from '../Components/SynauxButton.vue';
 import F from '../Components/SynauxField.vue';
 import T from '../Components/SynauxTitle.vue';
@@ -9,15 +7,11 @@ import S from '../Components/SynauxStatus.vue';
 import E from '../Components/SynauxEmpty.vue';
 import I from '../Components/SynauxIcon.vue';
 import NewBadge from '../Components/SynauxNewBadge.vue';
-import SynauxBudgetEditor from '../Components/SynauxBudgetEditor.vue';
 import SynauxProjectUpdate from '../Components/SynauxProjectUpdate.vue';
-import SynauxManagementRequests from '../Components/SynauxManagementRequests.vue';
-// Catálogo concentra la configuración por servicio; Tarifarios conserva la publicación global.
-import SynauxCatalogAdmin from '../Components/SynauxCatalogAdmin.vue';
-import { money, date, referenceHref, useSubmit } from '../support/synaux';
+import RequestsTable from '../Components/Management/RequestsTable.vue';
+import { money, date, referenceHref } from '../support/synaux';
 // Gestión reutiliza las lecturas, mientras cada edición vuelve a verificar el emisor en Laravel.
 const props = defineProps({data:Object});
-const submit = useSubmit();
 const section = computed(() => props.data.section || 'resumen');
 // Los estados del filtro corresponden al recurso que Gestión está consultando.
 const statusOptions = computed(() => [{ value: '', label: 'Todos' }, ...({
@@ -25,15 +19,9 @@ const statusOptions = computed(() => [{ value: '', label: 'Todos' }, ...({
     presupuestos: [['draft', 'Borrador'], ['sent', 'Enviado'], ['issued', 'Emitido'], ['accepted', 'Aceptado'], ['rejected', 'Rechazado'], ['expired', 'Vencido']],
     proyectos: [['pending', 'Pendiente de inicio'], ['in_progress', 'En desarrollo'], ['completed', 'Completado'], ['cancelled', 'Cancelado']],
 }[section.value] ?? []).map(([value, label]) => ({ value, label }))]);
-const selected = props.data.selected ?? {};
 const query = ref('');
 const status = ref('');
 const project = ref(null);
-const adminModal = ref(false);
-const admin = computed(() => props.data.administration ?? {services:[],categories:[],questions:[],components:[],rules:[],tariffs:[]});
-const resources = {servicios:'services',preguntas:'questions',componentes:'components',reglas:'rules',tarifario:'tariffs'};
-const adminRows = computed(() => admin.value[resources[section.value] ?? 'services'] ?? []);
-const administrative = computed(() => props.data.screen === 'admin');
 // Cada listado mantiene sus estados y usa textos propios para el encabezado y la búsqueda.
 const sections = {
     solicitudes: { key: 'requests', icon: 'file', title: 'Solicitudes recibidas', description: 'Revisá el alcance de cada pedido y prepará su presupuesto.', search: 'Título, servicio o cliente', empty: 'Las solicitudes enviadas por clientes aparecerán acá.' },
@@ -65,47 +53,17 @@ function clearFilters() {
     query.value = '';
     status.value = '';
 }
-const work = useForm({id:selected.id ?? null,service_id:selected.service_id ?? props.data.services[0]?.database_id,title:selected.title ?? '',description:selected.description ?? '',category:selected.category ?? 'Desarrollo web',challenge:selected.challenge ?? '',result:selected.result ?? '',year:selected.year ?? new Date().getFullYear(),live_url:selected.live_url ?? '',is_public:!!selected.is_public,cover:null,gallery:[]});
-const configuration = useForm({});
-// El editor de tarifa crea una versión nueva; los importes previos quedan disponibles para consulta.
-const tariff = useForm({name:'',currency_code:'ARS',active:false,services:[],components:[]});
-// La importación usa una ruta fija y muestra el estado de carga para evitar envíos repetidos.
-const importForm = useForm({});
-const options = (items,label='name') => items.map(i=>({value:i.id,label:i[label]}));
 // La lista ofrece edición solo al emisor y mientras la solicitud permita preparar otra versión.
 function canRevise(budget) {
     return budget.issuer_id === props.data.auth?.id && budget.status !== 'accepted'
         && (budget.external || (props.data.budgetRequests ?? props.data.requests ?? []).some(item => item.id === budget.request_id && item.status === 'open'));
 }
 function editProject(p) { project.value = p; }
-function configure(row={}) {
-    if(section.value==='tarifario') {
-        tariff.name=''; tariff.currency_code=row.currency_code ?? 'ARS'; tariff.active=false;
-        tariff.services=admin.value.services.filter(s=>s.active && s.estimation_mode==='automatic').map(s=>({id:s.id,name:s.name,min:row.services?.find(p=>p.service_id===s.id)?.price_min ?? '',max:row.services?.find(p=>p.service_id===s.id)?.price_max ?? ''}));
-        tariff.components=admin.value.components.filter(c=>c.active).map(c=>({id:c.id,name:c.name,min:row.components?.find(p=>p.service_component_id===c.id)?.price_min ?? '',max:row.components?.find(p=>p.service_component_id===c.id)?.price_max ?? ''}));
-    } else {
-        const defaults={id:null,name:'',slug:'',active:true,description:'',summary:'',service_category_id:admin.value.categories[0]?.id,estimation_mode:'manual',deliverables:'',service_id:admin.value.services[0]?.id,question:'',input_type:'single_choice',sort_order:0,options_text:'',quantity_component_id:null,unit_code:'unidad',is_default:false,default_quantity:1,estimator_option_id:null,service_component_id:null,quantity:1};
-        // Solo se envían los campos que el recurso permite; el servidor aplica una segunda lista explícita.
-        const fields={servicios:['id','name','slug','active','description','summary','service_category_id','estimation_mode','deliverables'],preguntas:['id','service_id','question','input_type','sort_order','active','options_text','quantity_component_id'],componentes:['id','name','slug','active','description','service_id','unit_code','is_default','default_quantity'],reglas:['id','estimator_option_id','service_component_id','quantity','active']}[section.value];
-        const values={...defaults,...row,active:row.active == null ? true : !!row.active,deliverables:Array.isArray(row.deliverables)?row.deliverables.join('\n'):row.deliverables ?? '',options_text:row.options?.filter(o=>o.active).map(o=>o.label).join('\n') ?? '',is_default:!!row.is_default};
-        configuration.defaults(Object.fromEntries(fields.map(k=>[k,values[k]]))); configuration.reset(); configuration.clearErrors();
-    }
-    adminModal.value=true;
-}
-function saveConfiguration() { submit(section.value==='tarifario'?tariff:configuration,`/admin/guardar/${section.value}`,{onSuccess:()=>adminModal.value=false}); }
 </script>
+
 <template>
-    <SynauxBudgetEditor v-if="data.screen === 'editor-presupuesto'" :data="data" />
-    <!-- Servicios y categorías tienen su propio flujo y reutilizan la configuración recibida del servidor. -->
-    <SynauxCatalogAdmin v-else-if="administrative && ['resumen', 'servicios', 'categorias'].includes(section)" :data="data" />
-    <!-- El portfolio se publica desde archivos raster propios y permite guardar trabajos privados. -->
-    <section v-else-if="data.screen === 'editor-trabajo'" class="page shell narrow workspace-view workspace-work-editor"><B :href="data.area === 'gestion' ? '/gestion/portfolio' : '/profesional/portfolio'" variant="ghost">← Volver al portfolio</B><T eyebrow="Portfolio" :title="selected.id ? 'Editar trabajo' : 'Nuevo trabajo'" description="Documentá el desafío, la solución y el resultado del proyecto." /><v-card class="card form-card"><form @submit.prevent="submit(work,'trabajo',{forceFormData:true,previewTarget:'g-portfolio'})"><F v-model="work.title" label="Título del trabajo" required /><div class="form-grid"><F v-model="work.service_id" label="Servicio" type="select" :options="data.services.map(s=>({value:s.database_id,label:s.name}))" required /><F v-model="work.category" label="Categoría" required /><F v-model="work.year" label="Año" type="number" min="1990" max="2100" /></div><F v-model="work.description" label="Descripción breve" type="textarea" required /><F v-model="work.challenge" label="El desafío" type="textarea" /><F v-model="work.result" label="La solución y el resultado" type="textarea" /><F v-model="work.live_url" type="url" label="Enlace al proyecto (opcional)" /><img v-if="selected.cover_path" :src="selected.cover_path" :alt="selected.title" class="upload-preview"><label class="field">Imagen de portada (JPG, PNG o WebP · hasta 5 MB)<input type="file" accept="image/jpeg,image/png,image/webp" @change="work.cover=$event.target.files[0]"></label><label class="field">Galería (hasta 8 imágenes por envío)<input type="file" multiple accept="image/jpeg,image/png,image/webp" @change="work.gallery=Array.from($event.target.files)"></label><label class="select-row"><input v-model="work.is_public" type="checkbox">Publicar este trabajo en el portfolio</label><B type="submit" :disabled="work.processing">Guardar trabajo</B></form></v-card></section>
-    <!-- El administrador configura el catálogo y las preguntas sin tocar registros de clientes. -->
-    <section v-else-if="administrative" class="page shell workspace-view"><T eyebrow="Administración" :title="section === 'tarifario' ? 'Tarifarios' : 'Configuración de referencia'" description="Consultá y publicá versiones de precios. Las preguntas y reglas se administran dentro de cada servicio del catálogo."><B v-if="$page.props.auth?.is_admin" compact href="/admin/etapa-2" variant="secondary">Revisar etapa 2</B></T><div class="workspace-tariffs"><div><div class="section-head"><div><h2>{{ {servicios:'Servicios y categorías',preguntas:'Preguntas del estimador',componentes:'Componentes por servicio',reglas:'Reglas de cálculo',tarifario:'Versiones del tarifario'}[section] ?? 'Servicios y categorías' }}</h2><p>Los cambios se aplican a los próximos cálculos.</p></div><B @click="configure()">＋ {{ section==='tarifario'?'Nueva versión':'Agregar' }}</B></div><div v-if="section === 'tarifario'" class="card workspace-import"><h3><I name="calculator" /> Referencia de Sitio institucional</h3><p>Actualizá los tres segmentos del paquete de hasta siete secciones con Tarifario.ar y la cotización CCL de venta.</p><B :disabled="importForm.processing" @click="importForm.post('/admin/tarifario/importar', { preserveScroll: true })">{{ importForm.processing ? 'Consultando precios…' : 'Actualizar desde Tarifario.ar' }}</B><p>Contenido adaptado de <a href="https://tarifario.ar/categoria/dev-web-app#service-pd-3" target="_blank" rel="noopener">Tarifario Digital</a>, bajo <a href="https://tarifario.ar/licencia" target="_blank" rel="noopener">CC BY-NC 4.0</a>. Los importes se convierten a ARS para este proyecto académico.</p><div v-for="version in data.administration.tariffs.filter(item => item.source_url).slice(0,1)" :key="version.id"><p>Última importación: {{ date(version.source_checked_at) }} · Base PyME: USD {{ version.source_usd }} · CCL venta: {{ money(version.source_rate,'ARS') }}</p></div></div><div class="table-scroll workspace-table"><table><thead><tr><th>{{ section==='preguntas'?'Pregunta':section==='reglas'?'Opción':'Nombre' }}</th><th>Configuración</th><th>Estado</th><th>Acción</th></tr></thead><tbody><tr v-for="r in adminRows" :key="r.id"><td>{{ r.name ?? r.question ?? r.label }}</td><td>{{ r.estimation_mode === 'automatic' ? 'Automática' : r.estimation_mode === 'manual' ? 'Profesional' : r.input_type ?? (r.quantity != null ? `${r.name} × ${r.quantity}` : r.currency_code ?? r.unit_code) }}</td><td><S :status="r.active ? 'enabled' : 'disabled'" /></td><td><B variant="ghost" @click="configure(r)">{{ section==='tarifario'?'Crear desde esta versión':'Editar' }}</B></td></tr><tr v-if="!adminRows.length"><td colspan="4">Todavía no hay registros. Agregá el primero.</td></tr></tbody></table></div><div class="notice"><div><h3>Precios y cálculos históricos</h3><p>Cada tarifario se guarda como una versión nueva. Las estimaciones y los presupuestos anteriores conservan sus valores de origen.</p></div></div></div></div>
-        <SidePanel title="Administración" v-model="adminModal" max-width="600" :persistent="configuration.processing || tariff.processing"><div class="synaux-app"><v-card class="card modal-card"><h2>{{ section==='tarifario'?'Nueva versión del tarifario':'Configurar '+section }}</h2><form @submit.prevent="saveConfiguration"><template v-if="section==='tarifario'"><F v-model="tariff.name" label="Nombre de la versión" required /><F v-model="tariff.currency_code" label="Moneda" type="select" :options="['ARS','USD','EUR']" /><template v-for="[key,label] in [['services','Bases de servicios'],['components','Componentes']]" :key="key"><h3>{{ label }}</h3><div v-for="p in tariff[key]" :key="p.id" class="tariff-row"><strong>{{ p.name }}</strong><F v-model="p.min" label="Mínimo" type="number" min="0" step="0.01" required /><F v-model="p.max" label="Máximo" type="number" min="0" step="0.01" required /></div></template><label class="select-row"><input v-model="tariff.active" type="checkbox">Activar para nuevas estimaciones</label><p>Completá las bases y todos los componentes de los servicios automáticos para activar la versión.</p></template><template v-else><template v-if="['servicios','componentes'].includes(section)"><F v-model="configuration.name" label="Nombre" required /><F v-model="configuration.slug" label="Identificador (sin espacios)" required /><F v-model="configuration.description" type="textarea" label="Descripción" required /></template><template v-if="section==='servicios'"><F v-model="configuration.service_category_id" type="select" label="Categoría" :options="options(admin.categories)" required /><F v-model="configuration.summary" label="Resumen para el catálogo" required /><F v-model="configuration.estimation_mode" type="select" label="Tipo de estimación" :options="[{value:'manual',label:'Revisión profesional'},{value:'automatic',label:'Automática'}]" required /><F v-model="configuration.deliverables" type="textarea" label="Entregables (uno por línea)" required /></template><template v-if="['preguntas','componentes'].includes(section)"><F v-model="configuration.service_id" type="select" label="Servicio" :options="options(admin.services)" :required="section==='componentes'" /></template><template v-if="section==='preguntas'"><F v-model="configuration.question" label="Pregunta" required /><F v-model="configuration.input_type" label="Tipo de respuesta" type="select" :options="[{value:'single_choice',label:'Una opción'},{value:'multiple_choice',label:'Varias opciones'},{value:'number',label:'Cantidad'},{value:'text',label:'Texto'}]" required /><F v-model="configuration.sort_order" label="Orden" type="number" min="0" required /><F v-if="configuration.input_type.includes('choice')" v-model="configuration.options_text" type="textarea" label="Opciones (una por línea)" required /><F v-if="configuration.input_type==='number'" v-model="configuration.quantity_component_id" type="select" label="Componente cuya cantidad define" :options="options(admin.components.filter(c=>c.service_id==configuration.service_id))" /></template><template v-if="section==='componentes'"><F v-model="configuration.unit_code" label="Unidad" required /><F v-model="configuration.default_quantity" label="Cantidad inicial" type="number" min="0.001" step="0.001" required /><label class="select-row"><input v-model="configuration.is_default" type="checkbox">Incluir por defecto</label></template><template v-if="section==='reglas'"><F v-model="configuration.estimator_option_id" type="select" label="Opción de respuesta" :options="admin.questions.flatMap(q=>q.options.filter(o=>o.active).map(o=>({value:o.id,label:`${q.question}: ${o.label}`})))" required /><F v-model="configuration.service_component_id" type="select" label="Componente" :options="options(admin.components)" required /><F v-model="configuration.quantity" type="number" label="Cantidad que incorpora" min="0" step="0.001" required /></template><label class="select-row"><input v-model="configuration.active" type="checkbox">Activo</label></template><div class="form-actions"><B variant="secondary" :disabled="configuration.processing || tariff.processing" @click="adminModal=false">Cancelar</B><B type="submit" :disabled="configuration.processing || tariff.processing">Guardar</B></div></form></v-card></div></SidePanel>
-    </section>
     <!-- Gestión comparte encabezados, filtros y acciones entre sus listados. -->
-    <section v-else class="page shell workspace-view">
+    <section class="page shell workspace-view">
         <T :eyebrow="data.screen === 'profesional' ? 'Área profesional' : 'Gestión'"
             :title="listing?.title ?? 'Resumen de gestión'"
             :description="listing?.description ?? 'Revisá los pedidos que requieren atención y accedé a los presupuestos y proyectos.'">
@@ -126,7 +84,7 @@ function saveConfiguration() { submit(section.value==='tarifario'?tariff:configu
                     <h2 id="management-queue-title">Solicitudes por revisar</h2>
                     <B compact variant="secondary" href="/gestion/solicitudes">Ver solicitudes</B>
                 </div>
-                <SynauxManagementRequests v-if="pendingRequests.length" :rows="pendingRequests.slice(0, 5)"
+                <RequestsTable v-if="pendingRequests.length" :rows="pendingRequests.slice(0, 5)"
                     label="Solicitudes por revisar" :preview="Boolean(data.preview)" />
                 <p v-if="!pendingRequests.length">No hay solicitudes pendientes de revisión.</p>
             </section>
@@ -138,7 +96,7 @@ function saveConfiguration() { submit(section.value==='tarifario'?tariff:configu
                 <F v-if="statusOptions.length > 1" v-model="status" label="Estado" type="select" :options="statusOptions" />
                 <B compact variant="secondary" :disabled="!hasFilters" @click="clearFilters">Limpiar filtros</B>
             </div>
-            <SynauxManagementRequests v-if="section === 'solicitudes' && rows.length" :rows="rows"
+            <RequestsTable v-if="section === 'solicitudes' && rows.length" :rows="rows"
                 label="Solicitudes recibidas" :preview="Boolean(data.preview)" />
             <div v-else-if="rows.length" class="stack management-records">
                 <v-card v-for="item in rows" :key="item.id" :id="section === 'contactos' ? 'consulta-' + item.id : undefined" class="card management-record">
