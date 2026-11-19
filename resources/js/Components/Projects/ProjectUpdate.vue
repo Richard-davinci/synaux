@@ -4,7 +4,7 @@ import { useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
 import B from '../UI/AppButton.vue';
 import F from '../UI/FormField.vue';
-import { useSubmit } from '../../support/synaux';
+import { useSubmit } from '../../support/useSubmit';
 
 // El formulario parte del proyecto elegido y conserva sus campos ante errores de validación.
 const props = defineProps({ project: Object });

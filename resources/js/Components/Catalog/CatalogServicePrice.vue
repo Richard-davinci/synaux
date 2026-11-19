@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import { money } from '../../support/synaux';
+import { money } from '../../support/formatters';
 
 // Cada tarjeta mantiene su propio segmento. Los importes llegan del tarifario publicado por Laravel.
 const props = defineProps({ reference: Object, serviceName: String, modelValue: { type: String, default: 'PyME' } });

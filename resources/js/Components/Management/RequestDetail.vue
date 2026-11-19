@@ -5,7 +5,8 @@ import B from '../UI/AppButton.vue';
 import S from '../UI/StatusBadge.vue';
 import T from '../UI/PageTitle.vue';
 import SidePanel from '../UI/SidePanel.vue';
-import { date, money, useSubmit } from '../../support/synaux';
+import { date, money } from '../../support/formatters';
+import { useSubmit } from '../../support/useSubmit';
 import { referenceLine, summarizePrices } from '../../support/requestPricing';
 
 // Gestión recibe el pedido autorizado y lee los importes que quedaron guardados con la solicitud.

@@ -7,7 +7,7 @@ import SiteFooter from '../Components/Navigation/SiteFooter.vue';
 import { useNavigationContext } from '../support/useNavigationContext';
 import WorkspaceNavigation from '../Components/Navigation/WorkspaceNavigation.vue';
 import I from '../Components/UI/AppIcon.vue';
-import { demoNotice } from '../support/synaux';
+import { demoNotice } from '../support/prototype';
 // El navbar mantiene los enlaces públicos; el panel lateral organiza el área privada de la sesión.
 defineProps({ homeUrl: { type: String, default: '/' }, platformUrl: { type: String, default: '/plataforma' }, year: { type: Number, default: 2026 }, landing: Boolean });
 const page = usePage();

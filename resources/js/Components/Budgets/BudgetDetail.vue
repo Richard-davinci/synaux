@@ -7,7 +7,8 @@ import T from '../UI/PageTitle.vue';
 import S from '../UI/StatusBadge.vue';
 import I from '../UI/AppIcon.vue';
 import BudgetDocument from './BudgetDocument.vue';
-import { money, date, useSubmit } from '../../support/synaux';
+import { money, date } from '../../support/formatters';
+import { useSubmit } from '../../support/useSubmit';
 
 // El servidor entrega documentos autorizados; la vista distingue historial, decisión y proyecto.
 const props = defineProps({ data: Object });

@@ -2,7 +2,7 @@
 import B from '../UI/AppButton.vue';
 import S from '../UI/StatusBadge.vue';
 import NewBadge from '../Notifications/NewBadge.vue';
-import { date } from '../../support/synaux';
+import { date } from '../../support/formatters';
 
 // El resumen y el listado usan las mismas columnas para comparar solicitudes.
 const props = defineProps({ rows: Array, label: String, preview: Boolean });

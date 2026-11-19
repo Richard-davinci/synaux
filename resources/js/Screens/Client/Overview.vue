@@ -4,7 +4,7 @@ import T from '../../Components/UI/PageTitle.vue';
 import S from '../../Components/UI/StatusBadge.vue';
 import EmptyState from '../../Components/UI/EmptyState.vue';
 import NewBadge from '../../Components/Notifications/NewBadge.vue';
-import { date } from '../../support/synaux';
+import { date } from '../../support/formatters';
 
 // Los conteos y la actividad salen de las colecciones autorizadas que devuelve Laravel.
 defineProps({ data: { type: Object, required: true } });

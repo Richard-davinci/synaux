@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import BrandLogo from '../Brand/BrandLogo.vue';
 import I from '../UI/AppIcon.vue';
-import { money, date } from '../../support/synaux';
+import { money, date } from '../../support/formatters';
 
 // El editor y el documento recibido comparten los datos de una versión, sin consultar perfiles actuales.
 const props = defineProps({ budget: Object, client: Object, issuer: Object, compact: Boolean });

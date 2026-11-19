@@ -6,7 +6,7 @@ import F from '../../Components/UI/FormField.vue';
 import T from '../../Components/UI/PageTitle.vue';
 import S from '../../Components/UI/StatusBadge.vue';
 import SidePanel from '../../Components/UI/SidePanel.vue';
-import { useSubmit } from '../../support/synaux';
+import { useSubmit } from '../../support/useSubmit';
 
 // La galería conserva las pantallas históricas sin exponerlas en Administración.
 const props = defineProps({ data: Object });

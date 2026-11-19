@@ -1,5 +1,5 @@
 <script setup>
-import { date, money } from '../../support/synaux';
+import { date, money } from '../../support/formatters';
 
 defineProps({
     result: { type: Object, required: true },

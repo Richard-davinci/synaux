@@ -3,7 +3,7 @@ import NewBadge from '../Notifications/NewBadge.vue';
 import B from '../UI/AppButton.vue';
 import I from '../UI/AppIcon.vue';
 import S from '../UI/StatusBadge.vue';
-import { date, money } from '../../support/synaux';
+import { date, money } from '../../support/formatters';
 
 defineProps({
     item: { type: Object, required: true },

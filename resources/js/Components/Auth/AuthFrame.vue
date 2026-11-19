@@ -1,7 +1,7 @@
 <script setup>
 import { usePage } from '@inertiajs/vue3';
 import BrandLogo from '../Brand/BrandLogo.vue';
-import { referenceHref } from '../../support/synaux';
+import { referenceHref } from '../../support/prototype';
 
 defineProps({
     eyebrow: { type: String, required: true },

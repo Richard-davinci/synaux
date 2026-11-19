@@ -1,9 +1,9 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3';
-import B from '../Components/UI/AppButton.vue';
-import F from '../Components/UI/FormField.vue';
-import T from '../Components/UI/PageTitle.vue';
-import { useSubmit } from '../support/synaux';
+import B from '../../Components/UI/AppButton.vue';
+import F from '../../Components/UI/FormField.vue';
+import T from '../../Components/UI/PageTitle.vue';
+import { useSubmit } from '../../support/useSubmit';
 
 // El editor de portfolio conserva su propio formulario de publicación y archivos.
 const props = defineProps({ data: Object });

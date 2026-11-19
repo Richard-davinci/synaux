@@ -3,7 +3,7 @@ import SidePanel from '../UI/SidePanel.vue';
 import { computed, ref, watch } from 'vue';
 import { router, usePage, usePoll } from '@inertiajs/vue3';
 import I from '../UI/AppIcon.vue';
-import { date } from '../../support/synaux';
+import { date } from '../../support/formatters';
 
 // La bandeja se actualiza sin recargar formularios; Inertia pausa la consulta cuando se desmonta.
 const page = usePage();

@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 import I from '../UI/AppIcon.vue';
-import { referenceHref, demoNotice } from '../../support/synaux';
+import { referenceHref, demoNotice } from '../../support/prototype';
 
 // Este panel organiza enlaces ya autorizados; mostrar un enlace no concede permisos de acceso.
 const props = defineProps({ items: Array, area: String, current: String, accountName: String, title: String });

@@ -5,7 +5,8 @@ import B from '../../Components/UI/AppButton.vue';
 import F from '../../Components/UI/FormField.vue';
 import S from '../../Components/UI/StatusBadge.vue';
 import SidePanel from '../../Components/UI/SidePanel.vue';
-import { initials, useSubmit } from '../../support/synaux';
+import { initials } from '../../support/formatters';
+import { useSubmit } from '../../support/useSubmit';
 
 const props = defineProps({ data: { type: Object, required: true } });
 const selected = computed(() => props.data.selected ?? {});

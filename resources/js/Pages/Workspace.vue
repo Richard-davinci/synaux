@@ -31,7 +31,7 @@ import ManagementOverview from '../Screens/Management/Overview.vue';
 import ManagementRecords from '../Screens/Management/Records.vue';
 import AdminTariffs from '../Screens/Admin/Tariffs.vue';
 import AdminConfigurationPreview from '../Screens/Admin/ConfigurationPreview.vue';
-import PortfolioWorkEditor from '../Screens/PortfolioWorkEditor.vue';
+import PortfolioWorkEditor from '../Screens/Portfolio/WorkEditor.vue';
 import CatalogList from '../Screens/Admin/CatalogList.vue';
 import ServiceEditor from '../Screens/Admin/ServiceEditor.vue';
 import BudgetEditor from '../Components/Budgets/BudgetEditor.vue';

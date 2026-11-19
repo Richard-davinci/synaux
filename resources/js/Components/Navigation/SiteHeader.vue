@@ -4,7 +4,7 @@ import { usePage } from '@inertiajs/vue3';
 import NotificationCenter from '../Notifications/NotificationCenter.vue';
 import AppButton from '../UI/AppButton.vue';
 import navbarLogo from '../../../images/brand/synaux-horizontal-sin-slogan-color.svg';
-import { referenceHref } from '../../support/synaux';
+import { referenceHref } from '../../support/prototype';
 import { publicNav } from '../../support/useNavigationContext';
 
 defineProps({

@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import AppIcon from './AppIcon.vue';
-import { referenceHref } from '../../support/synaux';
+import { referenceHref } from '../../support/prototype';
 // El mismo control conserva el aspecto del prototipo y adapta los enlaces de la galería de referencia.
 const props = defineProps({ href: String, variant: { type: String, default: 'primary' }, arrow: Boolean, compact: Boolean, type: { type: String, default: 'button' }, disabled: Boolean });
 const page = usePage();

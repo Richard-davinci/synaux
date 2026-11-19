@@ -5,7 +5,7 @@ import ServiceConfiguration from '../../Components/Admin/ServiceConfiguration.vu
 import B from '../../Components/UI/AppButton.vue';
 import F from '../../Components/UI/FormField.vue';
 import T from '../../Components/UI/PageTitle.vue';
-import { useSubmit } from '../../support/synaux';
+import { useSubmit } from '../../support/useSubmit';
 import { slugify } from './catalogSlug';
 
 const props = defineProps({ data: { type: Object, required: true } });

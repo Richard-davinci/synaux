@@ -5,7 +5,8 @@ import PublicLayout from '../Layouts/PublicLayout.vue';
 import B from '../Components/UI/AppButton.vue';
 import F from '../Components/UI/FormField.vue';
 import I from '../Components/UI/AppIcon.vue';
-import { date, initials, demoNotice } from '../support/synaux';
+import { date, initials } from '../support/formatters';
+import { demoNotice } from '../support/prototype';
 import '../../css/workspace.css';
 import '../../css/workspace-overrides.css';
 

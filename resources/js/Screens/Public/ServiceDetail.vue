@@ -4,7 +4,7 @@ import { computed, ref } from 'vue';
 import B from '../../Components/UI/AppButton.vue';
 import T from '../../Components/UI/PageTitle.vue';
 import I from '../../Components/UI/AppIcon.vue';
-import { money, date } from '../../support/synaux';
+import { money, date } from '../../support/formatters';
 import { categoryIcons } from './serviceCategoryIcons';
 
 const props = defineProps({ data: Object });

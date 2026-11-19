@@ -10,7 +10,7 @@ import AdditionalServices from './AdditionalServices.vue';
 import RequestReview from './RequestReview.vue';
 import RequestSummary from './RequestSummary.vue';
 import { useRequestPricing } from './useRequestPricing';
-import { useSubmit } from '../../support/synaux';
+import { useSubmit } from '../../support/useSubmit';
 
 // Los borradores existentes se recuperan con sus datos y las solicitudes nuevas parten de la cuenta actual.
 const props = defineProps({ data: Object });

@@ -3,7 +3,7 @@ import { useForm } from '@inertiajs/vue3';
 import AuthFrame from '../../Components/Auth/AuthFrame.vue';
 import B from '../../Components/UI/AppButton.vue';
 import F from '../../Components/UI/FormField.vue';
-import { useSubmit } from '../../support/synaux';
+import { useSubmit } from '../../support/useSubmit';
 
 const props = defineProps({ data: { type: Object, required: true } });
 

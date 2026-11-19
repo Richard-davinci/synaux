@@ -7,7 +7,8 @@ import I from '../../Components/UI/AppIcon.vue';
 import S from '../../Components/UI/StatusBadge.vue';
 import T from '../../Components/UI/PageTitle.vue';
 import SidePanel from '../../Components/UI/SidePanel.vue';
-import { date, money, useSubmit } from '../../support/synaux';
+import { date, money } from '../../support/formatters';
+import { useSubmit } from '../../support/useSubmit';
 
 // Cada edición prepara una versión nueva y permite tomar los importes de una versión anterior.
 const props = defineProps({ data: Object });

@@ -4,7 +4,8 @@ import B from '../../Components/UI/AppButton.vue';
 import E from '../../Components/UI/EmptyState.vue';
 import S from '../../Components/UI/StatusBadge.vue';
 import T from '../../Components/UI/PageTitle.vue';
-import { date, useSubmit } from '../../support/synaux';
+import { date } from '../../support/formatters';
+import { useSubmit } from '../../support/useSubmit';
 import { useMarketplaceRecords } from '../../support/useMarketplaceRecords';
 
 const props = defineProps({ data: { type: Object, required: true } });

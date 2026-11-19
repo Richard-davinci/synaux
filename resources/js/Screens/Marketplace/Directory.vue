@@ -5,7 +5,7 @@ import E from '../../Components/UI/EmptyState.vue';
 import F from '../../Components/UI/FormField.vue';
 import S from '../../Components/UI/StatusBadge.vue';
 import T from '../../Components/UI/PageTitle.vue';
-import { initials } from '../../support/synaux';
+import { initials } from '../../support/formatters';
 
 const props = defineProps({ data: { type: Object, required: true } });
 const query = ref('');

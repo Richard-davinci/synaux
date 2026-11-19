@@ -5,7 +5,8 @@ import B from '../../Components/UI/AppButton.vue';
 import T from '../../Components/UI/PageTitle.vue';
 import S from '../../Components/UI/StatusBadge.vue';
 import RequestForm from '../../Components/Requests/RequestForm.vue';
-import { date, useSubmit } from '../../support/synaux';
+import { date } from '../../support/formatters';
+import { useSubmit } from '../../support/useSubmit';
 
 // El borrador reusa el formulario de solicitud; los pedidos enviados muestran su estado y sus respuestas.
 const props = defineProps({ data: { type: Object, required: true } });

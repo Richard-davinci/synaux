@@ -7,7 +7,7 @@ import F from '../../Components/UI/FormField.vue';
 import T from '../../Components/UI/PageTitle.vue';
 import ServiceReference from '../../Components/Estimates/ServiceReference.vue';
 import EstimateResult from '../../Components/Estimates/EstimateResult.vue';
-import { useSubmit } from '../../support/synaux';
+import { useSubmit } from '../../support/useSubmit';
 
 // El formulario conserva sus respuestas al recorrer los pasos; Laravel valida y calcula los importes.
 const props = defineProps({ data: { type: Object, required: true } });

@@ -3,7 +3,7 @@ import SidePanel from '../UI/SidePanel.vue';
 import { ref, useId } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 import B from '../UI/AppButton.vue';
-import { demoNotice } from '../../support/synaux';
+import { demoNotice } from '../../support/prototype';
 
 // La confirmación identifica el registro y solo envía el borrado cuando el cliente lo acepta explícitamente.
 const props = defineProps({ estimate: Object });

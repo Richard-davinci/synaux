@@ -7,7 +7,7 @@ import S from '../../Components/UI/StatusBadge.vue';
 import EmptyState from '../../Components/UI/EmptyState.vue';
 import DeleteEstimateButton from '../../Components/Estimates/DeleteEstimateButton.vue';
 import NewBadge from '../../Components/Notifications/NewBadge.vue';
-import { date, money } from '../../support/synaux';
+import { date, money } from '../../support/formatters';
 
 const props = defineProps({ data: { type: Object, required: true } });
 const section = computed(() => props.data.section);

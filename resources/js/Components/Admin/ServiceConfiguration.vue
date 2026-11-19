@@ -4,7 +4,8 @@ import { computed, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import B from '../UI/AppButton.vue';
 import F from '../UI/FormField.vue';
-import { date, money, useSubmit } from '../../support/synaux';
+import { date, money } from '../../support/formatters';
+import { useSubmit } from '../../support/useSubmit';
 
 // Cada panel filtra por el servicio actual; las preguntas generales se identifican explícitamente.
 const props = defineProps({ service: Object, administration: Object, section: String });

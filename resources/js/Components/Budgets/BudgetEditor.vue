@@ -9,7 +9,8 @@ import BudgetPreviewSidebar from './BudgetPreviewSidebar.vue';
 import BudgetSourceFields from './BudgetSourceFields.vue';
 import BudgetTerms from './BudgetTerms.vue';
 import BudgetVatFields from './BudgetVatFields.vue';
-import { money, useSubmit } from '../../support/synaux';
+import { money } from '../../support/formatters';
+import { useSubmit } from '../../support/useSubmit';
 import { referenceLine, requestBudgetLines } from '../../support/requestPricing';
 
 // El editor recibe solo las solicitudes autorizadas; Laravel vuelve a comprobar permisos y valores al guardar.

@@ -4,7 +4,7 @@ import B from '../UI/AppButton.vue';
 import F from '../UI/FormField.vue';
 import I from '../UI/AppIcon.vue';
 import RequestQuestions from './RequestQuestions.vue';
-import { money } from '../../support/synaux';
+import { money } from '../../support/formatters';
 
 // Se editan las mismas filas del formulario para conservar las respuestas y sus errores.
 const props = defineProps({

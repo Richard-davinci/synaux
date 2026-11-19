@@ -1,7 +1,7 @@
 <script setup>
 import B from '../UI/AppButton.vue';
 import F from '../UI/FormField.vue';
-import { money } from '../../support/synaux';
+import { money } from '../../support/formatters';
 
 // Al editar un concepto se conserva su referencia y se actualiza el subtotal de la vista previa.
 defineProps({
