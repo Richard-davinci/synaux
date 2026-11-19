@@ -14,7 +14,8 @@ import ClientOverview from '../Screens/Client/Overview.vue';
 import ClientRequestDetail from '../Screens/Client/RequestDetail.vue';
 import RecordList from '../Screens/Workspace/RecordList.vue';
 import MarketplaceScreens from '../Screens/MarketplaceScreens.vue';
-import ManagementScreens from '../Screens/ManagementScreens.vue';
+import ManagementOverview from '../Screens/Management/Overview.vue';
+import ManagementRecords from '../Screens/Management/Records.vue';
 import AdminTariffs from '../Screens/AdminTariffs.vue';
 import AdminConfigurationPreview from '../Screens/AdminConfigurationPreview.vue';
 import PortfolioWorkEditor from '../Screens/PortfolioWorkEditor.vue';
@@ -49,7 +50,8 @@ const component = computed(() => {
     if (screen === 'editor-presupuesto') return BudgetEditor;
     if (screen === 'editor-trabajo') return PortfolioWorkEditor;
     if (screen === 'solicitud' && area === 'gestion' && data.value.selected?.status !== 'draft') return ManagementRequestDetail;
-    if (screen === 'gestion' || (screen === 'profesional' && section === 'portfolio')) return ManagementScreens;
+    if (screen === 'gestion') return !section || section === 'resumen' ? ManagementOverview : ManagementRecords;
+    if (screen === 'profesional' && section === 'portfolio') return ManagementRecords;
     if (['muro', 'oportunidad', 'profesionales', 'perfil-profesional', 'publicar', 'profesional'].includes(screen)
         || (screen === 'cliente' && ['publicaciones', 'propuestas', 'invitaciones'].includes(section))) return MarketplaceScreens;
     if (screen === 'solicitud') return ClientRequestDetail;
