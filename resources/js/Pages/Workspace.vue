@@ -12,7 +12,8 @@ import Login from '../Screens/Auth/Login.vue';
 import Register from '../Screens/Auth/Register.vue';
 import ForgotPassword from '../Screens/Auth/ForgotPassword.vue';
 import ResetPassword from '../Screens/Auth/ResetPassword.vue';
-import EstimatorScreens from '../Screens/EstimatorScreens.vue';
+import EstimatePreview from '../Screens/Estimates/EstimatePreview.vue';
+import SavedEstimate from '../Screens/Estimates/SavedEstimate.vue';
 import ClientOverview from '../Screens/Client/Overview.vue';
 import ClientRequestDetail from '../Screens/Client/RequestDetail.vue';
 import RecordList from '../Screens/Workspace/RecordList.vue';
@@ -83,7 +84,8 @@ const component = computed(() => {
     const { screen, area, section, preview } = data.value;
     if (Object.hasOwn(publicScreens, screen)) return publicScreens[screen];
     if (Object.hasOwn(authScreens, screen)) return authScreens[screen];
-    if (['estimador', 'estimacion'].includes(screen)) return EstimatorScreens;
+    if (screen === 'estimador') return EstimatePreview;
+    if (screen === 'estimacion') return SavedEstimate;
     if (screen === 'admin') {
         if (section === 'tarifario') return AdminTariffs;
         if (preview && ['preguntas', 'componentes', 'reglas'].includes(section)) return AdminConfigurationPreview;

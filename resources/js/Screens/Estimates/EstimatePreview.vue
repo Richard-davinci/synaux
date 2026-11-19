@@ -2,19 +2,18 @@
 import { computed, ref } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import { VAutocomplete, VListItem } from 'vuetify/components';
-import B from '../Components/UI/AppButton.vue';
-import F from '../Components/UI/FormField.vue';
-import T from '../Components/UI/PageTitle.vue';
-import ServiceReference from '../Components/Estimates/ServiceReference.vue';
-import DeleteEstimateButton from '../Components/Estimates/DeleteEstimateButton.vue';
-import { money, date, useSubmit } from '../support/synaux';
+import B from '../../Components/UI/AppButton.vue';
+import F from '../../Components/UI/FormField.vue';
+import T from '../../Components/UI/PageTitle.vue';
+import ServiceReference from '../../Components/Estimates/ServiceReference.vue';
+import EstimateResult from '../../Components/Estimates/EstimateResult.vue';
+import { useSubmit } from '../../support/synaux';
 
 // El formulario conserva sus respuestas al recorrer los pasos; Laravel valida y calcula los importes.
-const props = defineProps({ data: Object });
+const props = defineProps({ data: { type: Object, required: true } });
 const submit = useSubmit();
 const step = ref(props.data.step ?? 1);
 const service = ref(props.data.selected?.id ?? props.data.pending?.service?.id ?? 'sitio-institucional');
-const saved = computed(() => props.data.screen === 'estimacion');
 const selectedService = computed(() => props.data.services.find(item => item.id === service.value));
 const initial = {
     ...Object.fromEntries((props.data.pending?.answers ?? []).map(answer => [answer.id, answer.value])),
@@ -55,15 +54,6 @@ const currentReference = computed(() => {
     const segment = reference.segments?.find(item => selectedLabels.includes(item.label));
     return segment ? { ...reference, min: segment.min, max: segment.max, segment: segment.label } : reference;
 });
-const result = computed(() => saved.value ? {
-    ...props.data.selected,
-    service: props.data.services.find(item => item.database_id === props.data.selected.service_id),
-    min: props.data.selected.price_min, max: props.data.selected.price_max,
-    mode: props.data.selected.status === 'manual' ? 'manual' : 'automatic',
-    currency: props.data.selected.currency_snapshot,
-    base_min: props.data.selected.base_min_snapshot, base_max: props.data.selected.base_max_snapshot,
-    date: props.data.selected.created_at,
-} : props.data.pending);
 
 // Los resúmenes toleran opciones históricas retiradas y respuestas todavía incompletas.
 function answerLabel(question) {
@@ -72,9 +62,6 @@ function answerLabel(question) {
     return (Array.isArray(value) ? value : [value])
         .map(id => (question.options ?? []).find(option => String(option.id) === String(id))?.label)
         .filter(Boolean).join(', ') || 'Sin completar';
-}
-function priceRange(min, max, currency) {
-    return Number(min) === Number(max) ? money(min, currency) : money(min, currency) + ' – ' + money(max, currency);
 }
 function choose(id) {
     service.value = id ?? null;
@@ -104,10 +91,10 @@ function save(toRequest) {
 </script>
 <template>
     <section class="page shell estimator">
-        <T eyebrow="Estimación orientativa" :title="saved ? 'Tu estimación guardada' : 'Estimá tu proyecto'">
-            <span v-if="!saved">Paso {{ step }} de 4</span>
+        <T eyebrow="Estimación orientativa" title="Estimá tu proyecto">
+            <span>Paso {{ step }} de 4</span>
         </T>
-        <ol v-if="!saved" class="estimator-progress" aria-label="Pasos de la estimación">
+        <ol class="estimator-progress" aria-label="Pasos de la estimación">
             <li v-for="(label, index) in labels" :key="label">
                 <button type="button" :disabled="index + 1 > step" :aria-current="step === index + 1 ? 'step' : undefined" @click="step = index + 1">
                     <span class="step-number">{{ index + 1 }}</span>{{ label }}
@@ -115,7 +102,7 @@ function save(toRequest) {
             </li>
         </ol>
 
-        <div v-if="step < 4 && !saved" class="estimator-workflow">
+        <div v-if="step < 4" class="estimator-workflow">
             <v-card v-if="step === 1" class="card form-card">
                 <h2>¿Qué necesitás resolver?</h2><p>Elegí el servicio para conocer su alcance y preparar la estimación.</p>
                 <form class="estimator-service-form" @submit.prevent="next">
@@ -168,36 +155,14 @@ function save(toRequest) {
             </aside>
         </div>
 
-        <!-- El resultado guardado siempre muestra los valores de su versión original. -->
-        <div v-else-if="result" class="result-grid">
-            <v-card class="card result-card">
-                <p class="eyebrow">{{ result.mode === 'manual' ? 'Revisión de alcance' : 'Tu estimación orientativa' }}</p>
-                <h2>{{ result.mode === 'manual' ? 'Preparemos una propuesta para tu proyecto' : priceRange(result.min, result.max, result.currency) }}</h2>
-                <p>{{ result.mode === 'manual' ? 'synaux necesita revisar el alcance para definir el importe y los plazos. Podés continuar con la solicitud.' : 'Calculada el ' + date(result.date) + '. El precio y las condiciones finales se confirman en el presupuesto formal.' }}</p>
-                <div v-if="result.mode !== 'manual'" class="estimate-lines">
-                    <div><span>Base del servicio</span><strong>{{ priceRange(result.base_min,result.base_max,result.currency) }}</strong></div>
-                    <div v-for="item in result.items" :key="item.name"><span>{{ item.name }}<template v-if="item.unit !== 'segmento'"> · {{ item.quantity }}</template></span><strong>{{ priceRange(Number(item.min)*Number(item.quantity),Number(item.max)*Number(item.quantity),result.currency) }}</strong></div>
-                </div>
-                <div class="button-stack">
-                    <template v-if="$page.props.auth || data.preview">
-                        <B v-if="saved" :href="'/solicitudes/nueva?estimacion=' + data.selected.id" arrow>Continuar con la solicitud</B>
-                        <DeleteEstimateButton v-if="saved" :estimate="data.selected" />
-                        <B v-else :disabled="saveForm.processing" arrow @click="save(true)">Continuar con la solicitud</B>
-                        <B v-if="!saved" variant="secondary" :disabled="saveForm.processing" @click="save(false)">Guardar estimación</B>
-                    </template>
-                    <B v-else href="/ingresar" arrow>Ingresar para solicitar presupuesto</B>
-                    <B v-if="!saved" variant="secondary" @click="step = 2">Editar respuestas</B>
-                    <B v-else :href="'/estimador?servicio=' + (result.service?.id ?? service)" variant="secondary">Nueva estimación</B>
-                </div>
-            </v-card>
-            <aside class="result-aside">
-                <v-card class="card"><h3>Alcance considerado</h3><p>{{ result.service?.name ?? data.selected?.summary }}</p>
-                    <ul v-if="!saved"><li v-for="deliverable in result.service?.includes ?? []" :key="deliverable">{{ deliverable }}</li></ul>
-                    <dl class="data-list"><div v-for="answer in result.answers" :key="answer.id"><dt>{{ answer.question }}</dt><dd>{{ answer.label }}</dd></div></dl>
-                </v-card>
-                <v-card class="card soft-panel"><h3>El próximo paso</h3><p>Completá el pedido y tus datos de contacto. synaux revisará el alcance y te enviará un presupuesto formal.</p><p v-if="!$page.props.auth && !data.preview">Tus respuestas se conservan al ingresar o crear tu cuenta.</p></v-card>
-            </aside>
-        </div>
+        <EstimateResult v-else-if="data.pending" :result="data.pending" :preview="Boolean(data.preview)" show-deliverables>
+            <template v-if="$page.props.auth || data.preview">
+                <B :disabled="saveForm.processing" arrow @click="save(true)">Continuar con la solicitud</B>
+                <B variant="secondary" :disabled="saveForm.processing" @click="save(false)">Guardar estimación</B>
+            </template>
+            <B v-else href="/ingresar" arrow>Ingresar para solicitar presupuesto</B>
+            <B variant="secondary" @click="step = 2">Editar respuestas</B>
+        </EstimateResult>
         <v-card v-else class="card"><h2>Comenzá por elegir un servicio</h2><p>Necesitamos tus respuestas para preparar la referencia.</p><B href="/estimador">Volver al estimador</B></v-card>
     </section>
 </template>
@@ -230,9 +195,6 @@ function save(toRequest) {
 .estimator-review strong { grid-column: 1; overflow-wrap: anywhere; }
 .estimator-review .btn { grid-column: 2; grid-row: 1 / 3; align-self: center; }
 .estimate-note { color: #446075; margin-top: 1.25rem; line-height: 1.6; }
-.result-aside ul { padding-left: 1.25rem; margin-bottom: 1rem; }
-.result-aside p:last-child { margin-bottom: 0; }
-.estimator .result-card h2 { overflow-wrap: anywhere; }
 @media (max-width: 850px) { .estimator-workflow { grid-template-columns: minmax(0,1fr); } .estimator-reference { position: static; } }
 @media (max-width: 600px) { .estimator-progress { grid-template-columns: repeat(2,minmax(0,1fr)); } .form-actions { align-items: stretch; } .form-actions .btn { flex: 1; } }
 </style>
