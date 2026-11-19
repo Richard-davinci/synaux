@@ -29,10 +29,11 @@ import ProfessionalProfileEdit from '../Screens/Professional/ProfileEdit.vue';
 import NewRequest from '../Screens/Requests/NewRequest.vue';
 import ManagementOverview from '../Screens/Management/Overview.vue';
 import ManagementRecords from '../Screens/Management/Records.vue';
-import AdminTariffs from '../Screens/AdminTariffs.vue';
-import AdminConfigurationPreview from '../Screens/AdminConfigurationPreview.vue';
+import AdminTariffs from '../Screens/Admin/Tariffs.vue';
+import AdminConfigurationPreview from '../Screens/Admin/ConfigurationPreview.vue';
 import PortfolioWorkEditor from '../Screens/PortfolioWorkEditor.vue';
-import CatalogAdmin from '../Components/Admin/CatalogAdmin.vue';
+import CatalogList from '../Screens/Admin/CatalogList.vue';
+import ServiceEditor from '../Screens/Admin/ServiceEditor.vue';
 import BudgetEditor from '../Components/Budgets/BudgetEditor.vue';
 import BudgetDetail from '../Components/Budgets/BudgetDetail.vue';
 import ProjectDetail from '../Components/Projects/ProjectDetail.vue';
@@ -89,7 +90,9 @@ const component = computed(() => {
     if (screen === 'admin') {
         if (section === 'tarifario') return AdminTariffs;
         if (preview && ['preguntas', 'componentes', 'reglas'].includes(section)) return AdminConfigurationPreview;
-        return CatalogAdmin;
+        const path = page.url.split('?')[0];
+        const editingService = /\/servicios\/(nuevo|\d+\/editar)$/.test(path) || Boolean(preview && data.value.catalogServiceId);
+        return editingService ? ServiceEditor : CatalogList;
     }
     if (screen === 'editor-presupuesto') return BudgetEditor;
     if (screen === 'editor-trabajo') return PortfolioWorkEditor;

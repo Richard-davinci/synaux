@@ -1,13 +1,13 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import B from '../Components/UI/AppButton.vue';
-import F from '../Components/UI/FormField.vue';
-import I from '../Components/UI/AppIcon.vue';
-import S from '../Components/UI/StatusBadge.vue';
-import T from '../Components/UI/PageTitle.vue';
-import SidePanel from '../Components/UI/SidePanel.vue';
-import { date, money, useSubmit } from '../support/synaux';
+import B from '../../Components/UI/AppButton.vue';
+import F from '../../Components/UI/FormField.vue';
+import I from '../../Components/UI/AppIcon.vue';
+import S from '../../Components/UI/StatusBadge.vue';
+import T from '../../Components/UI/PageTitle.vue';
+import SidePanel from '../../Components/UI/SidePanel.vue';
+import { date, money, useSubmit } from '../../support/synaux';
 
 // Cada edición prepara una versión nueva y permite tomar los importes de una versión anterior.
 const props = defineProps({ data: Object });

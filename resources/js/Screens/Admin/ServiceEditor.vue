@@ -1,41 +1,37 @@
 <script setup>
-import SidePanel from '../UI/SidePanel.vue';
 import { computed, ref, watch } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
-import B from '../UI/AppButton.vue';
-import F from '../UI/FormField.vue';
-import T from '../UI/PageTitle.vue';
-import S from '../UI/StatusBadge.vue';
-import ServiceConfiguration from './ServiceConfiguration.vue';
+import ServiceConfiguration from '../../Components/Admin/ServiceConfiguration.vue';
+import B from '../../Components/UI/AppButton.vue';
+import F from '../../Components/UI/FormField.vue';
+import T from '../../Components/UI/PageTitle.vue';
 import { useSubmit } from '../../support/synaux';
+import { slugify } from './catalogSlug';
 
-// El catálogo concentra información, preguntas, reglas y publicación versionada de precios del servicio.
-const props = defineProps({ data: Object });
+const props = defineProps({ data: { type: Object, required: true } });
 const page = usePage();
 const submit = useSubmit();
 const catalog = computed(() => props.data.administration);
-const categoriesView = computed(() => props.data.section === 'categorias');
 const path = computed(() => page.url.split('?')[0]);
-const editor = computed(() => /\/servicios\/(nuevo|\d+\/editar)$/.test(path.value) || Boolean(props.data.preview && props.data.catalogServiceId));
 const configurationTab = ref(new URLSearchParams(page.url.split('?')[1] ?? '').get('config') ?? 'informacion');
-const tabs = [['informacion','Información y alcance'], ['preguntas','Preguntas'], ['estimacion','Estimación'], ['precios','Precios vigentes']];
-const selected = computed(() => catalog.value.services.find(service => service.id === Number(props.data.preview ? props.data.catalogServiceId : path.value.match(/\/servicios\/(\d+)\/editar$/)?.[1])));
-const search = ref('');
-const categoryFilter = ref('');
-const stateFilter = ref('');
+const tabs = [
+    ['informacion', 'Información y alcance'],
+    ['preguntas', 'Preguntas'],
+    ['estimacion', 'Estimación'],
+    ['precios', 'Precios vigentes'],
+];
+const serviceId = computed(() => Number(props.data.preview
+    ? props.data.catalogServiceId
+    : path.value.match(/\/servicios\/(\d+)\/editar$/)?.[1]));
+const selected = computed(() => catalog.value.services.find(service => service.id === serviceId.value));
 const categoryOptions = computed(() => catalog.value.categories.map(category => ({ value: category.id, label: category.name + (category.active ? '' : ' (inactiva)') })));
 const categoryName = id => catalog.value.categories.find(category => category.id === Number(id))?.name ?? 'Sin categoría';
-const rows = computed(() => (categoriesView.value ? catalog.value.categories : catalog.value.services).filter(row =>
-    row.name.toLocaleLowerCase('es').includes(search.value.toLocaleLowerCase('es'))
-    && (!categoryFilter.value || categoriesView.value || Number(row.service_category_id) === Number(categoryFilter.value))
-    && (stateFilter.value === '' || Boolean(row.active) === (stateFilter.value === 'active'))));
 
 // El asistente conserva todos los pasos en un único formulario y vuelve al campo rechazado por Laravel.
 const steps = ['Información', 'Alcance', 'Modalidad', 'Publicación'];
 const step = ref(0);
 const slugEdited = ref(false);
 const service = useForm({ id: null, name: '', slug: '', service_category_id: '', summary: '', description: '', deliverables: '', estimation_mode: 'manual', active: false });
-const slugify = value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 watch(() => service.name, name => { if (!slugEdited.value) service.slug = slugify(name); });
 watch(() => page.url, () => {
     const row = selected.value;
@@ -47,8 +43,11 @@ watch(() => page.url, () => {
     service.clearErrors();
 }, { immediate: true });
 function advance() {
-    if (step.value < 3) { step.value++; return; }
-    service.transform(values => ({...values, configure_after_save:true}));
+    if (step.value < steps.length - 1) {
+        step.value++;
+        return;
+    }
+    service.transform(values => ({ ...values, configure_after_save: true }));
     submit(service, '/admin/guardar/servicios', {
         onError: errors => {
             const fields = [['name', 'slug', 'service_category_id', 'summary'], ['description', 'deliverables'], ['estimation_mode'], ['active']];
@@ -57,34 +56,16 @@ function advance() {
         },
     });
 }
-
-// Las categorías usan el guardado existente; desactivar conserva sus servicios y el historial asociado.
-const categoryDialog = ref(false);
-const category = useForm({ id: null, name: '', slug: '', description: '', active: true });
-const categorySlugEdited = ref(false);
-watch(() => category.name, name => { if (!categorySlugEdited.value) category.slug = slugify(name); });
-function editCategory(row) {
-    categorySlugEdited.value = Boolean(row);
-    category.defaults({ id: row?.id ?? null, name: row?.name ?? '', slug: row?.slug ?? '', description: row?.description ?? '', active: row ? Boolean(row.active) : true });
-    category.reset();
-    category.clearErrors();
-    categoryDialog.value = true;
-}
-function saveCategory() {
-    submit(category, '/admin/guardar/categorias', { onSuccess: () => { categoryDialog.value = false; } });
-}
 </script>
 
 <template>
-    <section class="page shell catalog-admin workspace-view" :class="{ 'catalog-editor': editor }">
-        <!-- Cada paso muestra solo los campos comerciales necesarios y conserva los valores al retroceder. -->
-        <template v-if="editor">
-            <B href="/admin/servicios" variant="ghost">← Volver a servicios</B>
-            <T eyebrow="Catálogo" :title="selected ? selected.name : 'Nuevo servicio'" :description="selected ? 'Editá la ficha pública, las preguntas y los precios de este servicio.' : 'Completá los datos del servicio. Después podés configurar sus preguntas, estimación y precios.'" />
-            <!-- Las pestañas conservan el contexto del servicio sin repetir pantallas administrativas. -->
-            <nav v-if="selected" class="service-tabs" aria-label="Configuración del servicio"><B v-for="[key,label] in tabs" :key="key" compact :variant="configurationTab === key ? 'primary' : 'secondary'" :aria-current="configurationTab === key ? 'page' : undefined" @click="configurationTab = key">{{ label }}</B></nav>
-            <v-card v-if="selected && configurationTab !== 'informacion'" class="card"><ServiceConfiguration :key="selected.id" :service="selected" :administration="catalog" :section="configurationTab" /></v-card>
-            <template v-else>
+    <section class="page shell catalog-admin workspace-view catalog-editor">
+        <B href="/admin/servicios" variant="ghost">← Volver a servicios</B>
+        <T eyebrow="Catálogo" :title="selected ? selected.name : 'Nuevo servicio'" :description="selected ? 'Editá la ficha pública, las preguntas y los precios de este servicio.' : 'Completá los datos del servicio. Después podés configurar sus preguntas, estimación y precios.'" />
+        <!-- Las pestañas conservan el contexto del servicio sin repetir pantallas administrativas. -->
+        <nav v-if="selected" class="service-tabs" aria-label="Configuración del servicio"><B v-for="[key,label] in tabs" :key="key" compact :variant="configurationTab === key ? 'primary' : 'secondary'" :aria-current="configurationTab === key ? 'page' : undefined" @click="configurationTab = key">{{ label }}</B></nav>
+        <v-card v-if="selected && configurationTab !== 'informacion'" class="card"><ServiceConfiguration :key="selected.id" :service="selected" :administration="catalog" :section="configurationTab" /></v-card>
+        <template v-else>
             <ol class="catalog-steps" aria-label="Pasos del servicio"><li v-for="(label, index) in steps" :key="label" :aria-current="step === index ? 'step' : undefined"><span>{{ index + 1 }}</span>{{ label }}</li></ol>
             <v-card class="card form-card">
                 <form class="catalog-form" @submit.prevent="advance">
@@ -119,19 +100,7 @@ function saveCategory() {
                     <div class="form-actions"><B v-if="step > 0" variant="secondary" :disabled="service.processing" @click="step--">Anterior</B><B type="submit" :disabled="service.processing">{{ service.processing ? 'Guardando…' : step === 3 ? 'Guardar servicio' : 'Siguiente' }}</B></div>
                 </form>
             </v-card>
-            </template>
         </template>
-        <!-- Los listados permiten localizar servicios por nombre, categoría y estado sin editar sus precios. -->
-        <template v-else>
-            <T eyebrow="Catálogo" :title="categoriesView ? 'Categorías de servicios' : 'Catálogo de servicios'" :description="categoriesView ? 'Organizá los servicios de synaux por especialidad.' : 'Administrá la publicación, las preguntas y los precios de cada servicio.'"><div class="button-row"><B v-if="!categoriesView && $page.props.auth?.is_admin" compact variant="secondary" href="/admin/etapa-2">Revisar etapa 2</B><B v-if="categoriesView" compact @click="editCategory()">Nueva categoría</B><B v-else compact href="/admin/servicios/nuevo">Nuevo servicio</B></div></T>
-            <div class="filters workspace-filters catalog-filters" :class="{ 'catalog-category-filters': categoriesView }"><F v-model="search" type="search" label="Buscar por nombre" /><F v-if="!categoriesView" v-model="categoryFilter" label="Categoría" type="select" :options="[{ value: '', label: 'Todas' }, ...categoryOptions]" /><F v-model="stateFilter" label="Estado" type="select" :options="[{ value: '', label: 'Todos' }, { value: 'active', label: 'Activos' }, { value: 'inactive', label: 'Inactivos' }]" /><B compact variant="secondary" :disabled="!search && !categoryFilter && !stateFilter" @click="search = ''; categoryFilter = ''; stateFilter = ''">Limpiar filtros</B></div>
-            <div class="table-scroll workspace-table"><table><thead><tr><th>{{ categoriesView ? 'Categoría' : 'Servicio' }}</th><th>{{ categoriesView ? 'Servicios' : 'Categoría' }}</th><th v-if="!categoriesView">Modalidad</th><th>Estado</th><th>Acción</th></tr></thead><tbody>
-                <tr v-for="row in rows" :key="row.id"><td>{{ row.name }}</td><td>{{ categoriesView ? catalog.services.filter(service => service.service_category_id === row.id).length : categoryName(row.service_category_id) }}</td><td v-if="!categoriesView">{{ row.estimation_mode === 'automatic' ? 'Automático' : 'Profesional' }}</td><td><S :status="row.active ? 'enabled' : 'disabled'" /></td><td><B v-if="categoriesView" compact variant="secondary" @click="editCategory(row)">Editar</B><B v-else compact variant="secondary" :href="`/admin/servicios/${row.id}/editar`">Editar</B></td></tr>
-                <tr v-if="!rows.length"><td :colspan="categoriesView ? 4 : 5">No hay resultados para mostrar.</td></tr>
-            </tbody></table></div>
-        </template>
-        <!-- El formulario de categoría conserva campos y errores mientras Laravel valida el guardado. -->
-        <SidePanel title="Categorías de servicios" v-model="categoryDialog" max-width="480" :persistent="category.processing"><div class="synaux-app"><v-card class="card modal-card"><h2>{{ category.id ? 'Editar categoría' : 'Nueva categoría' }}</h2><form @submit.prevent="saveCategory"><F v-model="category.name" label="Nombre" required maxlength="255" :error="category.errors.name" /><F :model-value="category.slug" @update:model-value="category.slug = $event; categorySlugEdited = true" label="Identificador (slug)" required :error="category.errors.slug" /><F v-model="category.description" label="Descripción" type="textarea" required maxlength="10000" :error="category.errors.description" /><label class="select-row"><input v-model="category.active" type="checkbox">Categoría activa</label><p v-if="category.errors.active" role="alert">{{ category.errors.active }}</p><p>Desactivar la categoría conserva los servicios vinculados y no cambia su publicación.</p><div class="form-actions"><B variant="secondary" :disabled="category.processing" @click="categoryDialog = false">Cancelar</B><B type="submit" :disabled="category.processing">{{ category.processing ? 'Guardando…' : 'Guardar categoría' }}</B></div></form></v-card></div></SidePanel>
     </section>
 </template>
 

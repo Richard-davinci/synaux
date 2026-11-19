@@ -1,0 +1,2 @@
+// Los identificadores de servicios y categorías usan la misma normalización.
+export const slugify = value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');

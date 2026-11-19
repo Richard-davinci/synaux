@@ -1,12 +1,12 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import B from '../Components/UI/AppButton.vue';
-import F from '../Components/UI/FormField.vue';
-import T from '../Components/UI/PageTitle.vue';
-import S from '../Components/UI/StatusBadge.vue';
-import SidePanel from '../Components/UI/SidePanel.vue';
-import { useSubmit } from '../support/synaux';
+import B from '../../Components/UI/AppButton.vue';
+import F from '../../Components/UI/FormField.vue';
+import T from '../../Components/UI/PageTitle.vue';
+import S from '../../Components/UI/StatusBadge.vue';
+import SidePanel from '../../Components/UI/SidePanel.vue';
+import { useSubmit } from '../../support/synaux';
 
 // La galería conserva las pantallas históricas sin exponerlas en Administración.
 const props = defineProps({ data: Object });
