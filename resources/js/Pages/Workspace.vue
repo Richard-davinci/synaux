@@ -2,7 +2,12 @@
 import { computed } from 'vue';
 import { Head, usePage } from '@inertiajs/vue3';
 import PublicLayout from '../Layouts/PublicLayout.vue';
-import PublicScreens from '../Screens/PublicScreens.vue';
+import ServiceCatalog from '../Screens/Public/ServiceCatalog.vue';
+import ServiceDetail from '../Screens/Public/ServiceDetail.vue';
+import PortfolioList from '../Screens/Public/PortfolioList.vue';
+import PortfolioDetail from '../Screens/Public/PortfolioDetail.vue';
+import About from '../Screens/Public/About.vue';
+import Contact from '../Screens/Public/Contact.vue';
 import AuthScreens from '../Screens/AuthScreens.vue';
 import EstimatorScreens from '../Screens/EstimatorScreens.vue';
 import ClientScreens from '../Screens/ClientScreens.vue';
@@ -19,9 +24,17 @@ import '../../css/workspace-overrides.css';
 // La selección de pantalla vive en el punto de entrada y respeta el área autorizada por Laravel.
 const page = usePage();
 const data = computed(() => page.props);
+const publicScreens = {
+    servicios: ServiceCatalog,
+    servicio: ServiceDetail,
+    portfolio: PortfolioList,
+    trabajo: PortfolioDetail,
+    perfil: About,
+    contacto: Contact,
+};
 const component = computed(() => {
     const { screen, area, section, preview } = data.value;
-    if (['servicios', 'servicio', 'portfolio', 'trabajo', 'perfil', 'contacto'].includes(screen)) return PublicScreens;
+    if (Object.hasOwn(publicScreens, screen)) return publicScreens[screen];
     if (['ingreso', 'registro', 'recuperar', 'restablecer'].includes(screen)) return AuthScreens;
     if (['estimador', 'estimacion'].includes(screen)) return EstimatorScreens;
     if (screen === 'admin') {
