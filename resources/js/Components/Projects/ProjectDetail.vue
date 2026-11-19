@@ -20,34 +20,36 @@ const guidance = computed(() => ({
 </script>
 
 <template>
-    <div class="project-detail">
-        <B :href="management ? '/gestion/proyectos' : '/cliente/proyectos'" variant="ghost">← Volver a proyectos</B>
-        <T :eyebrow="'PRY-' + project.id + ' · Proyecto'" :title="project.title"><S :status="project.status" /></T>
-        <div class="project-guidance"><I :name="project.status === 'completed' ? 'check' : 'folder'" /><div><strong>{{ guidance[0] }}</strong><p>{{ guidance[1] }}</p></div></div>
-        <div class="project-grid">
-            <div class="project-main">
-                <v-card class="card">
-                    <h2>Avance del proyecto</h2><div class="section-head"><span>Progreso informado</span><strong class="project-percent">{{ project.progress }}%</strong></div>
-                    <progress max="100" :value="project.progress" aria-label="Avance del proyecto" />
-                    <dl class="data-list"><div><dt>Proyecto creado</dt><dd>{{ date(project.created_at) }}</dd></div><div><dt>Inicio</dt><dd>{{ project.start_date ? date(project.start_date) : 'A coordinar' }}</dd></div><div><dt>Fecha de cierre</dt><dd>{{ project.end_date ? date(project.end_date) : 'Sin registrar' }}</dd></div></dl>
-                    <h3>Última actualización</h3><p class="preserve-lines">{{ project.notes || 'Todavía no hay una actualización registrada por synaux.' }}</p>
-                    <p v-if="project.updates?.length" class="project-help">Registrada el {{ date(project.updates[0].created_at) }}</p>
-                </v-card>
-                <v-card class="card next-steps"><p class="eyebrow">Qué sigue</p><h2>Próximos pasos</h2><p class="preserve-lines">{{ project.next_steps || (project.status === 'completed' ? 'El proyecto está completado. Consultá la última actualización para conocer el cierre.' : project.status === 'cancelled' ? 'No hay próximas tareas registradas para este proyecto.' : 'synaux registrará acá las próximas tareas y lo que necesite de tu parte.') }}</p></v-card>
-                <v-card class="card">
-                    <h2>Historial de avances</h2><p class="project-help">Cada actualización conserva el estado y el avance informado en ese momento.</p>
-                    <ol v-if="project.updates?.length" class="project-history"><li v-for="update in project.updates" :key="update.id"><div class="history-heading"><strong>{{ date(update.created_at) }} · {{ update.progress }}%</strong><S :status="update.status" /></div><p v-if="update.notes" class="preserve-lines">{{ update.notes }}</p><div v-if="update.next_steps"><strong>Próximos pasos</strong><p class="preserve-lines">{{ update.next_steps }}</p></div><p v-if="!update.notes && !update.next_steps">Se actualizaron los datos de seguimiento del proyecto.</p><small v-if="update.start_date || update.end_date">Inicio: {{ date(update.start_date) }} · Cierre: {{ update.end_date ? date(update.end_date) : 'Sin registrar' }}</small></li></ol>
-                    <p v-else>Todavía no hay avances guardados en el historial. Las próximas actualizaciones aparecerán acá.</p>
-                </v-card>
+    <section class="page shell">
+        <div class="project-detail">
+            <B :href="management ? '/gestion/proyectos' : '/cliente/proyectos'" variant="ghost">← Volver a proyectos</B>
+            <T :eyebrow="'PRY-' + project.id + ' · Proyecto'" :title="project.title"><S :status="project.status" /></T>
+            <div class="project-guidance"><I :name="project.status === 'completed' ? 'check' : 'folder'" /><div><strong>{{ guidance[0] }}</strong><p>{{ guidance[1] }}</p></div></div>
+            <div class="project-grid">
+                <div class="project-main">
+                    <v-card class="card">
+                        <h2>Avance del proyecto</h2><div class="section-head"><span>Progreso informado</span><strong class="project-percent">{{ project.progress }}%</strong></div>
+                        <progress max="100" :value="project.progress" aria-label="Avance del proyecto" />
+                        <dl class="data-list"><div><dt>Proyecto creado</dt><dd>{{ date(project.created_at) }}</dd></div><div><dt>Inicio</dt><dd>{{ project.start_date ? date(project.start_date) : 'A coordinar' }}</dd></div><div><dt>Fecha de cierre</dt><dd>{{ project.end_date ? date(project.end_date) : 'Sin registrar' }}</dd></div></dl>
+                        <h3>Última actualización</h3><p class="preserve-lines">{{ project.notes || 'Todavía no hay una actualización registrada por synaux.' }}</p>
+                        <p v-if="project.updates?.length" class="project-help">Registrada el {{ date(project.updates[0].created_at) }}</p>
+                    </v-card>
+                    <v-card class="card next-steps"><p class="eyebrow">Qué sigue</p><h2>Próximos pasos</h2><p class="preserve-lines">{{ project.next_steps || (project.status === 'completed' ? 'El proyecto está completado. Consultá la última actualización para conocer el cierre.' : project.status === 'cancelled' ? 'No hay próximas tareas registradas para este proyecto.' : 'synaux registrará acá las próximas tareas y lo que necesite de tu parte.') }}</p></v-card>
+                    <v-card class="card">
+                        <h2>Historial de avances</h2><p class="project-help">Cada actualización conserva el estado y el avance informado en ese momento.</p>
+                        <ol v-if="project.updates?.length" class="project-history"><li v-for="update in project.updates" :key="update.id"><div class="history-heading"><strong>{{ date(update.created_at) }} · {{ update.progress }}%</strong><S :status="update.status" /></div><p v-if="update.notes" class="preserve-lines">{{ update.notes }}</p><div v-if="update.next_steps"><strong>Próximos pasos</strong><p class="preserve-lines">{{ update.next_steps }}</p></div><p v-if="!update.notes && !update.next_steps">Se actualizaron los datos de seguimiento del proyecto.</p><small v-if="update.start_date || update.end_date">Inicio: {{ date(update.start_date) }} · Cierre: {{ update.end_date ? date(update.end_date) : 'Sin registrar' }}</small></li></ol>
+                        <p v-else>Todavía no hay avances guardados en el historial. Las próximas actualizaciones aparecerán acá.</p>
+                    </v-card>
+                </div>
+                <aside>
+                    <v-card class="card project-budget"><p class="eyebrow">Condiciones acordadas</p><h2>Presupuesto aceptado</h2>
+                        <template v-if="budget"><p>PRE-{{ budget.budget_id }} · Versión {{ budget.version_number }}</p><strong class="project-total">{{ money(budget.total, budget.currency_code) }}</strong><p>Entrega estimada: {{ budget.estimated_delivery_days }} días desde el inicio acordado.</p><h3>Servicios incluidos</h3><ul><li v-for="(item, index) in budget.items" :key="index">{{ item.description }} <strong>× {{ item.quantity }}</strong></li></ul></template>
+                        <p>El proyecto conserva la versión y las condiciones que aceptaste.</p><div class="button-stack"><B :href="data.preview ? '/prototipo/presupuesto-aceptado' : '/presupuestos/' + project.accepted_budget_version_id" variant="secondary">Consultar presupuesto</B><B v-if="!data.preview" :href="'/presupuestos/' + project.accepted_budget_version_id + '/pdf'" variant="secondary">Descargar presupuesto PDF</B></div>
+                    </v-card>
+                </aside>
             </div>
-            <aside>
-                <v-card class="card project-budget"><p class="eyebrow">Condiciones acordadas</p><h2>Presupuesto aceptado</h2>
-                    <template v-if="budget"><p>PRE-{{ budget.budget_id }} · Versión {{ budget.version_number }}</p><strong class="project-total">{{ money(budget.total, budget.currency_code) }}</strong><p>Entrega estimada: {{ budget.estimated_delivery_days }} días desde el inicio acordado.</p><h3>Servicios incluidos</h3><ul><li v-for="(item, index) in budget.items" :key="index">{{ item.description }} <strong>× {{ item.quantity }}</strong></li></ul></template>
-                    <p>El proyecto conserva la versión y las condiciones que aceptaste.</p><div class="button-stack"><B :href="data.preview ? '/prototipo/presupuesto-aceptado' : '/presupuestos/' + project.accepted_budget_version_id" variant="secondary">Consultar presupuesto</B><B v-if="!data.preview" :href="'/presupuestos/' + project.accepted_budget_version_id + '/pdf'" variant="secondary">Descargar presupuesto PDF</B></div>
-                </v-card>
-            </aside>
         </div>
-    </div>
+    </section>
 </template>
 
 <style scoped>

@@ -54,43 +54,45 @@ function decide() {
 </script>
 
 <template>
-    <div class="client-budget">
-        <B :href="data.area === 'gestion' ? '/gestion/presupuestos' : '/cliente/presupuestos'" variant="ghost">← Volver a presupuestos</B>
-        <T :eyebrow="'PRE-' + record.budget_id + ' · Presupuesto formal'" :title="record.title" :description="'Versión ' + record.version_number + ' · Emitida el ' + date(record.sent_at ?? record.created_at)"><S :status="record.display_status ?? record.status" /></T>
-        <div class="budget-state" role="status"><I :name="state.icon" /><div><strong>{{ state.title }}</strong><p>{{ state.text }}</p><B v-if="latest && latest.id !== record.id" :href="data.preview ? '/prototipo/presupuesto' : '/presupuestos/' + latest.id" variant="secondary">Ver versión {{ latest.version_number }}</B></div></div>
-        <div class="client-budget-grid">
-            <BudgetDocument :budget="record" :client="record.client" :issuer="record.issuer" />
-            <aside class="budget-side">
-                <v-card class="card">
-                    <p class="eyebrow">Versión {{ record.version_number }}</p><h2>Resumen del presupuesto</h2>
-                    <strong class="budget-amount">{{ money(record.total, record.currency_code) }}</strong>
-                    <dl class="data-list"><div><dt>Moneda</dt><dd>{{ record.currency_code }}</dd></div><div><dt>Vigencia hasta</dt><dd>{{ date(record.valid_until) }}</dd></div><div><dt>Entrega estimada</dt><dd>{{ record.estimated_delivery_days }} días desde el inicio acordado</dd></div></dl>
-                    <div class="button-stack"><B v-if="!data.preview" :href="'/presupuestos/' + record.id + '/pdf'" variant="secondary">Descargar PDF · versión {{ record.version_number }}</B><p v-else class="budget-help">La descarga del PDF está disponible en tu cuenta con el presupuesto real.</p>
-                        <template v-if="canDecide"><B arrow @click="decision = 'accepted'">Aceptar presupuesto</B><B variant="secondary" @click="decision = 'rejected'">Rechazar presupuesto</B></template>
-                        <B v-if="project && record.status === 'accepted'" :href="'/proyectos/' + project.id" arrow>Ver proyecto</B>
-                        <B v-else-if="record.status === 'accepted'" href="/cliente/proyectos" arrow>Ir a mis proyectos</B>
-                        <B v-if="canEdit" :href="'/editor/presupuesto/' + record.id" variant="secondary">{{ record.status === 'draft' ? 'Continuar borrador' : 'Preparar nueva versión' }}</B>
-                    </div>
-                    <p v-if="canDecide" class="budget-help">La aceptación crea el proyecto con esta versión. Antes de confirmar podrás revisar tu decisión.</p>
-                    <p v-if="record.display_status === 'expired' && record.current" class="budget-help">Para solicitar una actualización, contactá a synaux indicando PRE-{{ record.budget_id }}.</p>
-                </v-card>
-                <v-card class="card"><h2>Historial de versiones</h2><p class="budget-help">Cada versión conserva sus importes y condiciones.</p>
-                    <ol class="budget-history"><li v-for="item in versions" :key="item.id" :class="{ 'history-selected': item.id === record.id }"><a :href="historyHref(item)" :aria-current="item.id === record.id ? 'page' : undefined">Versión {{ item.version_number }}<span v-if="item.id === record.id"> · En pantalla</span></a><S :status="item.display_status ?? item.status" /><small>{{ date(item.sent_at ?? item.created_at) }}</small><small v-if="item.current">{{ record.external ? 'Última versión emitida' : 'Última versión enviada' }}</small></li></ol>
-                </v-card>
-            </aside>
+    <section class="page shell">
+        <div class="client-budget">
+            <B :href="data.area === 'gestion' ? '/gestion/presupuestos' : '/cliente/presupuestos'" variant="ghost">← Volver a presupuestos</B>
+            <T :eyebrow="'PRE-' + record.budget_id + ' · Presupuesto formal'" :title="record.title" :description="'Versión ' + record.version_number + ' · Emitida el ' + date(record.sent_at ?? record.created_at)"><S :status="record.display_status ?? record.status" /></T>
+            <div class="budget-state" role="status"><I :name="state.icon" /><div><strong>{{ state.title }}</strong><p>{{ state.text }}</p><B v-if="latest && latest.id !== record.id" :href="data.preview ? '/prototipo/presupuesto' : '/presupuestos/' + latest.id" variant="secondary">Ver versión {{ latest.version_number }}</B></div></div>
+            <div class="client-budget-grid">
+                <BudgetDocument :budget="record" :client="record.client" :issuer="record.issuer" />
+                <aside class="budget-side">
+                    <v-card class="card">
+                        <p class="eyebrow">Versión {{ record.version_number }}</p><h2>Resumen del presupuesto</h2>
+                        <strong class="budget-amount">{{ money(record.total, record.currency_code) }}</strong>
+                        <dl class="data-list"><div><dt>Moneda</dt><dd>{{ record.currency_code }}</dd></div><div><dt>Vigencia hasta</dt><dd>{{ date(record.valid_until) }}</dd></div><div><dt>Entrega estimada</dt><dd>{{ record.estimated_delivery_days }} días desde el inicio acordado</dd></div></dl>
+                        <div class="button-stack"><B v-if="!data.preview" :href="'/presupuestos/' + record.id + '/pdf'" variant="secondary">Descargar PDF · versión {{ record.version_number }}</B><p v-else class="budget-help">La descarga del PDF está disponible en tu cuenta con el presupuesto real.</p>
+                            <template v-if="canDecide"><B arrow @click="decision = 'accepted'">Aceptar presupuesto</B><B variant="secondary" @click="decision = 'rejected'">Rechazar presupuesto</B></template>
+                            <B v-if="project && record.status === 'accepted'" :href="'/proyectos/' + project.id" arrow>Ver proyecto</B>
+                            <B v-else-if="record.status === 'accepted'" href="/cliente/proyectos" arrow>Ir a mis proyectos</B>
+                            <B v-if="canEdit" :href="'/editor/presupuesto/' + record.id" variant="secondary">{{ record.status === 'draft' ? 'Continuar borrador' : 'Preparar nueva versión' }}</B>
+                        </div>
+                        <p v-if="canDecide" class="budget-help">La aceptación crea el proyecto con esta versión. Antes de confirmar podrás revisar tu decisión.</p>
+                        <p v-if="record.display_status === 'expired' && record.current" class="budget-help">Para solicitar una actualización, contactá a synaux indicando PRE-{{ record.budget_id }}.</p>
+                    </v-card>
+                    <v-card class="card"><h2>Historial de versiones</h2><p class="budget-help">Cada versión conserva sus importes y condiciones.</p>
+                        <ol class="budget-history"><li v-for="item in versions" :key="item.id" :class="{ 'history-selected': item.id === record.id }"><a :href="historyHref(item)" :aria-current="item.id === record.id ? 'page' : undefined">Versión {{ item.version_number }}<span v-if="item.id === record.id"> · En pantalla</span></a><S :status="item.display_status ?? item.status" /><small>{{ date(item.sent_at ?? item.created_at) }}</small><small v-if="item.current">{{ record.external ? 'Última versión emitida' : 'Última versión enviada' }}</small></li></ol>
+                    </v-card>
+                </aside>
+            </div>
+            <!-- La decisión se envía solamente desde la confirmación y nunca al abrir el diálogo. -->
+            <SidePanel title="Confirmar decisión" :model-value="!!decision && canDecide" :persistent="form.processing" max-width="480" @update:model-value="decision = $event ? decision : ''">
+                <div class="synaux-app"><v-card class="card modal-card budget-decision">
+                    <p class="eyebrow">Confirmar decisión · Versión {{ record.version_number }}</p><h2>{{ decision === 'accepted' ? '¿Aceptás este presupuesto?' : '¿Querés rechazar este presupuesto?' }}</h2>
+                    <p>{{ decision === 'accepted' ? 'Se creará un proyecto con los servicios, el total y las condiciones de esta versión.' : 'Esta versión quedará rechazada. Podrás consultarla y descargarla desde el historial.' }}</p>
+                    <div class="decision-summary"><strong>{{ record.title }}</strong><dl class="data-list"><div><dt>Total · {{ record.currency_code }}</dt><dd>{{ money(record.total, record.currency_code) }}</dd></div><div><dt>Vigencia</dt><dd>{{ date(record.valid_until) }}</dd></div><div><dt>Entrega estimada</dt><dd>{{ record.estimated_delivery_days }} días</dd></div></dl></div>
+                    <div v-if="Object.keys(form.errors).length" role="alert" class="notice"><ul><li v-for="(error, key) in form.errors" :key="key">{{ error }}</li></ul></div>
+                    <label class="decision-check"><input v-model="form.confirmed" type="checkbox" :disabled="form.processing"><span>{{ decision === 'accepted' ? 'Revisé el alcance, el total, los plazos y las condiciones y acepto esta versión.' : 'Confirmo que quiero rechazar esta versión del presupuesto.' }}</span></label>
+                    <div class="form-actions"><B variant="secondary" :disabled="form.processing" @click="decision = ''">Volver al presupuesto</B><B :disabled="!form.confirmed || form.processing" @click="decide">{{ form.processing ? 'Guardando decisión…' : decision === 'accepted' ? 'Confirmar aceptación' : 'Confirmar rechazo' }}</B></div>
+                </v-card></div>
+            </SidePanel>
         </div>
-        <!-- La decisión se envía solamente desde la confirmación y nunca al abrir el diálogo. -->
-        <SidePanel title="Confirmar decisión" :model-value="!!decision && canDecide" :persistent="form.processing" max-width="480" @update:model-value="decision = $event ? decision : ''">
-            <div class="synaux-app"><v-card class="card modal-card budget-decision">
-                <p class="eyebrow">Confirmar decisión · Versión {{ record.version_number }}</p><h2>{{ decision === 'accepted' ? '¿Aceptás este presupuesto?' : '¿Querés rechazar este presupuesto?' }}</h2>
-                <p>{{ decision === 'accepted' ? 'Se creará un proyecto con los servicios, el total y las condiciones de esta versión.' : 'Esta versión quedará rechazada. Podrás consultarla y descargarla desde el historial.' }}</p>
-                <div class="decision-summary"><strong>{{ record.title }}</strong><dl class="data-list"><div><dt>Total · {{ record.currency_code }}</dt><dd>{{ money(record.total, record.currency_code) }}</dd></div><div><dt>Vigencia</dt><dd>{{ date(record.valid_until) }}</dd></div><div><dt>Entrega estimada</dt><dd>{{ record.estimated_delivery_days }} días</dd></div></dl></div>
-                <div v-if="Object.keys(form.errors).length" role="alert" class="notice"><ul><li v-for="(error, key) in form.errors" :key="key">{{ error }}</li></ul></div>
-                <label class="decision-check"><input v-model="form.confirmed" type="checkbox" :disabled="form.processing"><span>{{ decision === 'accepted' ? 'Revisé el alcance, el total, los plazos y las condiciones y acepto esta versión.' : 'Confirmo que quiero rechazar esta versión del presupuesto.' }}</span></label>
-                <div class="form-actions"><B variant="secondary" :disabled="form.processing" @click="decision = ''">Volver al presupuesto</B><B :disabled="!form.confirmed || form.processing" @click="decide">{{ form.processing ? 'Guardando decisión…' : decision === 'accepted' ? 'Confirmar aceptación' : 'Confirmar rechazo' }}</B></div>
-            </v-card></div>
-        </SidePanel>
-    </div>
+    </section>
 </template>
 
 <style scoped>

@@ -10,7 +10,9 @@ import About from '../Screens/Public/About.vue';
 import Contact from '../Screens/Public/Contact.vue';
 import AuthScreens from '../Screens/AuthScreens.vue';
 import EstimatorScreens from '../Screens/EstimatorScreens.vue';
-import ClientScreens from '../Screens/ClientScreens.vue';
+import ClientOverview from '../Screens/Client/Overview.vue';
+import ClientRequestDetail from '../Screens/Client/RequestDetail.vue';
+import RecordList from '../Screens/Workspace/RecordList.vue';
 import MarketplaceScreens from '../Screens/MarketplaceScreens.vue';
 import ManagementScreens from '../Screens/ManagementScreens.vue';
 import AdminTariffs from '../Screens/AdminTariffs.vue';
@@ -18,7 +20,9 @@ import AdminConfigurationPreview from '../Screens/AdminConfigurationPreview.vue'
 import PortfolioWorkEditor from '../Screens/PortfolioWorkEditor.vue';
 import CatalogAdmin from '../Components/Admin/CatalogAdmin.vue';
 import BudgetEditor from '../Components/Budgets/BudgetEditor.vue';
-import RequestDetail from '../Components/Management/RequestDetail.vue';
+import BudgetDetail from '../Components/Budgets/BudgetDetail.vue';
+import ProjectDetail from '../Components/Projects/ProjectDetail.vue';
+import ManagementRequestDetail from '../Components/Management/RequestDetail.vue';
 import '../../css/workspace.css';
 import '../../css/workspace-overrides.css';
 // La selección de pantalla vive en el punto de entrada y respeta el área autorizada por Laravel.
@@ -44,11 +48,15 @@ const component = computed(() => {
     }
     if (screen === 'editor-presupuesto') return BudgetEditor;
     if (screen === 'editor-trabajo') return PortfolioWorkEditor;
-    if (screen === 'solicitud' && area === 'gestion' && data.value.selected?.status !== 'draft') return RequestDetail;
+    if (screen === 'solicitud' && area === 'gestion' && data.value.selected?.status !== 'draft') return ManagementRequestDetail;
     if (screen === 'gestion' || (screen === 'profesional' && section === 'portfolio')) return ManagementScreens;
     if (['muro', 'oportunidad', 'profesionales', 'perfil-profesional', 'publicar', 'profesional'].includes(screen)
         || (screen === 'cliente' && ['publicaciones', 'propuestas', 'invitaciones'].includes(section))) return MarketplaceScreens;
-    return ClientScreens;
+    if (screen === 'solicitud') return ClientRequestDetail;
+    if (screen === 'presupuesto') return BudgetDetail;
+    if (screen === 'proyecto') return ProjectDetail;
+    if (screen === 'cliente') return !section || section === 'resumen' ? ClientOverview : RecordList;
+    return null;
 });
 </script>
-<template><Head :title="data.selected?.title ?? 'synaux'" /><PublicLayout><component :is="component" :key="`${page.url}:${data.referenceKey ?? ''}`" :data="data" /></PublicLayout></template>
+<template><Head :title="data.selected?.title ?? 'synaux'" /><PublicLayout><component v-if="component" :is="component" :key="`${page.url}:${data.referenceKey ?? ''}`" :data="data" /><section v-else class="page shell" /></PublicLayout></template>
