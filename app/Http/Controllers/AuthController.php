@@ -14,7 +14,7 @@ use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
 
 // Autenticación real con sesiones de Laravel; ningún control visual concede acceso administrativo.
-class SynauxAuthController extends Controller
+class AuthController extends Controller
 {
     // Valida y crea una cuenta sin privilegios, inicia la sesión y conserva el cálculo pendiente.
     public function register(Request $request)

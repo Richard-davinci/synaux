@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\SynauxNotificationCenter;
 use Illuminate\Http\Request;
 
-class SynauxNotificationController extends Controller
+class NotificationController extends Controller
 {
     // La lectura individual o total usa siempre la cuenta autenticada; un id ajeno devuelve 404.
     public function read(Request $request, SynauxNotificationCenter $center, ?int $id = null)

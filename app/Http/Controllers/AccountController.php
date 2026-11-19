@@ -9,7 +9,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 
-class SynauxAccountController extends Controller
+class AccountController extends Controller
 {
     // Solo expone los datos de la cuenta autenticada; el rol se muestra pero no se recibe del formulario.
     public function edit(Request $request)

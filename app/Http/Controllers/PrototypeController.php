@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Admin\CatalogConfiguration;
 use App\Services\SynauxCatalog;
 use Illuminate\Support\Facades\File;
 use Inertia\Inertia;
 
 // Galería exclusivamente local: muestra los estados de Figma con datos aislados y nunca escribe en la base.
-class SynauxReferenceController extends Controller
+class PrototypeController extends Controller
 {
     // Resuelve un estado de Figma con datos aislados; no crea cuentas ni modifica la sesión real.
-    public function show(string $screen = 'inicio')
+    public function show(CatalogConfiguration $configuration, string $screen = 'inicio')
     {
         abort_unless(app()->environment('local', 'testing'), 404);
         $screens = json_decode(File::get(resource_path('reference/screens.json')), true);
@@ -118,7 +119,7 @@ class SynauxReferenceController extends Controller
             $data['screen'] = 'admin';
             $data['area'] = 'gestion';
             $data['section'] = substr($screen, 6);
-            $data['administration'] = app(SynauxAdminController::class)->data();
+            $data['administration'] = $configuration->data();
             // La vista local permite revisar el editor con escrituras deshabilitadas.
             if ($screen === 'admin-servicios' && request()->integer('servicio')) {
                 $data['catalogServiceId'] = collect($data['administration']['services'])->firstWhere('id', request()->integer('servicio'))['id'] ?? null;

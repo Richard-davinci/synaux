@@ -1,12 +1,15 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Estimates;
 
+use App\Http\Controllers\Controller;
+use App\Services\SynauxCatalog;
 use App\Services\SynauxEstimates;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
-class SynauxEstimateController extends Controller
+class EstimateController extends Controller
 {
     public function __construct(private SynauxEstimates $estimates) {}
 
@@ -23,6 +26,7 @@ class SynauxEstimateController extends Controller
         return redirect($request->boolean('to_request') ? '/solicitudes/nueva?estimacion='.$id : '/estimaciones/'.$id)
             ->with('notice', 'Estimación guardada. Podés crear una solicitud con estas respuestas.');
     }
+
     // Elimina de la lista solo una estimación propia; los documentos vinculados conservan su referencia histórica.
     public function destroy(Request $request, int $id): RedirectResponse
     {
@@ -33,5 +37,30 @@ class SynauxEstimateController extends Controller
             ->where('user_id', $request->user()->id)->update(['deleted_at' => now(), 'updated_at' => now()]);
 
         return redirect('/cliente/estimaciones')->with('notice', 'Estimación eliminada de tu lista. Las solicitudes vinculadas conservan su historial.');
+    }
+
+    // Valida las respuestas, calcula en el servidor y conserva el resultado en la sesión para continuar.
+    public function calculate(Request $request, SynauxCatalog $catalog)
+    {
+        abort_if($request->user()?->is_admin, 403);
+
+        $data = $request->validate(['service' => 'required|string', 'answers' => 'required|array|max:100']);
+        $result = $catalog->calculate($data['service'], $data['answers']);
+        $request->session()->put('pending_estimate', $result);
+
+        return redirect('/estimador?paso=4&servicio='.$data['service']);
+    }
+
+    // Carga una estimación visible de la propia cuenta junto con el catálogo que usa su resumen.
+    public function show(Request $request, SynauxCatalog $catalog, int $id)
+    {
+        $selected = $this->estimates->find($request->user()->id, $id) ?? abort(404);
+
+        return Inertia::render('Workspace', [
+            'screen' => 'estimacion',
+            'area' => $request->user()->is_admin ? 'gestion' : 'cliente',
+            'selected' => $selected,
+            'services' => $catalog->services((bool) $request->user()->is_admin),
+        ]);
     }
 }

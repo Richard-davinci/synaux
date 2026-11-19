@@ -1,13 +1,21 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Requests;
 
+use App\Http\Controllers\Controller;
+use App\Services\SynauxCatalog;
+use App\Services\SynauxEstimates;
+use App\Services\SynauxNotificationCenter;
+use App\Services\SynauxRequestJourney;
 use App\Services\SynauxRequests;
+use App\Services\SynauxWorkspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Inertia\Inertia;
 
-class SynauxRequestController extends Controller
+class RequestController extends Controller
 {
     public function __construct(private SynauxRequests $requests) {}
 
@@ -69,5 +77,73 @@ class SynauxRequestController extends Controller
         $request->session()->forget('pending_request');
 
         return redirect('/solicitudes/'.$id)->with('notice', $data['publish'] ? 'Solicitud enviada.' : 'Borrador guardado.');
+    }
+
+    // Abre el formulario público con la estimación elegida por su titular, si corresponde.
+    public function create(Request $request, SynauxCatalog $catalog, SynauxEstimates $estimates, SynauxRequestJourney $journey)
+    {
+        if ($request->user()?->is_admin) {
+            return redirect('/gestion');
+        }
+
+        $id = (int) $request->query('estimacion', 0);
+        if ($id && ! $request->user()) {
+            return redirect()->guest('/ingresar');
+        }
+
+        return Inertia::render('Workspace', $journey->pageData($request, [
+            'services' => $catalog->services(),
+            'references' => $catalog->references(),
+            'selectedEstimate' => $id ? ($estimates->find($request->user()->id, $id) ?? abort(404)) : null,
+        ]));
+    }
+
+    // Los borradores se reabren con las preguntas y la estimación que usó el titular.
+    public function show(Request $request, SynauxWorkspace $workspace, SynauxCatalog $catalog, SynauxEstimates $estimates, SynauxRequestJourney $journey, SynauxNotificationCenter $notifications, int $id)
+    {
+        $user = $request->user();
+        $management = (bool) $user->is_admin;
+        $selected = $workspace->requests($user->id, $management, only: [$id])[0] ?? abort(404);
+        $data = ['screen' => 'solicitud', 'area' => $management ? 'gestion' : 'cliente', 'selected' => $selected];
+
+        if ($selected['status'] === 'draft') {
+            $data['services'] = $catalog->services($management);
+            $data['references'] = $catalog->references();
+            $data['selectedEstimate'] = $selected['estimate_id']
+                ? $estimates->find($user->id, $selected['estimate_id'], includeDeleted: true)
+                : null;
+            $data['estimates'] = $data['selectedEstimate'] && ! $data['selectedEstimate']['deleted_at']
+                ? [$data['selectedEstimate']]
+                : [];
+            $data = $journey->pageData($request, $data, $id);
+        }
+
+        $notifications->readEntity($user, 'solicitud', $id);
+
+        return Inertia::render('Workspace', $data);
+    }
+
+    // Conserva el proyecto en la sesión antes del ingreso y vuelve después al paso de contacto.
+    public function prepare(Request $request, SynauxRequestJourney $journey)
+    {
+        abort_if($request->user()?->is_admin, 403);
+
+        return redirect($journey->prepare($request));
+    }
+
+    // Comprueba propiedad o administración antes de revisar, cerrar o cancelar una solicitud.
+    public function updateStatus(Request $request)
+    {
+        $d = $request->validate(['id' => 'required|integer', 'status' => ['required', Rule::in(['review', 'closed', 'cancelled'])]]);
+        $r = DB::table('project_requests')->where('id', $d['id'])->firstOrFail();
+        abort_unless($r->user_id === $request->user()->id || $request->user()->is_admin, 403);
+        if ($d['status'] === 'review') {
+            abort_unless($request->user()->is_admin && $r->status === 'open', 403);
+            DB::table('project_requests')->where('id', $r->id)->update(['reviewed_at' => now(), 'updated_at' => now()]);
+        } else {
+            DB::table('project_requests')->where('id', $r->id)->update(['status' => $d['status'], 'updated_at' => now()]);
+        }
+
+        return back()->with('notice', 'Estado actualizado.');
     }
 }

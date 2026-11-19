@@ -24,11 +24,12 @@ class SynauxWorkspace
     }
 
     // Entrega trabajos públicos o los del propietario indicado, con sus imágenes ordenadas.
-    public function works(?int $owner = null): array
+    public function works(?int $owner = null, ?int $id = null): array
     {
         return DB::table('portfolio_projects as w')->join('professional_profiles as p', 'p.id', '=', 'w.professional_profile_id')
             ->when($owner === null, fn ($q) => $q->where('w.is_public', 1)->where('p.active', 1))
             ->when($owner !== null, fn ($q) => $q->where('p.user_id', $owner))
+            ->when($id !== null, fn ($q) => $q->where('w.id', $id))
             ->select('w.*', 'p.brand_name')->orderByDesc('w.id')->get()->map(fn ($w) => [
                 ...((array) $w), 'images' => DB::table('portfolio_project_images')->where('portfolio_project_id', $w->id)->orderBy('sort_order')->get(),
             ])->all();
@@ -73,7 +74,7 @@ class SynauxWorkspace
     }
 
     // Resuelve los dos orígenes del presupuesto y filtra versiones según cliente, emisor y estado.
-    public function quotes(?int $userId, bool $management = false): array
+    public function quotes(?int $userId, bool $management = false, ?int $id = null, ?int $budgetId = null): array
     {
         // Los dos orígenes del DER (solicitud directa o propuesta elegida) se resuelven antes de autorizar.
         return DB::table('budget_versions as v')->join('budgets as b', 'b.id', '=', 'v.budget_id')
@@ -81,6 +82,8 @@ class SynauxWorkspace
             ->leftJoin('project_requests as r', fn ($j) => $j->on('r.id', '=', DB::raw('COALESCE(b.project_request_id, p.project_request_id)')))
             ->leftJoin('professional_profiles as pro', fn ($j) => $j->on('pro.id', '=', DB::raw('COALESCE(b.professional_profile_id, p.professional_profile_id)')))
             ->when(! $management, fn ($q) => $q->where(fn ($w) => $w->where('r.user_id', $userId)->orWhere('pro.user_id', $userId)->orWhere('b.client_user_id', $userId)))
+            ->when($id !== null, fn ($q) => $q->where('v.id', $id))
+            ->when($budgetId !== null, fn ($q) => $q->where('v.budget_id', $budgetId))
             ->select('v.*', 'r.id as request_id', 'r.title as request_title', 'r.user_id as request_owner', 'pro.user_id as issuer_id', 'b.client_user_id')
             ->orderByDesc('v.id')->get()->filter(fn ($v) => $management || $v->issuer_id === $userId || $v->status !== 'draft')
             ->map(function ($v) {
@@ -119,9 +122,10 @@ class SynauxWorkspace
     }
 
     // Devuelve los proyectos asociados a versiones de presupuesto que la cuenta puede consultar.
-    public function projects(array $quotes): array
+    public function projects(array $quotes, ?int $id = null): array
     {
-        $projects = DB::table('projects')->whereIn('accepted_budget_version_id', array_column($quotes, 'id'))->orderByDesc('id')->get();
+        $projects = DB::table('projects')->whereIn('accepted_budget_version_id', array_column($quotes, 'id'))
+            ->when($id !== null, fn ($query) => $query->where('id', $id))->orderByDesc('id')->get();
         // El historial se consulta solo para los proyectos autorizados y no expone datos de la cuenta del gestor.
         $updates = DB::table('project_updates')->whereIn('project_id', $projects->pluck('id'))
             ->orderByDesc('id')->get(['id', 'project_id', 'status', 'progress', 'start_date', 'end_date', 'notes', 'next_steps', 'created_at'])->groupBy('project_id');

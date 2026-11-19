@@ -62,6 +62,8 @@ class StageOneJourneyTest extends TestCase
         $this->post('/salir')->assertRedirect('/plataforma');
         $this->post('/ingresar', ['email' => $manager->email, 'password' => 'password'])->assertRedirect('/gestion');
         $this->get('/gestion/solicitudes')->assertInertia(fn (Assert $page) => $page->where('requests.0.id', $requestId));
+        $this->get('/solicitudes/'.$requestId)->assertInertia(fn (Assert $page) => $page
+            ->where('selected.id', $requestId)->missing('requests')->missing('quotes')->missing('budgetRequests'));
         $this->get('/editor/presupuesto?solicitud='.$requestId)->assertInertia(fn (Assert $page) => $page
             ->where('budgetRequests.0.contact.email', $request['contact']['email'])
             ->where('budgetRequests.0.additional_services.0.service_id', $extra));
@@ -95,7 +97,8 @@ class StageOneJourneyTest extends TestCase
         $this->post('/acciones/decidir-presupuesto', $decision)->assertSessionHasErrors('decision');
         $this->assertDatabaseCount('projects', 1);
         $this->get('/proyectos/'.$projectId)->assertInertia(fn (Assert $page) => $page
-            ->where('selected.status', 'pending')->where('selected.progress', 0));
+            ->where('selected.status', 'pending')->where('selected.progress', 0)
+            ->has('quotes', 1)->missing('requests')->missing('budgetRequests'));
         $this->get('/gestion')->assertForbidden();
 
         $update = ['id' => $projectId, 'status' => 'in_progress', 'progress' => 60,

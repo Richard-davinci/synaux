@@ -7,6 +7,19 @@ use Illuminate\Support\Facades\DB;
 // Guarda el resultado de sesión con una clave única para que los reintentos recuperen la misma estimación.
 class SynauxEstimates
 {
+    // Lee el registro del titular y conserva el formato de las instantáneas que recibe la interfaz.
+    public function find(int $userId, int $id, bool $includeDeleted = false): ?array
+    {
+        $estimate = DB::table('estimates')->where('user_id', $userId)->where('id', $id)
+            ->when(! $includeDeleted, fn ($query) => $query->whereNull('deleted_at'))->first();
+
+        return $estimate ? [
+            ...(array) $estimate,
+            'answers' => json_decode($estimate->answers_snapshot, true),
+            'items' => json_decode($estimate->items_snapshot ?? '[]', true),
+        ] : null;
+    }
+
     public function save(int $userId, array $pending): int
     {
         // insertOrIgnore deja que el índice único de request_key resuelva dos inserciones simultáneas.
