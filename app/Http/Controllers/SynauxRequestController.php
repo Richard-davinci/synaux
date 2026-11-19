@@ -40,6 +40,7 @@ class SynauxRequestController extends Controller
             'additional_services.*.service_id' => 'required|integer|distinct|exists:services,id',
             'additional_services.*.quantity' => 'required|integer|min:1|max:1000',
             'additional_services.*.notes' => 'nullable|string|max:2000',
+            'additional_services.*.answers' => 'sometimes|array|max:100',
         ]);
 
         // La publicación en el muro pertenece al marketplace y requiere acceso a la segunda etapa.
@@ -51,19 +52,19 @@ class SynauxRequestController extends Controller
         $data['skills'] = array_values(array_unique(array_filter(array_map('trim', explode(',', $data['skills'] ?? '')))));
         // La estimación integrada se calcula en el servidor y se guarda junto al pedido en una transacción.
         $id = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $data) {
-            if (! empty($data['answers']) || (array_key_exists('answers', $data) && empty($data['estimate_id']))) {
-                if (empty($data['estimate_id'])) {
-                    $journey = app(\App\Services\SynauxRequestJourney::class);
-                    $calculation = $journey->calculate($data);
-                    $pending = $journey->pending($request);
-                    if ($pending && $pending['calculation']['service']['database_id'] === (int) $data['service_id']
-                        && $pending['calculation']['answers'] == $calculation['answers']) {
-                        $calculation = $pending['calculation'];
-                    }
-                    $data['estimate_id'] = app(\App\Services\SynauxEstimates::class)->save($request->user()->id, $calculation);
+            $journey = app(\App\Services\SynauxRequestJourney::class);
+            $pending = $journey->pending($request);
+            if (array_key_exists('answers', $data) && empty($data['estimate_id'])) {
+                $calculation = $journey->calculate($data);
+                if ($pending && ! ($pending['form']['estimate_id'] ?? null) && $pending['calculation']['service']['database_id'] === (int) $data['service_id']
+                    && (int) ($pending['form']['id'] ?? 0) === (int) ($data['id'] ?? 0)
+                    && $pending['calculation']['answers'] == $calculation['answers']) {
+                    $calculation = $pending['calculation'];
                 }
+                $data['estimate_id'] = app(\App\Services\SynauxEstimates::class)->save($request->user()->id, $calculation);
             }
-            return $this->requests->save($request->user()->id, $data);
+
+            return $this->requests->save($request->user()->id, $data, $pending);
         });
         $request->session()->forget('pending_request');
 

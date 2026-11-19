@@ -8,9 +8,9 @@ use Illuminate\Validation\ValidationException;
 class SynauxRequests
 {
     // Recibe el usuario autenticado y los datos validados. Bloquea el borrador al editar y conserva la estimación de origen.
-    public function save(int $userId, array $d): int
+    public function save(int $userId, array $d, ?array $pending = null): int
     {
-        return DB::transaction(function () use ($userId, $d) {
+        return DB::transaction(function () use ($userId, $d, $pending) {
             $existing = ! empty($d['id']) ? DB::table('project_requests')->where('id', $d['id'])->lockForUpdate()->firstOrFail() : null;
             if ($existing) {
                 abort_unless($existing->user_id === $userId && $existing->status === 'draft', 403);
@@ -36,22 +36,13 @@ class SynauxRequests
             // Los servicios se identifican por registros del catálogo y sus nombres quedan en la instantánea del pedido.
             $additional = json_decode($existing?->requested_services ?? '[]', true);
             if (array_key_exists('additional_services', $d)) {
-                $additional = [];
-                $catalog = app(SynauxCatalog::class);
-                $references = $d['additional_services'] ? $catalog->references() : [];
-                $answers = json_decode($estimate?->answers_snapshot ?? '[]', true);
-                $currency = $estimate?->price_min !== null ? $estimate->currency_snapshot : 'ARS';
-                foreach ($d['additional_services'] as $index => $item) {
-                    $extra = DB::table('services')->where('id', $item['service_id'])->where('active', 1)->first();
-                    if (! $extra || $extra->id === (int) $d['service_id']) {
-                        throw ValidationException::withMessages(["additional_services.$index.service_id" => 'Elegí otro servicio disponible.']);
-                    }
-                    $additional[] = [
-                        'service_id' => $extra->id, 'name' => $extra->name,
-                        'quantity' => $item['quantity'], 'notes' => $item['notes'] ?? '',
-                        'pricing_reference' => $catalog->extraReference($references[$extra->slug] ?? null, $answers, $currency),
-                    ];
-                }
+                $samePreparedService = (int) ($pending['form']['service_id'] ?? 0) === (int) $d['service_id']
+                    && (int) ($pending['form']['id'] ?? 0) === (int) ($d['id'] ?? 0);
+                $additional = app(SynauxRequestJourney::class)->calculateAdditionalServices(
+                    (int) $d['service_id'], $d['additional_services'], json_decode($estimate?->answers_snapshot ?? '[]', true),
+                    $estimate?->currency_snapshot ?? 'ARS',
+                    [...$additional, ...($samePreparedService ? ($pending['additional_services'] ?? []) : [])], allowIncomplete: ! $d['publish'],
+                );
             }
             $owner = DB::table('users')->where('id', $userId)->firstOrFail();
             $contact = $d['contact'] ?? json_decode($existing?->contact_snapshot ?? 'null', true)

@@ -223,10 +223,12 @@ class SynauxController extends Controller
         abort_unless(isset($source[$kind]), 404);
         $data['selected'] = $id ? collect($data[$source[$kind]])->firstWhere('id', $id) ?? abort(404) : null;
         // Un borrador propio puede conservar una estimación retirada de la lista sin habilitar su reutilización en pedidos nuevos.
-        if ($kind === 'solicitud' && $data['selected']['status'] === 'draft' && $data['selected']['estimate_id']) {
-            $origin = DB::table('estimates')->where('id', $data['selected']['estimate_id'])->where('user_id', $request->user()->id)->first();
+        if ($kind === 'solicitud' && $data['selected']['status'] === 'draft') {
+            $origin = $data['selected']['estimate_id'] ? DB::table('estimates')->where('id', $data['selected']['estimate_id'])
+                ->where('user_id', $request->user()->id)->first() : null;
             if ($origin) $data['selectedEstimate'] = [...(array) $origin,
                 'answers' => json_decode($origin->answers_snapshot, true), 'items' => json_decode($origin->items_snapshot ?? '[]', true)];
+            $data = app(\App\Services\SynauxRequestJourney::class)->pageData($request, $data, $id);
         }
         if ($kind === 'editor-presupuesto') {
             if ($id) {

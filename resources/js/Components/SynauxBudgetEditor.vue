@@ -8,7 +8,7 @@ import F from './SynauxField.vue';
 import I from './SynauxIcon.vue';
 import BudgetDocument from './BudgetDocument.vue';
 import { money, date, useSubmit } from '../support/synaux';
-import { referenceLine } from '../support/requestPricing';
+import { referenceLine, requestBudgetLines } from '../support/requestPricing';
 
 // El editor recibe solo las solicitudes autorizadas; Laravel vuelve a comprobar permisos y valores al guardar.
 const props = defineProps({ data: Object });
@@ -97,13 +97,20 @@ function priceHint(reference) {
 watch(() => quote.request_id, () => {
     if (direct || selected.budget_id || !source.value) return;
     quote.title = source.value.title;
-    quote.currency_code = source.value.pricing_reference?.currency ?? 'ARS';
-    quote.items = [
-        newItem(source.value.service_name + '\n' + source.value.description, 1, source.value.pricing_reference),
-        ...(source.value.additional_services ?? []).map(item => newItem(
-            item.name + (item.notes ? '\n' + item.notes : ''), item.quantity, item.pricing_reference,
-        )),
+    const additional = source.value.additional_services ?? [];
+    quote.currency_code = source.value.pricing_reference?.currency ?? additional.find(item => item.pricing_reference)?.pricing_reference.currency ?? 'ARS';
+    const services = [
+        { name: source.value.service_name, description: source.value.description, quantity: 1,
+            reference: source.value.pricing_reference, breakdown: source.value.pricing_breakdown },
+        ...additional.map(item => ({
+            name: item.name, description: item.notes, quantity: item.quantity,
+            reference: item.pricing_reference, breakdown: item.pricing_breakdown,
+        })),
     ];
+    // El presupuesto acepta hasta 100 renglones. Si el desglose excede el límite, se conserva un renglón por servicio.
+    const detail = services.flatMap(requestBudgetLines);
+    const items = detail.length <= 100 ? detail : services.flatMap(service => requestBudgetLines({ ...service, breakdown: null }));
+    quote.items = items.map(item => newItem(item.description, item.quantity, item.reference));
 }, { immediate: true });
 // Un importe sugerido no se traslada automáticamente a otra moneda.
 watch(() => quote.currency_code, (currency, previous) => {
@@ -166,7 +173,13 @@ function save(send) {
                         <div class="context-heading"><h3>SOL-{{ source.id }} · {{ source.title }}</h3><B :href="'/solicitudes/' + source.id" variant="ghost">Ver solicitud</B></div>
                         <p class="preserve-lines">{{ source.description }}</p>
                         <dl><div><dt>Servicio principal</dt><dd>{{ source.service_name }}</dd></div><div><dt>Plazo solicitado</dt><dd>{{ source.desired_deadline || 'A coordinar' }}</dd></div><div><dt>Presupuesto disponible</dt><dd>{{ source.budget_reference || 'Sin indicar' }}</dd></div></dl>
-                        <div v-if="source.additional_services?.length"><h3>Servicios adicionales</h3><p v-for="item in source.additional_services" :key="item.service_id"><strong>{{ item.name }} × {{ item.quantity }}</strong><br>{{ item.notes }}</p></div>
+                        <div v-if="source.additional_services?.length">
+                            <h3>Servicios adicionales</h3>
+                            <div v-for="item in source.additional_services" :key="item.service_id">
+                                <p><strong>{{ item.name }} × {{ item.quantity }}</strong><br v-if="item.notes">{{ item.notes }}</p>
+                                <dl v-if="item.answers?.length"><div v-for="answer in item.answers" :key="answer.id"><dt>{{ answer.question }}</dt><dd>{{ answer.label }}</dd></div></dl>
+                            </div>
+                        </div>
                         <div v-if="source.answers?.length"><h3>Respuestas de la estimación</h3><dl><div v-for="answer in source.answers" :key="answer.id"><dt>{{ answer.question }}</dt><dd>{{ answer.label }}</dd></div></dl></div>
                     </section>
                     <section v-if="client" class="client-context"><h3>Contacto del pedido</h3><strong>{{ client.name }}</strong><p>{{ client.email }}</p><p v-if="client.company">{{ client.company }}</p><p v-if="client.phone">{{ client.phone }}</p><p v-if="client.address">{{ client.address }}</p></section>

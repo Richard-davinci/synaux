@@ -68,6 +68,57 @@ class UnifiedRequestJourneyTest extends TestCase
             ->where('budgetRequests.0.additional_services.1.pricing_reference.recovered', true));
     }
 
+    // Un adicional se calcula con sus respuestas y su importe llega a Gestión junto con el desglose histórico.
+    public function test_additional_service_questions_calculate_and_keep_independent_prices(): void
+    {
+        $this->seed(\Database\Seeders\SynauxLandingTariffSeeder::class);
+        $client = User::factory()->create();
+        $manager = User::factory()->create(['is_admin' => true]);
+        $data = $this->project();
+        $landing = DB::table('services')->where('slug', 'landing-page')->value('id');
+        $question = DB::table('estimator_questions')->where('service_id', $landing)->where('active', 1)->value('id');
+        $enterprise = DB::table('estimator_options')->where('question_id', $question)->where('label', 'Empresa')->value('id');
+        $data['additional_services'] = [['service_id' => $landing, 'quantity' => 2, 'answers' => []]];
+
+        $field = 'additional_services.0.answers.'.$question;
+        $this->post('/solicitudes/preparar', $data)->assertSessionHasErrors($field);
+        $data['additional_services'][0]['answers'] = [$question => 999999];
+        $this->post('/solicitudes/preparar', $data)->assertSessionHasErrors($field);
+        $data['additional_services'][0]['answers'] = [$question => $enterprise];
+        $data['destination'] = 'review';
+        $this->post('/solicitudes/preparar', $data)->assertSessionHasNoErrors();
+        $this->post('/ingresar', ['email' => $client->email, 'password' => 'password'])->assertRedirect('/solicitudes/nueva?continuar=1');
+        $this->get('/solicitudes/nueva?continuar=1')->assertInertia(fn (Assert $page) => $page
+            ->where('requestAdditionalPricing.0.answers.0.label', 'Empresa')
+            ->where('requestAdditionalPricing.0.pricing_reference.min', 763740));
+
+        $payload = [...$data, 'visibility' => 'private', 'publish' => false];
+        $this->post('/acciones/solicitud', $payload)->assertSessionHasNoErrors();
+        $draft = DB::table('project_requests')->firstOrFail();
+        $id = $draft->id;
+        $this->get('/solicitudes/'.$id)->assertInertia(fn (Assert $page) => $page
+            ->where('selected.additional_services.0.answers.0.label', 'Empresa')
+            ->has('requestQuestions.'.$landing, 1));
+        $payload = [...$payload, 'id' => $id, 'estimate_id' => $draft->estimate_id];
+        $this->post('/solicitudes/preparar', $payload)->assertRedirect('/solicitudes/'.$id);
+        $this->get('/solicitudes/'.$id)->assertInertia(fn (Assert $page) => $page
+            ->where('requestStep', 3)->where('requestAdditionalPricing.0.pricing_reference.min', 763740));
+
+        // Un cambio tarifario después de revisar no reemplaza la instantánea de la misma respuesta.
+        $activeVersion = DB::table('tariff_versions')->where('active', 1)->max('id');
+        DB::table('service_prices')->where('tariff_version_id', $activeVersion)->where('service_id', $landing)
+            ->update(['price_min' => 300000, 'price_max' => 300000]);
+        $this->post('/acciones/solicitud', [...$payload, 'publish' => true])->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('project_requests', 1);
+        $this->actingAs($manager)->get('/editor/presupuesto?solicitud='.$id)->assertInertia(fn (Assert $page) => $page
+            ->where('budgetRequests.0.answers.0.label', 'PyME')
+            ->has('budgetRequests.0.pricing_breakdown.items', 1)
+            ->where('budgetRequests.0.additional_services.0.answers.0.label', 'Empresa')
+            ->where('budgetRequests.0.additional_services.0.pricing_reference.min', 763740)
+            ->where('budgetRequests.0.additional_services.0.pricing_breakdown.base_min', 254580)
+            ->where('budgetRequests.0.additional_services.0.quantity', 2));
+    }
+
     // El rol de Gestión conserva su panel y no puede crear pedidos ni retomar un borrador de cliente.
     public function test_admin_uses_management_without_submitting_a_client_request(): void
     {

@@ -99,10 +99,10 @@ class SynauxCatalog
     }
 
     // Carga preguntas y opciones activas del servicio en el orden configurado.
-    public function questions(int $serviceId): array
+    public function questions(int $serviceId, bool $specificOnly = false): array
     {
         return DB::table('estimator_questions')->where('active', 1)
-            ->where(fn ($q) => $q->where('service_id', $serviceId)->orWhereNull('service_id'))
+            ->where(fn ($q) => $q->where('service_id', $serviceId)->when(! $specificOnly, fn ($query) => $query->orWhereNull('service_id')))
             ->orderBy('sort_order')->get()->map(fn ($q) => [
                 ...((array) $q),
                 'options' => DB::table('estimator_options')->where('question_id', $q->id)->where('active', 1)->orderBy('sort_order')->get(),
@@ -110,13 +110,14 @@ class SynauxCatalog
     }
 
     // Valida las respuestas, calcula en el servidor y conserva el resultado en la sesión para continuar.
-    public function calculate(string $slug, array $answers): array
+    public function calculate(string $slug, array $answers, ?array $questions = null, bool $allowIncomplete = false): array
     {
         $service = $this->service($slug);
-        $questions = $this->questions($service['database_id']);
+        $questions ??= $this->questions($service['database_id']);
         $snapshot = [];
         $selected = [];
         $quantities = [];
+        $incomplete = false;
         // Revalida todas las respuestas en el servidor; no confía en rótulos ni importes del navegador.
         foreach ($questions as $q) {
             $value = $answers[$q['id']] ?? null;
@@ -124,7 +125,14 @@ class SynauxCatalog
             if ($value === null || $value === '' || $values === []) {
                 // Una respuesta opcional vacía no agrega componentes ni altera el importe.
                 if (! ($q['required'] ?? true)) continue;
+                if ($allowIncomplete) {
+                    $incomplete = true;
+                    continue;
+                }
                 throw ValidationException::withMessages(["answers.{$q['id']}" => 'Completá esta respuesta.']);
+            }
+            if (collect($values)->contains(fn ($answer) => ! is_int($answer) && ! is_float($answer) && ! is_string($answer))) {
+                throw ValidationException::withMessages(["answers.{$q['id']}" => 'Revisá el formato de esta respuesta.']);
             }
             $labels = [];
             foreach ($values as $v) {
@@ -166,7 +174,7 @@ class SynauxCatalog
         }
         $tariff = DB::table('tariff_versions')->where('active', 1)->where('effective_from', '<=', now())->orderByDesc('effective_from')->orderByDesc('id')->first();
         $base = $tariff ? DB::table('service_prices')->where('tariff_version_id', $tariff->id)->where('service_id', $service['database_id'])->first() : null;
-        $available = $service['estimation_mode'] === 'automatic' && $base !== null;
+        $available = ! $incomplete && $service['estimation_mode'] === 'automatic' && $base !== null;
         $min = $base ? (int) round($base->price_min * 100) : 0;
         $max = $base ? (int) round($base->price_max * 100) : 0;
         $items = [];
@@ -176,7 +184,7 @@ class SynauxCatalog
             }
             $price = $tariff ? DB::table('component_prices')->where('tariff_version_id', $tariff->id)->where('service_component_id', $id)->first() : null;
             $available = $available && $price !== null;
-            $items[] = ['component_id' => $id, 'name' => $components[$id]->name, 'unit' => $components[$id]->unit_code, 'quantity' => $quantity, 'min' => $price?->price_min, 'max' => $price?->price_max];
+            $items[] = ['component_id' => $id, 'name' => $components[$id]->name, 'slug' => $components[$id]->slug, 'unit' => $components[$id]->unit_code, 'quantity' => $quantity, 'min' => $price?->price_min, 'max' => $price?->price_max];
             $min += (int) round(($price?->price_min ?? 0) * 100 * $quantity);
             $max += (int) round(($price?->price_max ?? 0) * 100 * $quantity);
         }

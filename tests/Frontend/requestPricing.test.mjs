@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { referenceLine, summarizePrices } from '../../resources/js/support/requestPricing.js';
+import { referenceLine, requestBudgetLines, summarizePrices } from '../../resources/js/support/requestPricing.js';
 
 // Las referencias reales de ambos paquetes deben compartir segmento y multiplicarse por cantidad.
 test('suma principal y adicionales del mismo segmento y se actualiza al quitar o cambiar cantidades', () => {
@@ -36,4 +36,32 @@ test('suma rangos y centavos con precisión monetaria', () => {
     const total = summarizePrices([referenceLine({min:0.1,max:0.2},3),referenceLine({min:0.2,max:0.3})]);
     assert.equal(total.min, 0.5);
     assert.equal(total.max, 0.9);
+});
+
+
+// El desglose de una solicitud conserva cantidades, tramos y el total del servicio.
+test('separa hosting del precio base y multiplica cada concepto por la cantidad solicitada', () => {
+    const lines = requestBudgetLines({
+        name: 'Sitio web', quantity: 2, reference: { min: 740000, max: 760000, currency: 'ARS' },
+        breakdown: { base_min: 600000, base_max: 600000, items: [
+            { slug: 'segmento-tarifario-2026-11', name: 'Adecuación', quantity: 1, min: 80000, max: 80000 },
+            { slug: 'hosting', name: 'Hosting anual', quantity: 1, min: 60000, max: 80000 },
+        ] },
+    });
+    assert.equal(lines.length, 2);
+    assert.deepEqual(lines.map(line => [line.description, line.quantity, line.reference.min, line.reference.max]), [
+        ['Sitio web', 2, 680000, 680000],
+        ['Hosting anual\nConcepto de Sitio web', 2, 60000, 80000],
+    ]);
+});
+
+test('mantiene agrupada una referencia histórica que perdería centavos al desglosarse', () => {
+    const reference = { min: 100.01, max: 100.01, currency: 'ARS' };
+    const lines = requestBudgetLines({
+        name: 'Sitio web', quantity: 2, reference,
+        breakdown: { base_min: 100, base_max: 100, items: [
+            { name: 'Extra', quantity: 0.5, min: 0.01, max: 0.01 },
+        ] },
+    });
+    assert.deepEqual(lines, [{ description: 'Sitio web', quantity: 2, reference }]);
 });

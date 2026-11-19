@@ -5,6 +5,7 @@ import B from './SynauxButton.vue';
 import F from './SynauxField.vue';
 import I from './SynauxIcon.vue';
 import ServicePicker from './SynauxServicePicker.vue';
+import RequestQuestions from './SynauxRequestQuestions.vue';
 import { money, date, useSubmit } from '../support/synaux';
 import { referenceLine, summarizePrices } from '../support/requestPricing';
 
@@ -28,17 +29,28 @@ const labels = ['Servicio', 'Tu proyecto', 'Contacto', 'Revisión'];
 const submit = useSubmit();
 // Un borrador conserva su instantánea, incluso si luego cambia el contacto de la cuenta.
 const contact = old?.contact ?? props.data.accountContact ?? page.props.auth ?? {};
+// Los borradores guardados traen respuestas con su etiqueta, mientras la sesión conserva los valores del formulario.
+const extraQuestions = id => (props.data.requestQuestions?.[id] ?? []).filter(question => question.service_id != null);
+function initialExtraAnswers(serviceId, previous = {}) {
+    const values = Array.isArray(previous) ? Object.fromEntries(previous.map(answer => [answer.id, answer.value])) : { ...previous };
+    for (const question of extraQuestions(serviceId)) {
+        if (question.input_type === 'multiple_choice') {
+            values[question.id] = Array.isArray(values[question.id]) ? values[question.id].map(String) : [];
+        }
+    }
+    return values;
+}
 const form = useForm({
     id: old?.id ?? null,
     estimate_id: estimate?.id ?? old?.estimate_id ?? null,
-    service_id: estimate?.service_id ?? old?.service_id ?? pending.service_id ?? props.data.requestServiceId ?? props.data.services[0]?.database_id,
-    title: old?.title ?? pending.title ?? '',
-    description: old?.description ?? pending.description ?? props.data.requestInitialDescription ?? '',
+    service_id: estimate?.service_id ?? pending.service_id ?? old?.service_id ?? props.data.requestServiceId ?? props.data.services[0]?.database_id,
+    title: pending.title ?? old?.title ?? '',
+    description: pending.description ?? old?.description ?? props.data.requestInitialDescription ?? '',
     category: old?.category ?? '',
-    skills: old?.skills?.join(', ') ?? pending.skills ?? '',
+    skills: pending.skills ?? old?.skills?.join(', ') ?? '',
     visibility: page.props.stageTwo ? (old?.visibility ?? 'private') : 'private',
-    budget_reference: old?.budget_reference ?? pending.budget_reference ?? '',
-    desired_deadline: old?.desired_deadline ?? pending.desired_deadline ?? '',
+    budget_reference: pending.budget_reference ?? old?.budget_reference ?? '',
+    desired_deadline: pending.desired_deadline ?? old?.desired_deadline ?? '',
     contact: {
         name: contact.name ?? '',
         email: contact.email ?? '',
@@ -46,8 +58,9 @@ const form = useForm({
         phone: contact.phone ?? '',
         address: contact.address ?? '',
     },
-    additional_services: (old?.additional_services ?? pending.additional_services ?? []).map(item => ({
+    additional_services: (pending.additional_services ?? old?.additional_services ?? []).map(item => ({
         service_id: item.service_id, quantity: item.quantity, notes: item.notes ?? '',
+        answers: initialExtraAnswers(item.service_id, item.answers),
     })),
     answers: { ...(pending.answers ?? props.data.requestInitialAnswers ?? {}) },
     publish: false,
@@ -65,21 +78,24 @@ const initializeAnswers = () => {
 };
 initializeAnswers();
 const extras = computed(() => props.data.services.filter(item => item.database_id != form.service_id));
+// Contrasta todas las preguntas activas para invalidar la referencia al cambiar cualquier respuesta.
+function sameAnswers(questionsForService, snapshot, readValue) {
+    const normalize = value => Array.isArray(value) ? value.map(String).sort() : String(value ?? '').trim();
+    const saved = new Map(snapshot.map(answer => [String(answer.id), answer.value]));
+    return questionsForService.every(question => {
+        const empty = question.input_type === 'multiple_choice' ? [] : '';
+        return JSON.stringify(normalize(readValue(question) ?? empty)) === JSON.stringify(normalize(saved.get(String(question.id)) ?? empty));
+    });
+}
 // La estimación del servidor solo se muestra como actual si coinciden todas las respuestas.
 const estimateAnswers = computed(() => estimate?.answers ?? old?.answers ?? []);
 const matchingCalculation = computed(() => {
     const calculation = props.data.requestCalculation;
     if (!calculation || calculation.service?.database_id != form.service_id) return null;
 
-    const normalize = value => Array.isArray(value) ? value.map(String).sort() : String(value ?? '').trim();
-    const answers = new Map(calculation.answers.map(answer => [String(answer.id), answer.value]));
     const questionsForService = props.data.requestQuestions?.[form.service_id] ?? [];
-    const matches = questionsForService.every(question => {
-        const entered = question.from_project_description ? form.description : form.answers[question.id];
-        const previous = answers.get(String(question.id));
-        const emptyValue = question.input_type === 'multiple_choice' ? [] : '';
-        return JSON.stringify(normalize(entered ?? emptyValue)) === JSON.stringify(normalize(previous ?? emptyValue));
-    });
+    const matches = sameAnswers(questionsForService, calculation.answers, question =>
+        question.from_project_description ? form.description : form.answers[question.id]);
     return matches ? calculation : null;
 });
 const reference = computed(() => {
@@ -99,18 +115,30 @@ const reference = computed(() => {
     return segment ? {...published,min:segment.min,max:segment.max,segment:segment.label} : published;
 });
 const preliminaryReference = computed(() => Boolean(reference.value && !estimate && !matchingCalculation.value));
-// Los adicionales comparten el segmento del servicio principal, también al retomar una estimación guardada.
-const customerSegment = computed(() => {
-    const answered = questions.value.flatMap(question => (question.options ?? [])
-        .filter(option => String(option.id) === String(form.answers[question.id])).map(option => option.label));
-    return [...answered, ...estimateAnswers.value.map(answer => answer.label)]
-        .find(label => ['Particular', 'PyME', 'Empresa'].includes(label)) ?? reference.value?.segment ?? 'Particular';
-});
-const summaryCurrency = computed(() => reference.value?.currency || 'ARS');
+// Cada adicional tiene su propia referencia confirmada, en la misma moneda que el resumen.
+const summaryCurrency = computed(() => reference.value?.currency ?? estimate?.currency_snapshot ?? matchingCalculation.value?.currency ?? 'ARS');
+const extraSnapshots = computed(() => props.data.requestAdditionalPricing?.length
+    ? props.data.requestAdditionalPricing : old?.additional_services ?? []);
+function matchingExtra(item) {
+    const previous = extraSnapshots.value.find(snapshot => snapshot.service_id == item.service_id && Array.isArray(snapshot.answers));
+    return previous && sameAnswers(extraQuestions(item.service_id), previous.answers, question => item.answers[question.id]) ? previous : null;
+}
+const pendingExtraCalculation = computed(() => form.additional_services.some(item => extraQuestions(item.service_id).length && !matchingExtra(item)));
 const additionalPrices = computed(() => form.additional_services.map(item => {
+    const verified = matchingExtra(item);
     const service = props.data.services.find(service => service.database_id == item.service_id);
-    return referenceLine(props.data.references?.[service?.id], item.quantity, customerSegment.value, summaryCurrency.value);
+    if (verified) return referenceLine(verified.pricing_reference, item.quantity, null, summaryCurrency.value);
+    if (extraQuestions(item.service_id).length) return referenceLine(null, item.quantity);
+    return referenceLine(props.data.references?.[service?.id], item.quantity, null, summaryCurrency.value);
 }));
+function extraAnswerText(item, question) {
+    const value = item.answers[question.id];
+    if (value === '' || value == null) return '';
+    const selected = (Array.isArray(value) ? value : [value]).map(String);
+    return question.options?.length
+        ? question.options.filter(option => selected.includes(String(option.id))).map(option => option.label).join(', ')
+        : String(value);
+}
 const summaryPrice = computed(() => summarizePrices([
     referenceLine(reference.value, 1, null, summaryCurrency.value), ...additionalPrices.value,
 ], summaryCurrency.value));
@@ -138,11 +166,16 @@ function extraOptions(index) {
     const used = form.additional_services.filter((_, position) => position !== index).map(item => Number(item.service_id));
     return extras.value.filter(item => !used.includes(item.database_id)).map(item => ({ value: item.database_id, label: item.name }));
 }
+function changeExtra(item, serviceId) {
+    if (item.service_id == serviceId) return;
+    item.service_id = serviceId;
+    item.answers = initialExtraAnswers(serviceId);
+}
 function addService() {
     const used = form.additional_services.map(item => Number(item.service_id));
     const next = extras.value.find(item => !used.includes(item.database_id));
     if (next) {
-        form.additional_services.push({ service_id: next.database_id, quantity: 1, notes: '' });
+        form.additional_services.push({ service_id: next.database_id, quantity: 1, notes: '', answers: initialExtraAnswers(next.database_id) });
         expandedExtra.value = form.additional_services.at(-1);
     }
 }
@@ -152,7 +185,7 @@ function advance() {
     if (step.value === 1 && !selectedService.value) return;
     if (step.value === 3 && !authenticated.value) return;
     // Al completar el proyecto se obtiene el cálculo real y se conserva el avance antes del contacto.
-    if (step.value === 2 && !estimate && !old && !props.data.preview) { prepareJourney('review'); return; }
+    if (step.value === 2 && !props.data.preview) { prepareJourney('review'); return; }
     step.value += 1;
 }
 function prepareJourney(destination) {
@@ -161,7 +194,7 @@ function prepareJourney(destination) {
         preserveScroll: true,
         // Volver a calcular puede devolver la misma URL y conservar el paso local de Inertia.
         onSuccess: result => {
-            if (result.props.screen === 'publicar' && result.props.requestStep === 3) step.value = 3;
+            if (['publicar', 'solicitud'].includes(result.props.screen) && result.props.requestStep === 3) step.value = 3;
         },
         onError: errors => {
             form.setError(errors);
@@ -202,18 +235,7 @@ function save(publish) {
                 <form v-if="step < 4" @submit.prevent="advance">
                     <template v-if="step === 1">
                         <ServicePicker v-model="form.service_id" :services="data.services" :disabled="!!form.estimate_id" :error="form.errors.service_id" />
-                        <template v-if="!estimate">
-                            <template v-for="question in questions" :key="question.id">
-                                <fieldset v-if="question.input_type === 'multiple_choice'" class="request-question">
-                                    <legend>{{ question.question }}{{ question.required === false || question.required === 0 ? ' (opcional)' : ' *' }}</legend>
-                                    <label v-for="option in question.options" :key="option.id" class="select-row"><input v-model="form.answers[question.id]" type="checkbox" :value="String(option.id)">{{ option.label }}</label>
-                                    <small v-if="form.errors['answers.' + question.id]" class="error" role="alert">{{ form.errors['answers.' + question.id] }}</small>
-                                </fieldset>
-                                <F v-else v-model="form.answers[question.id]" :label="question.question" :type="question.input_type === 'single_choice' ? 'select' : question.input_type === 'number' ? 'number' : 'textarea'"
-                                    :options="question.options" :min="question.input_type === 'number' ? 1 : undefined" :max="question.input_type === 'number' ? 10000 : undefined" :maxlength="5000"
-                                    :error="form.errors['answers.' + question.id]" :required="Boolean(question.required ?? true)" />
-                            </template>
-                        </template>
+                        <RequestQuestions v-if="!estimate" v-model="form.answers" :questions="questions" :errors="form.errors" prefix="answers." />
                         <p v-if="estimate" class="request-origin"><I name="check" /> Servicio y respuestas recuperados de tu estimación. Podés agregar otros servicios a la consulta.</p>
                         <section v-if="estimateAnswers.length" class="request-answers"><h3>Respuestas de tu estimación</h3><dl><div v-for="answer in estimateAnswers" :key="answer.id"><dt>{{ answer.question }}</dt><dd>{{ answer.label }}</dd></div></dl></section>
                         <h3>Servicios adicionales</h3>
@@ -228,9 +250,13 @@ function save(publish) {
                             </div>
                             <div v-show="expandedExtra === item" :id="extrasId + '-' + index" class="request-extra-body" @invalid.capture="revealExtra($event, item)">
                                 <div class="request-extra-fields">
-                                    <F v-model="item.service_id" :label="'Servicio adicional ' + (index + 1)" type="select" :options="extraOptions(index)" required :error="form.errors['additional_services.' + index + '.service_id']" />
+                                    <F :model-value="item.service_id" @update:model-value="changeExtra(item, $event)" :label="'Servicio adicional ' + (index + 1)" type="select" :options="extraOptions(index)" required :error="form.errors['additional_services.' + index + '.service_id']" />
                                     <F v-model="item.quantity" label="Cantidad" type="number" min="1" max="1000" step="1" required :error="form.errors['additional_services.' + index + '.quantity']" />
                                 </div>
+                                <fieldset v-if="extraQuestions(item.service_id).length" class="request-extra-questions">
+                                    <legend>Preguntas de {{ extraName(item.service_id) }}</legend>
+                                    <RequestQuestions v-model="item.answers" :questions="extraQuestions(item.service_id)" :errors="form.errors" :prefix="'additional_services.' + index + '.answers.'" />
+                                </fieldset>
                                 <F v-model="item.notes" label="Qué necesitás de este servicio (opcional)" type="textarea" maxlength="2000" :error="form.errors['additional_services.' + index + '.notes']" />
                             </div>
                         </div>
@@ -266,7 +292,15 @@ function save(publish) {
                     <p class="preserve-lines">{{ form.description }}</p>
                     <div class="review-section-heading"><h3>Servicios y contacto</h3><B variant="ghost" @click="step = 1">Editar servicios</B><B variant="ghost" @click="step = 3">Editar contacto</B></div><dl class="data-list">
                         <div><dt>Servicio principal</dt><dd>{{ selectedService?.name }}</dd></div>
-                        <div v-for="(item, index) in form.additional_services" :key="index"><dt>{{ extraName(item.service_id) }} × {{ item.quantity }}</dt><dd>{{ item.notes || 'Alcance a revisar' }}</dd></div>
+                        <div v-for="(item, index) in form.additional_services" :key="index">
+                            <dt>{{ extraName(item.service_id) }} × {{ item.quantity }}</dt>
+                            <dd>
+                                <p v-if="item.notes">{{ item.notes }}</p>
+                                <template v-for="question in extraQuestions(item.service_id)" :key="question.id">
+                                    <p v-if="extraAnswerText(item, question)"><strong>{{ question.question }}</strong> {{ extraAnswerText(item, question) }}</p>
+                                </template>
+                            </dd>
+                        </div>
                         <div><dt>Contacto</dt><dd>{{ form.contact.name }}<br>{{ form.contact.email }}</dd></div>
                         <div v-if="form.contact.company"><dt>Organización</dt><dd>{{ form.contact.company }}</dd></div>
                         <div v-if="form.contact.phone"><dt>Teléfono</dt><dd>{{ form.contact.phone }}</dd></div>
@@ -292,17 +326,17 @@ function save(publish) {
                 <dl v-if="estimateAnswers.length" class="summary-answers"><div v-for="answer in estimateAnswers" :key="answer.id"><dt>{{ answer.question }}</dt><dd>{{ answer.label }}</dd></div></dl>
                 <div v-for="(item, index) in form.additional_services" :key="index" class="summary-extra">
                     <strong>{{ extraName(item.service_id) }} × {{ item.quantity }}</strong>
-                    <template v-if="additionalPrices[index].priced"><p>{{ money(additionalPrices[index].min, summaryCurrency) }}<template v-if="additionalPrices[index].max !== additionalPrices[index].min"> – {{ money(additionalPrices[index].max, summaryCurrency) }}</template></p><small>{{ money(additionalPrices[index].unitMin, summaryCurrency) }}<template v-if="additionalPrices[index].unitMax !== additionalPrices[index].unitMin"> – {{ money(additionalPrices[index].unitMax, summaryCurrency) }}</template> por unidad · {{ customerSegment }}</small></template>
+                    <template v-if="additionalPrices[index].priced"><p>{{ money(additionalPrices[index].min, summaryCurrency) }}<template v-if="additionalPrices[index].max !== additionalPrices[index].min"> – {{ money(additionalPrices[index].max, summaryCurrency) }}</template></p><small>{{ money(additionalPrices[index].unitMin, summaryCurrency) }}<template v-if="additionalPrices[index].unitMax !== additionalPrices[index].unitMin"> – {{ money(additionalPrices[index].unitMax, summaryCurrency) }}</template> por unidad</small></template>
                     <p v-else>{{ Number.isInteger(Number(item.quantity)) && Number(item.quantity) >= 1 && Number(item.quantity) <= 1000 ? 'Pendiente de cotización' : 'Ingresá una cantidad válida para calcular' }}</p>
                     <p v-if="item.notes">{{ item.notes }}</p>
                 </div>
                 <!-- El total reacciona a cambios de servicio, segmento y cantidad sin enviar importes del navegador. -->
                 <div class="request-price summary-total" role="status" aria-live="polite" aria-atomic="true">
-                    <p>{{ preliminaryReference ? 'Importe preliminar' : summaryPrice.pending ? 'Subtotal estimado' : 'Total estimado' }}</p>
+                    <p>{{ preliminaryReference || pendingExtraCalculation ? 'Importe preliminar' : summaryPrice.pending ? 'Subtotal estimado' : 'Total estimado' }}</p>
                     <strong v-if="summaryPrice.hasPrice">{{ money(summaryPrice.min, summaryPrice.currency) }}<template v-if="summaryPrice.max !== summaryPrice.min"> – {{ money(summaryPrice.max, summaryPrice.currency) }}</template></strong>
                     <strong v-else>A cotizar según el alcance</strong>
                     <small v-if="summaryPrice.pending">{{ summaryPrice.pending === 1 ? 'Hay 1 servicio pendiente de cotización o con cantidad por completar.' : 'Hay ' + summaryPrice.pending + ' servicios pendientes de cotización o con cantidades por completar.' }} No está{{ summaryPrice.pending === 1 ? '' : 'n' }} incluido{{ summaryPrice.pending === 1 ? '' : 's' }} en el subtotal.</small>
-                    <small v-if="preliminaryReference">El importe se recalcula al continuar, con las respuestas de tu solicitud.</small>
+                    <small v-if="preliminaryReference || pendingExtraCalculation">El importe se recalcula al continuar, con las respuestas de tu solicitud.</small>
                     <small v-else>Importes orientativos. El presupuesto formal confirmará el precio final.</small>
                 </div>
                 <p v-if="form.contact.name">{{ form.contact.name }}<br>{{ form.contact.email }}</p>
@@ -363,7 +397,9 @@ function save(publish) {
 .request-wizard .data-list dd, .request-summary { overflow-wrap: anywhere; min-width: 0; }
 .request-auth-gate { padding: 20px; border: 1px solid #1f6f7f33; border-radius: 12px; background: #f5f9fa; }
 .request-auth-gate > .icon { width: 28px; height: 28px; color: #1f6f7f; margin-bottom: 14px; }
-.request-question { padding: 16px; border: 1px solid #1f6f7f33; border-radius: 10px; margin-bottom: 20px; }
 .draft-help { font-size: .9rem; margin: 8px 0 0; }
 @media (max-width: 600px) { .request-wizard { --steps-height: 128px; } .request-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } .request-wizard :deep(.form-actions) { flex-wrap: wrap; gap: 12px; } .request-wizard :deep(.form-actions .btn) { flex: 1 1 100%; } }
+/* Las preguntas de cada adicional quedan agrupadas con el servicio correspondiente. */
+.request-extra-questions { min-width: 0; border: 0; margin: 4px 0 14px; padding: 0; }
+.request-extra-questions > legend { margin-bottom: 10px; font-weight: 700; }
 </style>

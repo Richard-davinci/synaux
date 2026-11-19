@@ -21,3 +21,38 @@ export function summarizePrices(lines, currency = 'ARS') {
         min: priced.reduce((sum, line) => sum + Math.round(line.min * 100), 0) / 100,
         max: priced.reduce((sum, line) => sum + Math.round(line.max * 100), 0) / 100 };
 }
+
+
+// Desglosa únicamente instantáneas coherentes y mantiene la referencia agrupada si no se puede conservar el importe.
+export function requestBudgetLines({ name, description, quantity, reference, breakdown }) {
+    const title = name || 'Servicio';
+    const text = (title + (description ? '\n' + description : '')).slice(0, 2000);
+    const fallback = [{ description: text, quantity, reference }];
+    if (!reference || !breakdown?.items?.length || breakdown.base_min == null || breakdown.base_max == null) return fallback;
+
+    const currency = reference.currency;
+    const currencyReference = (min, max) => ({ min, max, currency });
+    const base = currencyReference(Number(breakdown.base_min), Number(breakdown.base_max));
+    const lines = [{ description: text, quantity, reference: base }];
+    const cents = (price, count) => Math.round(Number(price) * count * 100);
+    for (const item of breakdown.items) {
+        const count = Number(item.quantity);
+        if (item.min == null || item.max == null || !Number.isFinite(count) || count <= 0) return fallback;
+        // El ajuste por tipo de cliente forma parte del precio base comercial.
+        if (item.slug === 'segmento-tarifario-2026-11' || (!item.slug && item.unit === 'segmento' && item.name === 'Adecuación por tipo de cliente')) {
+            base.min = (cents(base.min, 1) + cents(item.min, count)) / 100;
+            base.max = (cents(base.max, 1) + cents(item.max, count)) / 100;
+            continue;
+        }
+        const totalQuantity = Math.round(count * quantity * 1000) / 1000;
+        lines.push({
+            description: ((item.name || 'Adicional') + '\n' + 'Concepto de ' + title).slice(0, 2000),
+            quantity: totalQuantity,
+            reference: currencyReference(Number(item.min), Number(item.max)),
+        });
+    }
+    if (lines.some(line => line.quantity < 0.001 || line.quantity > 10000
+        || !['min', 'max'].every(key => Number.isFinite(line.reference[key]) && line.reference[key] >= 0 && line.reference[key] <= 100000000))) return fallback;
+    return ['min', 'max'].every(key => lines.reduce((sum, line) => sum + cents(line.reference[key], line.quantity), 0) === cents(reference[key], quantity))
+        ? lines : fallback;
+}
