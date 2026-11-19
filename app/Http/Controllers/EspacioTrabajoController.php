@@ -3,28 +3,28 @@
 namespace App\Http\Controllers;
 
 use App\Services\Admin\CatalogConfiguration;
-use App\Services\Budgets\BudgetQueries;
+use App\Services\Presupuestos\ConsultasPresupuestos;
 use App\Services\Catalog\ServiceCatalog;
 use App\Services\Estimates\EstimateStore;
 use App\Services\Marketplace\MarketplaceQueries;
 use App\Services\Notifications\NotificationCenter;
 use App\Services\Portfolio\PortfolioQueries;
 use App\Services\Projects\ProjectQueries;
-use App\Services\Requests\RequestQueries;
+use App\Services\Solicitudes\ConsultasSolicitudes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
-class WorkspaceController extends Controller
+class EspacioTrabajoController extends Controller
 {
     public function __construct(
         private ServiceCatalog $catalog,
-        private BudgetQueries $budgetQueries,
+        private ConsultasPresupuestos $budgetQueries,
         private EstimateStore $estimates,
         private MarketplaceQueries $marketplaceQueries,
         private PortfolioQueries $portfolioQueries,
         private ProjectQueries $projectQueries,
-        private RequestQueries $requestQueries,
+        private ConsultasSolicitudes $requestQueries,
         private CatalogConfiguration $configuration,
         private NotificationCenter $notifications,
     ) {}

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Projects;
 
 use App\Http\Controllers\Controller;
-use App\Services\Budgets\BudgetQueries;
+use App\Services\Presupuestos\ConsultasPresupuestos;
 use App\Services\Notifications\NotificationCenter;
 use App\Services\Projects\ProjectQueries;
 use Illuminate\Http\Request;
@@ -14,7 +14,7 @@ use Inertia\Inertia;
 class ProjectController extends Controller
 {
     // Comprueba el presupuesto del proyecto antes de cargar su historial y marcar sus avisos.
-    public function show(Request $request, BudgetQueries $budgetQueries, ProjectQueries $projectQueries, NotificationCenter $notifications, int $id)
+    public function show(Request $request, ConsultasPresupuestos $budgetQueries, ProjectQueries $projectQueries, NotificationCenter $notifications, int $id)
     {
         $user = $request->user();
         $versionId = DB::table('projects')->where('id', $id)->value('accepted_budget_version_id') ?? abort(404);
@@ -31,7 +31,7 @@ class ProjectController extends Controller
     }
 
     // Cada avance se valida y conserva en una transacción; el cliente solo puede consultarlo.
-    public function update(Request $request, BudgetQueries $budgetQueries, NotificationCenter $notifications)
+    public function update(Request $request, ConsultasPresupuestos $budgetQueries, NotificationCenter $notifications)
     {
         $d = $request->validate([
             'id' => 'required|integer', 'status' => ['required', Rule::in(['pending', 'in_progress', 'completed', 'cancelled'])],

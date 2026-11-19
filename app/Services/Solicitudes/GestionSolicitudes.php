@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Services\Requests;
+namespace App\Services\Solicitudes;
 
 use App\Services\Notifications\NotificationCenter;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
-class RequestService
+class GestionSolicitudes
 {
     public function __construct(
-        private RequestJourney $journey,
+        private RecorridoSolicitud $journey,
         private NotificationCenter $notifications,
     ) {}
 

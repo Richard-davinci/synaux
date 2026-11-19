@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Services\Requests;
+namespace App\Services\Solicitudes;
 
 use Illuminate\Support\Facades\DB;
 
-class RequestQueries
+class ConsultasSolicitudes
 {
     // Filtra solicitudes por propiedad, publicación o permisos internos antes de preparar sus datos.
     public function requests(?int $owner, bool $management = false, bool $public = false, ?array $only = null): array

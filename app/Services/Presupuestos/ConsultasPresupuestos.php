@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Services\Budgets;
+namespace App\Services\Presupuestos;
 
 use Illuminate\Support\Facades\DB;
 
-class BudgetQueries
+class ConsultasPresupuestos
 {
     // Resuelve los dos orígenes del presupuesto y filtra versiones según cliente, emisor y estado.
     public function quotes(?int $userId, bool $management = false, ?int $id = null, ?int $budgetId = null): array

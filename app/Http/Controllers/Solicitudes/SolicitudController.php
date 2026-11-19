@@ -1,23 +1,23 @@
 <?php
 
-namespace App\Http\Controllers\Requests;
+namespace App\Http\Controllers\Solicitudes;
 
 use App\Http\Controllers\Controller;
 use App\Services\Catalog\ServiceCatalog;
 use App\Services\Estimates\EstimateStore;
 use App\Services\Notifications\NotificationCenter;
-use App\Services\Requests\RequestJourney;
-use App\Services\Requests\RequestQueries;
-use App\Services\Requests\RequestService;
+use App\Services\Solicitudes\RecorridoSolicitud;
+use App\Services\Solicitudes\ConsultasSolicitudes;
+use App\Services\Solicitudes\GestionSolicitudes;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
-class RequestController extends Controller
+class SolicitudController extends Controller
 {
-    public function __construct(private RequestService $requests) {}
+    public function __construct(private GestionSolicitudes $requests) {}
 
     // Valida el formulario autenticado y redirige al detalle del borrador o la solicitud publicada.
     public function store(Request $request): RedirectResponse
@@ -60,7 +60,7 @@ class RequestController extends Controller
         $data['skills'] = array_values(array_unique(array_filter(array_map('trim', explode(',', $data['skills'] ?? '')))));
         // La estimación integrada se calcula en el servidor y se guarda junto al pedido en una transacción.
         $id = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $data) {
-            $journey = app(\App\Services\Requests\RequestJourney::class);
+            $journey = app(\App\Services\Solicitudes\RecorridoSolicitud::class);
             $pending = $journey->pending($request);
             if (array_key_exists('answers', $data) && empty($data['estimate_id'])) {
                 $calculation = $journey->calculate($data);
@@ -80,7 +80,7 @@ class RequestController extends Controller
     }
 
     // Abre el formulario público con la estimación elegida por su titular, si corresponde.
-    public function create(Request $request, ServiceCatalog $catalog, EstimateStore $estimates, RequestJourney $journey)
+    public function create(Request $request, ServiceCatalog $catalog, EstimateStore $estimates, RecorridoSolicitud $journey)
     {
         if ($request->user()?->is_admin) {
             return redirect('/gestion');
@@ -99,7 +99,7 @@ class RequestController extends Controller
     }
 
     // Los borradores se reabren con las preguntas y la estimación que usó el titular.
-    public function show(Request $request, RequestQueries $requestQueries, ServiceCatalog $catalog, EstimateStore $estimates, RequestJourney $journey, NotificationCenter $notifications, int $id)
+    public function show(Request $request, ConsultasSolicitudes $requestQueries, ServiceCatalog $catalog, EstimateStore $estimates, RecorridoSolicitud $journey, NotificationCenter $notifications, int $id)
     {
         $user = $request->user();
         $management = (bool) $user->is_admin;
@@ -124,7 +124,7 @@ class RequestController extends Controller
     }
 
     // Conserva el proyecto en la sesión antes del ingreso y vuelve después al paso de contacto.
-    public function prepare(Request $request, RequestJourney $journey)
+    public function prepare(Request $request, RecorridoSolicitud $journey)
     {
         abort_if($request->user()?->is_admin, 403);
 

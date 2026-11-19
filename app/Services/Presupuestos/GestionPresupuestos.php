@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Budgets;
+namespace App\Services\Presupuestos;
 
 use App\Services\Notifications\NotificationCenter;
 use Illuminate\Http\Request;
@@ -9,7 +9,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 // Las operaciones formales se ejecutan en transacciones y siempre verifican el dueño de la solicitud.
-class BudgetService
+class GestionPresupuestos
 {
     public function __construct(private NotificationCenter $notifications) {}
 

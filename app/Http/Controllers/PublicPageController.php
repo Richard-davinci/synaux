@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Services\Catalog\ServiceCatalog;
 use App\Services\Marketplace\MarketplaceQueries;
 use App\Services\Portfolio\PortfolioQueries;
-use App\Services\Requests\RequestJourney;
-use App\Services\Requests\RequestQueries;
+use App\Services\Solicitudes\RecorridoSolicitud;
+use App\Services\Solicitudes\ConsultasSolicitudes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -17,8 +17,8 @@ class PublicPageController extends Controller
         private ServiceCatalog $catalog,
         private MarketplaceQueries $marketplaceQueries,
         private PortfolioQueries $portfolioQueries,
-        private RequestQueries $requestQueries,
-        private RequestJourney $journey,
+        private ConsultasSolicitudes $requestQueries,
+        private RecorridoSolicitud $journey,
     ) {}
 
     // Prepara una pantalla pública y agrega únicamente los datos que su recorrido necesita.

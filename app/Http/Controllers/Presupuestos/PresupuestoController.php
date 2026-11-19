@@ -1,26 +1,26 @@
 <?php
 
-namespace App\Http\Controllers\Budgets;
+namespace App\Http\Controllers\Presupuestos;
 
 use App\Http\Controllers\Controller;
-use App\Services\Budgets\BudgetQueries;
-use App\Services\Budgets\BudgetService;
+use App\Services\Presupuestos\ConsultasPresupuestos;
+use App\Services\Presupuestos\GestionPresupuestos;
 use App\Services\Catalog\ServiceCatalog;
 use App\Services\Marketplace\MarketplaceQueries;
 use App\Services\Notifications\NotificationCenter;
 use App\Services\Projects\ProjectQueries;
-use App\Services\Requests\RequestQueries;
+use App\Services\Solicitudes\ConsultasSolicitudes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
-class BudgetController extends Controller
+class PresupuestoController extends Controller
 {
     public function __construct(
-        private BudgetQueries $budgetQueries,
+        private ConsultasPresupuestos $budgetQueries,
         private MarketplaceQueries $marketplaceQueries,
         private ProjectQueries $projectQueries,
-        private RequestQueries $requestQueries,
+        private ConsultasSolicitudes $requestQueries,
         private NotificationCenter $notifications,
     ) {}
 
@@ -96,13 +96,13 @@ class BudgetController extends Controller
     }
 
     // Delega el guardado y la emisión al servicio que controla sus versiones.
-    public function store(Request $request, BudgetService $budgets)
+    public function store(Request $request, GestionPresupuestos $budgets)
     {
         return redirect('/presupuestos/'.$budgets->save($request))->with('notice', 'Versión guardada.');
     }
 
     // Redirige al proyecto cuando se acepta la versión vigente del presupuesto.
-    public function decide(Request $request, BudgetService $budgets)
+    public function decide(Request $request, GestionPresupuestos $budgets)
     {
         $id = $budgets->decide($request);
 

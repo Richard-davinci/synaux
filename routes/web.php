@@ -5,8 +5,8 @@ use App\Http\Controllers\Admin\CatalogConfigurationController;
 use App\Http\Controllers\Admin\TariffController;
 use App\Http\Controllers\Admin\TariffImportController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\Budgets\BudgetController;
-use App\Http\Controllers\Budgets\BudgetPdfController;
+use App\Http\Controllers\Presupuestos\PresupuestoController;
+use App\Http\Controllers\Presupuestos\PdfPresupuestoController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Estimates\EstimateController;
 use App\Http\Controllers\Marketplace\InvitationController;
@@ -17,8 +17,8 @@ use App\Http\Controllers\Portfolio\PortfolioWorkController;
 use App\Http\Controllers\Projects\ProjectController;
 use App\Http\Controllers\PrototypeController;
 use App\Http\Controllers\PublicPageController;
-use App\Http\Controllers\Requests\RequestController;
-use App\Http\Controllers\WorkspaceController;
+use App\Http\Controllers\Solicitudes\SolicitudController;
+use App\Http\Controllers\EspacioTrabajoController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -40,8 +40,8 @@ foreach (['servicios' => 'servicio', 'trabajos' => 'trabajo', 'oportunidades' =>
 }
 Route::post('/contacto', [ContactController::class, 'store'])->middleware('throttle:6,1');
 // El formulario nuevo es público; consultar registros guardados y enviar pedidos sigue requiriendo autenticación.
-Route::get('/solicitudes/nueva', [RequestController::class, 'create']);
-Route::post('/solicitudes/preparar', [RequestController::class, 'prepare'])->middleware('throttle:20,1');
+Route::get('/solicitudes/nueva', [SolicitudController::class, 'create']);
+Route::post('/solicitudes/preparar', [SolicitudController::class, 'prepare'])->middleware('throttle:20,1');
 Route::post('/estimador/calcular', [EstimateController::class, 'calculate'])->middleware('throttle:30,1');
 
 // Registro e ingreso usan sesiones y límites de intentos; la recuperación usa el broker de Laravel.
@@ -68,32 +68,32 @@ Route::middleware('auth')->group(function () {
     Route::patch('/mi-perfil/emision', [AccountController::class, 'updateIssuer'])->middleware('throttle:10,1');
     Route::post('/salir', [AuthController::class, 'logout']);
     foreach (['cliente', 'profesional'] as $area) {
-        Route::get('/'.$area.'/{section?}', fn (Request $r, WorkspaceController $c, string $section = '') => $c->show($r, $area, $section));
+        Route::get('/'.$area.'/{section?}', fn (Request $r, EspacioTrabajoController $c, string $section = '') => $c->show($r, $area, $section));
     }
-    Route::get('/presupuestos/{id}/pdf', [BudgetPdfController::class, 'show'])->whereNumber('id')->middleware('throttle:20,1');
-    Route::get('/solicitudes/{id}', [RequestController::class, 'show'])->whereNumber('id');
+    Route::get('/presupuestos/{id}/pdf', [PdfPresupuestoController::class, 'show'])->whereNumber('id')->middleware('throttle:20,1');
+    Route::get('/solicitudes/{id}', [SolicitudController::class, 'show'])->whereNumber('id');
     Route::get('/estimaciones/{id}', [EstimateController::class, 'show'])->whereNumber('id');
-    Route::get('/presupuestos/{id}', [BudgetController::class, 'show'])->whereNumber('id');
+    Route::get('/presupuestos/{id}', [PresupuestoController::class, 'show'])->whereNumber('id');
     Route::get('/proyectos/{id}', [ProjectController::class, 'show'])->whereNumber('id');
-    Route::get('/editor/presupuesto/{id?}', [BudgetController::class, 'edit'])->whereNumber('id');
+    Route::get('/editor/presupuesto/{id?}', [PresupuestoController::class, 'edit'])->whereNumber('id');
     Route::get('/editor/trabajo/{id?}', [PortfolioWorkController::class, 'edit'])->whereNumber('id');
     // El formulario de solicitudes conserva su URL y el mismo límite de envíos.
-    Route::post('/acciones/solicitud', [RequestController::class, 'store'])->middleware('throttle:60,1');
+    Route::post('/acciones/solicitud', [SolicitudController::class, 'store'])->middleware('throttle:60,1');
     // El borrado requiere una sesión y vuelve a comprobar la propiedad en el controlador.
     Route::delete('/estimaciones/{id}', [EstimateController::class, 'destroy'])->whereNumber('id')->middleware('throttle:20,1');
     // El guardado de estimaciones mantiene la URL y los límites que usa el frontend.
     Route::post('/acciones/guardar-estimacion', [EstimateController::class, 'store'])->middleware('throttle:60,1');
     // Cada acción conserva su URL y su límite, con autorización específica en el controlador.
     Route::middleware('throttle:60,1')->group(function () {
-        Route::post('/acciones/estado-solicitud', [RequestController::class, 'updateStatus']);
+        Route::post('/acciones/estado-solicitud', [SolicitudController::class, 'updateStatus']);
         Route::post('/acciones/perfil', [ProfessionalProfileController::class, 'update']);
         Route::post('/acciones/propuesta', [ProposalController::class, 'store']);
         Route::post('/acciones/seleccionar-propuesta', [ProposalController::class, 'select']);
         Route::post('/acciones/retirar-propuesta', [ProposalController::class, 'withdraw']);
         Route::post('/acciones/invitacion', [InvitationController::class, 'store']);
         Route::post('/acciones/responder-invitacion', [InvitationController::class, 'respond']);
-        Route::post('/acciones/presupuesto', [BudgetController::class, 'store']);
-        Route::post('/acciones/decidir-presupuesto', [BudgetController::class, 'decide']);
+        Route::post('/acciones/presupuesto', [PresupuestoController::class, 'store']);
+        Route::post('/acciones/decidir-presupuesto', [PresupuestoController::class, 'decide']);
         Route::post('/acciones/proyecto', [ProjectController::class, 'update']);
         Route::post('/acciones/trabajo', [PortfolioWorkController::class, 'store']);
         Route::post('/acciones/{action}', fn () => abort(404));
@@ -104,10 +104,10 @@ Route::middleware('auth')->group(function () {
         // Entrada administrativa de revisión para las funciones de la segunda etapa.
         Route::get('/admin/etapa-2', fn () => Inertia::render('RevisionEtapaDos'))->name('stage-two');
         // El asistente usa una página propia y conserva el permiso real del grupo administrativo.
-        Route::get('/admin/servicios/nuevo', fn (Request $r, WorkspaceController $c) => $c->show($r, 'admin', 'servicios'));
-        Route::get('/admin/servicios/{service}/editar', [WorkspaceController::class, 'editService'])->whereNumber('service');
+        Route::get('/admin/servicios/nuevo', fn (Request $r, EspacioTrabajoController $c) => $c->show($r, 'admin', 'servicios'));
+        Route::get('/admin/servicios/{service}/editar', [EspacioTrabajoController::class, 'editService'])->whereNumber('service');
         foreach (['gestion', 'admin'] as $area) {
-            Route::get('/'.$area.'/{section?}', fn (Request $r, WorkspaceController $c, string $section = '') => $c->show($r, $area, $section));
+            Route::get('/'.$area.'/{section?}', fn (Request $r, EspacioTrabajoController $c, string $section = '') => $c->show($r, $area, $section));
         }
         // Los precios publican versiones del tarifario; el resto configura el catálogo.
         Route::middleware('throttle:30,1')->group(function () {

@@ -1,17 +1,17 @@
 <?php
 
-namespace App\Http\Controllers\Budgets;
+namespace App\Http\Controllers\Presupuestos;
 
 use App\Http\Controllers\Controller;
-use App\Services\Budgets\BudgetQueries;
+use App\Services\Presupuestos\ConsultasPresupuestos;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Http\Request;
 
-class BudgetPdfController extends Controller
+class PdfPresupuestoController extends Controller
 {
     // La descarga aplica los mismos filtros de propiedad, emisor y estado que la vista del presupuesto.
-    public function show(Request $request, BudgetQueries $budgetQueries, int $id)
+    public function show(Request $request, ConsultasPresupuestos $budgetQueries, int $id)
     {
         $budget = $budgetQueries->quotes($request->user()->id, (bool) $request->user()->is_admin, id: $id)[0] ?? null;
         abort_unless($budget, 404);

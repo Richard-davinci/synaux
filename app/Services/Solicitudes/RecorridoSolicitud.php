@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Requests;
+namespace App\Services\Solicitudes;
 
 use App\Services\Catalog\ServiceCatalog;
 use Illuminate\Http\Request;
@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 // El borrador anónimo vive en la sesión; nunca permite consultar solicitudes ni estimaciones de otra cuenta.
-class RequestJourney
+class RecorridoSolicitud
 {
     public function __construct(private ServiceCatalog $catalog) {}
 
