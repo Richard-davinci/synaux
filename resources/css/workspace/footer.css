@@ -1,0 +1,43 @@
+/* La trama separa el pie sobre fondo blanco; .shell define los márgenes del contenido. */
+.synaux-app footer.site-footer {
+    border-top: 0;
+    display: block;
+    width: auto;
+    padding: 0;
+    background: #fff;
+}
+
+.site-footer > .footer-grid {
+    display: grid;
+    grid-template-columns: 160px minmax(240px, 1fr) auto;
+    align-items: center;
+    padding-block: 28px;
+    gap: clamp(20px, 3.4vw, 40px);
+}
+
+@media (max-width: 900px) {
+    .site-footer > .footer-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+/* El logo del pie de la landing ocupa menos espacio y conserva su proporción. */
+.synaux-app .site-footer .footer-grid .brand-logo {
+    width: 160px;
+    height: auto;
+}
+
+/* Los bloques de marca, firma y navegación comparten el centro vertical del pie. */
+.site-footer .footer-copy { max-width: 410px; row-gap: 8px; }
+.site-footer .footer-copy strong { max-width: 100%; }
+.site-footer .footer-nav-links a { min-height: 32px; display: inline-flex; align-items: center; }
+@media (max-width: 900px) { .site-footer > .footer-grid { grid-template-columns: 160px minmax(0,1fr); align-items: center; gap: 24px; } .site-footer .footer-grid nav { grid-column: 1 / -1; } }
+@media (max-width: 540px) { .site-footer > .footer-grid { grid-template-columns: minmax(0,1fr); } .site-footer .footer-grid nav { grid-column: auto; } .site-footer .footer-copy { display: grid; } }
+
+/* El SVG transparente cubre todos los pies de navegación sin mosaicos ni deformación.
+   2682 px conserva la escala de las piezas (3600 × 380 / 510); solo se amplía en pantallas superiores a ese ancho. */
+.synaux-brand-pattern { background-image: url('../../images/brand/synaux-trama.svg'); background-repeat: no-repeat; background-size: max(100%, 2682px) auto; pointer-events: none; }
+/* Solo se muestra la primera fila completa; la altura acompaña la escala en pantallas ultranchas. */
+.site-footer-pattern { width: 100%; height: max(33px, 1.222222vw); background-position: center top; opacity: .35; }
+
+/* La firma mantiene contraste en todas las vistas que comparten el pie. */
+.synaux-app .site-footer .footer-copy strong { color: #153b64; }

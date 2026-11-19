@@ -2,12 +2,14 @@
 import SidePanel from '../UI/SidePanel.vue';
 import { computed, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import { VSwitch } from 'vuetify/components';
 import B from '../UI/AppButton.vue';
-import F from '../UI/FormField.vue';
-import I from '../UI/AppIcon.vue';
 import BudgetDocument from './BudgetDocument.vue';
-import { money, date, useSubmit } from '../../support/synaux';
+import BudgetLines from './BudgetLines.vue';
+import BudgetPreviewSidebar from './BudgetPreviewSidebar.vue';
+import BudgetSourceFields from './BudgetSourceFields.vue';
+import BudgetTerms from './BudgetTerms.vue';
+import BudgetVatFields from './BudgetVatFields.vue';
+import { money, useSubmit } from '../../support/synaux';
 import { referenceLine, requestBudgetLines } from '../../support/requestPricing';
 
 // El editor recibe solo las solicitudes autorizadas; Laravel vuelve a comprobar permisos y valores al guardar.
@@ -152,76 +154,20 @@ function save(send) {
         <form class="budget-editor-grid" @submit.prevent="advance">
             <v-card class="card budget-panel">
                 <p class="eyebrow">Paso {{ step }} de 3</p>
-                <template v-if="step === 1">
-                    <B v-if="!selected.budget_id && data.auth?.is_admin && !data.preview" :href="direct ? '/editor/presupuesto' : '/editor/presupuesto?directo=1'" variant="ghost">{{ direct ? 'Crear desde una solicitud' : 'Crear presupuesto directo' }}</B>
-                    <template v-if="direct">
-                        <h2>Datos del cliente</h2>
-                        <F v-model="quote.client.name" label="Nombre del cliente" maxlength="255" :error="quote.errors['client.name']" required />
-                        <div class="form-grid">
-                            <F v-model="quote.client.company" label="Empresa" maxlength="255" :error="quote.errors['client.company']" />
-                            <F v-model="quote.client.email" label="Correo electrónico" type="email" maxlength="254" :error="quote.errors['client.email']" />
-                            <F v-model="quote.client.phone" label="Teléfono" type="tel" maxlength="50" :error="quote.errors['client.phone']" />
-                            <F v-model="quote.client.address" label="Dirección" maxlength="500" :error="quote.errors['client.address']" />
-                        </div>
-                    </template>
-                    <template v-else>
-                    <h2>Revisá la solicitud</h2>
-                    <F v-model="quote.request_id" label="Solicitud relacionada" type="select" :disabled="!!selected.budget_id || quote.processing" :options="requestOptions" :error="quote.errors.request_id" required />
-                    <p v-if="!selected.budget_id" class="editor-hint">Si cambiás la solicitud, se reemplazan el título y los conceptos por los del pedido elegido.</p>
-                    <p v-if="!requestOptions.length">Todavía no hay solicitudes disponibles para presupuestar.</p>
-                    <section v-if="source" class="request-context" aria-label="Pedido del cliente">
-                        <div class="context-heading"><h3>SOL-{{ source.id }} · {{ source.title }}</h3><B :href="'/solicitudes/' + source.id" variant="ghost">Ver solicitud</B></div>
-                        <p class="preserve-lines">{{ source.description }}</p>
-                        <dl><div><dt>Servicio principal</dt><dd>{{ source.service_name }}</dd></div><div><dt>Plazo solicitado</dt><dd>{{ source.desired_deadline || 'A coordinar' }}</dd></div><div><dt>Presupuesto disponible</dt><dd>{{ source.budget_reference || 'Sin indicar' }}</dd></div></dl>
-                        <div v-if="source.additional_services?.length">
-                            <h3>Servicios adicionales</h3>
-                            <div v-for="item in source.additional_services" :key="item.service_id">
-                                <p><strong>{{ item.name }} × {{ item.quantity }}</strong><br v-if="item.notes">{{ item.notes }}</p>
-                                <dl v-if="item.answers?.length"><div v-for="answer in item.answers" :key="answer.id"><dt>{{ answer.question }}</dt><dd>{{ answer.label }}</dd></div></dl>
-                            </div>
-                        </div>
-                        <div v-if="source.answers?.length"><h3>Respuestas de la estimación</h3><dl><div v-for="answer in source.answers" :key="answer.id"><dt>{{ answer.question }}</dt><dd>{{ answer.label }}</dd></div></dl></div>
-                    </section>
-                    <section v-if="client" class="client-context"><h3>Contacto del pedido</h3><strong>{{ client.name }}</strong><p>{{ client.email }}</p><p v-if="client.company">{{ client.company }}</p><p v-if="client.phone">{{ client.phone }}</p><p v-if="client.address">{{ client.address }}</p></section>
-                    </template>
-                    <F v-model="quote.title" label="Título del presupuesto" maxlength="255" :error="quote.errors.title" required />
-                    <F v-model="quote.currency_code" label="Moneda del presupuesto" type="select" :options="['ARS', 'USD', 'EUR']" :error="quote.errors.currency_code" required />
-                    <p class="editor-hint">Los importes se ingresan en la moneda elegida. Cambiarla no convierte los precios.</p>
-                </template>
-                <template v-else-if="step === 2">
-                    <h2>Definí los servicios</h2><p>Completá el alcance, la cantidad y el precio de cada concepto.</p>
-                    <div v-for="(item, index) in quote.items" :key="index" class="quote-item">
-                        <div class="context-heading"><h3>Concepto {{ index + 1 }}</h3><B variant="ghost" :disabled="quote.items.length === 1 || quote.processing" :aria-label="'Quitar concepto ' + (index + 1)" @click="quote.items.splice(index, 1)">Quitar</B></div>
-                        <F v-model="item.description" label="Servicio y entregables" type="textarea" maxlength="2000" :error="quote.errors['items.' + index + '.description']" required />
-                        <div class="form-grid"><F v-model="item.quantity" label="Cantidad" type="number" min="0.001" max="10000" step="0.001" :error="quote.errors['items.' + index + '.quantity']" required /><F v-model="item.unit_price" :label="'Precio unitario · ' + quote.currency_code" type="number" min="0" max="100000000" step="0.01" :error="quote.errors['items.' + index + '.unit_price']" :hint="priceHint(item.reference)" required /></div>
-                        <p class="item-subtotal">Subtotal del concepto <strong>{{ item.unit_price === '' ? 'Pendiente de cotizar' : money(lineCents(item) / 100, quote.currency_code) }}</strong></p>
-                    </div>
-                    <B variant="secondary" :disabled="quote.items.length >= 100 || quote.processing" @click="quote.items.push(emptyItem())">Agregar concepto</B>
-                </template>
-                <template v-else>
-                    <h2>Plazos y condiciones</h2>
-                    <div class="form-grid"><F v-model="quote.estimated_delivery_days" label="Entrega estimada (días desde el inicio)" type="number" min="1" max="3650" step="1" :error="quote.errors.estimated_delivery_days" required /><F v-model="quote.valid_until" label="Presupuesto válido hasta" type="date" :min="new Date().toLocaleDateString('en-CA')" :error="quote.errors.valid_until" required /></div>
-
-                    <F v-model="quote.terms" label="Condiciones, forma de pago y revisiones" type="textarea" maxlength="10000" hint="Detallá el anticipo, las entregas, las revisiones incluidas y cuándo comienza el plazo." :error="quote.errors.terms" required />
-                    <p class="editor-note"><I name="info" /> {{ direct ? 'Al emitirlo, vas a poder descargar el PDF para compartirlo con el cliente.' : 'El cliente recibirá esta versión en su cuenta. Podrá descargarla y aceptar o rechazar el presupuesto vigente.' }}</p>
-                </template>
-                <!-- El IVA se configura una sola vez y se muestra desglosado en el documento completo. -->
-                <section v-if="step > 1" class="vat-settings" aria-label="IVA del presupuesto">
-                    <VSwitch v-model="includeVat" label="Incluir IVA" color="primary" inset hide-details density="compact" :disabled="quote.processing" />
-                    <F v-if="includeVat" v-model="quote.tax_rate" label="IVA (%)" type="number" min="0.01" max="100" step="0.01" :error="quote.errors.tax_rate" required />
-                    <p v-else-if="quote.errors.tax_rate" class="error" role="alert">{{ quote.errors.tax_rate }}</p>
-                    <p class="editor-hint">{{ includeVat ? 'Se aplica al subtotal de todos los conceptos.' : 'El total se muestra sin IVA agregado.' }}</p>
-                </section>
+                <BudgetSourceFields v-if="step === 1" :quote="quote" :selected="selected" :data="data"
+                    :direct="direct" :source="source" :client="client" :request-options="requestOptions" />
+                <BudgetLines v-else-if="step === 2" :quote="quote" :line-cents="lineCents" :price-hint="priceHint"
+                    @add-item="quote.items.push(emptyItem())" />
+                <BudgetTerms v-else :quote="quote" :direct="direct" />
+                <!-- Una sola tasa de IVA se comparte entre servicios, condiciones y documento. -->
+                <BudgetVatFields v-if="step > 1" v-model="includeVat" :quote="quote" />
                 <p v-if="source && !canPrepare" class="editor-note" role="status">Esta solicitud ya no está abierta. Consultá el presupuesto y el estado del proyecto antes de continuar.</p>
                 <div class="form-actions"><B v-if="step > 1" variant="secondary" :disabled="quote.processing" @click="step -= 1">Anterior</B><span v-else /><B type="submit" :disabled="!canPrepare || needsIssuer || quote.processing" arrow>{{ step === 3 ? 'Revisar documento' : 'Continuar' }}</B></div>
             </v-card>
 
-            <!-- La vista previa se actualiza al editar y utiliza el mismo documento que recibe el cliente. -->
-            <aside class="budget-summary" aria-label="Vista previa del presupuesto">
-                <div class="preview-toolbar"><h2>Vista previa</h2><B variant="ghost" @click="preview = true">Ampliar</B></div>
-                <div class="document-preview-scroll"><BudgetDocument :budget="documentPreview" :client="client" :issuer="issuer" /></div>
-                <div class="preview-save"><B variant="secondary" :disabled="!canPrepare || needsIssuer || quote.processing" @click="save(false)">{{ quote.processing && !quote.send ? 'Guardando…' : 'Guardar borrador' }}</B><p class="editor-hint">{{ direct ? 'El borrador queda disponible en Gestión.' : 'El borrador queda en Gestión. El cliente lo verá cuando lo envíes.' }}</p></div>
-            </aside>
+            <BudgetPreviewSidebar :budget="documentPreview" :client="client" :issuer="issuer" :direct="direct"
+                :disabled="!canPrepare || needsIssuer || quote.processing" :saving="quote.processing && !quote.send"
+                @expand="preview = true" @save="save(false)" />
         </form>
         <SidePanel title="Vista previa del presupuesto" v-model="preview" max-width="800" :persistent="quote.processing">
             <div class="synaux-app"><v-card class="card modal-card budget-preview"><div class="context-heading"><h2>{{ direct ? 'Revisá antes de emitir' : 'Revisá antes de enviar' }}</h2></div><BudgetDocument :budget="documentPreview" :client="client" :issuer="issuer" /><div class="form-actions"><B variant="secondary" :disabled="quote.processing" @click="preview = false">Volver a editar</B><B v-if="step === 3" :disabled="quote.processing || !canPrepare || needsIssuer" arrow @click="save(true)">{{ direct ? (quote.processing ? 'Emitiendo…' : 'Emitir presupuesto') : (quote.processing ? 'Enviando…' : 'Enviar presupuesto al cliente') }}</B></div></v-card></div>
@@ -233,8 +179,8 @@ function save(send) {
 /* La grilla, las tarjetas y los pasos siguen el recorrido del cliente sin comprimir los conceptos. */
 .budget-heading { margin: 26px 0; max-width: 860px; }
 .budget-heading h1 { font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 700; line-height: 1.12; margin-bottom: 16px; }
-.budget-editor h2 { font-size: clamp(1.5rem, 2.5vw, 2rem); font-weight: 700; }
-.budget-editor h3 { font-size: 1.1rem; font-weight: 700; }
+.budget-panel :deep(h2) { font-size: clamp(1.5rem, 2.5vw, 2rem); font-weight: 700; }
+.budget-panel :deep(h3) { font-size: 1.1rem; font-weight: 700; }
 .budget-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 0; margin: 0 0 24px; list-style: none; }
 .budget-steps button { min-height: 48px; width: 100%; border: 1px solid #1f6f7f33; border-radius: 10px; color: #153b64; background: white; font: inherit; font-weight: 700; cursor: pointer; }
 .budget-steps button[aria-current='step'] { background: #153b64; color: white; }
@@ -242,29 +188,11 @@ function save(send) {
 .budget-steps button:focus-visible { outline: 3px solid #1f6f7f; outline-offset: 3px; }
 .budget-editor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }
 .budget-editor-grid > * { min-width: 0; }
-.budget-summary { position: sticky; top: calc(var(--navbar-height, 108px) + var(--workspace-bar-height, 0px) + 16px); overflow-wrap: anywhere; border: 1px solid #1f6f7f22; border-radius: 12px; background: #fff; }
-.preview-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid #1f6f7f22; }
-.preview-toolbar h2 { margin: 0; font-size: 1.1rem; }
-.document-preview-scroll { max-height: 65dvh; overflow: auto; padding: 12px; background: #f5f9fa; }
-.preview-save { padding: 16px; }
-.preview-save > .btn { width: 100%; }
-.preview-save p { margin: 10px 0 0; }
-.vat-settings { margin: 20px 0; padding: 16px; background: #f5f9fa; border: 1px solid #1f6f7f22; border-radius: 10px; }
-.vat-settings :deep(.field) { margin: 12px 0; }
-.vat-settings p { margin-bottom: 0; }
-.budget-summary > .btn { width: 100%; }
-.editor-note, .request-context, .client-context { background: #f5f9fa; border: 1px solid #1f6f7f22; padding: 16px; border-radius: 12px; margin: 16px 0; }
+.editor-note { background: #f5f9fa; border: 1px solid #1f6f7f22; padding: 16px; border-radius: 12px; margin: 16px 0; }
 .editor-note .icon { width: 20px; vertical-align: middle; margin-right: 6px; }
-.editor-hint { font-size: .9rem; color: #446075; }
 .context-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
 .context-heading h3, .context-heading h2 { margin: 0; }
-.request-context dl > div { padding: 10px 0; border-bottom: 1px solid #1f6f7f22; }
-.request-context dd { margin: 4px 0 0; font-weight: 700; overflow-wrap: anywhere; }
-.client-context p { margin: 4px 0; overflow-wrap: anywhere; }
-.quote-item { padding: 18px; border: 1px solid #1f6f7f33; border-radius: 14px; margin: 18px 0; }
-.item-subtotal { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin: 16px 0 0; }
-.quote-total { font-size: 1.2rem; font-weight: 700; }
 .budget-preview { max-height: 90vh; overflow-y: auto; }
-@media (max-width: 900px) { .budget-editor-grid { grid-template-columns: 1fr; } .budget-summary { position: static; } }
-@media (max-width: 600px) { .budget-steps { gap: 6px; } .budget-steps button { font-size: .85rem; padding: 8px 4px; } .quote-item { padding: 14px; } .form-actions { flex-wrap: wrap; gap: 12px; } .form-actions .btn { flex: 1 1 100%; } }
+@media (max-width: 900px) { .budget-editor-grid { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .budget-steps { gap: 6px; } .budget-steps button { font-size: .85rem; padding: 8px 4px; } .form-actions { flex-wrap: wrap; gap: 12px; } .form-actions .btn { flex: 1 1 100%; } }
 </style>

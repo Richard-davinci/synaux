@@ -1,0 +1,3 @@
+/* La densidad compacta mantiene 40 px en escritorio y objetivos de 44 px en pantallas táctiles. */
+.synaux-app .v-input--density-compact { --v-input-control-height:40px; }
+@media (pointer:coarse) { .synaux-app .v-input--density-compact { --v-input-control-height:44px; } }

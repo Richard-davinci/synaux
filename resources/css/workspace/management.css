@@ -1,0 +1,77 @@
+/* Gestión y Administración mantienen una escala común sin modificar las pantallas públicas. */
+@scope (.synaux-app) {
+    .page.workspace-view { padding-block: clamp(24px, 4vw, 48px) clamp(44px, 7vw, 80px); }
+    .workspace-view .page-title { align-items: end; gap: 16px; margin-bottom: 24px; }
+    .workspace-view .page-title h1 { margin-bottom: 8px; font-size: clamp(1.75rem, 3vw, 2.3rem); font-weight: 700; line-height: 1.15; }
+    .workspace-view .page-title p:not(.eyebrow) { max-width: 68ch; color: #446075; }
+    .workspace-view .page-title .eyebrow { margin-bottom: 8px; }
+    .workspace-view .section-head h2, .workspace-view .card h2 { font-size: 1.35rem; font-weight: 700; }
+    .workspace-view .workspace-filters {
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+        align-items: end;
+        gap: 12px;
+        padding: 14px 16px;
+        margin-bottom: 20px;
+        background: #f5f9fa;
+    }
+    .workspace-view .workspace-filters-single { grid-template-columns: minmax(0, 1fr) auto; }
+    .workspace-view .catalog-filters { grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 1fr)) auto; }
+    .workspace-view .catalog-category-filters { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; }
+    .workspace-view .workspace-table { background: #fff; box-shadow: var(--card-shadow); }
+    .workspace-view .workspace-table th { text-align: left; }
+    .workspace-view .workspace-table td:first-child { font-weight: 700; overflow-wrap: anywhere; }
+    .workspace-view .workspace-table td:last-child, .workspace-view .workspace-table th:last-child { text-align: right; }
+    .workspace-view .workspace-table td[colspan] { text-align: left; color: #446075; font-weight: 400; }
+    .workspace-view .workspace-table td, .workspace-view .workspace-table th { padding: 12px 16px; }
+    .workspace-view .status-enabled, .workspace-view .status-published { color: #1f6f7f; background: #2db3a31a; }
+    .workspace-view .status-disabled, .workspace-view .status-unpublished { color: #446075; background: #f5f9fa; }
+
+    /* Las métricas llevan a sus listados y usan el acento de Gestión en el foco y los iconos. */
+    .management-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; padding: 0; margin: 0 0 24px; list-style: none; }
+    .workspace-metric { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 4px 12px; height: 100%; padding: 14px; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--card-shadow); }
+    .workspace-metric > .icon { grid-row: span 2; }
+    .workspace-metric strong { font: 700 1.5rem/1.15 'Space Grotesk', sans-serif; }
+    .workspace-metric span { color: #446075; font-weight: 700; text-wrap: pretty; }
+    .workspace-metric:hover { border-color: #2db3a3; }
+    .workspace-metric:focus-visible { outline: 2px solid #1f6f7f; outline-offset: 3px; }
+    .workspace-metric .icon, .workspace-record-icon { box-sizing: content-box; width: 20px; height: 20px; padding: 8px; border-radius: 9px; color: #1f6f7f; background: #2db3a31a; }
+    .workspace-view .management-queue { padding: clamp(16px, 3vw, 26px); }
+    .management-queue .section-head { margin-bottom: 8px; }
+    .workspace-view .management-queue h2 { margin: 0; }
+    .management-queue > p { margin: 16px 0 0; color: #446075; }
+    .management-queue .request-table { box-shadow: none; }
+    .workspace-view .management-records { gap: 12px; }
+    .management-record { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: start; padding: 16px; }
+    .management-record-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .management-record-copy { overflow-wrap: anywhere; }
+    .management-record-copy h3 { font-size: 1.12rem; font-weight: 700; }
+    .management-record-copy p, .management-record-copy progress { margin: 6px 0 0; }
+    .management-record-copy small { color: #446075; }
+    .management-record-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-self: center; gap: 8px; max-width: 370px; }
+    .workspace-view .workspace-import { margin-bottom: 18px; padding: clamp(16px, 3vw, 24px); background: #f5f9fa; }
+    .workspace-import h3 { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+    .workspace-import p { margin-block: 8px; }
+    .workspace-import a { color: #1f6f7f; text-decoration: underline; }
+    .workspace-tariffs .notice { margin-top: 18px; }
+    .workspace-view .form-card { max-width: none; }
+    .workspace-shortcuts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 16px; }
+    .workspace-shortcuts > .card { display: flex; flex-direction: column; align-items: flex-start; padding: 20px; }
+    .workspace-shortcuts .card h2 { margin: 10px 0 6px; }
+    .workspace-shortcuts .btn { margin-top: auto; }
+
+    @media (max-width: 1060px) {
+        .management-record { grid-template-columns: auto minmax(0, 1fr); }
+        .management-record-actions { grid-column: 2; justify-content: flex-start; max-width: none; }
+    }
+    @media (max-width: 420px) {
+        .workspace-metric { gap: 4px; padding: 10px; }
+        .workspace-metric > .icon { display: none; }
+        .workspace-metric > span, .workspace-metric > strong { grid-column: 1 / -1; }
+    }
+    @media (max-width: 700px) {
+        .management-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .workspace-view .page-title { align-items: start; }
+        .workspace-view .workspace-filters { grid-template-columns: minmax(0, 1fr); }
+        .workspace-view .workspace-filters > .btn { justify-self: start; }
+    }
+}
