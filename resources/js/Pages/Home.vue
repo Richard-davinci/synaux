@@ -6,8 +6,8 @@ import BrandPatternFragment from '../Components/Brand/BrandPatternFragment.vue';
 import B from '../Components/UI/AppButton.vue';
 import I from '../Components/UI/AppIcon.vue';
 import BudgetDocument from '../Components/Presupuestos/DocumentoPresupuesto.vue';
-import '../../css/workspace.css';
-import '../../css/workspace-overrides.css';
+import '../../css/panel.css';
+import '../../css/ajustes-panel.css';
 
 // Las cuatro áreas representan servicios de la primera etapa, sin anunciar el marketplace futuro.
 const areas = [

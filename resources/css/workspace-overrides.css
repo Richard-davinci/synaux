@@ -1,9 +1,0 @@
-/* El orden de importación mantiene la cascada de los ajustes existentes. */
-@import './workspace/appearance.css';
-@import './workspace/catalog-and-accounts.css';
-@import './workspace/records-and-forms.css';
-@import './workspace/landing.css';
-@import './workspace/responsive-overrides.css';
-@import './workspace/footer.css';
-@import './workspace/field-density.css';
-@import './workspace/management.css';

@@ -1,0 +1,9 @@
+/* El orden de importación mantiene la cascada de los ajustes existentes. */
+@import './panel/appearance.css';
+@import './panel/catalog-and-accounts.css';
+@import './panel/registros-y-formularios.css';
+@import './panel/landing.css';
+@import './panel/responsive-overrides.css';
+@import './panel/footer.css';
+@import './panel/densidad-campos.css';
+@import './panel/management.css';

@@ -1,0 +1,7 @@
+/* La base se carga antes de los ajustes de cada área. */
+@import './panel/base.css';
+@import './panel/public-pages.css';
+@import './panel/formularios-y-estimaciones.css';
+@import './panel/account-and-projects.css';
+@import './panel/marketplace.css';
+@import './panel/responsive.css';

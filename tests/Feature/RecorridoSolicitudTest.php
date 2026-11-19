@@ -11,7 +11,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 // El recorrido público guarda solo un borrador de sesión; la creación de registros requiere una cuenta.
-class UnifiedRequestJourneyTest extends TestCase
+class RecorridoSolicitudTest extends TestCase
 {
     use RefreshDatabase;
 

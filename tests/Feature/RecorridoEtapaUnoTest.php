@@ -11,7 +11,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 // Recorre la primera etapa con sesiones, permisos y formularios reales en SQLite en memoria.
-class StageOneJourneyTest extends TestCase
+class RecorridoEtapaUnoTest extends TestCase
 {
     use RefreshDatabase;
 

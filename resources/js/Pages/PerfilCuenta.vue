@@ -7,8 +7,8 @@ import F from '../Components/UI/FormField.vue';
 import I from '../Components/UI/AppIcon.vue';
 import { date, initials } from '../support/formatters';
 import { demoNotice } from '../support/prototype';
-import '../../css/workspace.css';
-import '../../css/workspace-overrides.css';
+import '../../css/panel.css';
+import '../../css/ajustes-panel.css';
 
 // Cada sección guarda sus propios datos y errores; el tipo de cuenta es informativo y no editable.
 const props = defineProps({ profile: Object, issuer: Object, preview: Boolean });

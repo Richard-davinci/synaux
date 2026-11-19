@@ -1,7 +1,0 @@
-/* La base se carga antes de los ajustes de cada área. */
-@import './workspace/base.css';
-@import './workspace/public-pages.css';
-@import './workspace/forms-and-estimates.css';
-@import './workspace/account-and-projects.css';
-@import './workspace/marketplace.css';
-@import './workspace/responsive.css';

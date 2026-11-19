@@ -10,7 +10,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 // Verifica la instalación de etapa 1 con el marketplace reservado para revisión administrativa.
-class StageTwoAccessTest extends TestCase
+class AccesoEtapaDosTest extends TestCase
 {
     use RefreshDatabase;
 

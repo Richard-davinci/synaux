@@ -13,7 +13,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 // El borrado solo afecta la lista propia; los datos que originaron pedidos siguen disponibles para su historial.
-class EstimateDeletionTest extends TestCase
+class EliminarEstimacionTest extends TestCase
 {
     use RefreshDatabase;
 
