@@ -8,7 +8,10 @@ import PortfolioList from '../Screens/Public/PortfolioList.vue';
 import PortfolioDetail from '../Screens/Public/PortfolioDetail.vue';
 import About from '../Screens/Public/About.vue';
 import Contact from '../Screens/Public/Contact.vue';
-import AuthScreens from '../Screens/AuthScreens.vue';
+import Login from '../Screens/Auth/Login.vue';
+import Register from '../Screens/Auth/Register.vue';
+import ForgotPassword from '../Screens/Auth/ForgotPassword.vue';
+import ResetPassword from '../Screens/Auth/ResetPassword.vue';
 import EstimatorScreens from '../Screens/EstimatorScreens.vue';
 import ClientOverview from '../Screens/Client/Overview.vue';
 import ClientRequestDetail from '../Screens/Client/RequestDetail.vue';
@@ -38,6 +41,12 @@ import '../../css/workspace-overrides.css';
 // La selección de pantalla vive en el punto de entrada y respeta el área autorizada por Laravel.
 const page = usePage();
 const data = computed(() => page.props);
+const authScreens = {
+    ingreso: Login,
+    registro: Register,
+    recuperar: ForgotPassword,
+    restablecer: ResetPassword,
+};
 const publicScreens = {
     servicios: ServiceCatalog,
     servicio: ServiceDetail,
@@ -73,7 +82,7 @@ const clientScreens = {
 const component = computed(() => {
     const { screen, area, section, preview } = data.value;
     if (Object.hasOwn(publicScreens, screen)) return publicScreens[screen];
-    if (['ingreso', 'registro', 'recuperar', 'restablecer'].includes(screen)) return AuthScreens;
+    if (Object.hasOwn(authScreens, screen)) return authScreens[screen];
     if (['estimador', 'estimacion'].includes(screen)) return EstimatorScreens;
     if (screen === 'admin') {
         if (section === 'tarifario') return AdminTariffs;
