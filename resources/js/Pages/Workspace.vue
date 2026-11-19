@@ -13,7 +13,16 @@ import EstimatorScreens from '../Screens/EstimatorScreens.vue';
 import ClientOverview from '../Screens/Client/Overview.vue';
 import ClientRequestDetail from '../Screens/Client/RequestDetail.vue';
 import RecordList from '../Screens/Workspace/RecordList.vue';
-import MarketplaceScreens from '../Screens/MarketplaceScreens.vue';
+import ClientPublications from '../Screens/Client/Publications.vue';
+import Directory from '../Screens/Marketplace/Directory.vue';
+import OpportunityList from '../Screens/Marketplace/OpportunityList.vue';
+import OpportunityDetail from '../Screens/Marketplace/OpportunityDetail.vue';
+import MarketplaceProfileDetail from '../Screens/Marketplace/ProfileDetail.vue';
+import Proposals from '../Screens/Marketplace/Proposals.vue';
+import Invitations from '../Screens/Marketplace/Invitations.vue';
+import ProfessionalOverview from '../Screens/Professional/Overview.vue';
+import ProfessionalProfileEdit from '../Screens/Professional/ProfileEdit.vue';
+import NewRequest from '../Screens/Requests/NewRequest.vue';
 import ManagementOverview from '../Screens/Management/Overview.vue';
 import ManagementRecords from '../Screens/Management/Records.vue';
 import AdminTariffs from '../Screens/AdminTariffs.vue';
@@ -36,6 +45,30 @@ const publicScreens = {
     trabajo: PortfolioDetail,
     perfil: About,
     contacto: Contact,
+    muro: OpportunityList,
+    oportunidad: OpportunityDetail,
+    profesionales: Directory,
+    'perfil-profesional': MarketplaceProfileDetail,
+    publicar: NewRequest,
+};
+const professionalScreens = {
+    resumen: ProfessionalOverview,
+    perfil: ProfessionalProfileEdit,
+    propuestas: Proposals,
+    invitaciones: Invitations,
+    presupuestos: RecordList,
+    proyectos: RecordList,
+    portfolio: ManagementRecords,
+};
+const clientScreens = {
+    resumen: ClientOverview,
+    publicaciones: ClientPublications,
+    propuestas: Proposals,
+    invitaciones: Invitations,
+    estimaciones: RecordList,
+    solicitudes: RecordList,
+    presupuestos: RecordList,
+    proyectos: RecordList,
 };
 const component = computed(() => {
     const { screen, area, section, preview } = data.value;
@@ -51,13 +84,11 @@ const component = computed(() => {
     if (screen === 'editor-trabajo') return PortfolioWorkEditor;
     if (screen === 'solicitud' && area === 'gestion' && data.value.selected?.status !== 'draft') return ManagementRequestDetail;
     if (screen === 'gestion') return !section || section === 'resumen' ? ManagementOverview : ManagementRecords;
-    if (screen === 'profesional' && section === 'portfolio') return ManagementRecords;
-    if (['muro', 'oportunidad', 'profesionales', 'perfil-profesional', 'publicar', 'profesional'].includes(screen)
-        || (screen === 'cliente' && ['publicaciones', 'propuestas', 'invitaciones'].includes(section))) return MarketplaceScreens;
+    if (screen === 'profesional') return professionalScreens[section || 'resumen'] ?? null;
     if (screen === 'solicitud') return ClientRequestDetail;
     if (screen === 'presupuesto') return BudgetDetail;
     if (screen === 'proyecto') return ProjectDetail;
-    if (screen === 'cliente') return !section || section === 'resumen' ? ClientOverview : RecordList;
+    if (screen === 'cliente') return clientScreens[section || 'resumen'] ?? null;
     return null;
 });
 </script>
