@@ -200,6 +200,10 @@ class SynauxController extends Controller
         if ($area === 'admin') {
             $data['administration'] = app(SynauxAdminController::class)->data();
         }
+        // El resumen necesita el total de consultas, sin cargar el contenido de sus mensajes.
+        if ($area === 'gestion' && $section === '') {
+            $data['inquiryCount'] = DB::table('contact_inquiries')->count();
+        }
         if ($section === 'contactos') {
             $data['inquiries'] = DB::table('contact_inquiries')->orderByDesc('id')->get();
             // El enlace del aviso identifica la consulta que se abrió sin marcar todo el listado.

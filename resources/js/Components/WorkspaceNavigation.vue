@@ -69,11 +69,11 @@ function logout() {
 <style scoped>
 /* El panel conserva la paleta de synaux y ofrece objetivos de al menos 44 px para teclado y tacto. */
 /* El contenedor aporta la altura; solo las secciones se desplazan cuando falta espacio. */
-/* El color identifica el área; los enlaces activos muestran texto e íconos blancos sobre el acento de cada rol. */
+/* Cada área usa su acento y un color de texto con contraste en el enlace activo. */
 .workspace-navigation { --role-accent: #153b64; --role-on-accent: #fff; --role-tint: #153b640a; border-top: 3px solid var(--role-accent); display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; height: 100%; padding: 26px 18px; color: #153b64; }
-.workspace-navigation[data-role='profesional'] { --role-accent: #2db3a3; --role-tint: #2db3a31a; }
-/* Gestión comparte el turquesa del navbar y conserva el mismo tratamiento blanco de los enlaces activos. */
-.workspace-navigation[data-role='gestion'] { --role-accent: #2db3a3; --role-tint: #2db3a31a; }
+.workspace-navigation[data-role='profesional'] { --role-accent: #2db3a3; --role-on-accent: #153b64; --role-tint: #2db3a31a; }
+/* Gestión comparte el turquesa del navbar con texto oscuro en los enlaces activos. */
+.workspace-navigation[data-role='gestion'] { --role-accent: #2db3a3; --role-on-accent: #153b64; --role-tint: #2db3a31a; }
 .workspace-sections { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 .workspace-eyebrow { border-left: 3px solid var(--role-accent); padding-left: 8px; text-wrap: balance; margin: 0 0 8px; color: #446075; font-size: .75rem; letter-spacing: .12em; font-weight: 700; text-transform: uppercase; }
 .workspace-user { margin: -12px 0 22px; color: #446075; font-size: .95rem; overflow-wrap: anywhere; }

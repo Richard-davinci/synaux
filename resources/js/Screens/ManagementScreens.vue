@@ -1,19 +1,19 @@
 <script setup>
 import SidePanel from '../Components/SynauxSidePanel.vue';
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import B from '../Components/SynauxButton.vue';
 import F from '../Components/SynauxField.vue';
 import T from '../Components/SynauxTitle.vue';
 import S from '../Components/SynauxStatus.vue';
 import E from '../Components/SynauxEmpty.vue';
+import I from '../Components/SynauxIcon.vue';
 import NewBadge from '../Components/SynauxNewBadge.vue';
-import ClientScreens from './ClientScreens.vue';
 import SynauxBudgetEditor from '../Components/SynauxBudgetEditor.vue';
 import SynauxProjectUpdate from '../Components/SynauxProjectUpdate.vue';
 // Catálogo concentra la configuración por servicio; Tarifarios conserva la publicación global.
 import SynauxCatalogAdmin from '../Components/SynauxCatalogAdmin.vue';
-import { money, date, useSubmit } from '../support/synaux';
+import { money, date, referenceHref, useSubmit } from '../support/synaux';
 // Gestión reutiliza las lecturas, mientras cada edición vuelve a verificar el emisor en Laravel.
 const props = defineProps({data:Object});
 const submit = useSubmit();
@@ -33,7 +33,37 @@ const admin = computed(() => props.data.administration ?? {services:[],categorie
 const resources = {servicios:'services',preguntas:'questions',componentes:'components',reglas:'rules',tarifario:'tariffs'};
 const adminRows = computed(() => admin.value[resources[section.value] ?? 'services'] ?? []);
 const administrative = computed(() => props.data.screen === 'admin');
-const rows = computed(() => (props.data[resources[section.value] ?? {solicitudes:'requests',presupuestos:'quotes',proyectos:'projects',portfolio:'works',contactos:'inquiries'}[section.value]] ?? []).filter(r => (!query.value || `${r.title ?? r.name ?? r.topic} ${r.id}`.toLowerCase().includes(query.value.toLowerCase())) && (!status.value || (r.display_status ?? r.status) === status.value)));
+// Cada listado mantiene sus estados y usa textos propios para el encabezado y la búsqueda.
+const sections = {
+    solicitudes: { key: 'requests', icon: 'file', title: 'Solicitudes recibidas', description: 'Revisá el alcance de cada pedido y prepará su presupuesto.', search: 'Título, servicio o cliente', empty: 'Las solicitudes enviadas por clientes aparecerán acá.' },
+    presupuestos: { key: 'quotes', icon: 'receipt', title: 'Presupuestos', description: 'Consultá borradores y versiones emitidas o enviadas.', search: 'Título, cliente o número', empty: 'Los presupuestos que prepares desde una solicitud o en forma directa aparecerán acá.' },
+    proyectos: { key: 'projects', icon: 'folder', title: 'Seguimiento de proyectos', description: 'Actualizá el estado y los próximos pasos de cada proyecto.', search: 'Nombre o número del proyecto', empty: 'Los presupuestos aceptados generan proyectos en esta sección.' },
+    portfolio: { key: 'works', icon: 'palette', title: 'Portfolio', description: 'Editá los trabajos y decidí cuáles mostrar en el sitio público.', search: 'Título o categoría', empty: 'Agregá un trabajo para documentar un proyecto.' },
+    contactos: { key: 'inquiries', icon: 'message', title: 'Consultas recibidas', description: 'Leé los mensajes que llegan desde el formulario de contacto.', search: 'Asunto, nombre o correo', empty: 'Las consultas del formulario de contacto aparecerán acá.' },
+};
+const listing = computed(() => sections[section.value]);
+const hasFilters = computed(() => Boolean(query.value || status.value));
+const rows = computed(() => {
+    const needle = query.value.trim().toLocaleLowerCase('es');
+    return (props.data[listing.value?.key] ?? []).filter(row => {
+        const searchText = [row.title, row.topic, row.name, row.email, row.category, row.service_name,
+            row.contact?.name, row.contact?.company, row.client?.name, row.client?.company, row.budget_id, row.id,
+        ].join(' ').toLocaleLowerCase('es');
+        return searchText.includes(needle) && (!status.value || (row.display_status ?? row.status) === status.value);
+    });
+});
+const pendingRequests = computed(() => (props.data.requests ?? []).filter(item => item.status === 'open' && !item.reviewed_at));
+// Los indicadores son accesos a los listados y conservan el alcance del panel.
+const summary = computed(() => [
+    ['Solicitudes abiertas', 'solicitudes', (props.data.requests ?? []).filter(item => item.status === 'open').length],
+    ['Presupuestos', 'presupuestos', props.data.quotes?.length ?? 0],
+    ['Proyectos activos', 'proyectos', (props.data.projects ?? []).filter(item => ['pending', 'in_progress'].includes(item.status)).length],
+    ['Consultas', 'contactos', props.data.inquiryCount ?? props.data.inquiries?.length ?? 0],
+]);
+function clearFilters() {
+    query.value = '';
+    status.value = '';
+}
 const work = useForm({id:selected.id ?? null,service_id:selected.service_id ?? props.data.services[0]?.database_id,title:selected.title ?? '',description:selected.description ?? '',category:selected.category ?? 'Desarrollo web',challenge:selected.challenge ?? '',result:selected.result ?? '',year:selected.year ?? new Date().getFullYear(),live_url:selected.live_url ?? '',is_public:!!selected.is_public,cover:null,gallery:[]});
 const configuration = useForm({});
 // El editor de tarifa crea una versión nueva; los importes previos quedan disponibles para consulta.
@@ -69,12 +99,99 @@ function saveConfiguration() { submit(section.value==='tarifario'?tariff:configu
     <!-- Servicios y categorías tienen su propio flujo y reutilizan la configuración recibida del servidor. -->
     <SynauxCatalogAdmin v-else-if="administrative && ['resumen', 'servicios', 'categorias'].includes(section)" :data="data" />
     <!-- El portfolio se publica desde archivos raster propios y permite guardar trabajos privados. -->
-    <section v-else-if="data.screen === 'editor-trabajo'" class="page shell narrow"><B href="/profesional/portfolio" variant="ghost">← Volver al portfolio</B><T eyebrow="Portfolio" :title="selected.id ? 'Editar trabajo' : 'Nuevo trabajo'" description="Documentá el desafío, la solución y el resultado del proyecto." /><v-card class="card form-card"><form @submit.prevent="submit(work,'trabajo',{forceFormData:true,previewTarget:'g-portfolio'})"><F v-model="work.title" label="Título del trabajo" required /><div class="form-grid"><F v-model="work.service_id" label="Servicio" type="select" :options="data.services.map(s=>({value:s.database_id,label:s.name}))" required /><F v-model="work.category" label="Categoría" required /><F v-model="work.year" label="Año" type="number" min="1990" max="2100" /></div><F v-model="work.description" label="Descripción breve" type="textarea" required /><F v-model="work.challenge" label="El desafío" type="textarea" /><F v-model="work.result" label="La solución y el resultado" type="textarea" /><F v-model="work.live_url" type="url" label="Enlace al proyecto (opcional)" /><img v-if="selected.cover_path" :src="selected.cover_path" :alt="selected.title" class="upload-preview"><label class="field">Imagen de portada (JPG, PNG o WebP · hasta 5 MB)<input type="file" accept="image/jpeg,image/png,image/webp" @change="work.cover=$event.target.files[0]"></label><label class="field">Galería (hasta 8 imágenes por envío)<input type="file" multiple accept="image/jpeg,image/png,image/webp" @change="work.gallery=Array.from($event.target.files)"></label><label class="select-row"><input v-model="work.is_public" type="checkbox">Publicar este trabajo en el portfolio</label><B type="submit" :disabled="work.processing">Guardar trabajo</B></form></v-card></section>
+    <section v-else-if="data.screen === 'editor-trabajo'" class="page shell narrow workspace-view workspace-work-editor"><B :href="data.area === 'gestion' ? '/gestion/portfolio' : '/profesional/portfolio'" variant="ghost">← Volver al portfolio</B><T eyebrow="Portfolio" :title="selected.id ? 'Editar trabajo' : 'Nuevo trabajo'" description="Documentá el desafío, la solución y el resultado del proyecto." /><v-card class="card form-card"><form @submit.prevent="submit(work,'trabajo',{forceFormData:true,previewTarget:'g-portfolio'})"><F v-model="work.title" label="Título del trabajo" required /><div class="form-grid"><F v-model="work.service_id" label="Servicio" type="select" :options="data.services.map(s=>({value:s.database_id,label:s.name}))" required /><F v-model="work.category" label="Categoría" required /><F v-model="work.year" label="Año" type="number" min="1990" max="2100" /></div><F v-model="work.description" label="Descripción breve" type="textarea" required /><F v-model="work.challenge" label="El desafío" type="textarea" /><F v-model="work.result" label="La solución y el resultado" type="textarea" /><F v-model="work.live_url" type="url" label="Enlace al proyecto (opcional)" /><img v-if="selected.cover_path" :src="selected.cover_path" :alt="selected.title" class="upload-preview"><label class="field">Imagen de portada (JPG, PNG o WebP · hasta 5 MB)<input type="file" accept="image/jpeg,image/png,image/webp" @change="work.cover=$event.target.files[0]"></label><label class="field">Galería (hasta 8 imágenes por envío)<input type="file" multiple accept="image/jpeg,image/png,image/webp" @change="work.gallery=Array.from($event.target.files)"></label><label class="select-row"><input v-model="work.is_public" type="checkbox">Publicar este trabajo en el portfolio</label><B type="submit" :disabled="work.processing">Guardar trabajo</B></form></v-card></section>
     <!-- El administrador configura el catálogo y las preguntas sin tocar registros de clientes. -->
-    <section v-else-if="administrative" class="page shell"><T eyebrow="Administración" :title="section === 'tarifario' ? 'Tarifarios' : 'Configuración de referencia'" description="Consultá y publicá versiones de precios. Las preguntas y reglas se administran dentro de cada servicio del catálogo." /><div v-if="$page.props.auth?.is_admin" class="button-row"><B href="/admin/etapa-2" variant="secondary" arrow>Revisar etapa 2</B></div><div class="admin-layout"><div><div class="section-head"><div><h2>{{ {servicios:'Servicios y categorías',preguntas:'Preguntas del estimador',componentes:'Componentes por servicio',reglas:'Reglas de cálculo',tarifario:'Versiones del tarifario'}[section] ?? 'Servicios y categorías' }}</h2><p>Los cambios se aplican a los próximos cálculos.</p></div><B @click="configure()">＋ {{ section==='tarifario'?'Nueva versión':'Agregar' }}</B></div><div v-if="section === 'tarifario'" class="card"><h3>Referencia de Sitio institucional</h3><p>Actualizá los tres segmentos del paquete de hasta siete secciones con Tarifario.ar y la cotización CCL de venta.</p><B :disabled="importForm.processing" @click="importForm.post('/admin/tarifario/importar', { preserveScroll: true })">{{ importForm.processing ? 'Consultando precios…' : 'Actualizar desde Tarifario.ar' }}</B><p>Contenido adaptado de <a href="https://tarifario.ar/categoria/dev-web-app#service-pd-3" target="_blank" rel="noopener">Tarifario Digital</a>, bajo <a href="https://tarifario.ar/licencia" target="_blank" rel="noopener">CC BY-NC 4.0</a>. Los importes se convierten a ARS para este proyecto académico.</p><div v-for="version in data.administration.tariffs.filter(item => item.source_url).slice(0,1)" :key="version.id"><p>Última importación: {{ date(version.source_checked_at) }} · Base PyME: USD {{ version.source_usd }} · CCL venta: {{ money(version.source_rate,'ARS') }}</p></div></div><div class="table-scroll"><table><thead><tr><th>{{ section==='preguntas'?'Pregunta':section==='reglas'?'Opción':'Nombre' }}</th><th>Configuración</th><th>Estado</th><th>Acción</th></tr></thead><tbody><tr v-for="r in adminRows" :key="r.id"><td>{{ r.name ?? r.question ?? r.label }}</td><td>{{ r.estimation_mode === 'automatic' ? 'Automática' : r.estimation_mode === 'manual' ? 'Profesional' : r.input_type ?? (r.quantity != null ? `${r.name} × ${r.quantity}` : r.currency_code ?? r.unit_code) }}</td><td>{{ r.active ? 'Activo' : 'Inactivo' }}</td><td><B variant="ghost" @click="configure(r)">{{ section==='tarifario'?'Crear desde esta versión':'Editar' }}</B></td></tr><tr v-if="!adminRows.length"><td colspan="4">Todavía no hay registros. Agregá el primero.</td></tr></tbody></table></div><div class="notice"><div><h3>Precios y cálculos históricos</h3><p>Cada tarifario se guarda como una versión nueva. Las estimaciones y los presupuestos anteriores conservan sus valores de origen.</p></div></div></div></div>
+    <section v-else-if="administrative" class="page shell workspace-view"><T eyebrow="Administración" :title="section === 'tarifario' ? 'Tarifarios' : 'Configuración de referencia'" description="Consultá y publicá versiones de precios. Las preguntas y reglas se administran dentro de cada servicio del catálogo."><B v-if="$page.props.auth?.is_admin" compact href="/admin/etapa-2" variant="secondary">Revisar etapa 2</B></T><div class="workspace-tariffs"><div><div class="section-head"><div><h2>{{ {servicios:'Servicios y categorías',preguntas:'Preguntas del estimador',componentes:'Componentes por servicio',reglas:'Reglas de cálculo',tarifario:'Versiones del tarifario'}[section] ?? 'Servicios y categorías' }}</h2><p>Los cambios se aplican a los próximos cálculos.</p></div><B @click="configure()">＋ {{ section==='tarifario'?'Nueva versión':'Agregar' }}</B></div><div v-if="section === 'tarifario'" class="card workspace-import"><h3><I name="calculator" /> Referencia de Sitio institucional</h3><p>Actualizá los tres segmentos del paquete de hasta siete secciones con Tarifario.ar y la cotización CCL de venta.</p><B :disabled="importForm.processing" @click="importForm.post('/admin/tarifario/importar', { preserveScroll: true })">{{ importForm.processing ? 'Consultando precios…' : 'Actualizar desde Tarifario.ar' }}</B><p>Contenido adaptado de <a href="https://tarifario.ar/categoria/dev-web-app#service-pd-3" target="_blank" rel="noopener">Tarifario Digital</a>, bajo <a href="https://tarifario.ar/licencia" target="_blank" rel="noopener">CC BY-NC 4.0</a>. Los importes se convierten a ARS para este proyecto académico.</p><div v-for="version in data.administration.tariffs.filter(item => item.source_url).slice(0,1)" :key="version.id"><p>Última importación: {{ date(version.source_checked_at) }} · Base PyME: USD {{ version.source_usd }} · CCL venta: {{ money(version.source_rate,'ARS') }}</p></div></div><div class="table-scroll workspace-table"><table><thead><tr><th>{{ section==='preguntas'?'Pregunta':section==='reglas'?'Opción':'Nombre' }}</th><th>Configuración</th><th>Estado</th><th>Acción</th></tr></thead><tbody><tr v-for="r in adminRows" :key="r.id"><td>{{ r.name ?? r.question ?? r.label }}</td><td>{{ r.estimation_mode === 'automatic' ? 'Automática' : r.estimation_mode === 'manual' ? 'Profesional' : r.input_type ?? (r.quantity != null ? `${r.name} × ${r.quantity}` : r.currency_code ?? r.unit_code) }}</td><td><S :status="r.active ? 'enabled' : 'disabled'" /></td><td><B variant="ghost" @click="configure(r)">{{ section==='tarifario'?'Crear desde esta versión':'Editar' }}</B></td></tr><tr v-if="!adminRows.length"><td colspan="4">Todavía no hay registros. Agregá el primero.</td></tr></tbody></table></div><div class="notice"><div><h3>Precios y cálculos históricos</h3><p>Cada tarifario se guarda como una versión nueva. Las estimaciones y los presupuestos anteriores conservan sus valores de origen.</p></div></div></div></div>
         <SidePanel title="Administración" v-model="adminModal" max-width="600" :persistent="configuration.processing || tariff.processing"><div class="synaux-app"><v-card class="card modal-card"><h2>{{ section==='tarifario'?'Nueva versión del tarifario':'Configurar '+section }}</h2><form @submit.prevent="saveConfiguration"><template v-if="section==='tarifario'"><F v-model="tariff.name" label="Nombre de la versión" required /><F v-model="tariff.currency_code" label="Moneda" type="select" :options="['ARS','USD','EUR']" /><template v-for="[key,label] in [['services','Bases de servicios'],['components','Componentes']]" :key="key"><h3>{{ label }}</h3><div v-for="p in tariff[key]" :key="p.id" class="tariff-row"><strong>{{ p.name }}</strong><F v-model="p.min" label="Mínimo" type="number" min="0" step="0.01" required /><F v-model="p.max" label="Máximo" type="number" min="0" step="0.01" required /></div></template><label class="select-row"><input v-model="tariff.active" type="checkbox">Activar para nuevas estimaciones</label><p>Completá las bases y todos los componentes de los servicios automáticos para activar la versión.</p></template><template v-else><template v-if="['servicios','componentes'].includes(section)"><F v-model="configuration.name" label="Nombre" required /><F v-model="configuration.slug" label="Identificador (sin espacios)" required /><F v-model="configuration.description" type="textarea" label="Descripción" required /></template><template v-if="section==='servicios'"><F v-model="configuration.service_category_id" type="select" label="Categoría" :options="options(admin.categories)" required /><F v-model="configuration.summary" label="Resumen para el catálogo" required /><F v-model="configuration.estimation_mode" type="select" label="Tipo de estimación" :options="[{value:'manual',label:'Revisión profesional'},{value:'automatic',label:'Automática'}]" required /><F v-model="configuration.deliverables" type="textarea" label="Entregables (uno por línea)" required /></template><template v-if="['preguntas','componentes'].includes(section)"><F v-model="configuration.service_id" type="select" label="Servicio" :options="options(admin.services)" :required="section==='componentes'" /></template><template v-if="section==='preguntas'"><F v-model="configuration.question" label="Pregunta" required /><F v-model="configuration.input_type" label="Tipo de respuesta" type="select" :options="[{value:'single_choice',label:'Una opción'},{value:'multiple_choice',label:'Varias opciones'},{value:'number',label:'Cantidad'},{value:'text',label:'Texto'}]" required /><F v-model="configuration.sort_order" label="Orden" type="number" min="0" required /><F v-if="configuration.input_type.includes('choice')" v-model="configuration.options_text" type="textarea" label="Opciones (una por línea)" required /><F v-if="configuration.input_type==='number'" v-model="configuration.quantity_component_id" type="select" label="Componente cuya cantidad define" :options="options(admin.components.filter(c=>c.service_id==configuration.service_id))" /></template><template v-if="section==='componentes'"><F v-model="configuration.unit_code" label="Unidad" required /><F v-model="configuration.default_quantity" label="Cantidad inicial" type="number" min="0.001" step="0.001" required /><label class="select-row"><input v-model="configuration.is_default" type="checkbox">Incluir por defecto</label></template><template v-if="section==='reglas'"><F v-model="configuration.estimator_option_id" type="select" label="Opción de respuesta" :options="admin.questions.flatMap(q=>q.options.filter(o=>o.active).map(o=>({value:o.id,label:`${q.question}: ${o.label}`})))" required /><F v-model="configuration.service_component_id" type="select" label="Componente" :options="options(admin.components)" required /><F v-model="configuration.quantity" type="number" label="Cantidad que incorpora" min="0" step="0.001" required /></template><label class="select-row"><input v-model="configuration.active" type="checkbox">Activo</label></template><div class="form-actions"><B variant="secondary" :disabled="configuration.processing || tariff.processing" @click="adminModal=false">Cancelar</B><B type="submit" :disabled="configuration.processing || tariff.processing">Guardar</B></div></form></v-card></div></SidePanel>
     </section>
-    <section v-else class="page shell"><T :eyebrow="data.screen==='profesional'?'Área profesional':'Gestión synaux'" :title="section==='resumen'?'Resumen de gestión':{solicitudes:'Solicitudes recibidas',presupuestos:'Presupuestos',proyectos:'Seguimiento de proyectos',portfolio:'Portfolio',contactos:'Consultas recibidas'}[section]" description="Seguí cada proyecto desde la primera solicitud hasta la entrega."><B v-if="section==='portfolio'" href="/editor/trabajo" arrow>Nuevo trabajo</B><B v-if="section==='presupuestos'" href="/editor/presupuesto?directo=1" arrow>Crear presupuesto directo</B></T><template v-if="section==='resumen'"><div class="stats-grid"><v-card v-for="[label,key] in [['Solicitudes abiertas','requests'],['Presupuestos','quotes'],['Proyectos activos','projects'],['Consultas','inquiries']]" :key="key" class="card stat"><span>{{ label }}</span><strong>{{ key === 'projects' ? (data.projects ?? []).filter(item => ['pending', 'in_progress'].includes(item.status)).length : key === 'requests' ? (data.requests ?? []).filter(item => item.status === 'open').length : data[key]?.length ?? 0 }}</strong></v-card></div><v-card class="card"><h2>Solicitudes por revisar</h2><div v-for="r in data.requests?.filter(r=>r.status==='open').slice(0,5)" :key="r.id" class="list-row"><div><div class="record-heading"><h3>{{ r.title }}</h3><NewBadge type="solicitud" :id="r.id" /></div><small>SOL-{{ r.id }} · {{ date(r.created_at) }}</small></div><B :href="`/solicitudes/${r.id}`" variant="secondary">Revisar solicitud</B></div><B href="/gestion/contactos" variant="ghost">Consultar mensajes de contacto →</B></v-card></template><template v-else><div class="filters"><F v-model="query" label="Buscar" placeholder="Nombre o identificador" /><F v-if="section!=='portfolio' && section!=='contactos'" v-model="status" label="Estado" type="select" :options="statusOptions" /></div><div class="stack"><v-card v-for="r in rows" :key="r.id" :id="section === 'contactos' ? `consulta-${r.id}` : undefined" class="card list-row"><div><small>{{ date(r.created_at) }}</small><div class="record-heading"><h3>{{ r.title ?? r.topic }}</h3><NewBadge :type="{solicitudes: 'solicitud', presupuestos: 'presupuesto', proyectos: 'proyecto', contactos: 'consulta'}[section]" :id="r.id" /></div><S v-if="r.status" :status="r.display_status ?? r.status" /><p v-if="section==='contactos'">{{ r.name }} · {{ r.email }}</p><p v-if="section==='contactos'" class="preserve-lines">{{ r.message }}</p><template v-if="section === 'solicitudes'"><p>{{ r.service_name }} · {{ r.contact?.company || r.contact?.name || 'Cliente' }}</p><small>{{ r.reviewed_at ? 'Revisada el ' + date(r.reviewed_at) : 'Pendiente de revisión' }}</small></template><p v-if="section==='presupuestos'">Versión {{ r.version_number }} · {{ money(r.total,r.currency_code) }}</p><p v-if="section==='portfolio'">{{ r.is_public ? 'Publicado' : 'Privado' }} · {{ r.category }}</p><template v-if="section === 'proyectos'"><p>PRY-{{ r.id }} · Avance informado: {{ r.progress }}%</p><progress max="100" :value="r.progress" :aria-label="'Avance de ' + r.title" /><p v-if="r.next_steps">{{ r.next_steps }}</p></template></div><div class="button-row"><template v-if="section==='solicitudes'"><B :href="`/solicitudes/${r.id}`" variant="secondary">Ver detalle</B><B v-if="r.status==='open' && (data.preview || r.user_id !== $page.props.auth?.id)" :href="`/editor/presupuesto?solicitud=${r.id}`">Preparar presupuesto</B><B v-if="r.status==='open' && !r.reviewed_at" variant="ghost" @click="act('estado-solicitud',{id:r.id,status:'review'})">Marcar revisada</B></template><template v-if="section==='presupuestos'"><B :href="`/presupuestos/${r.id}`" variant="secondary">Ver versión</B><B v-if="canRevise(r)" :href="`/editor/presupuesto/${r.id}`">{{ r.status === 'draft' ? 'Continuar borrador' : 'Preparar nueva versión' }}</B></template><template v-if="section === 'proyectos'"><B :href="'/proyectos/' + r.id" variant="secondary">Ver seguimiento</B><B @click="editProject(r)">Actualizar avance</B></template><B v-if="section==='portfolio'" :href="`/editor/trabajo/${r.id}`" variant="secondary">Editar trabajo</B></div></v-card></div><template v-if="!rows.length && (query || status)"><E title="No encontramos resultados" text="Probá con otro texto o estado, o quitá los filtros para ver todos los registros." /><B variant="secondary" @click="query = ''; status = ''">Limpiar filtros</B></template><E v-else-if="!rows.length" title="No hay registros para mostrar" text="La actividad del proyecto aparecerá en esta sección." /></template><SynauxProjectUpdate v-if="project" :project="project" @close="project = null" /></section>
+    <!-- Gestión comparte encabezados, filtros y acciones entre sus listados. -->
+    <section v-else class="page shell workspace-view">
+        <T :eyebrow="data.screen === 'profesional' ? 'Área profesional' : 'Gestión'"
+            :title="listing?.title ?? 'Resumen de gestión'"
+            :description="listing?.description ?? 'Revisá los pedidos que requieren atención y accedé a los presupuestos y proyectos.'">
+            <B v-if="section === 'portfolio'" compact href="/editor/trabajo" arrow>Nuevo trabajo</B>
+            <B v-if="section === 'presupuestos'" compact href="/editor/presupuesto?directo=1" arrow>Crear presupuesto directo</B>
+        </T>
+
+        <template v-if="section === 'resumen'">
+            <ul class="management-metrics">
+                <li v-for="[label, key, count] in summary" :key="key">
+                    <a class="workspace-metric" :href="referenceHref('/gestion/' + key, data)">
+                        <I :name="sections[key].icon" /><span>{{ label }}</span><strong>{{ count }}</strong>
+                    </a>
+                </li>
+            </ul>
+            <section class="card management-queue" aria-labelledby="management-queue-title">
+                <div class="section-head">
+                    <h2 id="management-queue-title">Solicitudes por revisar</h2>
+                    <B compact variant="secondary" href="/gestion/solicitudes">Ver solicitudes</B>
+                </div>
+                <div v-for="item in pendingRequests.slice(0, 5)" :key="item.id" class="list-row">
+                    <div>
+                        <div class="record-heading"><h3>{{ item.title }}</h3><NewBadge type="solicitud" :id="item.id" /></div>
+                        <small>SOL-{{ item.id }} · {{ date(item.created_at) }}</small>
+                    </div>
+                    <B compact :href="'/solicitudes/' + item.id" variant="secondary">Revisar solicitud</B>
+                </div>
+                <p v-if="!pendingRequests.length">No hay solicitudes pendientes de revisión.</p>
+            </section>
+        </template>
+
+        <template v-else>
+            <div class="filters workspace-filters" :class="{ 'workspace-filters-single': statusOptions.length === 1 }">
+                <F v-model="query" label="Buscar" type="search" :placeholder="listing?.search" />
+                <F v-if="statusOptions.length > 1" v-model="status" label="Estado" type="select" :options="statusOptions" />
+                <B compact variant="secondary" :disabled="!hasFilters" @click="clearFilters">Limpiar filtros</B>
+            </div>
+            <div v-if="rows.length" class="stack management-records">
+                <v-card v-for="item in rows" :key="item.id" :id="section === 'contactos' ? 'consulta-' + item.id : undefined" class="card management-record">
+                    <I :name="listing.icon" class="workspace-record-icon" />
+                    <div class="management-record-copy">
+                        <div class="management-record-meta">
+                            <small>{{ date(item.created_at) }}</small>
+                            <S v-if="item.status" :request="section === 'solicitudes'" :status="item.display_status ?? item.status" />
+                            <S v-else-if="section === 'portfolio'" :status="item.is_public ? 'published' : 'unpublished'" />
+                        </div>
+                        <div class="record-heading">
+                            <h3>{{ item.title ?? item.topic }}</h3>
+                            <NewBadge :type="{ solicitudes: 'solicitud', presupuestos: 'presupuesto', proyectos: 'proyecto', contactos: 'consulta' }[section]" :id="item.id" />
+                        </div>
+                        <template v-if="section === 'contactos'">
+                            <p>{{ item.name }} · {{ item.email }}</p>
+                            <p class="preserve-lines">{{ item.message }}</p>
+                        </template>
+                        <template v-if="section === 'solicitudes'">
+                            <p>{{ item.service_name }} · {{ item.contact?.company || item.contact?.name || 'Cliente' }}</p>
+                            <small>{{ item.reviewed_at ? 'Revisada el ' + date(item.reviewed_at) : 'Pendiente de revisión' }}</small>
+                        </template>
+                        <p v-if="section === 'presupuestos'">Versión {{ item.version_number }} · {{ money(item.total, item.currency_code) }}</p>
+                        <p v-if="section === 'portfolio'">{{ item.category }}</p>
+                        <template v-if="section === 'proyectos'">
+                            <p>PRY-{{ item.id }} · Avance informado {{ item.progress }}%</p>
+                            <progress max="100" :value="item.progress" :aria-label="'Avance de ' + item.title" />
+                        </template>
+                    </div>
+                    <div v-if="section !== 'contactos'" class="management-record-actions">
+                        <template v-if="section === 'solicitudes'">
+                            <B compact :href="'/solicitudes/' + item.id" variant="secondary">Ver detalle</B>
+                            <B v-if="item.status === 'open' && (data.preview || item.user_id !== data.auth?.id)" compact :href="'/editor/presupuesto?solicitud=' + item.id">Preparar presupuesto</B>
+                            <B v-if="item.status === 'open' && !item.reviewed_at" compact variant="ghost" @click="act('estado-solicitud', { id: item.id, status: 'review' })">Marcar revisada</B>
+                        </template>
+                        <template v-else-if="section === 'presupuestos'">
+                            <B compact :href="'/presupuestos/' + item.id" variant="secondary">Ver versión</B>
+                            <B v-if="canRevise(item)" compact :href="'/editor/presupuesto/' + item.id">{{ item.status === 'draft' ? 'Continuar borrador' : 'Preparar nueva versión' }}</B>
+                        </template>
+                        <template v-else-if="section === 'proyectos'">
+                            <B compact :href="'/proyectos/' + item.id" variant="secondary">Ver seguimiento</B>
+                            <B compact @click="editProject(item)">Actualizar avance</B>
+                        </template>
+                        <B v-else-if="section === 'portfolio'" compact :href="'/editor/trabajo/' + item.id" variant="secondary">Editar trabajo</B>
+                    </div>
+                </v-card>
+            </div>
+            <E v-else :title="hasFilters ? 'No encontramos resultados' : 'Todavía no hay registros'"
+                :text="hasFilters ? 'Probá con otro texto o limpiá los filtros.' : listing?.empty" />
+        </template>
+        <SynauxProjectUpdate v-if="project" :project="project" @close="project = null" />
+    </section>
 </template>
-
-

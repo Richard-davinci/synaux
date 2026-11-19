@@ -5,6 +5,7 @@ import { useForm, usePage } from '@inertiajs/vue3';
 import B from './SynauxButton.vue';
 import F from './SynauxField.vue';
 import T from './SynauxTitle.vue';
+import S from './SynauxStatus.vue';
 import SynauxServiceConfiguration from './SynauxServiceConfiguration.vue';
 import { useSubmit } from '../support/synaux';
 
@@ -75,11 +76,11 @@ function saveCategory() {
 </script>
 
 <template>
-    <section class="page shell catalog-admin" :class="{ 'catalog-editor': editor }">
+    <section class="page shell catalog-admin workspace-view" :class="{ 'catalog-editor': editor }">
         <!-- Cada paso muestra solo los campos comerciales necesarios y conserva los valores al retroceder. -->
         <template v-if="editor">
             <B href="/admin/servicios" variant="ghost">← Volver a servicios</B>
-            <T eyebrow="Catálogo" :title="selected ? 'Editar servicio' : 'Nuevo servicio'" :description="selected ? 'Administrá el alcance, las preguntas y la estimación de este servicio.' : 'Completá los datos del servicio. Después podés configurar sus preguntas, estimación y precios.'" />
+            <T eyebrow="Catálogo" :title="selected ? selected.name : 'Nuevo servicio'" :description="selected ? 'Editá la ficha pública, las preguntas y los precios de este servicio.' : 'Completá los datos del servicio. Después podés configurar sus preguntas, estimación y precios.'" />
             <!-- Las pestañas conservan el contexto del servicio sin repetir pantallas administrativas. -->
             <nav v-if="selected" class="service-tabs" aria-label="Configuración del servicio"><B v-for="[key,label] in tabs" :key="key" compact :variant="configurationTab === key ? 'primary' : 'secondary'" :aria-current="configurationTab === key ? 'page' : undefined" @click="configurationTab = key">{{ label }}</B></nav>
             <v-card v-if="selected && configurationTab !== 'informacion'" class="card"><SynauxServiceConfiguration :key="selected.id" :service="selected" :administration="catalog" :section="configurationTab" /></v-card>
@@ -97,14 +98,14 @@ function saveCategory() {
                     </template>
                     <template v-else-if="step === 1">
                         <h2>Alcance del servicio</h2><p>Explicá qué ofrecés y qué recibirá el cliente.</p>
-                        <F class="catalog-half catalog-long-field" v-model="service.description" label="Descripción completa" type="textarea" required maxlength="10000" :error="service.errors.description" />
-                        <F class="catalog-half catalog-long-field" v-model="service.deliverables" label="Entregables (uno por línea)" type="textarea" required maxlength="10000" :error="service.errors.deliverables" />
+                        <F class="catalog-half catalog-long-field" v-model="service.description" label="Descripción completa" type="textarea" hint="Explicá el objetivo y los límites del servicio." required maxlength="10000" :error="service.errors.description" />
+                        <F class="catalog-half catalog-long-field" v-model="service.deliverables" label="Entregables (uno por línea)" type="textarea" hint="Listá lo que recibe el cliente en «Qué incluye»." required maxlength="10000" :error="service.errors.deliverables" />
                     </template>
                     <template v-else-if="step === 2">
                         <h2>Modalidad de estimación</h2>
                         <F v-model="service.estimation_mode" label="¿Cómo se cotiza este servicio?" type="select" :options="[{ value: 'manual', label: 'Cotización profesional' }, { value: 'automatic', label: 'Estimación automática' }]" required :error="service.errors.estimation_mode" />
                         <p v-if="service.estimation_mode === 'manual'">Un profesional revisará el alcance y preparará un presupuesto formal. Este servicio no necesita un precio automático.</p>
-                        <div v-else class="notice"><p>La estimación es orientativa. Para calcularla, el servicio necesita componentes, reglas y precios en un tarifario. Después de guardar, completalos en las pestañas de este servicio.</p></div>
+                        <div v-else class="notice"><p>La estimación es orientativa. Cargá el precio base en el tarifario. Si hay extras, agregá sus conceptos de precio y las reglas que correspondan. Después de guardar, completalos en las pestañas de este servicio.</p></div>
                         <p>Los precios se administran en versiones del tarifario para conservar los valores de estimaciones anteriores.</p>
                     </template>
                     <template v-else>
@@ -122,10 +123,10 @@ function saveCategory() {
         </template>
         <!-- Los listados permiten localizar servicios por nombre, categoría y estado sin editar sus precios. -->
         <template v-else>
-            <T eyebrow="Catálogo" :title="categoriesView ? 'Categorías de servicios' : 'Catálogo de servicios'" :description="categoriesView ? 'Organizá los servicios de synaux por especialidad.' : 'Administrá los servicios de synaux.'"><B v-if="categoriesView" @click="editCategory()">Nueva categoría</B><B v-else href="/admin/servicios/nuevo">Nuevo servicio</B></T>
-            <div class="filters"><F v-model="search" label="Buscar por nombre" /><F v-if="!categoriesView" v-model="categoryFilter" label="Categoría" type="select" :options="[{ value: '', label: 'Todas' }, ...categoryOptions]" /><F v-model="stateFilter" label="Estado" type="select" :options="[{ value: '', label: 'Todos' }, { value: 'active', label: 'Activos' }, { value: 'inactive', label: 'Inactivos' }]" /></div>
-            <div class="table-scroll"><table><thead><tr><th>{{ categoriesView ? 'Categoría' : 'Servicio' }}</th><th>{{ categoriesView ? 'Servicios' : 'Categoría' }}</th><th v-if="!categoriesView">Modalidad</th><th>Estado</th><th>Acción</th></tr></thead><tbody>
-                <tr v-for="row in rows" :key="row.id"><td>{{ row.name }}</td><td>{{ categoriesView ? catalog.services.filter(service => service.service_category_id === row.id).length : categoryName(row.service_category_id) }}</td><td v-if="!categoriesView">{{ row.estimation_mode === 'automatic' ? 'Automático' : 'Profesional' }}</td><td>{{ row.active ? 'Activo' : 'Inactivo' }}</td><td><B v-if="categoriesView" variant="ghost" @click="editCategory(row)">Editar</B><B v-else variant="ghost" :href="`/admin/servicios/${row.id}/editar`">Editar</B></td></tr>
+            <T eyebrow="Catálogo" :title="categoriesView ? 'Categorías de servicios' : 'Catálogo de servicios'" :description="categoriesView ? 'Organizá los servicios de synaux por especialidad.' : 'Administrá la publicación, las preguntas y los precios de cada servicio.'"><div class="button-row"><B v-if="!categoriesView && $page.props.auth?.is_admin" compact variant="secondary" href="/admin/etapa-2">Revisar etapa 2</B><B v-if="categoriesView" compact @click="editCategory()">Nueva categoría</B><B v-else compact href="/admin/servicios/nuevo">Nuevo servicio</B></div></T>
+            <div class="filters workspace-filters catalog-filters" :class="{ 'catalog-category-filters': categoriesView }"><F v-model="search" type="search" label="Buscar por nombre" /><F v-if="!categoriesView" v-model="categoryFilter" label="Categoría" type="select" :options="[{ value: '', label: 'Todas' }, ...categoryOptions]" /><F v-model="stateFilter" label="Estado" type="select" :options="[{ value: '', label: 'Todos' }, { value: 'active', label: 'Activos' }, { value: 'inactive', label: 'Inactivos' }]" /><B compact variant="secondary" :disabled="!search && !categoryFilter && !stateFilter" @click="search = ''; categoryFilter = ''; stateFilter = ''">Limpiar filtros</B></div>
+            <div class="table-scroll workspace-table"><table><thead><tr><th>{{ categoriesView ? 'Categoría' : 'Servicio' }}</th><th>{{ categoriesView ? 'Servicios' : 'Categoría' }}</th><th v-if="!categoriesView">Modalidad</th><th>Estado</th><th>Acción</th></tr></thead><tbody>
+                <tr v-for="row in rows" :key="row.id"><td>{{ row.name }}</td><td>{{ categoriesView ? catalog.services.filter(service => service.service_category_id === row.id).length : categoryName(row.service_category_id) }}</td><td v-if="!categoriesView">{{ row.estimation_mode === 'automatic' ? 'Automático' : 'Profesional' }}</td><td><S :status="row.active ? 'enabled' : 'disabled'" /></td><td><B v-if="categoriesView" compact variant="secondary" @click="editCategory(row)">Editar</B><B v-else compact variant="secondary" :href="`/admin/servicios/${row.id}/editar`">Editar</B></td></tr>
                 <tr v-if="!rows.length"><td :colspan="categoriesView ? 4 : 5">No hay resultados para mostrar.</td></tr>
             </tbody></table></div>
         </template>
