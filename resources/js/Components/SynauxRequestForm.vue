@@ -65,24 +65,40 @@ const initializeAnswers = () => {
 };
 initializeAnswers();
 const extras = computed(() => props.data.services.filter(item => item.database_id != form.service_id));
-// Las tarifas nuevas no modifican el importe histórico de la estimación elegida.
+// La estimación del servidor solo se muestra como actual si coinciden todas las respuestas.
 const estimateAnswers = computed(() => estimate?.answers ?? old?.answers ?? []);
-const reference = computed(() => estimate
-    ? (estimate.price_min == null ? null : {
+const matchingCalculation = computed(() => {
+    const calculation = props.data.requestCalculation;
+    if (!calculation || calculation.service?.database_id != form.service_id) return null;
+
+    const normalize = value => Array.isArray(value) ? value.map(String).sort() : String(value ?? '').trim();
+    const answers = new Map(calculation.answers.map(answer => [String(answer.id), answer.value]));
+    const questionsForService = props.data.requestQuestions?.[form.service_id] ?? [];
+    const matches = questionsForService.every(question => {
+        const entered = question.from_project_description ? form.description : form.answers[question.id];
+        const previous = answers.get(String(question.id));
+        const emptyValue = question.input_type === 'multiple_choice' ? [] : '';
+        return JSON.stringify(normalize(entered ?? emptyValue)) === JSON.stringify(normalize(previous ?? emptyValue));
+    });
+    return matches ? calculation : null;
+});
+const reference = computed(() => {
+    if (estimate) return estimate.price_min == null ? null : {
         min: estimate.price_min, max: estimate.price_max ?? estimate.price_min,
         currency: estimate.currency_snapshot, date: estimate.created_at,
-    })
-    : (() => {
-        const published = props.data.references?.[selectedService.value?.id];
-        const calculation = props.data.requestCalculation;
-        if (calculation?.service?.database_id == form.service_id && calculation.answers.every(answer => {
-            const question = (props.data.requestQuestions?.[form.service_id] ?? []).find(item => item.id == answer.id);
-            return question?.from_project_description ? form.description === answer.value : JSON.stringify(form.answers[answer.id]) === JSON.stringify(answer.value);
-        })) return calculation.min == null ? null : {min:calculation.min,max:calculation.max,currency:calculation.currency,date:calculation.date};
-        const labels = questions.value.flatMap(question => (question.options ?? []).filter(option => String(option.id) === String(form.answers[question.id])).map(option => option.label));
-        const segment = published?.segments?.find(item => labels.includes(item.label));
-        return segment ? {...published,min:segment.min,max:segment.max,segment:segment.label} : published;
-    })());
+    };
+    const calculation = matchingCalculation.value;
+    if (calculation) return calculation.min == null ? null : {
+        min: calculation.min, max: calculation.max, currency: calculation.currency, date: calculation.date,
+    };
+
+    const published = props.data.references?.[selectedService.value?.id];
+    const labels = questions.value.flatMap(question => (question.options ?? [])
+        .filter(option => String(option.id) === String(form.answers[question.id])).map(option => option.label));
+    const segment = published?.segments?.find(item => labels.includes(item.label));
+    return segment ? {...published,min:segment.min,max:segment.max,segment:segment.label} : published;
+});
+const preliminaryReference = computed(() => Boolean(reference.value && !estimate && !matchingCalculation.value));
 // Los adicionales comparten el segmento del servicio principal, también al retomar una estimación guardada.
 const customerSegment = computed(() => {
     const answered = questions.value.flatMap(question => (question.options ?? [])
@@ -143,6 +159,10 @@ function prepareJourney(destination) {
     handoff.transform(() => ({...form.data(), destination}));
     handoff.post('/solicitudes/preparar', {
         preserveScroll: true,
+        // Volver a calcular puede devolver la misma URL y conservar el paso local de Inertia.
+        onSuccess: result => {
+            if (result.props.screen === 'publicar' && result.props.requestStep === 3) step.value = 3;
+        },
         onError: errors => {
             form.setError(errors);
             step.value = Object.keys(errors).some(field => field === 'service_id' || field.startsWith('answers.') || field.startsWith('additional_services')) ? 1 : 2;
@@ -268,7 +288,7 @@ function save(publish) {
                 <h3>{{ selectedService?.name }}</h3>
                 <p>{{ selectedService?.summary }}</p>
                 <ul v-if="selectedService?.includes?.length"><li v-for="item in selectedService.includes" :key="item">{{ item }}</li></ul>
-                <div class="request-price"><p>{{ estimate ? 'Estimación guardada · servicio principal' : 'Referencia del servicio principal' }}</p><strong v-if="reference">{{ money(reference.min, reference.currency) }}<template v-if="reference.max !== reference.min"> – {{ money(reference.max, reference.currency) }}</template></strong><strong v-else>A cotizar según el alcance</strong><p v-if="estimate">{{ date(estimate.created_at) }}</p><p v-else-if="reference?.segment">{{ reference.segment }}</p></div>
+                <div class="request-price"><p>{{ estimate ? 'Estimación guardada · servicio principal' : preliminaryReference ? 'Referencia preliminar del servicio principal' : 'Referencia del servicio principal' }}</p><strong v-if="reference">{{ money(reference.min, reference.currency) }}<template v-if="reference.max !== reference.min"> – {{ money(reference.max, reference.currency) }}</template></strong><strong v-else>A cotizar según el alcance</strong><p v-if="estimate">{{ date(estimate.created_at) }}</p><p v-else-if="reference?.segment">{{ reference.segment }}</p></div>
                 <dl v-if="estimateAnswers.length" class="summary-answers"><div v-for="answer in estimateAnswers" :key="answer.id"><dt>{{ answer.question }}</dt><dd>{{ answer.label }}</dd></div></dl>
                 <div v-for="(item, index) in form.additional_services" :key="index" class="summary-extra">
                     <strong>{{ extraName(item.service_id) }} × {{ item.quantity }}</strong>
@@ -278,11 +298,12 @@ function save(publish) {
                 </div>
                 <!-- El total reacciona a cambios de servicio, segmento y cantidad sin enviar importes del navegador. -->
                 <div class="request-price summary-total" role="status" aria-live="polite" aria-atomic="true">
-                    <p>{{ summaryPrice.pending ? 'Subtotal estimado' : 'Total estimado' }}</p>
+                    <p>{{ preliminaryReference ? 'Importe preliminar' : summaryPrice.pending ? 'Subtotal estimado' : 'Total estimado' }}</p>
                     <strong v-if="summaryPrice.hasPrice">{{ money(summaryPrice.min, summaryPrice.currency) }}<template v-if="summaryPrice.max !== summaryPrice.min"> – {{ money(summaryPrice.max, summaryPrice.currency) }}</template></strong>
                     <strong v-else>A cotizar según el alcance</strong>
                     <small v-if="summaryPrice.pending">{{ summaryPrice.pending === 1 ? 'Hay 1 servicio pendiente de cotización o con cantidad por completar.' : 'Hay ' + summaryPrice.pending + ' servicios pendientes de cotización o con cantidades por completar.' }} No está{{ summaryPrice.pending === 1 ? '' : 'n' }} incluido{{ summaryPrice.pending === 1 ? '' : 's' }} en el subtotal.</small>
-                    <small>Importes orientativos. El presupuesto formal confirmará el precio final.</small>
+                    <small v-if="preliminaryReference">El importe se recalcula al continuar, con las respuestas de tu solicitud.</small>
+                    <small v-else>Importes orientativos. El presupuesto formal confirmará el precio final.</small>
                 </div>
                 <p v-if="form.contact.name">{{ form.contact.name }}<br>{{ form.contact.email }}</p>
                 <p class="summary-note">synaux revisará el pedido y enviará un presupuesto formal con el total, los plazos y las condiciones.</p>
