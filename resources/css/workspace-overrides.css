@@ -324,8 +324,9 @@
 
     /* Las métricas llevan a sus listados y usan el acento de Gestión en el foco y los iconos. */
     .management-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; padding: 0; margin: 0 0 24px; list-style: none; }
-    .workspace-metric { display: grid; justify-items: start; align-content: start; gap: 7px; height: 100%; padding: 16px; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--card-shadow); }
-    .workspace-metric strong { font: 700 1.75rem/1.15 'Space Grotesk', sans-serif; }
+    .workspace-metric { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 4px 12px; height: 100%; padding: 14px; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--card-shadow); }
+    .workspace-metric > .icon { grid-row: span 2; }
+    .workspace-metric strong { font: 700 1.5rem/1.15 'Space Grotesk', sans-serif; }
     .workspace-metric span { color: #446075; font-weight: 700; text-wrap: pretty; }
     .workspace-metric:hover { border-color: #2db3a3; }
     .workspace-metric:focus-visible { outline: 2px solid #1f6f7f; outline-offset: 3px; }
@@ -334,7 +335,7 @@
     .management-queue .section-head { margin-bottom: 8px; }
     .workspace-view .management-queue h2 { margin: 0; }
     .management-queue > p { margin: 16px 0 0; color: #446075; }
-    .management-queue .list-row { padding-block: 12px; }
+    .management-queue .request-table { box-shadow: none; }
     .workspace-view .management-records { gap: 12px; }
     .management-record { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: start; padding: 16px; }
     .management-record-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -357,6 +358,11 @@
     @media (max-width: 1060px) {
         .management-record { grid-template-columns: auto minmax(0, 1fr); }
         .management-record-actions { grid-column: 2; justify-content: flex-start; max-width: none; }
+    }
+    @media (max-width: 420px) {
+        .workspace-metric { gap: 4px; padding: 10px; }
+        .workspace-metric > .icon { display: none; }
+        .workspace-metric > span, .workspace-metric > strong { grid-column: 1 / -1; }
     }
     @media (max-width: 700px) {
         .management-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }

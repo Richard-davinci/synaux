@@ -11,6 +11,7 @@ import I from '../Components/SynauxIcon.vue';
 import NewBadge from '../Components/SynauxNewBadge.vue';
 import SynauxBudgetEditor from '../Components/SynauxBudgetEditor.vue';
 import SynauxProjectUpdate from '../Components/SynauxProjectUpdate.vue';
+import SynauxManagementRequests from '../Components/SynauxManagementRequests.vue';
 // Catálogo concentra la configuración por servicio; Tarifarios conserva la publicación global.
 import SynauxCatalogAdmin from '../Components/SynauxCatalogAdmin.vue';
 import { money, date, referenceHref, useSubmit } from '../support/synaux';
@@ -47,7 +48,7 @@ const rows = computed(() => {
     const needle = query.value.trim().toLocaleLowerCase('es');
     return (props.data[listing.value?.key] ?? []).filter(row => {
         const searchText = [row.title, row.topic, row.name, row.email, row.category, row.service_name,
-            row.contact?.name, row.contact?.company, row.client?.name, row.client?.company, row.budget_id, row.id,
+            row.contact?.name, row.contact?.company, row.client?.name, row.client?.company, row.budget_id, row.id, section.value === 'solicitudes' ? 'SOL-' + row.id : '',
         ].join(' ').toLocaleLowerCase('es');
         return searchText.includes(needle) && (!status.value || (row.display_status ?? row.status) === status.value);
     });
@@ -77,7 +78,6 @@ function canRevise(budget) {
         && (budget.external || (props.data.budgetRequests ?? props.data.requests ?? []).some(item => item.id === budget.request_id && item.status === 'open'));
 }
 function editProject(p) { project.value = p; }
-function act(action,values) { submit(useForm(values),action); }
 function configure(row={}) {
     if(section.value==='tarifario') {
         tariff.name=''; tariff.currency_code=row.currency_code ?? 'ARS'; tariff.active=false;
@@ -126,13 +126,8 @@ function saveConfiguration() { submit(section.value==='tarifario'?tariff:configu
                     <h2 id="management-queue-title">Solicitudes por revisar</h2>
                     <B compact variant="secondary" href="/gestion/solicitudes">Ver solicitudes</B>
                 </div>
-                <div v-for="item in pendingRequests.slice(0, 5)" :key="item.id" class="list-row">
-                    <div>
-                        <div class="record-heading"><h3>{{ item.title }}</h3><NewBadge type="solicitud" :id="item.id" /></div>
-                        <small>SOL-{{ item.id }} · {{ date(item.created_at) }}</small>
-                    </div>
-                    <B compact :href="'/solicitudes/' + item.id" variant="secondary">Revisar solicitud</B>
-                </div>
+                <SynauxManagementRequests v-if="pendingRequests.length" :rows="pendingRequests.slice(0, 5)"
+                    label="Solicitudes por revisar" :preview="Boolean(data.preview)" />
                 <p v-if="!pendingRequests.length">No hay solicitudes pendientes de revisión.</p>
             </section>
         </template>
@@ -143,26 +138,24 @@ function saveConfiguration() { submit(section.value==='tarifario'?tariff:configu
                 <F v-if="statusOptions.length > 1" v-model="status" label="Estado" type="select" :options="statusOptions" />
                 <B compact variant="secondary" :disabled="!hasFilters" @click="clearFilters">Limpiar filtros</B>
             </div>
-            <div v-if="rows.length" class="stack management-records">
+            <SynauxManagementRequests v-if="section === 'solicitudes' && rows.length" :rows="rows"
+                label="Solicitudes recibidas" :preview="Boolean(data.preview)" />
+            <div v-else-if="rows.length" class="stack management-records">
                 <v-card v-for="item in rows" :key="item.id" :id="section === 'contactos' ? 'consulta-' + item.id : undefined" class="card management-record">
                     <I :name="listing.icon" class="workspace-record-icon" />
                     <div class="management-record-copy">
                         <div class="management-record-meta">
                             <small>{{ date(item.created_at) }}</small>
-                            <S v-if="item.status" :request="section === 'solicitudes'" :status="item.display_status ?? item.status" />
+                            <S v-if="item.status" :status="item.display_status ?? item.status" />
                             <S v-else-if="section === 'portfolio'" :status="item.is_public ? 'published' : 'unpublished'" />
                         </div>
                         <div class="record-heading">
                             <h3>{{ item.title ?? item.topic }}</h3>
-                            <NewBadge :type="{ solicitudes: 'solicitud', presupuestos: 'presupuesto', proyectos: 'proyecto', contactos: 'consulta' }[section]" :id="item.id" />
+                            <NewBadge :type="{ presupuestos: 'presupuesto', proyectos: 'proyecto', contactos: 'consulta' }[section]" :id="item.id" />
                         </div>
                         <template v-if="section === 'contactos'">
                             <p>{{ item.name }} · {{ item.email }}</p>
                             <p class="preserve-lines">{{ item.message }}</p>
-                        </template>
-                        <template v-if="section === 'solicitudes'">
-                            <p>{{ item.service_name }} · {{ item.contact?.company || item.contact?.name || 'Cliente' }}</p>
-                            <small>{{ item.reviewed_at ? 'Revisada el ' + date(item.reviewed_at) : 'Pendiente de revisión' }}</small>
                         </template>
                         <p v-if="section === 'presupuestos'">Versión {{ item.version_number }} · {{ money(item.total, item.currency_code) }}</p>
                         <p v-if="section === 'portfolio'">{{ item.category }}</p>
@@ -172,12 +165,7 @@ function saveConfiguration() { submit(section.value==='tarifario'?tariff:configu
                         </template>
                     </div>
                     <div v-if="section !== 'contactos'" class="management-record-actions">
-                        <template v-if="section === 'solicitudes'">
-                            <B compact :href="'/solicitudes/' + item.id" variant="secondary">Ver detalle</B>
-                            <B v-if="item.status === 'open' && (data.preview || item.user_id !== data.auth?.id)" compact :href="'/editor/presupuesto?solicitud=' + item.id">Preparar presupuesto</B>
-                            <B v-if="item.status === 'open' && !item.reviewed_at" compact variant="ghost" @click="act('estado-solicitud', { id: item.id, status: 'review' })">Marcar revisada</B>
-                        </template>
-                        <template v-else-if="section === 'presupuestos'">
+                        <template v-if="section === 'presupuestos'">
                             <B compact :href="'/presupuestos/' + item.id" variant="secondary">Ver versión</B>
                             <B v-if="canRevise(item)" compact :href="'/editor/presupuesto/' + item.id">{{ item.status === 'draft' ? 'Continuar borrador' : 'Preparar nueva versión' }}</B>
                         </template>
