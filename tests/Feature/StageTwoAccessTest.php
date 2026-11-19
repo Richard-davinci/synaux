@@ -48,7 +48,7 @@ class StageTwoAccessTest extends TestCase
         $admin->save();
 
         $this->actingAs($admin)->get('/admin/etapa-2')->assertInertia(fn (Assert $page) => $page
-            ->component('StageTwo')->where('stageTwo', true));
+            ->component('RevisionEtapaDos')->where('stageTwo', true));
         $this->get('/oportunidades')->assertOk();
         $this->get('/profesionales')->assertOk();
         $this->get('/profesional')->assertOk();

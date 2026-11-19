@@ -56,7 +56,7 @@ class EstimateController extends Controller
     {
         $selected = $this->estimates->find($request->user()->id, $id) ?? abort(404);
 
-        return Inertia::render('Workspace', [
+        return Inertia::render('EspacioTrabajo', [
             'screen' => 'estimacion',
             'area' => $request->user()->is_admin ? 'gestion' : 'cliente',
             'selected' => $selected,

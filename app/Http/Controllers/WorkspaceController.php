@@ -75,7 +75,7 @@ class WorkspaceController extends Controller
             }
         }
 
-        return Inertia::render('Workspace', $data);
+        return Inertia::render('EspacioTrabajo', $data);
     }
 
     // La edición usa la pantalla de servicios y comprueba que exista el registro solicitado.

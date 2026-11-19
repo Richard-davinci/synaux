@@ -32,7 +32,7 @@ class BudgetController extends Controller
         $selected = $this->budgetQueries->quotes($user->id, $management, id: $id)[0] ?? abort(404);
         $this->notifications->readEntity($user, 'presupuesto', $id);
 
-        return Inertia::render('Workspace', [
+        return Inertia::render('EspacioTrabajo', [
             'screen' => 'presupuesto',
             'area' => $management ? 'gestion' : 'cliente',
             'selected' => $selected,
@@ -82,7 +82,7 @@ class BudgetController extends Controller
         }
         unset($source);
 
-        return Inertia::render('Workspace', [
+        return Inertia::render('EspacioTrabajo', [
             'screen' => 'editor-presupuesto',
             'area' => $management ? 'gestion' : 'cliente',
             'requestId' => (int) $request->query('solicitud', 0),

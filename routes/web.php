@@ -102,7 +102,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('synaux.management')->group(function () {
         Route::post('/admin/tarifario/importar', [TariffImportController::class, 'store'])->middleware('throttle:2,1');
         // Entrada administrativa de revisión para las funciones de la segunda etapa.
-        Route::get('/admin/etapa-2', fn () => Inertia::render('StageTwo'))->name('stage-two');
+        Route::get('/admin/etapa-2', fn () => Inertia::render('RevisionEtapaDos'))->name('stage-two');
         // El asistente usa una página propia y conserva el permiso real del grupo administrativo.
         Route::get('/admin/servicios/nuevo', fn (Request $r, WorkspaceController $c) => $c->show($r, 'admin', 'servicios'));
         Route::get('/admin/servicios/{service}/editar', [WorkspaceController::class, 'editService'])->whereNumber('service');

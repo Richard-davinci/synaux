@@ -22,7 +22,7 @@ class ProjectController extends Controller
         $selected = $projectQueries->projects($quotes, id: $id)[0] ?? abort(404);
         $notifications->readEntity($user, 'proyecto', $id);
 
-        return Inertia::render('Workspace', [
+        return Inertia::render('EspacioTrabajo', [
             'screen' => 'proyecto',
             'area' => $user->is_admin ? 'gestion' : 'cliente',
             'selected' => $selected,

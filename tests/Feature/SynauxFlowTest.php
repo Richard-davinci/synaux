@@ -111,7 +111,7 @@ class SynauxFlowTest extends TestCase
         $this->post('/acciones/guardar-estimacion', ['to_request' => true])->assertRedirect('/solicitudes/nueva?estimacion='.$id);
         $this->assertDatabaseCount('estimates', 1);
         $this->assertDatabaseHas('estimates', ['status' => 'manual', 'price_min' => null, 'price_max' => null]);
-        $this->get('/solicitudes/nueva?estimacion='.$id)->assertInertia(fn (Assert $p) => $p->component('Workspace')->where('selectedEstimate.id', $id));
+        $this->get('/solicitudes/nueva?estimacion='.$id)->assertInertia(fn (Assert $p) => $p->component('EspacioTrabajo')->where('selectedEstimate.id', $id));
     }
 
     // Entrar en una cuenta existente recupera el resultado y las respuestas del servicio original.

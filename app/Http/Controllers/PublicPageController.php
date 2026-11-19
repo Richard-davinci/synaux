@@ -102,6 +102,6 @@ class PublicPageController extends Controller
             $data['email'] = (string) $request->query('email');
         }
 
-        return Inertia::render($screen === 'servicios' ? 'Catalog' : 'Workspace', $data);
+        return Inertia::render($screen === 'servicios' ? 'Catalog' : 'EspacioTrabajo', $data);
     }
 }

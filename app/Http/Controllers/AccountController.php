@@ -16,7 +16,7 @@ class AccountController extends Controller
     {
         $user = $request->user();
         $brand = DB::table('professional_profiles')->where('user_id', $user->id)->value('brand_name');
-        return Inertia::render('AccountProfile', [
+        return Inertia::render('PerfilCuenta', [
             'profile' => [...$user->contactDetails(), 'is_admin' => (bool) $user->is_admin, 'created_at' => $user->created_at?->toDateString()],
             'issuer' => $user->is_admin ? $user->issuerDetails($brand) : null,
             'area' => $user->is_admin ? 'gestion' : 'cliente',

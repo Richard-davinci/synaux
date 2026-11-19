@@ -91,7 +91,7 @@ class RequestController extends Controller
             return redirect()->guest('/ingresar');
         }
 
-        return Inertia::render('Workspace', $journey->pageData($request, [
+        return Inertia::render('EspacioTrabajo', $journey->pageData($request, [
             'services' => $catalog->services(),
             'references' => $catalog->references(),
             'selectedEstimate' => $id ? ($estimates->find($request->user()->id, $id) ?? abort(404)) : null,
@@ -120,7 +120,7 @@ class RequestController extends Controller
 
         $notifications->readEntity($user, 'solicitud', $id);
 
-        return Inertia::render('Workspace', $data);
+        return Inertia::render('EspacioTrabajo', $data);
     }
 
     // Conserva el proyecto en la sesión antes del ingreso y vuelve después al paso de contacto.

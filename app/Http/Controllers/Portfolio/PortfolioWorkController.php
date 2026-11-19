@@ -20,7 +20,7 @@ class PortfolioWorkController extends Controller
         $profile = DB::table('professional_profiles')->where('user_id', $user->id)->first();
         abort_unless($profile, 403, 'Completá tu perfil profesional.');
 
-        return Inertia::render('Workspace', [
+        return Inertia::render('EspacioTrabajo', [
             'screen' => 'editor-trabajo',
             'area' => $user->is_admin ? 'gestion' : 'cliente',
             'selected' => $selected,

@@ -195,9 +195,9 @@ class PrototypeController extends Controller
             $data['issuer'] = $isAdmin ? ['name' => 'synaux', 'email' => 'presupuestos@example.test', 'phone' => '1100000000', 'address' => 'Dirección del estudio'] : null;
             $data['area'] = $isAdmin ? 'gestion' : 'cliente';
             $data['referenceRoutes']['/mi-perfil'] = $isAdmin ? 'cuenta-admin' : 'cuenta-cliente';
-            return Inertia::render('AccountProfile', $data);
+            return Inertia::render('PerfilCuenta', $data);
         }
 
-        return Inertia::render($screen === 'inicio' ? 'Home' : ($data['screen'] === 'servicios' ? 'Catalog' : 'Workspace'), $data);
+        return Inertia::render($screen === 'inicio' ? 'Home' : ($data['screen'] === 'servicios' ? 'Catalog' : 'EspacioTrabajo'), $data);
     }
 }

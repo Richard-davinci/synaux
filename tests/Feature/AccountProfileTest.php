@@ -20,7 +20,7 @@ class AccountProfileTest extends TestCase
         $this->get('/mi-perfil')->assertRedirect('/ingresar');
         $user = User::factory()->create();
         $this->actingAs($user)->get('/mi-perfil')->assertInertia(fn (Assert $page) => $page
-            ->component('AccountProfile')->where('profile.email', $user->email)->missing('profile.password'));
+            ->component('PerfilCuenta')->where('profile.email', $user->email)->missing('profile.password'));
         $this->patch('/mi-perfil', ['name' => 'Nombre actualizado', 'email' => $user->email, 'is_admin' => true])
             ->assertSessionHasNoErrors();
         $this->assertSame('Nombre actualizado', $user->fresh()->name);
