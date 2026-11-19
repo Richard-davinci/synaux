@@ -1,15 +1,16 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Requests;
 
+use App\Services\Catalog\ServiceCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 // El borrador anónimo vive en la sesión; nunca permite consultar solicitudes ni estimaciones de otra cuenta.
-class SynauxRequestJourney
+class RequestJourney
 {
-    public function __construct(private SynauxCatalog $catalog) {}
+    public function __construct(private ServiceCatalog $catalog) {}
 
     // Carga preguntas públicas en dos consultas para que el selector pueda cambiar de servicio sin perder el formulario.
     public function questionMap(array $services): array

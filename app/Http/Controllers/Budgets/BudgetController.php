@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Budgets;
 
 use App\Http\Controllers\Controller;
-use App\Services\SynauxBudgets;
-use App\Services\SynauxCatalog;
-use App\Services\SynauxNotificationCenter;
-use App\Services\SynauxWorkspace;
+use App\Services\Budgets\BudgetQueries;
+use App\Services\Budgets\BudgetService;
+use App\Services\Catalog\ServiceCatalog;
+use App\Services\Marketplace\MarketplaceQueries;
+use App\Services\Notifications\NotificationCenter;
+use App\Services\Projects\ProjectQueries;
+use App\Services\Requests\RequestQueries;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -14,8 +17,11 @@ use Inertia\Inertia;
 class BudgetController extends Controller
 {
     public function __construct(
-        private SynauxWorkspace $workspace,
-        private SynauxNotificationCenter $notifications,
+        private BudgetQueries $budgetQueries,
+        private MarketplaceQueries $marketplaceQueries,
+        private ProjectQueries $projectQueries,
+        private RequestQueries $requestQueries,
+        private NotificationCenter $notifications,
     ) {}
 
     // Carga el documento autorizado, su historial de versiones y el contexto de esa solicitud.
@@ -23,25 +29,25 @@ class BudgetController extends Controller
     {
         $user = $request->user();
         $management = (bool) $user->is_admin;
-        $selected = $this->workspace->quotes($user->id, $management, id: $id)[0] ?? abort(404);
+        $selected = $this->budgetQueries->quotes($user->id, $management, id: $id)[0] ?? abort(404);
         $this->notifications->readEntity($user, 'presupuesto', $id);
 
         return Inertia::render('Workspace', [
             'screen' => 'presupuesto',
             'area' => $management ? 'gestion' : 'cliente',
             'selected' => $selected,
-            'quotes' => $this->workspace->quotes($user->id, $management, budgetId: $selected['budget_id']),
-            'requests' => $selected['request_id'] ? $this->workspace->requests($user->id, $management, only: [$selected['request_id']]) : [],
-            'projects' => $this->workspace->projects([$selected]),
+            'quotes' => $this->budgetQueries->quotes($user->id, $management, budgetId: $selected['budget_id']),
+            'requests' => $selected['request_id'] ? $this->requestQueries->requests($user->id, $management, only: [$selected['request_id']]) : [],
+            'projects' => $this->projectQueries->projects([$selected]),
         ]);
     }
 
     // Conserva las solicitudes elegibles y las referencias históricas que necesita el editor.
-    public function edit(Request $request, SynauxCatalog $catalog, int $id = 0)
+    public function edit(Request $request, ServiceCatalog $catalog, int $id = 0)
     {
         $user = $request->user();
         $management = (bool) $user->is_admin;
-        $selected = $id ? ($this->workspace->quotes($user->id, $management, id: $id)[0] ?? abort(404)) : null;
+        $selected = $id ? ($this->budgetQueries->quotes($user->id, $management, id: $id)[0] ?? abort(404)) : null;
         abort_if($selected && $selected['issuer_id'] !== $user->id, 403);
         $direct = $selected ? $selected['external'] : ($request->boolean('directo') && ! $request->integer('solicitud'));
         abort_if($direct && ! $management, 403);
@@ -49,8 +55,8 @@ class BudgetController extends Controller
         $profile = DB::table('professional_profiles')->where('user_id', $user->id)->first();
         $chosen = $profile && ! $management ? DB::table('proposals')->where('professional_profile_id', $profile->id)
             ->where('status', 'accepted')->pluck('project_request_id')->all() : [];
-        $sources = $management ? $this->workspace->requests($user->id, true)
-            : ($chosen ? $this->workspace->requests(null, true, only: $chosen) : []);
+        $sources = $management ? $this->requestQueries->requests($user->id, true)
+            : ($chosen ? $this->requestQueries->requests(null, true, only: $chosen) : []);
         $budgetRequests = array_values(array_filter($sources, fn ($source) => $source['user_id'] !== $user->id));
 
         // Recupera referencias de adicionales antiguos desde la versión vinculada a la solicitud.
@@ -83,20 +89,20 @@ class BudgetController extends Controller
             'selected' => $selected,
             'directBudget' => $direct,
             'budgetRequests' => $budgetRequests,
-            'profile' => $profile ? $this->workspace->profile($profile) : null,
+            'profile' => $profile ? $this->marketplaceQueries->profile($profile) : null,
             'issuerDetails' => $user->issuerDetails($profile?->brand_name),
-            'quotes' => $selected ? $this->workspace->quotes($user->id, $management, budgetId: $selected['budget_id']) : [],
+            'quotes' => $selected ? $this->budgetQueries->quotes($user->id, $management, budgetId: $selected['budget_id']) : [],
         ]);
     }
 
     // Delega el guardado y la emisión al servicio que controla sus versiones.
-    public function store(Request $request, SynauxBudgets $budgets)
+    public function store(Request $request, BudgetService $budgets)
     {
         return redirect('/presupuestos/'.$budgets->save($request))->with('notice', 'Versión guardada.');
     }
 
     // Redirige al proyecto cuando se acepta la versión vigente del presupuesto.
-    public function decide(Request $request, SynauxBudgets $budgets)
+    public function decide(Request $request, BudgetService $budgets)
     {
         $id = $budgets->decide($request);
 

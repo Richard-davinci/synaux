@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Tariffs;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 // Lee datos públicos sin ejecutar JavaScript remoto y publica una nueva versión solo cuando cambia la referencia.
-class SynauxTariffImport
+class TariffImport
 {
     public const SOURCE = 'https://tarifario.ar/categoria/dev-web-app#service-pd-3';
     public const RATE = 'https://dolarapi.com/v1/dolares/contadoconliqui';

@@ -2,16 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\SynauxCatalog;
-use App\Services\SynauxRequestJourney;
-use App\Services\SynauxWorkspace;
+use App\Services\Catalog\ServiceCatalog;
+use App\Services\Marketplace\MarketplaceQueries;
+use App\Services\Portfolio\PortfolioQueries;
+use App\Services\Requests\RequestJourney;
+use App\Services\Requests\RequestQueries;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class PublicPageController extends Controller
 {
-    public function __construct(private SynauxCatalog $catalog, private SynauxWorkspace $workspace, private SynauxRequestJourney $journey) {}
+    public function __construct(
+        private ServiceCatalog $catalog,
+        private MarketplaceQueries $marketplaceQueries,
+        private PortfolioQueries $portfolioQueries,
+        private RequestQueries $requestQueries,
+        private RequestJourney $journey,
+    ) {}
 
     // Prepara una pantalla pública y agrega únicamente los datos que su recorrido necesita.
     public function show(Request $request, string $screen = 'servicios', ?string $id = null)
@@ -26,7 +34,7 @@ class PublicPageController extends Controller
             $data['references'] = $this->catalog->references();
         }
         $ownProfile = $request->user() ? DB::table('professional_profiles')->where('user_id', $request->user()->id)->first() : null;
-        $data['profile'] = $ownProfile ? $this->workspace->profile($ownProfile) : null;
+        $data['profile'] = $ownProfile ? $this->marketplaceQueries->profile($ownProfile) : null;
         if ($screen === 'servicio') {
             $data['selected'] = $this->catalog->service($id);
             // El catálogo puede indicar el segmento inicial, pero el servidor conserva el control de los precios.
@@ -34,11 +42,11 @@ class PublicPageController extends Controller
                 ? $request->query('cliente') : null;
         }
         if (in_array($screen, ['portfolio', 'trabajo'], true)) {
-            $data['works'] = $this->workspace->works();
+            $data['works'] = $this->portfolioQueries->works();
             $data['selected'] = $id ? collect($data['works'])->firstWhere('id', (int) $id) ?? abort(404) : null;
         }
         if (in_array($screen, ['muro', 'oportunidad'], true)) {
-            $data['opportunities'] = $this->workspace->requests(null, public: true);
+            $data['opportunities'] = $this->requestQueries->requests(null, public: true);
             $data['selected'] = $id ? collect($data['opportunities'])->firstWhere('id', (int) $id) : null;
             if ($id && ! $data['selected']) {
                 // Una invitación aceptada permite ver el contexto privado, sin revelar respuestas ni contacto.
@@ -46,7 +54,7 @@ class PublicPageController extends Controller
                 $profile = $request->user() ? DB::table('professional_profiles')->where('user_id', $request->user()->id)->first() : null;
                 $invited = $profile && DB::table('project_request_invitations')->where('project_request_id', $id)->where('professional_profile_id', $profile->id)->where('status', 'accepted')->exists();
                 abort_unless($request->user() && ($record->user_id === $request->user()->id || $invited), 404);
-                $data['selected'] = collect($this->workspace->requests($record->user_id, only: [(int) $id]))->firstWhere('id', (int) $id);
+                $data['selected'] = collect($this->requestQueries->requests($record->user_id, only: [(int) $id]))->firstWhere('id', (int) $id);
                 unset($data['selected']['answers'], $data['selected']['estimate_id'], $data['selected']['user_id'], $data['selected']['contact']);
             }
             if ($id) {
@@ -56,11 +64,11 @@ class PublicPageController extends Controller
             }
         }
         if (in_array($screen, ['profesionales', 'perfil-profesional'], true)) {
-            $data['professionals'] = $this->workspace->professionals();
+            $data['professionals'] = $this->marketplaceQueries->professionals();
             $data['selected'] = $id ? collect($data['professionals'])->firstWhere('id', (int) $id) ?? abort(404) : null;
             if ($id) {
-                $data['works'] = collect($this->workspace->works())->where('professional_profile_id', (int) $id)->values();
-                $data['requests'] = $request->user() ? $this->workspace->requests($request->user()->id) : [];
+                $data['works'] = collect($this->portfolioQueries->works())->where('professional_profile_id', (int) $id)->values();
+                $data['requests'] = $request->user() ? $this->requestQueries->requests($request->user()->id) : [];
             }
         }
         if ($screen === 'estimador') {

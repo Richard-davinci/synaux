@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Requests;
 
 use App\Http\Controllers\Controller;
-use App\Services\SynauxCatalog;
-use App\Services\SynauxEstimates;
-use App\Services\SynauxNotificationCenter;
-use App\Services\SynauxRequestJourney;
-use App\Services\SynauxRequests;
-use App\Services\SynauxWorkspace;
+use App\Services\Catalog\ServiceCatalog;
+use App\Services\Estimates\EstimateStore;
+use App\Services\Notifications\NotificationCenter;
+use App\Services\Requests\RequestJourney;
+use App\Services\Requests\RequestQueries;
+use App\Services\Requests\RequestService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +17,7 @@ use Inertia\Inertia;
 
 class RequestController extends Controller
 {
-    public function __construct(private SynauxRequests $requests) {}
+    public function __construct(private RequestService $requests) {}
 
     // Valida el formulario autenticado y redirige al detalle del borrador o la solicitud publicada.
     public function store(Request $request): RedirectResponse
@@ -60,7 +60,7 @@ class RequestController extends Controller
         $data['skills'] = array_values(array_unique(array_filter(array_map('trim', explode(',', $data['skills'] ?? '')))));
         // La estimación integrada se calcula en el servidor y se guarda junto al pedido en una transacción.
         $id = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $data) {
-            $journey = app(\App\Services\SynauxRequestJourney::class);
+            $journey = app(\App\Services\Requests\RequestJourney::class);
             $pending = $journey->pending($request);
             if (array_key_exists('answers', $data) && empty($data['estimate_id'])) {
                 $calculation = $journey->calculate($data);
@@ -69,7 +69,7 @@ class RequestController extends Controller
                     && $pending['calculation']['answers'] == $calculation['answers']) {
                     $calculation = $pending['calculation'];
                 }
-                $data['estimate_id'] = app(\App\Services\SynauxEstimates::class)->save($request->user()->id, $calculation);
+                $data['estimate_id'] = app(\App\Services\Estimates\EstimateStore::class)->save($request->user()->id, $calculation);
             }
 
             return $this->requests->save($request->user()->id, $data, $pending);
@@ -80,7 +80,7 @@ class RequestController extends Controller
     }
 
     // Abre el formulario público con la estimación elegida por su titular, si corresponde.
-    public function create(Request $request, SynauxCatalog $catalog, SynauxEstimates $estimates, SynauxRequestJourney $journey)
+    public function create(Request $request, ServiceCatalog $catalog, EstimateStore $estimates, RequestJourney $journey)
     {
         if ($request->user()?->is_admin) {
             return redirect('/gestion');
@@ -99,11 +99,11 @@ class RequestController extends Controller
     }
 
     // Los borradores se reabren con las preguntas y la estimación que usó el titular.
-    public function show(Request $request, SynauxWorkspace $workspace, SynauxCatalog $catalog, SynauxEstimates $estimates, SynauxRequestJourney $journey, SynauxNotificationCenter $notifications, int $id)
+    public function show(Request $request, RequestQueries $requestQueries, ServiceCatalog $catalog, EstimateStore $estimates, RequestJourney $journey, NotificationCenter $notifications, int $id)
     {
         $user = $request->user();
         $management = (bool) $user->is_admin;
-        $selected = $workspace->requests($user->id, $management, only: [$id])[0] ?? abort(404);
+        $selected = $requestQueries->requests($user->id, $management, only: [$id])[0] ?? abort(404);
         $data = ['screen' => 'solicitud', 'area' => $management ? 'gestion' : 'cliente', 'selected' => $selected];
 
         if ($selected['status'] === 'draft') {
@@ -124,7 +124,7 @@ class RequestController extends Controller
     }
 
     // Conserva el proyecto en la sesión antes del ingreso y vuelve después al paso de contacto.
-    public function prepare(Request $request, SynauxRequestJourney $journey)
+    public function prepare(Request $request, RequestJourney $journey)
     {
         abort_if($request->user()?->is_admin, 403);
 

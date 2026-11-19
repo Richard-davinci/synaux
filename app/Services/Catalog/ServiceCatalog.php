@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Catalog;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 // Centraliza catálogo, preguntas y cálculo para que el resultado público y el historial coincidan.
-class SynauxCatalog
+class ServiceCatalog
 {
     // Une servicios y categorías y prepara los campos compartidos por catálogo, formularios y detalles.
     public function services(bool $all = false): array

@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Services\SynauxCatalog;
-use App\Services\SynauxTariffImport;
+use App\Services\Catalog\ServiceCatalog;
+use App\Services\Tariffs\TariffImport;
 use Database\Seeders\SynauxCatalogSeeder;
 use Database\Seeders\SynauxInstitutionalTariffSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,7 +24,7 @@ class TariffImportTest extends TestCase
             'https://tarifario.ar/_next/static/chunks/catalog.js' => Http::response(
                 '{id:"pd-3",category:"dev-web-app",title:"Institucional",description:'.json_encode($scope, JSON_UNESCAPED_UNICODE).',priceUSD:800,priceType:"minimum"}'
             ),
-            SynauxTariffImport::RATE => Http::response(['casa' => 'contadoconliqui', 'venta' => $validRate ? 1690.9 : 0, 'fechaActualizacion' => now()->toIso8601String()]),
+            TariffImport::RATE => Http::response(['casa' => 'contadoconliqui', 'venta' => $validRate ? 1690.9 : 0, 'fechaActualizacion' => now()->toIso8601String()]),
         ]);
     }
 
@@ -40,7 +40,7 @@ class TariffImportTest extends TestCase
     public function test_import_creates_a_version_with_provenance_and_is_idempotent(): void
     {
         $this->remote();
-        $import = app(SynauxTariffImport::class);
+        $import = app(TariffImport::class);
         $result = $import->sync();
         $this->assertTrue($result['created']);
         $this->assertSame(1352720, $result['pyme']);
@@ -48,13 +48,13 @@ class TariffImportTest extends TestCase
         $this->assertDatabaseCount('tariff_versions', 2);
         $this->assertDatabaseHas('tariff_versions', ['id' => $result['id'], 'source_usd' => 800, 'source_rate' => 1690.9]);
 
-        $catalog = app(SynauxCatalog::class);
+        $catalog = app(ServiceCatalog::class);
         $service = $catalog->service('sitio-institucional');
         // La referencia inicial sale de la versión importada y solo existe para servicios con tarifas completas.
         $reference = $catalog->references()['sitio-institucional'];
         $this->assertEquals(676360, $reference['min']);
         $this->assertSame('Particular', $reference['segment']);
-        $this->assertSame(SynauxTariffImport::SOURCE, $reference['source']);
+        $this->assertSame(TariffImport::SOURCE, $reference['source']);
         $this->assertArrayNotHasKey('identidad-visual', $catalog->references());
         $this->get('/plataforma')->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
             ->has('references.sitio-institucional.segments', 3)
@@ -75,7 +75,7 @@ class TariffImportTest extends TestCase
     {
         $this->remote('Paquete modificado de doce secciones.');
         try {
-            app(SynauxTariffImport::class)->sync();
+            app(TariffImport::class)->sync();
             $this->fail('Un alcance diferente debe detener la importación.');
         } catch (\RuntimeException $exception) {
             $this->assertStringContainsString('alcance', $exception->getMessage());
@@ -114,6 +114,6 @@ class TariffImportTest extends TestCase
         $this->remote(validRate: false);
 
         $this->expectException(\RuntimeException::class);
-        app(SynauxTariffImport::class)->sync();
+        app(TariffImport::class)->sync();
     }
 }

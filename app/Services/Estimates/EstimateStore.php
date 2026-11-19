@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Estimates;
 
 use Illuminate\Support\Facades\DB;
 
 // Guarda el resultado de sesión con una clave única para que los reintentos recuperen la misma estimación.
-class SynauxEstimates
+class EstimateStore
 {
     // Lee el registro del titular y conserva el formato de las instantáneas que recibe la interfaz.
     public function find(int $userId, int $id, bool $includeDeleted = false): ?array
@@ -13,11 +13,23 @@ class SynauxEstimates
         $estimate = DB::table('estimates')->where('user_id', $userId)->where('id', $id)
             ->when(! $includeDeleted, fn ($query) => $query->whereNull('deleted_at'))->first();
 
-        return $estimate ? [
+        return $estimate ? $this->withSnapshots($estimate) : null;
+    }
+
+    // Lista las estimaciones visibles usando el mismo formato que el detalle.
+    public function forUser(int $userId): array
+    {
+        return DB::table('estimates')->where('user_id', $userId)->whereNull('deleted_at')
+            ->orderByDesc('id')->get()->map($this->withSnapshots(...))->all();
+    }
+
+    private function withSnapshots(object $estimate): array
+    {
+        return [
             ...(array) $estimate,
             'answers' => json_decode($estimate->answers_snapshot, true),
             'items' => json_decode($estimate->items_snapshot ?? '[]', true),
-        ] : null;
+        ];
     }
 
     public function save(int $userId, array $pending): int

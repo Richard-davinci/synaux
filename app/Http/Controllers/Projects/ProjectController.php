@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Projects;
 
 use App\Http\Controllers\Controller;
-use App\Services\SynauxNotificationCenter;
-use App\Services\SynauxWorkspace;
+use App\Services\Budgets\BudgetQueries;
+use App\Services\Notifications\NotificationCenter;
+use App\Services\Projects\ProjectQueries;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -13,12 +14,12 @@ use Inertia\Inertia;
 class ProjectController extends Controller
 {
     // Comprueba el presupuesto del proyecto antes de cargar su historial y marcar sus avisos.
-    public function show(Request $request, SynauxWorkspace $workspace, SynauxNotificationCenter $notifications, int $id)
+    public function show(Request $request, BudgetQueries $budgetQueries, ProjectQueries $projectQueries, NotificationCenter $notifications, int $id)
     {
         $user = $request->user();
         $versionId = DB::table('projects')->where('id', $id)->value('accepted_budget_version_id') ?? abort(404);
-        $quotes = $workspace->quotes($user->id, (bool) $user->is_admin, id: $versionId);
-        $selected = $workspace->projects($quotes, id: $id)[0] ?? abort(404);
+        $quotes = $budgetQueries->quotes($user->id, (bool) $user->is_admin, id: $versionId);
+        $selected = $projectQueries->projects($quotes, id: $id)[0] ?? abort(404);
         $notifications->readEntity($user, 'proyecto', $id);
 
         return Inertia::render('Workspace', [
@@ -30,7 +31,7 @@ class ProjectController extends Controller
     }
 
     // Cada avance se valida y conserva en una transacción; el cliente solo puede consultarlo.
-    public function update(Request $request, SynauxWorkspace $workspace, SynauxNotificationCenter $notifications)
+    public function update(Request $request, BudgetQueries $budgetQueries, NotificationCenter $notifications)
     {
         $d = $request->validate([
             'id' => 'required|integer', 'status' => ['required', Rule::in(['pending', 'in_progress', 'completed', 'cancelled'])],
@@ -39,9 +40,9 @@ class ProjectController extends Controller
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'notes' => 'nullable|string|max:10000', 'next_steps' => 'nullable|string|max:5000',
         ]);
-        DB::transaction(function () use ($request, $d, $workspace, $notifications) {
+        DB::transaction(function () use ($request, $d, $budgetQueries, $notifications) {
             $project = DB::table('projects')->where('id', $d['id'])->lockForUpdate()->firstOrFail();
-            $version = $workspace->quotes($request->user()->id, (bool) $request->user()->is_admin, id: $project->accepted_budget_version_id)[0] ?? null;
+            $version = $budgetQueries->quotes($request->user()->id, (bool) $request->user()->is_admin, id: $project->accepted_budget_version_id)[0] ?? null;
             abort_unless($version && ($request->user()->is_admin || $version['issuer_id'] === $request->user()->id), 403);
             // Estado y porcentaje deben comunicar el mismo avance.
             if (($d['status'] === 'completed' && (int) $d['progress'] !== 100)

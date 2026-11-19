@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Services\SynauxCatalog;
+use App\Services\Catalog\ServiceCatalog;
 use Database\Seeders\SynauxCatalogSeeder;
 use Database\Seeders\SynauxInstitutionalTariffSeeder;
 use Database\Seeders\SynauxLandingTariffSeeder;
@@ -19,7 +19,7 @@ class LandingTariffTest extends TestCase
     public function test_landing_prices_are_consistent_and_the_publication_is_idempotent(): void
     {
         $this->seed([SynauxCatalogSeeder::class, SynauxInstitutionalTariffSeeder::class]);
-        $catalog = app(SynauxCatalog::class);
+        $catalog = app(ServiceCatalog::class);
         $institutional = $catalog->references()['sitio-institucional'];
         $previous = DB::table('service_prices')->get()->toJson();
         $this->seed(SynauxLandingTariffSeeder::class);

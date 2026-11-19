@@ -3,15 +3,15 @@
 namespace App\Http\Controllers\Estimates;
 
 use App\Http\Controllers\Controller;
-use App\Services\SynauxCatalog;
-use App\Services\SynauxEstimates;
+use App\Services\Catalog\ServiceCatalog;
+use App\Services\Estimates\EstimateStore;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class EstimateController extends Controller
 {
-    public function __construct(private SynauxEstimates $estimates) {}
+    public function __construct(private EstimateStore $estimates) {}
 
     // Recupera el cálculo de sesión y conduce al detalle o a una solicitud basada en esa estimación.
     public function store(Request $request): RedirectResponse
@@ -40,7 +40,7 @@ class EstimateController extends Controller
     }
 
     // Valida las respuestas, calcula en el servidor y conserva el resultado en la sesión para continuar.
-    public function calculate(Request $request, SynauxCatalog $catalog)
+    public function calculate(Request $request, ServiceCatalog $catalog)
     {
         abort_if($request->user()?->is_admin, 403);
 
@@ -52,7 +52,7 @@ class EstimateController extends Controller
     }
 
     // Carga una estimación visible de la propia cuenta junto con el catálogo que usa su resumen.
-    public function show(Request $request, SynauxCatalog $catalog, int $id)
+    public function show(Request $request, ServiceCatalog $catalog, int $id)
     {
         $selected = $this->estimates->find($request->user()->id, $id) ?? abort(404);
 

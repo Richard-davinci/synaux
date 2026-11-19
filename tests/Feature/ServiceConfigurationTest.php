@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Services\SynauxCatalog;
+use App\Services\Catalog\ServiceCatalog;
 use Database\Seeders\SynauxCatalogSeeder;
 use Database\Seeders\SynauxInstitutionalTariffSeeder;
 use Database\Seeders\SynauxLandingTariffSeeder;
@@ -33,7 +33,7 @@ class ServiceConfigurationTest extends TestCase
 
     public function test_optional_questions_skip_empty_answers_but_validate_supplied_values(): void
     {
-        $catalog = app(SynauxCatalog::class);
+        $catalog = app(ServiceCatalog::class);
         $service = $catalog->service('landing-page');
         $question = $catalog->questions($service['database_id'])[0];
         $answers = [$question['id'] => $question['options'][0]->id];

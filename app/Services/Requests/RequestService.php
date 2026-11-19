@@ -1,12 +1,18 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Requests;
 
+use App\Services\Notifications\NotificationCenter;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
-class SynauxRequests
+class RequestService
 {
+    public function __construct(
+        private RequestJourney $journey,
+        private NotificationCenter $notifications,
+    ) {}
+
     // Recibe el usuario autenticado y los datos validados. Bloquea el borrador al editar y conserva la estimación de origen.
     public function save(int $userId, array $d, ?array $pending = null): int
     {
@@ -38,7 +44,7 @@ class SynauxRequests
             if (array_key_exists('additional_services', $d)) {
                 $samePreparedService = (int) ($pending['form']['service_id'] ?? 0) === (int) $d['service_id']
                     && (int) ($pending['form']['id'] ?? 0) === (int) ($d['id'] ?? 0);
-                $additional = app(SynauxRequestJourney::class)->calculateAdditionalServices(
+                $additional = $this->journey->calculateAdditionalServices(
                     (int) $d['service_id'], $d['additional_services'], json_decode($estimate?->answers_snapshot ?? '[]', true),
                     $estimate?->currency_snapshot ?? 'ARS',
                     [...$additional, ...($samePreparedService ? ($pending['additional_services'] ?? []) : [])], allowIncomplete: ! $d['publish'],
@@ -62,7 +68,7 @@ class SynauxRequests
             }
             // Solo el envío definitivo avisa a gestión; guardar un borrador no publica su existencia.
             if ($d['publish']) {
-                app(SynauxNotificationCenter::class)->send('solicitud', $id, 'solicitud-enviada:'.$id,
+                $this->notifications->send('solicitud', $id, 'solicitud-enviada:'.$id,
                     'Nueva solicitud', $d['title'], management: true, actor: $userId);
             }
 

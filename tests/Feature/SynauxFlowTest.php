@@ -188,7 +188,7 @@ class SynauxFlowTest extends TestCase
     public function test_institutional_reference_matches_all_three_customer_segments(): void
     {
         $this->seed(\Database\Seeders\SynauxInstitutionalTariffSeeder::class);
-        $catalog = app(\App\Services\SynauxCatalog::class);
+        $catalog = app(\App\Services\Catalog\ServiceCatalog::class);
         $service = $catalog->service('sitio-institucional');
         $this->assertContains('Hasta 7 secciones en WordPress', $service['includes']);
         $questions = $catalog->questions($service['database_id']);

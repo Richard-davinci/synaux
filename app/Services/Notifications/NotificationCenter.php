@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Notifications;
 
 use App\Models\User;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-class SynauxNotificationCenter
+class NotificationCenter
 {
     // Recibe eventos internos ya autorizados; los destinos se construyen aquí y nunca desde un formulario.
     public function send(string $type, int $id, string $event, string $title, string $message, array $recipients = [], bool $management = false, ?int $actor = null): void

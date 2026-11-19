@@ -3,9 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Services\Admin\CatalogConfiguration;
-use App\Services\SynauxCatalog;
-use App\Services\SynauxNotificationCenter;
-use App\Services\SynauxWorkspace;
+use App\Services\Budgets\BudgetQueries;
+use App\Services\Catalog\ServiceCatalog;
+use App\Services\Estimates\EstimateStore;
+use App\Services\Marketplace\MarketplaceQueries;
+use App\Services\Notifications\NotificationCenter;
+use App\Services\Portfolio\PortfolioQueries;
+use App\Services\Projects\ProjectQueries;
+use App\Services\Requests\RequestQueries;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -13,10 +18,15 @@ use Inertia\Inertia;
 class WorkspaceController extends Controller
 {
     public function __construct(
-        private SynauxCatalog $catalog,
-        private SynauxWorkspace $workspace,
+        private ServiceCatalog $catalog,
+        private BudgetQueries $budgetQueries,
+        private EstimateStore $estimates,
+        private MarketplaceQueries $marketplaceQueries,
+        private PortfolioQueries $portfolioQueries,
+        private ProjectQueries $projectQueries,
+        private RequestQueries $requestQueries,
         private CatalogConfiguration $configuration,
-        private SynauxNotificationCenter $notifications,
+        private NotificationCenter $notifications,
     ) {}
 
     // Resuelve el área y su sección; Gestión y Administración exigen el permiso administrativo real.
@@ -51,7 +61,7 @@ class WorkspaceController extends Controller
         if ($area === 'profesional' && in_array($section, ['presupuestos', 'proyectos'], true)) {
             // Distingue los presupuestos emitidos del historial de esta misma persona como cliente.
             $data['quotes'] = array_values(array_filter($data['quotes'], fn ($q) => $q['issuer_id'] === $request->user()->id));
-            $data['projects'] = $this->workspace->projects($data['quotes']);
+            $data['projects'] = $this->projectQueries->projects($data['quotes']);
         }
         // El resumen necesita el total de consultas, sin cargar el contenido de sus mensajes.
         if ($area === 'gestion' && $section === '') {
@@ -81,21 +91,20 @@ class WorkspaceController extends Controller
     {
         $id = $request->user()->id;
         $profile = DB::table('professional_profiles')->where('user_id', $id)->first();
-        $quotes = $this->workspace->quotes($id, $management);
+        $quotes = $this->budgetQueries->quotes($id, $management);
         // El profesional solo puede presupuestar solicitudes donde fue elegido; no recibe otras solicitudes privadas.
         $chosen = $profile ? DB::table('proposals')->where('professional_profile_id', $profile->id)->where('status', 'accepted')->pluck('project_request_id')->all() : [];
-        $budgetRequests = $management ? $this->workspace->requests($id, true) : ($chosen ? $this->workspace->requests(null, true, only: $chosen) : []);
+        $requests = $this->requestQueries->requests($id, $management);
+        $budgetRequests = $management ? $requests : ($chosen ? $this->requestQueries->requests(null, true, only: $chosen) : []);
 
         // Los formularios reciben solo el contacto y la identidad de emisión de su propia cuenta.
         return ['accountContact' => $request->user()->contactDetails(),
             'issuerDetails' => $request->user()->issuerDetails($profile?->brand_name),
-            'area' => $management ? 'gestion' : 'cliente', 'services' => $this->catalog->services($management), 'requests' => $this->workspace->requests($id, $management),
+            'area' => $management ? 'gestion' : 'cliente', 'services' => $this->catalog->services($management), 'requests' => $requests,
             'references' => $this->catalog->references(), 'budgetRequests' => $budgetRequests,
-            'quotes' => $quotes, 'projects' => $this->workspace->projects($quotes),
-            'proposals' => $this->workspace->proposals($id, $management), 'invitations' => $this->workspace->invitations($id, $management),
-            'profile' => $profile ? $this->workspace->profile($profile) : null, 'professionals' => $this->workspace->professionals(),
-            'works' => $this->workspace->works($id), 'estimates' => DB::table('estimates')->where('user_id', $id)->whereNull('deleted_at')->orderByDesc('id')->get()->map(fn ($e) => [
-                ...((array) $e), 'answers' => json_decode($e->answers_snapshot, true), 'items' => json_decode($e->items_snapshot ?? '[]', true),
-            ])->all()];
+            'quotes' => $quotes, 'projects' => $this->projectQueries->projects($quotes),
+            'proposals' => $this->marketplaceQueries->proposals($id, $management), 'invitations' => $this->marketplaceQueries->invitations($id, $management),
+            'profile' => $profile ? $this->marketplaceQueries->profile($profile) : null, 'professionals' => $this->marketplaceQueries->professionals(),
+            'works' => $this->portfolioQueries->works($id), 'estimates' => $this->estimates->forUser($id)];
     }
 }

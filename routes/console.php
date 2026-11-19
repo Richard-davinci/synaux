@@ -19,7 +19,7 @@ Artisan::command('synaux:admin {email}', function () {
 })->purpose('Habilita la gestión de Synaux para una cuenta registrada');
 
 // Importa únicamente la ficha vinculada a Sitio institucional. Las fallas conservan la última versión válida.
-Artisan::command('synaux:tarifario', function (\App\Services\SynauxTariffImport $import) {
+Artisan::command('synaux:tarifario', function (\App\Services\Tariffs\TariffImport $import) {
     try {
         $result = $import->sync();
         $this->info(($result['created'] ? 'Nueva versión importada. ' : 'Sin cambios. ').'Referencia PyME: ARS '.$result['pyme']);

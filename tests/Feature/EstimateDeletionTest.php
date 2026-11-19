@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Services\SynauxCatalog;
-use App\Services\SynauxEstimates;
+use App\Services\Catalog\ServiceCatalog;
+use App\Services\Estimates\EstimateStore;
 use Database\Seeders\SynauxCatalogSeeder;
 use Database\Seeders\SynauxInstitutionalTariffSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -25,11 +25,11 @@ class EstimateDeletionTest extends TestCase
 
     private function estimate(User $owner): array
     {
-        $catalog = app(SynauxCatalog::class);
+        $catalog = app(ServiceCatalog::class);
         $service = $catalog->service('sitio-institucional');
         $question = $catalog->questions($service['database_id'])[0];
         $calculation = $catalog->calculate('sitio-institucional', [$question['id'] => $question['options'][0]->id]);
-        return [app(SynauxEstimates::class)->save($owner->id, $calculation), $calculation];
+        return [app(EstimateStore::class)->save($owner->id, $calculation), $calculation];
     }
 
     public function test_deletion_requires_authentication_confirmation_and_ownership(): void

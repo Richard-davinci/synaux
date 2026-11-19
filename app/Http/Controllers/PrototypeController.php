@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\Admin\CatalogConfiguration;
-use App\Services\SynauxCatalog;
+use App\Services\Catalog\ServiceCatalog;
 use Illuminate\Support\Facades\File;
 use Inertia\Inertia;
 
@@ -20,7 +20,7 @@ class PrototypeController extends Controller
             $screens = array_values(array_filter($screens, fn ($item) => ! str_starts_with($item['name'], '3.')));
         }
         abort_unless(collect($screens)->contains('key', $screen), 404);
-        $catalog = app(SynauxCatalog::class);
+        $catalog = app(ServiceCatalog::class);
         $services = $catalog->services();
         $web = collect($services)->firstWhere('id', 'sitio-institucional');
         $questions = $catalog->questions($web['database_id']);

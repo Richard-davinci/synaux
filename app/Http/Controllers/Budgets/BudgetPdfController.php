@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Budgets;
 
 use App\Http\Controllers\Controller;
-use App\Services\SynauxWorkspace;
+use App\Services\Budgets\BudgetQueries;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Http\Request;
@@ -11,9 +11,9 @@ use Illuminate\Http\Request;
 class BudgetPdfController extends Controller
 {
     // La descarga aplica los mismos filtros de propiedad, emisor y estado que la vista del presupuesto.
-    public function show(Request $request, SynauxWorkspace $workspace, int $id)
+    public function show(Request $request, BudgetQueries $budgetQueries, int $id)
     {
-        $budget = $workspace->quotes($request->user()->id, (bool) $request->user()->is_admin, id: $id)[0] ?? null;
+        $budget = $budgetQueries->quotes($request->user()->id, (bool) $request->user()->is_admin, id: $id)[0] ?? null;
         abort_unless($budget, 404);
 
         // Solo se cargan los recursos propios del proyecto y todos los datos del cliente se escapan en Blade.

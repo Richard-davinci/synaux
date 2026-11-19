@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Services\SynauxNotificationCenter;
+use App\Services\Notifications\NotificationCenter;
 use Database\Seeders\SynauxCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -43,7 +43,7 @@ class NotificationCenterTest extends TestCase
     {
         $admin = User::factory()->create(['is_admin' => true]);
         $other = User::factory()->create();
-        $center = app(SynauxNotificationCenter::class);
+        $center = app(NotificationCenter::class);
         $center->send('solicitud', 5, 'solicitud-enviada:5', 'Nueva solicitud', 'Pedido privado', management: true);
         $center->send('solicitud', 5, 'solicitud-enviada:5', 'Nueva solicitud', 'Pedido privado', management: true);
         $id = DB::table('synaux_notifications')->value('id');
@@ -94,7 +94,7 @@ class NotificationCenterTest extends TestCase
         $this->actingAs($client)->get('/cliente/proyectos')->assertInertia(fn (Assert $page) => $page->where('notifications.unread_entities.proyecto.0', $project->id));
         $this->patch('/notificaciones/leer-todas')->assertRedirect();
         $this->get('/cliente')->assertInertia(fn (Assert $page) => $page->where('notifications.unread_count', 0)->has('notifications.items', 2));
-        $this->assertSame(2, app(SynauxNotificationCenter::class)->data($watcher)['unread_count']);
+        $this->assertSame(2, app(NotificationCenter::class)->data($watcher)['unread_count']);
     }
 
     // Una consulta apunta a su tarjeta y no marca como leídas las otras consultas del mismo listado.

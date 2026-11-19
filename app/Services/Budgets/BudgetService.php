@@ -1,15 +1,18 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Budgets;
 
+use App\Services\Notifications\NotificationCenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 // Las operaciones formales se ejecutan en transacciones y siempre verifican el dueño de la solicitud.
-class SynauxBudgets
+class BudgetService
 {
+    public function __construct(private NotificationCenter $notifications) {}
+
     // Valida y guarda una versión formal sin sobrescribir ninguna versión ya enviada.
     public function save(Request $request): int
     {
@@ -88,7 +91,7 @@ class SynauxBudgets
 
             // El cliente recibe el aviso únicamente cuando se envía la versión, nunca por borradores.
             if ($data['send'] && $record) {
-                app(SynauxNotificationCenter::class)->send('presupuesto', $versionId, 'presupuesto-enviado:'.$versionId,
+                $this->notifications->send('presupuesto', $versionId, 'presupuesto-enviado:'.$versionId,
                     'Nuevo presupuesto', $data['title'], [$record->user_id], actor: $request->user()->id);
             }
 
@@ -129,7 +132,7 @@ class SynauxBudgets
             $projectId = DB::table('projects')->insertGetId(['accepted_budget_version_id' => $version->id, 'title' => $version->title,
                 'status' => 'pending', 'progress' => 0, 'created_at' => now(), 'updated_at' => now()]);
             // El proyecto creado avisa a sus partes y a gestión dentro de la misma transacción.
-            $center = app(SynauxNotificationCenter::class);
+            $center = $this->notifications;
             $center->send('proyecto', $projectId, 'proyecto-creado:'.$projectId, 'Nuevo proyecto', $version->title,
                 $center->projectRecipients($projectId), management: true, actor: $request->user()->id);
 

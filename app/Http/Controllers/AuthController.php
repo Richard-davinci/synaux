@@ -27,7 +27,7 @@ class AuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        if (app(\App\Services\SynauxRequestJourney::class)->pending($request)) {
+        if (app(\App\Services\Requests\RequestJourney::class)->pending($request)) {
             $request->session()->forget('url.intended');
             return redirect('/solicitudes/nueva?continuar=1');
         }
@@ -53,7 +53,7 @@ class AuthController extends Controller
 
         // El borrador previo al ingreso solo se puede retomar con una cuenta de cliente.
         $admin = $request->user()->is_admin;
-        if (! $admin && app(\App\Services\SynauxRequestJourney::class)->pending($request)) {
+        if (! $admin && app(\App\Services\Requests\RequestJourney::class)->pending($request)) {
             $request->session()->forget('url.intended');
             return redirect('/solicitudes/nueva?continuar=1');
         }

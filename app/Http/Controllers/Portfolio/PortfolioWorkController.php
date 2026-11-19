@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Portfolio;
 
 use App\Http\Controllers\Controller;
-use App\Services\SynauxCatalog;
-use App\Services\SynauxWorkspace;
+use App\Services\Catalog\ServiceCatalog;
+use App\Services\Portfolio\PortfolioQueries;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -13,10 +13,10 @@ use Inertia\Inertia;
 class PortfolioWorkController extends Controller
 {
     // Protege el editor por propiedad y carga el trabajo elegido junto a los servicios disponibles.
-    public function edit(Request $request, SynauxWorkspace $workspace, SynauxCatalog $catalog, int $id = 0)
+    public function edit(Request $request, PortfolioQueries $portfolioQueries, ServiceCatalog $catalog, int $id = 0)
     {
         $user = $request->user();
-        $selected = $id ? ($workspace->works($user->id, id: $id)[0] ?? abort(404)) : null;
+        $selected = $id ? ($portfolioQueries->works($user->id, id: $id)[0] ?? abort(404)) : null;
         $profile = DB::table('professional_profiles')->where('user_id', $user->id)->first();
         abort_unless($profile, 403, 'Completá tu perfil profesional.');
 

@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\SynauxNotificationCenter;
+use App\Services\Notifications\NotificationCenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ContactController extends Controller
 {
     // Valida y registra una consulta; la confirmación corresponde a un registro realmente guardado.
-    public function store(Request $request, SynauxNotificationCenter $notifications)
+    public function store(Request $request, NotificationCenter $notifications)
     {
         $data = $request->validate(['name' => 'required|string|max:255', 'email' => 'required|email|max:254',
             'topic' => 'required|string|max:255', 'message' => 'required|string|min:10|max:10000']);

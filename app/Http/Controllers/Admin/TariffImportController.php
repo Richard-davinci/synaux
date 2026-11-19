@@ -3,14 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Services\SynauxTariffImport;
+use App\Services\Tariffs\TariffImport;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class TariffImportController extends Controller
 {
     // El middleware administrativo autoriza el botón. El importador mantiene los importes anteriores ante cualquier fallo.
-    public function store(SynauxTariffImport $import)
+    public function store(TariffImport $import)
     {
         try {
             $result = $import->sync();

@@ -24,7 +24,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => $user ? ['id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'is_admin' => (bool) $user->is_admin, 'professional' => $professional] : null,
             'notice' => fn () => $request->session()->get('notice'),
             // Los avisos y badges se calculan para la sesión propia, también en las recargas parciales.
-            'notifications' => fn () => app(\App\Services\SynauxNotificationCenter::class)->data($user),
+            'notifications' => fn () => app(\App\Services\Notifications\NotificationCenter::class)->data($user),
         ];
     }
 }
