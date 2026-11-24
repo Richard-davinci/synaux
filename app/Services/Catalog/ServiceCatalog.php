@@ -22,8 +22,8 @@ class ServiceCatalog
             ])->all();
     }
 
-    // Prepara referencias iniciales con la base y los componentes incluidos, sin calcular respuestas ficticias.
-    public function references(?int $tariffId = null): array
+    // Prepara referencias vigentes para todos los servicios activos o para una selección del catálogo.
+    public function references(?int $tariffId = null, ?array $services = null): array
     {
         // Para pedidos anteriores se consulta su versión publicada, aunque ya no esté vigente.
         $tariff = $tariffId !== null
@@ -37,7 +37,7 @@ class ServiceCatalog
         $prices = DB::table('component_prices')->where('tariff_version_id', $tariff->id)->get()->keyBy('service_component_id');
         $components = DB::table('service_components')->where('active', 1)->get()->groupBy('service_id');
         $references = [];
-        foreach ($this->services() as $service) {
+        foreach (($services ?? $this->services()) as $service) {
             $base = $bases->get($service['database_id']);
             $parts = $components->get($service['database_id'], collect());
             if (!$base || $parts->contains(fn($part) => !$prices->has($part->id))) {

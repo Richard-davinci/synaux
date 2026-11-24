@@ -24,13 +24,10 @@ class PublicPageController extends Controller
     {
     }
 
-    // Resume hasta cuatro categorías publicadas, con un servicio real por categoría.
+    // Selecciona una fila de servicios activos con las referencias vigentes del catálogo.
     public function inicio()
     {
-        $featuredServices = collect($this->catalog->services())
-            ->unique('service_category_id')->take(4)->values()
-            ->map(fn(array $service) => Arr::only($service, ['id', 'name', 'category', 'summary']))
-            ->all();
+        $featuredServices = collect($this->catalog->services())->unique('service_category_id')->take(3)->values()->all();
 
         // La portada recibe solo los campos visibles de los últimos trabajos publicados.
         $featuredWorks = array_map(
@@ -38,7 +35,14 @@ class PublicPageController extends Controller
             $this->portfolioQueries->works(limit: 2),
         );
 
-        return Inertia::render('SiteHome', ['featuredServices' => $featuredServices, 'featuredWorks' => $featuredWorks]);
+        return Inertia::render('SiteHome', [
+            'featuredServices' => array_map(
+                fn(array $service) => Arr::only($service, ['id', 'name', 'category', 'summary', 'includes']),
+                $featuredServices,
+            ),
+            'featuredReferences' => (object)$this->catalog->references(services: $featuredServices),
+            'featuredWorks' => $featuredWorks,
+        ]);
     }
 
     // Prepara una pantalla pública y agrega únicamente los datos que su recorrido necesita.

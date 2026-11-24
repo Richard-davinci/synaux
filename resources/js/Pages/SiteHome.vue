@@ -3,6 +3,7 @@ import {Head} from '@inertiajs/vue3';
 import {ref} from 'vue';
 import AppButton from '../Components/UI/AppButton.vue';
 import AppIcon from '../Components/UI/AppIcon.vue';
+import CatalogServiceCard from '../Components/Catalog/CatalogServiceCard.vue';
 import EjemploPresupuesto from '../Components/Presupuestos/EjemploPresupuesto.vue';
 import PublicLayout from '../Layouts/PublicLayout.vue';
 import '../../css/panel.css';
@@ -11,6 +12,7 @@ import '../../css/ajustes-panel.css';
 // La portada recibe una selección de servicios activos y proyectos publicados.
 defineProps({
     featuredServices: {type: Array, default: () => []},
+    featuredReferences: {type: Object, default: () => ({})},
     featuredWorks: {type: Array, default: () => []},
 });
 
@@ -74,23 +76,17 @@ const budgetOpen = ref(false);
             </div>
         </section>
 
-        <!-- Una ficha por categoría permite entender la oferta y abrir el detalle del servicio. -->
+        <!-- La portada muestra una fila de fichas del catálogo, con las mismas referencias publicadas. -->
         <section v-if="featuredServices.length" class="site-home-services" aria-labelledby="site-home-services-title">
             <div class="shell site-home-section">
                 <div class="site-home-section-heading">
                     <h2 id="site-home-services-title">Servicios destacados</h2>
                     <AppButton href="/plataforma" compact variant="secondary" arrow>Ver catálogo completo</AppButton>
                 </div>
-                <ul class="site-home-service-list">
-                    <li v-for="service in featuredServices" :key="service.id">
-                        <a class="site-home-service" :href="'/servicios/' + encodeURIComponent(service.id)">
-                            <span class="site-home-category">{{ service.category }}</span>
-                            <h3>{{ service.name }}</h3>
-                            <p v-if="service.summary">{{ service.summary }}</p>
-                            <span class="site-home-details" aria-hidden="true">Ver servicio <AppIcon name="arrow"/></span>
-                        </a>
-                    </li>
-                </ul>
+                <div class="service-grid site-home-service-grid">
+                    <CatalogServiceCard v-for="service in featuredServices" :key="service.id" :service="service"
+                                        :reference="featuredReferences[service.id]" heading-tag="h3"/>
+                </div>
             </div>
         </section>
 
@@ -198,7 +194,7 @@ h1 em {
     margin-top: 24px;
 }
 
-/* Los servicios se adaptan al ancho disponible y toda la ficha abre un único destino. */
+/* La sección mantiene la separación del resto de la portada. */
 .site-home-services {
     border-bottom: 1px solid #1f6f7f14;
 }
@@ -219,49 +215,8 @@ h1 em {
     margin: 0;
 }
 
-.site-home-service-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
-    gap: 16px;
-    padding: 0;
-    margin: 24px 0 0;
-    list-style: none;
-}
-
-.site-home-service {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    padding: 20px;
-    border: 1px solid #1f6f7f33;
-    border-radius: 14px;
-    background: #fff;
-    text-decoration: none;
-    overflow-wrap: anywhere;
-}
-
-.site-home-service:hover {
-    border-color: #1f6f7f;
-}
-
-.site-home-service:focus-visible {
-    outline: 2px solid #1f6f7f;
-    outline-offset: 3px;
-}
-
-.site-home-category {
-    color: #1f6f7f;
-    font-size: .875rem;
-    font-weight: 700;
-}
-
-.site-home-service h3 {
-    margin: 6px 0 8px;
-    text-wrap: pretty;
-}
-
-.site-home-service p {
-    margin-bottom: 16px;
+.site-home-service-grid {
+    margin-top: 24px;
 }
 
 .site-home-details {
@@ -273,8 +228,8 @@ h1 em {
     font-weight: 700;
 }
 
-.site-home-service:hover .site-home-details,
-.site-home-service:focus-visible .site-home-details {
+.site-home-work:hover .site-home-details,
+.site-home-work:focus-visible .site-home-details {
     text-decoration: underline;
 }
 

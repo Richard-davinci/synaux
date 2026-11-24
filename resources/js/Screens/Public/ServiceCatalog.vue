@@ -7,8 +7,7 @@ import F from '../../Components/UI/FormField.vue';
 import T from '../../Components/UI/PageTitle.vue';
 import I from '../../Components/UI/AppIcon.vue';
 import Empty from '../../Components/UI/EmptyState.vue';
-import CatalogServicePrice from '../../Components/Catalog/CatalogServicePrice.vue';
-import {categoryIcons} from './serviceCategoryIcons';
+import CatalogServiceCard from '../../Components/Catalog/CatalogServiceCard.vue';
 
 // El catálogo filtra los servicios publicados y conserva el segmento seleccionado en cada tarjeta.
 const props = defineProps({data: Object});
@@ -31,22 +30,8 @@ const services = computed(() => props.data.services.filter(service => {
     const searchableText = normalizeSearch([service.name, service.category, service.summary].join(' '));
     return searchWords.value.every(word => searchableText.includes(word));
 }));
-// El enlace del catálogo conserva el segmento elegido y solo transmite su etiqueta, nunca un importe.
+// La selección por servicio se conserva al aplicar los filtros.
 const catalogSegments = ref({});
-
-function serviceHref(service) {
-    const segment = catalogSegments.value[service.id] ?? 'PyME';
-    const available = props.data.references?.[service.id]?.segments ?? [];
-    return '/servicios/' + service.id + (available.some(item => item.label === segment) ? '?cliente=' + encodeURIComponent(segment) : '');
-}
-
-// El texto inicial destaca el beneficio; los límites del paquete quedan en los entregables y el detalle.
-function catalogBenefit(service) {
-    if (service.id === 'sitio-institucional' && service.summary === 'Sitio institucional en WordPress de hasta 7 secciones.') {
-        return 'Presentá tu organización y facilitá el contacto con tus clientes.';
-    }
-    return service.summary;
-}
 
 const clear = () => {
     query.value = '';
@@ -82,23 +67,8 @@ const clear = () => {
             </div>
         </div>
         <div v-if="services.length && data.referenceKey !== 'catalogo-vacio'" class="service-grid">
-            <v-card v-for="service in services" :key="service.id" class="card service-card" tag="article">
-                <div class="service-category">
-                    <I :name="categoryIcons[service.category] ?? 'folder'" class="catalog-service-icon"/>
-                    <p class="eyebrow">{{ service.category }}</p>
-                </div>
-                <h2>{{ service.name }}</h2>
-                <p class="service-description">{{ catalogBenefit(service) }}</p>
-                <ul v-if="service.includes?.length" class="service-deliverables" aria-label="Incluye">
-                    <li v-for="item in service.includes.slice(0, 3)" :key="item"><I name="check"/><span>{{
-                            item
-                        }}</span></li>
-                </ul>
-                <CatalogServicePrice v-model="catalogSegments[service.id]" :reference="data.references?.[service.id]"
-                                     :service-name="service.name"/>
-                <div class="card-link"><B compact :href="serviceHref(service)"
-                                          :aria-label="'Ver detalles de ' + service.name" arrow>Ver detalles</B></div>
-            </v-card>
+            <CatalogServiceCard v-for="service in services" :key="service.id" v-model="catalogSegments[service.id]"
+                                :service="service" :reference="data.references?.[service.id]"/>
         </div>
         <Empty v-else title="No encontramos servicios con esos filtros."
                text="Probá otra búsqueda o volvé a ver todas las propuestas."><B @click="clear">Limpiar filtros</B>
@@ -224,103 +194,6 @@ const clear = () => {
     outline-offset: 3px;
 }
 
-/* Cada tarjeta mantiene categoría, alcance y precio en un orden común para facilitar la comparación. */
-.catalog-page .service-card {
-    min-height: 0;
-    padding: 1.25rem;
-    border: 1px solid #1f6f7f26;
-    border-top: 4px solid #2db3a3;
-    box-shadow: 0 2px 5px #153b640a, 0 8px 18px #153b6412;
-    border-radius: 18px;
-}
-
-.catalog-page .service-card:focus-within {
-    border-color: #1f6f7f;
-    box-shadow: 0 4px 14px #153b641a;
-}
-
-@media (hover: hover) {
-    .catalog-page .service-card:hover {
-        box-shadow: 0 4px 14px #153b641a;
-        border-color: #1f6f7f66;
-        border-top-color: #2db3a3;
-    }
-}
-
-.catalog-page .service-category {
-    padding-bottom: 12px;
-    border-bottom: 1px solid #1f6f7f1f;
-    margin-bottom: 12px;
-}
-
-.catalog-page .catalog-service-icon {
-    box-sizing: content-box;
-    width: 22px;
-    height: 22px;
-    padding: 9px;
-    border-radius: 10px;
-    color: #153b64;
-    background: #2db3a326;
-}
-
-.service-category {
-    display: flex;
-    align-items: center;
-    gap: .75rem;
-    margin-bottom: 1.25rem;
-}
-
-.catalog-page .service-category .eyebrow {
-    margin: 0;
-    color: #1f6f7f;
-    font-size: .75rem;
-    letter-spacing: .08em;
-}
-
-.catalog-service-icon {
-    width: 2rem;
-    height: 2rem;
-    color: #1f6f7f;
-    flex-shrink: 0;
-}
-
-.service-description {
-    color: #446075;
-}
-
-.service-deliverables {
-    display: grid;
-    gap: .3rem;
-    margin: .25rem 0 .5rem;
-    padding: 0;
-    list-style: none;
-}
-
-.service-deliverables li {
-    display: flex;
-    align-items: start;
-    gap: .5rem;
-    font-size: .875rem;
-    color: #446075;
-}
-
-.service-deliverables .icon {
-    width: 1.1rem;
-    height: 1.1rem;
-    margin-top: .15rem;
-    color: #1f6f7f;
-    flex-shrink: 0;
-}
-
-.catalog-page .service-card .card-link {
-    margin-top: .75rem;
-}
-
-.catalog-page .service-card .card-link .btn {
-    width: 100%;
-    padding-inline: .9rem;
-}
-
 @media (max-width: 1000px) {
     .catalog-page .catalog-tools-row {
         grid-template-columns: minmax(0, 1fr);
@@ -336,13 +209,5 @@ const clear = () => {
     .catalog-page .catalog-tools {
         padding: 14px;
     }
-
-    .catalog-page .service-card {
-        padding: 1.15rem;
-    }
-}
-
-.catalog-page .service-description {
-    margin-bottom: 12px;
 }
 </style>

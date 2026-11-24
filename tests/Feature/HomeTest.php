@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Database\Seeders\SynauxCatalogSeeder;
+use Database\Seeders\SynauxInstitutionalTariffSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -53,6 +54,23 @@ class HomeTest extends TestCase
                 ->where('services.6.id', 'auditoria-usabilidad')
                 ->where('services.7.id', 'prototipo-interactivo')
             );
+    }
+
+    // Las fichas de Inicio reciben el mismo alcance y tarifario que las del catálogo completo.
+    public function test_site_home_uses_the_same_tariff_and_deliverables_as_catalog(): void
+    {
+        $this->seed(SynauxInstitutionalTariffSeeder::class);
+        $catalog = $this->get('/plataforma')->assertOk()->inertiaProps();
+        $service = $catalog['services'][0];
+
+        $this->get('/inicio')->assertOk()->assertInertia(fn(Assert $page) => $page
+            ->component('SiteHome')
+            ->has('featuredServices', 3)
+            ->where('featuredServices.0.id', $service['id'])
+            ->where('featuredServices.0.includes', $service['includes'])
+            ->where('featuredReferences.' . $service['id'], $catalog['references'][$service['id']])
+            ->missing('featuredReferences.identidad-visual')
+        );
     }
 
     // La portada limita la selección y nunca comparte trabajos privados ni perfiles inactivos.
