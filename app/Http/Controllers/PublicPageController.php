@@ -8,6 +8,7 @@ use App\Services\Portfolio\PortfolioQueries;
 use App\Services\Solicitudes\ConsultasSolicitudes;
 use App\Services\Solicitudes\RecorridoSolicitud;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
@@ -21,6 +22,23 @@ class PublicPageController extends Controller
         private RecorridoSolicitud   $journey,
     )
     {
+    }
+
+    // Resume hasta cuatro categorías publicadas, con un servicio real por categoría.
+    public function inicio()
+    {
+        $featuredServices = collect($this->catalog->services())
+            ->unique('service_category_id')->take(4)->values()
+            ->map(fn(array $service) => Arr::only($service, ['id', 'name', 'category', 'summary']))
+            ->all();
+
+        // La portada recibe solo los campos visibles de los últimos trabajos publicados.
+        $featuredWorks = array_map(
+            fn(array $work) => Arr::only($work, ['id', 'title', 'description', 'cover_path']),
+            $this->portfolioQueries->works(limit: 2),
+        );
+
+        return Inertia::render('SiteHome', ['featuredServices' => $featuredServices, 'featuredWorks' => $featuredWorks]);
     }
 
     // Prepara una pantalla pública y agrega únicamente los datos que su recorrido necesita.

@@ -2,6 +2,7 @@ import {computed} from 'vue';
 import {usePage} from '@inertiajs/vue3';
 
 export const publicNav = [
+    ['Inicio', '/inicio'],
     ['Catálogo', '/plataforma'],
     ['Portfolio', '/portfolio'],
     ['Nosotros', '/nosotros'],

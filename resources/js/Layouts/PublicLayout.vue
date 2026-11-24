@@ -1,5 +1,5 @@
 <script setup>
-import {onBeforeUnmount, onMounted, ref, watch} from 'vue';
+import {computed, onBeforeUnmount, onMounted, ref, watch} from 'vue';
 import {usePage} from '@inertiajs/vue3';
 import FlashMessages from '../Components/Notifications/FlashMessages.vue';
 import SiteHeader from '../Components/Navigation/SiteHeader.vue';
@@ -9,13 +9,15 @@ import WorkspaceNavigation from '../Components/Navigation/WorkspaceNavigation.vu
 import I from '../Components/UI/AppIcon.vue';
 import {demoNotice} from '../support/prototype';
 // El navbar mantiene los enlaces públicos; el panel lateral organiza el área privada de la sesión.
-defineProps({
+const props = defineProps({
     homeUrl: {type: String, default: '/'},
     platformUrl: {type: String, default: '/plataforma'},
     year: {type: Number, default: 2026},
     landing: Boolean
 });
 const page = usePage();
+// La landing real empieza directamente con la marca; el prototipo conserva su selector de pantallas.
+const showSiteHeader = computed(() => !props.landing || Boolean(page.props.preview));
 const workspaceOpen = ref(false);
 const workspaceToggle = ref(null);
 // Se mide el encabezado real para compensar cambios de ancho, menú móvil y barra de referencia.
@@ -65,13 +67,16 @@ watch(() => page.url, () => {
 <template>
     <v-app class="synaux-app" :data-workspace-role="hasWorkspace ? area : undefined"
            :data-navbar-role="navbarRole || undefined"
-           :style="{ '--navbar-height': headerHeight + 'px', '--workspace-bar-height': workspaceBarHeight + 'px' }">
-        <!-- El encabezado fijo conserva su espacio mediante una altura medida, sin tapar el contenido. -->
-        <div ref="fixedHeader" class="fixed-header">
-            <SiteHeader :area="area" :admin-view="adminView" :has-workspace="hasWorkspace"
-                        :show-area-switch="showAreaSwitch"/>
-        </div>
-        <div class="navbar-space" aria-hidden="true"></div>
+           :style="{ '--navbar-height': (showSiteHeader ? headerHeight : 0) + 'px', '--workspace-bar-height': workspaceBarHeight + 'px' }">
+        <!-- Las páginas con encabezado reservan su altura; la landing conserva el salto por teclado. -->
+        <template v-if="showSiteHeader">
+            <div ref="fixedHeader" class="fixed-header">
+                <SiteHeader :area="area" :admin-view="adminView" :has-workspace="hasWorkspace"
+                            :show-area-switch="showAreaSwitch"/>
+            </div>
+            <div class="navbar-space" aria-hidden="true"></div>
+        </template>
+        <a v-else class="skip-link" href="#contenido">Saltar al contenido</a>
         <!-- El componente compartido anuncia resultados y errores sin perderse al desplazar la página. -->
         <FlashMessages :message="demoNotice || $page.props.notice" :errors="$page.props.errors" :page-key="$page.url"
                        @close-message="demoNotice = ''"/>

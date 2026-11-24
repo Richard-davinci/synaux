@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Database\Seeders\SynauxCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -52,6 +53,38 @@ class HomeTest extends TestCase
                 ->where('services.6.id', 'auditoria-usabilidad')
                 ->where('services.7.id', 'prototipo-interactivo')
             );
+    }
+
+    // La portada limita la selección y nunca comparte trabajos privados ni perfiles inactivos.
+    public function test_site_home_shows_two_recent_public_works_only(): void
+    {
+        $this->get('/inicio')->assertInertia(fn(Assert $page) => $page->component('SiteHome')->has('featuredWorks', 0));
+
+        $owner = User::factory()->create();
+        $inactiveOwner = User::factory()->create();
+        $profile = ['brand_name' => 'Estudio de prueba', 'headline' => 'Diseño', 'bio' => 'Perfil de prueba'];
+        $active = DB::table('professional_profiles')->insertGetId([...$profile, 'user_id' => $owner->id, 'active' => 1]);
+        $inactive = DB::table('professional_profiles')->insertGetId([...$profile, 'user_id' => $inactiveOwner->id, 'active' => 0]);
+        $work = [
+            'professional_profile_id' => $active,
+            'service_id' => DB::table('services')->value('id'),
+            'description' => 'Trabajo de prueba',
+            'is_public' => 1,
+        ];
+        DB::table('portfolio_projects')->insert([...$work, 'title' => 'Proyecto anterior']);
+        $second = DB::table('portfolio_projects')->insertGetId([...$work, 'title' => 'Segundo proyecto']);
+        $first = DB::table('portfolio_projects')->insertGetId([...$work, 'title' => 'Proyecto más reciente']);
+        DB::table('portfolio_projects')->insert([...$work, 'title' => 'Proyecto privado', 'is_public' => 0]);
+        DB::table('portfolio_projects')->insert([...$work, 'title' => 'Proyecto inactivo', 'professional_profile_id' => $inactive]);
+
+        $this->get('/inicio')->assertOk()->assertInertia(fn(Assert $page) => $page
+            ->component('SiteHome')
+            ->has('featuredWorks', 2)
+            ->where('featuredWorks.0.id', $first)
+            ->where('featuredWorks.1.id', $second)
+            ->missing('featuredWorks.0.professional_profile_id')
+        );
+        $this->get('/trabajos/' . $first)->assertOk();
     }
 
     // Volver a cargar el catálogo reubica UX/UI sin duplicar servicios ni pisar su descripción.

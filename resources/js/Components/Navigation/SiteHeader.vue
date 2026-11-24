@@ -40,7 +40,7 @@ watch(() => page.url, () => {
     </div>
     <a class="skip-link" href="#contenido">Saltar al contenido</a>
     <header class="header">
-        <a :href="referenceHref('/', page.props)" class="logo-button" aria-label="synaux: inicio">
+        <a :href="referenceHref('/inicio', page.props)" class="logo-button" aria-label="synaux: inicio">
             <img :src="navbarLogo" class="brand-logo" width="405" height="140" alt="synaux">
         </a>
         <button class="mobile-toggle" :aria-expanded="mobileOpen" aria-label="Abrir navegación"

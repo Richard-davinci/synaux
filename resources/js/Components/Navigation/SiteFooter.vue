@@ -1,6 +1,6 @@
 <script setup>
 import {usePage} from '@inertiajs/vue3';
-import BrandLogo from '../Brand/BrandLogo.vue';
+import navbarLogo from '../../../images/brand/synaux-horizontal-sin-slogan-color.svg';
 import {referenceHref} from '../../support/prototype';
 import {publicNav} from '../../support/useNavigationContext';
 
@@ -10,15 +10,15 @@ const page = usePage();
 </script>
 
 <template>
-    <!-- El pie comparte la trama transparente y el logo vertical con eslogan. -->
+    <!-- El pie usa la misma marca horizontal que el encabezado y conserva la trama. -->
     <footer class="site-footer" :class="{ 'landing-footer': landing, 'workspace-footer': hasWorkspace }">
         <div class="synaux-brand-pattern site-footer-pattern" aria-hidden="true"></div>
         <div class="shell footer-grid">
-            <a :href="referenceHref('/', page.props)" aria-label="synaux: presentación">
-                <BrandLogo/>
+            <a :href="referenceHref('/inicio', page.props)" aria-label="synaux: inicio">
+                <img :src="navbarLogo" class="brand-logo" width="405" height="140" alt="synaux">
             </a>
             <div class="footer-copy">
-                <!-- El logo de la landing ya firma el pie con su eslogan. -->
+                <!-- El eslogan de la landing ya aparece en la marca de la presentación. -->
                 <strong v-if="!landing">Conexión, transparencia y crecimiento digital.</strong>
                 <p>© {{ year }} synaux.</p>
             </div>

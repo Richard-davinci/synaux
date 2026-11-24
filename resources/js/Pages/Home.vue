@@ -5,7 +5,8 @@ import BrandLogo from '../Components/Brand/BrandLogo.vue';
 import BrandPatternFragment from '../Components/Brand/BrandPatternFragment.vue';
 import B from '../Components/UI/AppButton.vue';
 import I from '../Components/UI/AppIcon.vue';
-import BudgetDocument from '../Components/Presupuestos/DocumentoPresupuesto.vue';
+import EjemploPresupuesto from '../Components/Presupuestos/EjemploPresupuesto.vue';
+import {referenceHref} from '../support/prototype';
 import '../../css/panel.css';
 import '../../css/ajustes-panel.css';
 
@@ -50,24 +51,6 @@ const steps = [
         text: 'Cuando recibas la propuesta, podés revisarla y descargarla desde tu cuenta antes de decidir si la aceptás.'
     },
 ];
-// Los dos renglones ilustrativos reciben los conceptos e importes del ejemplo; la cantidad unitaria permite sumar sus precios sin depender del catálogo.
-const exampleItems = [
-    {description: 'Sitio institucional\nDiseño adaptable a celulares, desarrollo y carga inicial de hasta cinco secciones.', quantity: 1, unit_price: 676360},
-    {description: 'Identidad visual\nLogotipo y variantes, paleta, tipografías y guía básica de uso.', quantity: 1, unit_price: 537164},
-];
-// El subtotal suma los renglones y el total aplica el IVA del ejemplo en centavos para conservar los decimales del documento.
-const exampleSubtotal = exampleItems.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
-const exampleTaxRate = 21;
-const exampleTotal = Math.round(exampleSubtotal * (1 + exampleTaxRate / 100) * 100) / 100;
-// El documento es ilustrativo y no consulta ni modifica cuentas, solicitudes o precios publicados.
-const exampleDate = new Date();
-const exampleBudget = {
-    title: 'Sitio e identidad para tu organización', version_number: 1, created_at: exampleDate.toISOString(),
-    valid_until: new Date(exampleDate.getTime() + 30 * 86400000).toISOString().slice(0, 10),
-    currency_code: 'ARS', tax_rate: exampleTaxRate, estimated_delivery_days: 30,
-    items: exampleItems, subtotal: exampleSubtotal, total: exampleTotal,
-    terms: 'Incluye una ronda de ajustes por servicio. Las revisiones adicionales se cotizan aparte.',
-};
 </script>
 
 <template>
@@ -75,31 +58,31 @@ const exampleBudget = {
         <meta name="description" content="Explorá los servicios de synaux y prepará tu solicitud. Recibí una propuesta con el alcance, el precio y los plazos.">
     </Head>
     <PublicLayout landing>
-        <!-- El inicio presenta el logo principal con eslogan y enlaza al formulario público. -->
+        <!-- El logo conduce a la portada del sitio; la campaña mantiene su acceso al catálogo. -->
         <section class="landing-hero shell" aria-labelledby="landing-title">
             <div class="landing-hero-copy">
-                <p class="eyebrow">Diseño · Desarrollo · Estrategia</p>
+                <a :href="referenceHref('/inicio', $page.props)" class="landing-brand-signature"
+                   aria-label="synaux, Creciendo juntos. Ir al inicio">
+                    <BrandLogo :with-slogan="true"/>
+                </a>
                 <h1 id="landing-title">Pedí un presupuesto para tu <em>proyecto digital</em></h1>
                 <p class="landing-lead">Elegí los servicios que necesitás y contanos qué querés hacer. Después de enviar tu solicitud, synaux te prepara una propuesta con el alcance, el precio y los plazos.</p>
                 <div class="landing-actions">
                     <B v-if="!$page.props.auth?.is_admin" href="/solicitudes/nueva" arrow>Preparar mi solicitud</B>
                     <B v-else href="/plataforma" arrow>Explorar servicios</B>
-                    <a href="#presupuesto-de-ejemplo">Ver presupuesto de ejemplo</a>
+                    <a href="#presupuesto-de-ejemplo" class="landing-action-link">Ver presupuesto de ejemplo</a>
+                    <a v-if="!$page.props.auth?.is_admin" :href="referenceHref('/plataforma', $page.props)"
+                       class="landing-action-link">Ver catálogo</a>
                 </div>
                 <p v-if="!$page.props.auth" class="landing-support">Podés explorar y preparar tu solicitud sin cuenta. Para enviarla, iniciá sesión o creá una cuenta.</p>
             </div>
-            <div class="landing-visual-wrap">
-                <div class="landing-brand-signature">
-                    <BrandLogo :with-slogan="true"/>
-                </div>
-                <div class="landing-visual-media">
-                    <BrandPatternFragment class="landing-hero-pattern"/>
-                    <figure class="landing-visual">
-                        <img src="/images/landing/colaboracion-ricardo-catalogo.webp"
-                             alt="Dos personas revisan el catálogo de synaux en una notebook."
-                             width="1536" height="1024" fetchpriority="high">
-                    </figure>
-                </div>
+            <div class="landing-visual-media">
+                <BrandPatternFragment class="landing-hero-pattern"/>
+                <figure class="landing-visual">
+                    <img src="/images/landing/colaboracion-ricardo-catalogo.webp"
+                         alt="Dos personas revisan el catálogo de synaux en una notebook."
+                         width="1536" height="1024" fetchpriority="high">
+                </figure>
             </div>
         </section>
         <!-- Las áreas orientan al catálogo sin repetir su listado completo ni prometer servicios futuros. -->
@@ -140,10 +123,7 @@ const exampleBudget = {
                     </ul>
                     <B v-if="!$page.props.auth?.is_admin" compact href="/solicitudes/nueva" arrow>Preparar mi solicitud</B>
                 </div>
-                <figure id="presupuesto-de-ejemplo" class="landing-budget-example" tabindex="-1" aria-labelledby="budget-example-caption">
-                    <figcaption id="budget-example-caption" class="example-label">Documento de ejemplo · Importes ilustrativos</figcaption>
-                    <BudgetDocument compact example :budget="exampleBudget" :client="{ name: 'Cliente de ejemplo', company: 'Tu organización' }" :issuer="{ name: 'synaux' }" />
-                </figure>
+                <EjemploPresupuesto/>
             </div>
         </section>
         <!-- El cierre explica cuándo conviene preparar un pedido y cuándo consultar. -->
@@ -176,26 +156,19 @@ h1, h2, h3 {
     text-wrap: balance;
 }
 
-.eyebrow {
-    color: #1f6f7f;
-    font-size: .8rem;
-    font-weight: 700;
-    letter-spacing: .1em;
-    margin-bottom: 12px;
-}
-
 p {
     color: #446075;
     text-wrap: pretty;
     line-height: 1.6;
 }
 
+/* La marca y la foto arrancan sobre la misma línea, con margen superior para la trama. */
 .landing-hero {
     display: grid;
     grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
     gap: clamp(24px, 5vw, 64px);
-    align-items: center;
-    padding-block: clamp(32px, 4vw, 52px);
+    align-items: start;
+    padding-block: clamp(48px, 5vw, 80px) clamp(32px, 4vw, 52px);
 }
 
 /* El título deja espacio para leer «proyecto digital» como una unidad en escritorio. */
@@ -227,14 +200,23 @@ h1 em {
     margin-top: 24px;
 }
 
-.landing-actions > a:last-child {
+/* Los accesos al ejemplo y al catálogo son enlaces secundarios con área táctil amplia. */
+.landing-action-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
     color: #153b64;
     font-weight: 700;
     text-underline-offset: 4px;
 }
 
-.landing-actions > a:last-child:hover {
+.landing-action-link:hover, .landing-action-link:focus-visible {
     text-decoration: underline;
+}
+
+.landing-action-link:focus-visible, .landing-brand-signature:focus-visible {
+    outline: 2px solid #1f6f7f;
+    outline-offset: 3px;
 }
 
 .landing-support {
@@ -243,22 +225,16 @@ h1 em {
     margin: 16px 0 0;
 }
 
-/* La firma completa acompaña la foto sin competir con el título. */
-.landing-visual-wrap {
-    display: flex;
-    flex-direction: column-reverse;
-    min-width: 0;
-}
-
 .landing-visual-media {
     position: relative;
     min-width: 0;
-    padding-top: 20px;
 }
 
+/* La firma completa encabeza el bloque de texto y comparte el margen del título. */
 .landing-brand-signature {
+    display: block;
     width: min(230px, 100%);
-    margin: 16px 0 0 auto;
+    margin: 0 0 24px;
 }
 
 .landing-brand-signature :deep(.brand-logo) {
@@ -423,30 +399,6 @@ h1 em {
     margin-bottom: 3px;
 }
 
-/* El enlace enfoca el documento y lo sitúa por debajo del encabezado fijo. */
-.landing-budget-example {
-    min-width: 0;
-    margin: 0;
-    scroll-margin-top: calc(var(--navbar-height, 76px) - 8px);
-    padding: 12px;
-    background: #fff;
-    border: 1px solid #1f6f7f26;
-    border-radius: 16px;
-    box-shadow: 0 10px 28px #153b6412;
-}
-
-.landing-budget-example:focus-visible {
-    outline: 2px solid #1f6f7f;
-    outline-offset: 3px;
-}
-
-.example-label {
-    margin: 0;
-    padding: 4px 8px 12px;
-    font-size: .8rem;
-    color: #446075;
-}
-
 .landing-close {
     display: flex;
     flex-wrap: wrap;
@@ -489,27 +441,17 @@ h1 em {
     }
 
     .landing-hero {
-        align-items: start;
         gap: 28px;
     }
 
-    /* En móvil la marca aparece antes del título y la foto queda debajo de las acciones. */
-    .landing-visual-wrap {
-        display: contents;
-    }
-
-    .landing-brand-signature {
-        grid-row: 1;
-        width: min(200px, 100%);
-        margin: 0;
-    }
-
-    .landing-hero-copy {
-        grid-row: 2;
-    }
-
+    /* Al apilar la foto, la trama queda separada de los enlaces y del texto de cuenta. */
     .landing-visual-media {
-        grid-row: 3;
+        padding-top: 20px;
+    }
+
+    /* La firma conserva el mínimo de lectura del eslogan en pantallas angostas. */
+    .landing-brand-signature {
+        width: min(200px, 100%);
     }
 
     h1 {

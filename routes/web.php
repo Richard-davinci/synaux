@@ -23,8 +23,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-// La presentación de marca sigue siendo independiente del catálogo y de las cuentas privadas.
+// La campaña, la portada del sitio y el catálogo tienen entradas públicas independientes.
 Route::get('/', fn() => Inertia::render('Home'))->name('home');
+Route::get('/inicio', [PublicPageController::class, 'inicio'])->name('site.home');
 Route::get('/plataforma', [PublicPageController::class, 'show'])->name('platform');
 // La galería no tiene rutas de escritura y el controlador la bloquea fuera del entorno local.
 Route::get('/prototipo/{screen?}', [PrototypeController::class, 'show']);
