@@ -33,8 +33,8 @@ const budgetOpen = ref(false);
                     <AppButton href="/plataforma" :variant="$page.props.auth?.is_admin ? 'primary' : 'secondary'">Explorar servicios</AppButton>
                 </div>
             </div>
-            <img class="site-home-photo" src="/images/landing/planificacion.webp"
-                 alt="Bocetos de un sitio web junto a una notebook." width="1200" height="800" fetchpriority="high">
+            <img class="site-home-photo" src="/images/inicio/diseno-web-synaux.webp"
+                 alt="Notebook con el boceto de un sitio web en azul y turquesa." width="1536" height="1024" fetchpriority="high">
         </section>
 
         <!-- La muestra responde qué recibe el cliente y ofrece pedir presupuesto después de revisarla. -->
@@ -124,6 +124,19 @@ const budgetOpen = ref(false);
                 <div class="site-home-actions">
                     <AppButton href="/contacto" arrow>Hacer una consulta</AppButton>
                     <AppButton href="/nosotros" variant="secondary">Cómo trabajamos</AppButton>
+                </div>
+                <!-- Las dos fotos muestran la definición del alcance y el diseño de la estructura. -->
+                <div class="site-home-process">
+                    <figure>
+                        <img src="/images/inicio/colaboracion-synaux.webp" alt="Dos personas revisan el esquema de un sitio."
+                             width="1536" height="1024" loading="lazy" decoding="async">
+                        <figcaption>Definimos el alcance</figcaption>
+                    </figure>
+                    <figure>
+                        <img src="/images/inicio/bocetos-synaux.webp" alt="Dos bocetos en papel organizan las secciones de un sitio web."
+                             width="1536" height="1024" loading="lazy" decoding="async">
+                        <figcaption>Diseñamos la estructura</figcaption>
+                    </figure>
                 </div>
             </div>
         </section>
@@ -444,8 +457,36 @@ h1 em {
     margin: 0 0 8px;
 }
 
+/* Los recortes mantienen un encuadre parejo y las imágenes se apilan cuando falta ancho. */
+.site-home-process {
+    display: grid;
+    flex: 1 0 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    min-width: 0;
+}
+
+.site-home-process figure {
+    margin: 0;
+}
+
+.site-home-process img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+.site-home-process figcaption {
+    margin-top: 8px;
+    color: #153b64;
+    font-weight: 700;
+}
+
 @media (max-width: 760px) {
-    .site-home-hero, .site-home-budget-layout {
+    .site-home-hero, .site-home-budget-layout, .site-home-process {
         grid-template-columns: minmax(0, 1fr);
     }
 }
