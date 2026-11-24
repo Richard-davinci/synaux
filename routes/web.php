@@ -114,6 +114,7 @@ Route::middleware('auth')->group(function () {
         Route::middleware('throttle:30,1')->group(function () {
             Route::post('/admin/guardar/precios-servicio', [TariffController::class, 'storeServicePrices']);
             Route::post('/admin/guardar/tarifario', [TariffController::class, 'store']);
+            Route::post('/admin/guardar/servicios-destacados', [CatalogConfigurationController::class, 'saveFeatured']);
             Route::post('/admin/guardar/{resource}', [CatalogConfigurationController::class, 'save']);
         });
     });

@@ -34,6 +34,32 @@ function clearFilters() {
     stateFilter.value = '';
 }
 
+// El panel guarda la selección por orden y solo ofrece servicios visibles en el catálogo.
+const featuredOpen = ref(false);
+const featuredTrigger = ref(null);
+const featuredForm = useForm({service_ids: []});
+const featuredLimit = computed(() => catalog.value.featuredServiceLimit ?? 3);
+const activeCategoryIds = computed(() => new Set(catalog.value.categories.filter(row => row.active).map(row => Number(row.id))));
+const featuredOptions = computed(() => catalog.value.services
+    .filter(row => row.active && activeCategoryIds.value.has(Number(row.service_category_id)))
+    .toSorted((a, b) => a.name.localeCompare(b.name, 'es')));
+const featuredIds = computed(() => (catalog.value.featuredServiceIds ?? []).map(Number));
+const featuredNames = computed(() => featuredIds.value.map(id => catalog.value.services.find(row => Number(row.id) === id)?.name).filter(Boolean));
+const featuredError = computed(() => featuredForm.errors.service_ids ?? Object.values(featuredForm.errors)[0]);
+
+function openFeatured() {
+    featuredForm.defaults({service_ids: [...featuredIds.value]});
+    featuredForm.reset();
+    featuredForm.clearErrors();
+    featuredOpen.value = true;
+}
+
+function saveFeatured() {
+    submit(featuredForm, '/admin/guardar/servicios-destacados', {
+        onSuccess: () => { featuredOpen.value = false; },
+    });
+}
+
 // Las categorías usan el guardado existente; desactivar conserva sus servicios y el historial asociado.
 const categoryDialog = ref(false);
 const category = useForm({id: null, name: '', slug: '', description: '', active: true});
@@ -76,6 +102,16 @@ function saveCategory() {
                 <B v-else compact href="/admin/servicios/nuevo">Nuevo servicio</B>
             </div>
         </T>
+        <!-- La selección guardada se puede verificar desde el listado de servicios. -->
+        <section v-if="!categoriesView && $page.props.auth?.is_admin && !$page.props.preview"
+                 class="featured-overview" aria-labelledby="featured-overview-title">
+            <div>
+                <h2 id="featured-overview-title">Destacados del Inicio</h2>
+                <p v-if="featuredNames.length">{{ featuredNames.join(' · ') }}</p>
+                <p v-else>Actualmente no hay servicios destacados.</p>
+            </div>
+            <B ref="featuredTrigger" compact variant="secondary" @click="openFeatured">Elegir destacados</B>
+        </section>
         <div class="filters workspace-filters catalog-filters" :class="{ 'catalog-category-filters': categoriesView }">
             <F v-model="search" type="search" label="Buscar por nombre"/>
             <F v-if="!categoriesView" v-model="categoryFilter" label="Categoría" type="select"
@@ -121,6 +157,34 @@ function saveCategory() {
             </table>
         </div>
 
+        <!-- El contador y los límites se aplican al conjunto, incluso si cambia el filtro de la tabla. -->
+        <SidePanel v-model="featuredOpen" title="Servicios destacados" max-width="520"
+                   :persistent="featuredForm.processing" @after-leave="featuredTrigger?.$el?.focus()">
+            <form class="featured-form" @submit.prevent="saveFeatured">
+                <p>Elegí hasta {{ featuredLimit }} servicios activos. Se muestran en el Inicio en el orden de selección.</p>
+                <p class="featured-count" aria-live="polite">{{ featuredForm.service_ids.length }} de {{ featuredLimit }} seleccionados</p>
+                <fieldset v-if="featuredOptions.length" class="featured-options">
+                    <legend>Servicios disponibles</legend>
+                    <label v-for="service in featuredOptions" :key="service.id">
+                        <input v-model="featuredForm.service_ids" type="checkbox" :value="Number(service.id)"
+                               :disabled="featuredForm.processing || (featuredForm.service_ids.length >= featuredLimit && !featuredForm.service_ids.includes(Number(service.id)))">
+                        <span>{{ service.name }}<small>{{ categoryName(service.service_category_id) }}</small></span>
+                        <span v-if="featuredForm.service_ids.includes(Number(service.id))" class="featured-position">
+                            {{ featuredForm.service_ids.indexOf(Number(service.id)) + 1 }}
+                        </span>
+                    </label>
+                </fieldset>
+                <p v-else>No hay servicios activos disponibles.</p>
+                <p v-if="featuredError" role="alert">{{ featuredError }}</p>
+                <div class="form-actions">
+                    <B variant="secondary" :disabled="featuredForm.processing" @click="featuredOpen = false">Cancelar</B>
+                    <B type="submit" :disabled="featuredForm.processing || !featuredForm.isDirty">
+                        {{ featuredForm.processing ? 'Guardando…' : 'Guardar destacados' }}
+                    </B>
+                </div>
+            </form>
+        </SidePanel>
+
         <!-- El panel conserva los errores de validación mientras se edita la categoría. -->
         <SidePanel title="Categorías de servicios" v-model="categoryDialog" max-width="480"
                    :persistent="category.processing">
@@ -152,3 +216,73 @@ function saveCategory() {
         </SidePanel>
     </section>
 </template>
+
+<style scoped>
+/* La selección se destaca dentro de Administración y mantiene controles nativos accesibles. */
+.featured-overview {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding: 16px 20px;
+    border: 1px solid #1f6f7f26;
+    border-radius: 12px;
+    background: #f5f9fa;
+}
+
+.featured-overview h2 {
+    margin: 0 0 4px;
+    font-size: 1.15rem;
+}
+
+.featured-overview p {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.featured-form {
+    padding: 24px;
+}
+
+.featured-count {
+    margin-bottom: 12px;
+    font-weight: 700;
+}
+
+.featured-options {
+    padding: 0;
+    border: 0;
+    min-width: 0;
+}
+
+.featured-options legend {
+    margin-bottom: 8px;
+    font-weight: 700;
+}
+
+.featured-options label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 48px;
+    padding: 8px 0;
+    border-bottom: 1px solid #1f6f7f26;
+}
+
+.featured-options label small {
+    display: block;
+    color: #446075;
+}
+
+.featured-options input {
+    accent-color: #1f6f7f;
+}
+
+.featured-position {
+    margin-inline-start: auto;
+    color: #1f6f7f;
+    font-weight: 700;
+}
+</style>

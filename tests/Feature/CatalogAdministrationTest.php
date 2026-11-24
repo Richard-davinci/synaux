@@ -25,6 +25,7 @@ class CatalogAdministrationTest extends TestCase
         }
         $this->actingAs($client)->post('/admin/guardar/categorias', [])->assertForbidden();
         $this->post('/admin/guardar/servicios', [])->assertForbidden();
+        $this->post('/admin/guardar/servicios-destacados', ['service_ids' => []])->assertForbidden();
     }
 
     // Las páginas comparten los registros existentes y rechazan la edición de un identificador inexistente.
@@ -38,6 +39,38 @@ class CatalogAdministrationTest extends TestCase
                 ->component('EspacioTrabajo')->where('screen', 'admin')->has('administration.categories')->has('administration.services'));
         }
         $this->get('/admin/servicios/999999/editar')->assertNotFound();
+    }
+
+    // Administración decide el orden; la portada respeta el límite, los estados y la selección vacía.
+    public function test_admin_can_choose_up_to_three_public_featured_services(): void
+    {
+        $this->seed(SynauxCatalogSeeder::class);
+        $admin = User::factory()->create(['is_admin' => true]);
+        $services = DB::table('services')->pluck('id', 'slug');
+        $selected = [$services['tienda-online'], $services['diseno-ux-ui'], $services['identidad-visual']];
+        $url = '/admin/guardar/servicios-destacados';
+
+        $this->actingAs($admin)->from('/admin/servicios')->post($url, ['service_ids' => $selected])
+            ->assertRedirect('/admin/servicios')->assertSessionHasNoErrors();
+        $this->get('/admin/servicios')->assertInertia(fn(Assert $page) => $page
+            ->where('administration.featuredServiceIds', $selected)->where('administration.featuredServiceLimit', 3));
+        $this->get('/inicio')->assertInertia(fn(Assert $page) => $page
+            ->has('featuredServices', 3)->where('featuredServices.0.id', 'tienda-online')
+            ->where('featuredServices.1.id', 'diseno-ux-ui')->where('featuredServices.2.id', 'identidad-visual'));
+
+        $this->post($url, ['service_ids' => [...$selected, $services['sitio-institucional']]])->assertSessionHasErrors('service_ids');
+        $this->post($url, ['service_ids' => [$selected[0], $selected[0]]])->assertSessionHasErrors('service_ids.0');
+        $this->post($url, ['service_ids' => [999999]])->assertSessionHasErrors('service_ids');
+        DB::table('services')->where('id', $selected[0])->update(['active' => 0]);
+        $this->post($url, ['service_ids' => [$selected[0]]])->assertSessionHasErrors('service_ids');
+        $category = DB::table('services')->where('id', $selected[1])->value('service_category_id');
+        DB::table('service_categories')->where('id', $category)->update(['active' => 0]);
+        $this->post($url, ['service_ids' => [$selected[1]]])->assertSessionHasErrors('service_ids');
+        $this->get('/inicio')->assertInertia(fn(Assert $page) => $page
+            ->has('featuredServices', 1)->where('featuredServices.0.id', 'identidad-visual'));
+
+        $this->post($url, ['service_ids' => []])->assertSessionHasNoErrors();
+        $this->get('/inicio')->assertInertia(fn(Assert $page) => $page->has('featuredServices', 0));
     }
 
     // Guardar información comercial no crea ni modifica versiones o precios del presupuestador.

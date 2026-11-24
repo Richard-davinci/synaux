@@ -2,14 +2,19 @@
 
 namespace App\Services\Admin;
 
+use App\Services\Catalog\ServiceCatalog;
 use Illuminate\Support\Facades\DB;
 
 class CatalogConfiguration
 {
+    public function __construct(private ServiceCatalog $catalog) {}
+
     // Consulta la configuración del catálogo y sus relaciones para las pantallas administrativas.
     public function data(): array
     {
         return [
+            'featuredServiceIds' => array_column($this->catalog->featuredServices(), 'database_id'),
+            'featuredServiceLimit' => ServiceCatalog::FEATURED_LIMIT,
             'categories' => DB::table('service_categories')->get(),
             'services' => DB::table('services')->get()->map(fn($s) => [...((array)$s), 'deliverables' => json_decode($s->deliverables ?? '[]', true)]),
             'components' => DB::table('service_components')->get(),

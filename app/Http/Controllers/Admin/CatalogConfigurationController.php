@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\Catalog\ServiceCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -11,6 +12,24 @@ use Illuminate\Validation\ValidationException;
 // Guarda servicios, categorías y las preguntas, componentes y reglas vinculados al catálogo.
 class CatalogConfigurationController extends Controller
 {
+    // Solo Administración puede sustituir la selección completa que se muestra en Inicio.
+    public function saveFeatured(Request $request, ServiceCatalog $catalog)
+    {
+        abort_unless($request->user()->is_admin, 403);
+
+        $data = $request->validate([
+            'service_ids' => ['present', 'array', 'list', 'max:' . ServiceCatalog::FEATURED_LIMIT],
+            'service_ids.*' => ['integer', 'distinct'],
+        ], [
+            'service_ids.max' => 'Podés destacar hasta tres servicios.',
+            'service_ids.*.distinct' => 'Elegí servicios distintos.',
+        ]);
+
+        $catalog->saveFeaturedServices(array_map('intval', $data['service_ids']));
+
+        return back()->with('notice', 'Servicios destacados del Inicio actualizados.');
+    }
+
     // Valida el recurso permitido y guarda sus cambios solo para una cuenta administrativa.
     public function save(Request $request, string $resource)
     {

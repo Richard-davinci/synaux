@@ -27,7 +27,7 @@ class PublicPageController extends Controller
     // Selecciona una fila de servicios activos con las referencias vigentes del catálogo.
     public function inicio()
     {
-        $featuredServices = collect($this->catalog->services())->unique('service_category_id')->take(3)->values()->all();
+        $featuredServices = $this->catalog->featuredServices();
 
         // La portada recibe solo los campos visibles de los últimos trabajos publicados.
         $featuredWorks = array_map(

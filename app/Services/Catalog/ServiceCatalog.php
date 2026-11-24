@@ -9,6 +9,38 @@ use Illuminate\Validation\ValidationException;
 // Centraliza catálogo, preguntas y cálculo para que el resultado público y el historial coincidan.
 class ServiceCatalog
 {
+    public const FEATURED_LIMIT = 3;
+
+    // Conserva la selección automática hasta el primer guardado y excluye servicios despublicados.
+    public function featuredServices(): array
+    {
+        $services = collect($this->services())->keyBy('database_id');
+        $saved = DB::table('site_home_settings')->where('id', 1)->value('featured_service_ids');
+
+        if ($saved === null) {
+            return $services->unique('service_category_id')->take(self::FEATURED_LIMIT)->values()->all();
+        }
+
+        return collect(json_decode($saved, true, flags: JSON_THROW_ON_ERROR))
+            ->map(fn(int $id) => $services->get($id))->filter()->values()->all();
+    }
+
+    // Valida contra la oferta pública y guarda toda la selección en una sola escritura.
+    public function saveFeaturedServices(array $ids): void
+    {
+        $activeIds = array_column($this->services(), 'database_id');
+
+        if (array_diff($ids, $activeIds)) {
+            throw ValidationException::withMessages([
+                'service_ids' => 'Solo podés destacar servicios activos de categorías activas.',
+            ]);
+        }
+
+        DB::table('site_home_settings')->upsert([
+            ['id' => 1, 'featured_service_ids' => json_encode($ids, JSON_THROW_ON_ERROR)],
+        ], ['id'], ['featured_service_ids']);
+    }
+
     // Une servicios y categorías y prepara los campos compartidos por catálogo, formularios y detalles.
     public function services(bool $all = false): array
     {
