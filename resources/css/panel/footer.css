@@ -79,6 +79,51 @@
     }
 }
 
+/* En el inicio, el copyright queda debajo del logo y la navegación se alinea con el margen derecho de la página. */
+.site-footer.landing-footer > .footer-grid {
+    grid-template-columns: minmax(0, var(--footer-logo-width)) minmax(0, 1fr);
+    grid-template-areas: 'marca enlaces' 'copyright enlaces';
+    row-gap: 8px;
+}
+
+.landing-footer .footer-grid > a {
+    grid-area: marca;
+    justify-self: start;
+    max-width: 100%;
+}
+
+.landing-footer .footer-grid .brand-logo {
+    display: block;
+}
+
+.landing-footer .footer-copy {
+    grid-area: copyright;
+    text-align: left;
+}
+
+.landing-footer .footer-copy p {
+    white-space: normal;
+}
+
+.site-footer.landing-footer .footer-grid nav {
+    grid-area: enlaces;
+    justify-self: end;
+    min-width: 0;
+}
+
+/* En pantallas angostas, la navegación baja completa y comparte el margen izquierdo del logo. */
+@media (max-width: 540px) {
+    .site-footer.landing-footer > .footer-grid {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: 'marca' 'copyright' 'enlaces';
+    }
+
+    .site-footer.landing-footer .footer-grid nav {
+        justify-self: start;
+        margin-top: 12px;
+    }
+}
+
 /* El SVG transparente cubre todos los pies de navegación sin mosaicos ni deformación.
    2682 px conserva la escala de las piezas (3600 × 380 / 510); solo se amplía en pantallas superiores a ese ancho. */
 .synaux-brand-pattern {
