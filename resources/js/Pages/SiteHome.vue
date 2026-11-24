@@ -1,5 +1,6 @@
 <script setup>
 import {Head} from '@inertiajs/vue3';
+import {ref} from 'vue';
 import AppButton from '../Components/UI/AppButton.vue';
 import AppIcon from '../Components/UI/AppIcon.vue';
 import EjemploPresupuesto from '../Components/Presupuestos/EjemploPresupuesto.vue';
@@ -12,6 +13,9 @@ defineProps({
     featuredServices: {type: Array, default: () => []},
     featuredWorks: {type: Array, default: () => []},
 });
+
+// Vuetify devuelve el foco al botón que abrió el panel.
+const budgetOpen = ref(false);
 </script>
 
 <template>
@@ -40,20 +44,33 @@ defineProps({
                     <h2 id="site-home-budget-title">Qué incluye tu presupuesto</h2>
                     <p>Después de enviar tu solicitud, recibís una propuesta con el detalle del trabajo, el precio, el plazo de entrega y las condiciones.</p>
                 </div>
-                <details class="site-home-budget-details">
-                    <summary>
-                        <AppIcon name="file"/>
-                        <span>
-                            <strong>Ver presupuesto de ejemplo</strong>
-                            <small>Documento con importes ilustrativos</small>
-                        </span>
-                        <AppIcon name="arrow" class="site-home-budget-chevron"/>
-                    </summary>
-                    <div class="site-home-budget-document">
-                        <EjemploPresupuesto/>
-                        <AppButton v-if="!$page.props.auth?.is_admin" href="/solicitudes/nueva" arrow>Pedir presupuesto</AppButton>
+                <v-dialog v-model="budgetOpen" class="site-home-budget-drawer" transition="site-home-budget-slide"
+                          aria-labelledby="site-home-budget-drawer-title">
+                    <template #activator="{ props: activatorProps }">
+                        <button v-bind="activatorProps" type="button" class="site-home-budget-trigger">
+                            <AppIcon name="file"/>
+                            <span>
+                                <strong>Ver presupuesto de ejemplo</strong>
+                                <small>Documento con importes ilustrativos</small>
+                            </span>
+                            <AppIcon name="arrow"/>
+                        </button>
+                    </template>
+                    <div class="synaux-app site-home-budget-sheet">
+                        <div class="site-home-budget-drawer-heading">
+                            <h2 id="site-home-budget-drawer-title">Presupuesto de ejemplo</h2>
+                            <button type="button" aria-label="Cerrar presupuesto de ejemplo" @click="budgetOpen = false">
+                                <AppIcon name="close"/>
+                            </button>
+                        </div>
+                        <div class="site-home-budget-body" role="region" aria-label="Documento de ejemplo" tabindex="0">
+                            <EjemploPresupuesto/>
+                        </div>
+                        <div v-if="!$page.props.auth?.is_admin" class="site-home-budget-drawer-actions">
+                            <AppButton href="/solicitudes/nueva" arrow>Pedir presupuesto</AppButton>
+                        </div>
                     </div>
-                </details>
+                </v-dialog>
             </div>
         </section>
 
@@ -277,7 +294,8 @@ h1 em {
     border-color: #1f6f7f;
 }
 
-.site-home-work:focus-visible, .site-home-budget-details summary:focus-visible {
+.site-home-work:focus-visible, .site-home-budget-trigger:focus-visible,
+.site-home-budget-drawer-heading button:focus-visible, .site-home-budget-body:focus-visible {
     outline: 2px solid #1f6f7f;
     outline-offset: 3px;
 }
@@ -309,7 +327,7 @@ h1 em {
     margin-bottom: 16px;
 }
 
-/* La explicación y el control del ejemplo se leen juntos; al abrirlo, el documento usa su propia columna. */
+/* El acceso al ejemplo acompaña la explicación y abre el panel sin mover la página. */
 .site-home-budget {
     border-block: 1px solid #1f6f7f14;
     background: #f5f9fa;
@@ -332,7 +350,7 @@ h1 em {
     text-wrap: pretty;
 }
 
-.site-home-budget-details summary {
+.site-home-budget-trigger {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
@@ -343,41 +361,76 @@ h1 em {
     background: #fff;
     color: #153b64;
     cursor: pointer;
-    list-style: none;
+    text-align: left;
 }
 
-.site-home-budget-details summary::-webkit-details-marker {
-    display: none;
-}
-
-.site-home-budget-details summary:hover {
+.site-home-budget-trigger:hover {
     border-color: #1f6f7f;
 }
 
-.site-home-budget-details summary small {
+.site-home-budget-trigger small {
     display: block;
     margin-top: 2px;
     color: #446075;
     font-size: .875rem;
 }
 
-.site-home-budget-chevron {
-    transform: rotate(90deg);
-}
-
-.site-home-budget-details[open] .site-home-budget-chevron {
-    transform: rotate(-90deg);
-}
-
-.site-home-budget-document {
+/* El título y la acción quedan a mano mientras se desplaza el documento. */
+.site-home-budget-sheet {
     display: grid;
-    justify-items: start;
-    gap: 16px;
-    margin-top: 12px;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    height: 100%;
+    background: #f5f9fa;
+    color: #153b64;
+    box-shadow: -12px 0 32px #153b6433;
 }
 
-.site-home-budget-document > :first-child {
-    width: 100%;
+.site-home-budget-drawer-heading, .site-home-budget-drawer-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px clamp(14px, 3vw, 24px);
+    background: #fff;
+}
+
+.site-home-budget-drawer-heading {
+    justify-content: space-between;
+    border-bottom: 1px solid #1f6f7f26;
+}
+
+.site-home-budget-drawer-heading h2 {
+    margin: 0;
+    font-size: clamp(1.1rem, 3vw, 1.5rem);
+}
+
+.site-home-budget-drawer-heading button {
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
+    height: 44px;
+    border-radius: 8px;
+    color: #153b64;
+    cursor: pointer;
+}
+
+.site-home-budget-drawer-heading button:hover {
+    background: #f5f9fa;
+}
+
+.site-home-budget-body {
+    min-width: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: clamp(12px, 3vw, 24px);
+}
+
+.site-home-budget-body:focus-visible {
+    outline-offset: -3px;
+}
+
+.site-home-budget-drawer-actions {
+    justify-content: flex-end;
+    border-top: 1px solid #1f6f7f26;
 }
 
 /* El cierre agrupa las dos alternativas para quien todavía está definiendo el alcance. */
@@ -394,6 +447,33 @@ h1 em {
 @media (max-width: 760px) {
     .site-home-hero, .site-home-budget-layout {
         grid-template-columns: minmax(0, 1fr);
+    }
+}
+</style>
+
+<style>
+/* Vuetify monta la superposición fuera de la página; el panel se ancla al borde derecho. */
+.site-home-budget-drawer > .v-overlay__content {
+    position: fixed;
+    inset: 0 0 0 auto;
+    width: min(680px, 100vw);
+    max-width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+}
+
+.site-home-budget-slide-enter-active, .site-home-budget-slide-leave-active {
+    transition: transform 220ms ease;
+}
+
+.site-home-budget-slide-enter-from, .site-home-budget-slide-leave-to {
+    transform: translateX(100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .site-home-budget-slide-enter-active, .site-home-budget-slide-leave-active {
+        transition: none;
     }
 }
 </style>
