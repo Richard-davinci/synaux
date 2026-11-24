@@ -71,7 +71,7 @@ class SynauxFlowTest extends TestCase
 
         $publication = [...$data, 'id' => $id, 'publish' => true];
         $this->actingAs($other)->post('/acciones/solicitud', $publication)->assertForbidden();
-        $this->actingAs($owner)->post('/acciones/solicitud', $publication)->assertRedirect('/solicitudes/'.$id);
+        $this->actingAs($owner)->post('/acciones/solicitud', $publication)->assertRedirect('/solicitudes/' . $id);
         $this->assertDatabaseHas('project_requests', ['id' => $id, 'status' => 'open']);
     }
 
@@ -91,27 +91,27 @@ class SynauxFlowTest extends TestCase
         $owner = $this->account();
         $stranger = $this->account();
         $id = $this->projectRequest($owner);
-        $this->get('/solicitudes/'.$id)->assertRedirect('/ingresar');
-        $this->actingAs($stranger)->get('/solicitudes/'.$id)->assertNotFound();
-        $this->get('/oportunidades/'.$id)->assertNotFound();
+        $this->get('/solicitudes/' . $id)->assertRedirect('/ingresar');
+        $this->actingAs($stranger)->get('/solicitudes/' . $id)->assertNotFound();
+        $this->get('/oportunidades/' . $id)->assertNotFound();
         $this->post('/acciones/estado-solicitud', ['id' => $id, 'status' => 'closed'])->assertForbidden();
         $this->assertDatabaseHas('project_requests', ['id' => $id, 'status' => 'open']);
-        $this->actingAs($owner)->get('/solicitudes/'.$id)->assertOk();
+        $this->actingAs($owner)->get('/solicitudes/' . $id)->assertOk();
     }
 
     // Sin tarifario completo no se inventa un importe cero; el resultado requiere revisión profesional.
     public function test_estimate_is_preserved_through_registration_and_saved_once(): void
     {
-        $answers = DB::table('estimator_questions')->where('service_id', DB::table('services')->where('slug', 'sitio-institucional')->value('id'))->get()->mapWithKeys(fn ($q) => [$q->id => (string) DB::table('estimator_options')->where('question_id', $q->id)->value('id')])->all();
-        $this->post('/estimador/calcular', ['service' => 'sitio-institucional', 'answers' => $answers])->assertRedirect()->assertSessionHas('pending_estimate', fn ($p) => $p['mode'] === 'manual' && array_key_exists('min', $p) && $p['min'] === null);
+        $answers = DB::table('estimator_questions')->where('service_id', DB::table('services')->where('slug', 'sitio-institucional')->value('id'))->get()->mapWithKeys(fn($q) => [$q->id => (string)DB::table('estimator_options')->where('question_id', $q->id)->value('id')])->all();
+        $this->post('/estimador/calcular', ['service' => 'sitio-institucional', 'answers' => $answers])->assertRedirect()->assertSessionHas('pending_estimate', fn($p) => $p['mode'] === 'manual' && array_key_exists('min', $p) && $p['min'] === null);
         $this->post('/crear-cuenta', ['name' => 'Nuevo Cliente', 'email' => 'nuevo@example.test', 'password' => 'ClaveLarga123!', 'password_confirmation' => 'ClaveLarga123!'])->assertRedirect('/estimador?paso=4');
         $response = $this->post('/acciones/guardar-estimacion', ['to_request' => true]);
         $id = DB::table('estimates')->value('id');
-        $response->assertRedirect('/solicitudes/nueva?estimacion='.$id);
-        $this->post('/acciones/guardar-estimacion', ['to_request' => true])->assertRedirect('/solicitudes/nueva?estimacion='.$id);
+        $response->assertRedirect('/solicitudes/nueva?estimacion=' . $id);
+        $this->post('/acciones/guardar-estimacion', ['to_request' => true])->assertRedirect('/solicitudes/nueva?estimacion=' . $id);
         $this->assertDatabaseCount('estimates', 1);
         $this->assertDatabaseHas('estimates', ['status' => 'manual', 'price_min' => null, 'price_max' => null]);
-        $this->get('/solicitudes/nueva?estimacion='.$id)->assertInertia(fn (Assert $p) => $p->component('EspacioTrabajo')->where('selectedEstimate.id', $id));
+        $this->get('/solicitudes/nueva?estimacion=' . $id)->assertInertia(fn(Assert $p) => $p->component('EspacioTrabajo')->where('selectedEstimate.id', $id));
     }
 
     // Entrar en una cuenta existente recupera el resultado y las respuestas del servicio original.
@@ -127,13 +127,13 @@ class SynauxFlowTest extends TestCase
         $this->post('/ingresar', ['email' => $user->email, 'password' => 'password'])
             ->assertRedirect('/estimador?paso=4');
 
-        $this->get('/estimador?paso=4')->assertInertia(fn (Assert $page) => $page
+        $this->get('/estimador?paso=4')->assertInertia(fn(Assert $page) => $page
             ->where('step', 4)
             ->where('selected.id', 'tienda-online')
             ->where('pending.answers.0.value', $answer)
         );
 
-        $this->get('/estimador?paso=4&servicio=identidad-visual')->assertInertia(fn (Assert $page) => $page
+        $this->get('/estimador?paso=4&servicio=identidad-visual')->assertInertia(fn(Assert $page) => $page
             ->where('step', 1)
             ->where('selected.id', 'identidad-visual')
             ->where('pending', null)
@@ -169,11 +169,11 @@ class SynauxFlowTest extends TestCase
         $id = DB::table('project_requests')->where('estimate_id', $estimate)->value('id');
         $this->assertDatabaseHas('project_requests', ['id' => $id, 'status' => 'draft']);
         $this->post('/acciones/solicitud', [...$request, 'id' => $id, 'publish' => true])
-            ->assertRedirect('/solicitudes/'.$id);
+            ->assertRedirect('/solicitudes/' . $id);
         $this->assertDatabaseHas('project_requests', ['id' => $id, 'visibility' => 'private', 'status' => 'open', 'published_at' => null]);
 
-        $this->actingAs($this->account())->get('/solicitudes/'.$id)->assertNotFound();
-        $this->actingAs($manager)->get('/solicitudes/'.$id)->assertOk();
+        $this->actingAs($this->account())->get('/solicitudes/' . $id)->assertNotFound();
+        $this->actingAs($manager)->get('/solicitudes/' . $id)->assertOk();
         $this->post('/acciones/presupuesto', $this->quoteData($id))->assertSessionHasNoErrors()->assertRedirect();
         $version = DB::table('budget_versions')->value('id');
 
@@ -216,7 +216,7 @@ class SynauxFlowTest extends TestCase
         $id = $this->projectRequest($owner);
         $service = DB::table('project_requests')->where('id', $id)->value('service_id');
         $estimate = DB::table('estimates')->insertGetId([
-            'user_id' => $owner->id, 'service_id' => $service, 'summary' => 'Referencia original', 'answers_snapshot' => '[]', 'request_key' => (string) \Illuminate\Support\Str::uuid(),
+            'user_id' => $owner->id, 'service_id' => $service, 'summary' => 'Referencia original', 'answers_snapshot' => '[]', 'request_key' => (string)\Illuminate\Support\Str::uuid(),
             'status' => 'manual', 'currency_snapshot' => 'ARS',
         ]);
         DB::table('project_requests')->where('id', $id)->update(['status' => 'draft', 'estimate_id' => $estimate]);
@@ -228,7 +228,7 @@ class SynauxFlowTest extends TestCase
 
         $this->actingAs($owner)->post('/acciones/solicitud', $data)->assertSessionHasErrors('service_id');
         $this->assertDatabaseHas('project_requests', ['id' => $id, 'status' => 'draft', 'service_id' => $service, 'estimate_id' => $estimate]);
-        $this->post('/acciones/solicitud', [...$data, 'service_id' => $service])->assertSessionHasNoErrors()->assertRedirect('/solicitudes/'.$id);
+        $this->post('/acciones/solicitud', [...$data, 'service_id' => $service])->assertSessionHasNoErrors()->assertRedirect('/solicitudes/' . $id);
     }
 
     // El servidor usa la categoría del catálogo y rechaza servicios retirados para nuevos pedidos.
@@ -275,22 +275,22 @@ class SynauxFlowTest extends TestCase
             'additional_services' => [['service_id' => $extra, 'quantity' => 1, 'notes' => 'Incluye guía de uso.']],
         ])->assertSessionHasNoErrors()->assertRedirect();
         $id = DB::table('project_requests')->where('user_id', $client->id)->value('id');
-        $this->get('/solicitudes/'.$id)->assertInertia(fn (Assert $page) => $page
+        $this->get('/solicitudes/' . $id)->assertInertia(fn(Assert $page) => $page
             ->where('selected.contact.email', $contact['email'])
             ->where('selected.additional_services.0.name', 'Identidad visual'));
 
-        $this->actingAs($manager)->get('/editor/presupuesto?solicitud='.$id)->assertInertia(fn (Assert $page) => $page
+        $this->actingAs($manager)->get('/editor/presupuesto?solicitud=' . $id)->assertInertia(fn(Assert $page) => $page
             ->where('budgetRequests.0.contact.email', $contact['email']));
         $this->post('/acciones/presupuesto', $this->quoteData($id))->assertSessionHasNoErrors();
         $version = DB::table('budget_versions')->first();
         $this->assertSame($contact['email'], json_decode($version->client_snapshot, true)['email']);
         DB::table('project_requests')->where('id', $id)->update(['contact_snapshot' => json_encode([...$contact, 'email' => 'otro@example.test'])]);
-        $this->actingAs($client)->get('/presupuestos/'.$version->id)->assertInertia(fn (Assert $page) => $page
+        $this->actingAs($client)->get('/presupuestos/' . $version->id)->assertInertia(fn(Assert $page) => $page
             ->where('selected.client.email', $contact['email']));
 
-        $pdf = $this->get('/presupuestos/'.$version->id.'/pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $pdf = $this->get('/presupuestos/' . $version->id . '/pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->assertStringStartsWith('%PDF-', $pdf->getContent());
-        $this->actingAs($this->account())->get('/presupuestos/'.$version->id.'/pdf')->assertNotFound();
+        $this->actingAs($this->account())->get('/presupuestos/' . $version->id . '/pdf')->assertNotFound();
     }
 
     // Gestión puede emitir y versionar para un contacto externo sin crear una solicitud ni una cuenta.
@@ -305,28 +305,28 @@ class SynauxFlowTest extends TestCase
         $this->actingAs($client)->get('/editor/presupuesto?directo=1')->assertForbidden();
         $this->post('/acciones/presupuesto', $payload)->assertForbidden();
         $this->actingAs($manager)->get('/editor/presupuesto?directo=1')
-            ->assertInertia(fn (Assert $page) => $page->where('directBudget', true));
+            ->assertInertia(fn(Assert $page) => $page->where('directBudget', true));
         $this->post('/acciones/presupuesto', [...$payload, 'client' => ['email' => $client->email]])
             ->assertSessionHasErrors('client.name');
         $this->post('/acciones/presupuesto', $payload)->assertSessionHasNoErrors();
         $draft = DB::table('budget_versions')->firstOrFail();
         $this->assertSame('draft', $draft->status);
         $this->assertDatabaseHas('budgets', ['id' => $draft->budget_id, 'project_request_id' => null, 'client_user_id' => null, 'direct_service_id' => null]);
-        $this->get('/editor/presupuesto/'.$draft->id)->assertInertia(fn (Assert $page) => $page
+        $this->get('/editor/presupuesto/' . $draft->id)->assertInertia(fn(Assert $page) => $page
             ->where('directBudget', true)->where('selected.client.name', 'Contacto externo'));
         $this->post('/acciones/presupuesto', [...$payload, 'budget_id' => $draft->budget_id, 'send' => true])
-            ->assertSessionHasNoErrors()->assertRedirect('/presupuestos/'.$draft->id);
-        $this->get('/presupuestos/'.$draft->id)->assertInertia(fn (Assert $page) => $page
+            ->assertSessionHasNoErrors()->assertRedirect('/presupuestos/' . $draft->id);
+        $this->get('/presupuestos/' . $draft->id)->assertInertia(fn(Assert $page) => $page
             ->where('selected.external', true)->where('selected.display_status', 'issued')->where('selected.version_number', 1));
-        $pdf = $this->get('/presupuestos/'.$draft->id.'/pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $pdf = $this->get('/presupuestos/' . $draft->id . '/pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->assertStringStartsWith('%PDF-', $pdf->getContent());
         $this->post('/acciones/presupuesto', [...$payload, 'budget_id' => $draft->budget_id, 'send' => true,
             'client' => ['name' => 'Contacto actualizado']])->assertSessionHasNoErrors();
         $this->assertDatabaseHas('budget_versions', ['budget_id' => $draft->budget_id, 'version_number' => 2, 'status' => 'sent']);
-        $this->get('/presupuestos/'.$draft->id)->assertInertia(fn (Assert $page) => $page
+        $this->get('/presupuestos/' . $draft->id)->assertInertia(fn(Assert $page) => $page
             ->where('selected.client.name', 'Contacto externo')->where('selected.current', false));
 
-        $this->actingAs($client)->get('/presupuestos/'.$draft->id.'/pdf')->assertNotFound();
+        $this->actingAs($client)->get('/presupuestos/' . $draft->id . '/pdf')->assertNotFound();
         $this->post('/acciones/decidir-presupuesto', ['id' => $draft->id, 'decision' => 'accepted', 'confirmed' => true])->assertForbidden();
         $this->assertDatabaseCount('project_requests', 0);
         $this->assertDatabaseCount('projects', 0);
@@ -339,15 +339,15 @@ class SynauxFlowTest extends TestCase
         $client = $this->account();
         $id = $this->projectRequest($client);
         DB::table('project_requests')->where('id', $id)->update(['status' => 'draft']);
-        $this->actingAs($this->account(true))->get('/solicitudes/'.$id)->assertNotFound();
+        $this->actingAs($this->account(true))->get('/solicitudes/' . $id)->assertNotFound();
         DB::table('project_requests')->where('id', $id)->update(['status' => 'open']);
-        $this->get('/solicitudes/'.$id)->assertOk();
+        $this->get('/solicitudes/' . $id)->assertOk();
     }
 
     public function test_estimator_rejects_forged_options(): void
     {
         $qid = DB::table('estimator_questions')->value('id');
-        $this->from('/estimador?paso=2')->post('/estimador/calcular', ['service' => 'sitio-institucional', 'answers' => [$qid => 999999]])->assertSessionHasErrors('answers.'.$qid)->assertSessionMissing('pending_estimate');
+        $this->from('/estimador?paso=2')->post('/estimador/calcular', ['service' => 'sitio-institucional', 'answers' => [$qid => 999999]])->assertSessionHasErrors('answers.' . $qid)->assertSessionMissing('pending_estimate');
     }
 
     // Si el pedido se cierra mientras se edita, el borrador se conserva y el aviso vuelve al formulario.
@@ -361,10 +361,10 @@ class SynauxFlowTest extends TestCase
             ->assertSessionHasNoErrors();
         $draft = DB::table('budget_versions')->first();
         DB::table('project_requests')->where('id', $requestId)->update(['status' => 'closed']);
-        $this->from('/editor/presupuesto/'.$draft->id)->post('/acciones/presupuesto', [
+        $this->from('/editor/presupuesto/' . $draft->id)->post('/acciones/presupuesto', [
             ...$this->quoteData($requestId), 'budget_id' => $draft->budget_id,
             'title' => 'Cambios que todavía estoy editando', 'send' => true,
-        ])->assertRedirect('/editor/presupuesto/'.$draft->id)->assertSessionHasErrors('request_id')
+        ])->assertRedirect('/editor/presupuesto/' . $draft->id)->assertSessionHasErrors('request_id')
             ->assertSessionHasInput('title', 'Cambios que todavía estoy editando');
         $this->assertDatabaseHas('budget_versions', ['id' => $draft->id, 'title' => $draft->title, 'status' => 'draft']);
         $this->assertDatabaseCount('budget_versions', 1);
@@ -410,8 +410,8 @@ class SynauxFlowTest extends TestCase
         ])->assertRedirect();
         $this->assertDatabaseHas('budget_versions', ['id' => $version->id, 'status' => 'rejected']);
         $this->assertDatabaseCount('projects', 0);
-        $this->get('/presupuestos/'.$version->id)->assertInertia(fn (Assert $page) => $page->where('selected.status', 'rejected'));
-        $this->get('/presupuestos/'.$version->id.'/pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->get('/presupuestos/' . $version->id)->assertInertia(fn(Assert $page) => $page->where('selected.status', 'rejected'));
+        $this->get('/presupuestos/' . $version->id . '/pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->post('/acciones/decidir-presupuesto', [
             'id' => $version->id, 'decision' => 'accepted', 'confirmed' => true,
         ])->assertSessionHasErrors('decision');
@@ -426,7 +426,7 @@ class SynauxFlowTest extends TestCase
         $id = $this->projectRequest($client);
         $this->actingAs($issuer)->post('/acciones/presupuesto', [...$this->quoteData($id), 'send' => false])->assertSessionHasNoErrors();
         $v = DB::table('budget_versions')->first();
-        $this->actingAs($client)->get('/presupuestos/'.$v->id)->assertNotFound();
+        $this->actingAs($client)->get('/presupuestos/' . $v->id)->assertNotFound();
         DB::table('budget_versions')->where('id', $v->id)->update(['status' => 'sent', 'sent_at' => now(), 'valid_until' => today()->subDay()]);
         $this->post('/acciones/decidir-presupuesto', ['id' => $v->id, 'decision' => 'accepted', 'confirmed' => true])->assertSessionHasErrors('decision');
         $this->assertDatabaseCount('projects', 0);
@@ -443,14 +443,14 @@ class SynauxFlowTest extends TestCase
         $this->actingAs($client)->post('/acciones/invitacion', ['request_id' => $id, 'professional_id' => $profile])->assertRedirect();
         $invite = DB::table('project_request_invitations')->value('id');
         $this->actingAs($other)->post('/acciones/responder-invitacion', ['id' => $invite, 'status' => 'accepted'])->assertForbidden();
-        $this->actingAs($pro)->get('/oportunidades/'.$id)->assertNotFound();
+        $this->actingAs($pro)->get('/oportunidades/' . $id)->assertNotFound();
         $this->post('/acciones/responder-invitacion', ['id' => $invite, 'status' => 'accepted'])->assertRedirect();
-        $this->get('/oportunidades/'.$id)->assertInertia(fn (Assert $p) => $p->missing('selected.answers')->missing('selected.user_id'));
+        $this->get('/oportunidades/' . $id)->assertInertia(fn(Assert $p) => $p->missing('selected.answers')->missing('selected.user_id'));
         $this->post('/acciones/propuesta', ['request_id' => $id, 'message' => 'Puedo desarrollar la solución con una revisión inicial.', 'estimated_delivery_days' => 30, 'currency_code' => 'ARS'])->assertRedirect('/profesional/propuestas');
         $proposal = DB::table('proposals')->value('id');
         $this->post('/acciones/presupuesto', $this->quoteData($id))->assertForbidden();
         $this->actingAs($client)->post('/acciones/seleccionar-propuesta', ['id' => $proposal])->assertRedirect();
-        $this->actingAs($pro)->get('/editor/presupuesto?solicitud='.$id)->assertInertia(fn (Assert $p) => $p->has('budgetRequests', 1)->where('budgetRequests.0.id', $id));
+        $this->actingAs($pro)->get('/editor/presupuesto?solicitud=' . $id)->assertInertia(fn(Assert $p) => $p->has('budgetRequests', 1)->where('budgetRequests.0.id', $id));
         $this->post('/acciones/presupuesto', $this->quoteData($id))->assertRedirect()->assertSessionHasNoErrors();
         $this->assertDatabaseCount('budget_versions', 1);
     }
@@ -462,12 +462,12 @@ class SynauxFlowTest extends TestCase
         $manager = $this->account(true);
         $id = $this->projectRequest($client, 'public');
         DB::table('project_requests')->where('id', $id)->update(['contact_snapshot' => null]);
-        $this->actingAs($manager)->get('/editor/presupuesto?solicitud='.$id)->assertInertia(fn (Assert $page) => $page
+        $this->actingAs($manager)->get('/editor/presupuesto?solicitud=' . $id)->assertInertia(fn(Assert $page) => $page
             ->where('budgetRequests.0.contact.name', $client->name)
             ->where('budgetRequests.0.contact.email', $client->email));
-        $this->get('/oportunidades')->assertInertia(fn (Assert $page) => $page
+        $this->get('/oportunidades')->assertInertia(fn(Assert $page) => $page
             ->missing('opportunities.0.contact')->missing('opportunities.0.contact_email'));
-        $this->actingAs($this->account())->get('/solicitudes/'.$id)->assertNotFound();
+        $this->actingAs($this->account())->get('/solicitudes/' . $id)->assertNotFound();
     }
 
     public function test_public_wall_does_not_include_private_answers_or_owner_contacts(): void
@@ -475,7 +475,7 @@ class SynauxFlowTest extends TestCase
         $owner = $this->account();
         $this->projectRequest($owner);
         $id = $this->projectRequest($owner, 'public');
-        $this->get('/oportunidades')->assertInertia(fn (Assert $p) => $p->has('opportunities', 1)->where('opportunities.0.id', $id)->missing('opportunities.0.answers')->missing('opportunities.0.user_id')->missing('opportunities.0.email'));
+        $this->get('/oportunidades')->assertInertia(fn(Assert $p) => $p->has('opportunities', 1)->where('opportunities.0.id', $id)->missing('opportunities.0.answers')->missing('opportunities.0.user_id')->missing('opportunities.0.email'));
     }
 
     public function test_contact_is_persisted_and_visible_only_to_management(): void
@@ -483,7 +483,7 @@ class SynauxFlowTest extends TestCase
         $this->post('/contacto', ['name' => 'Persona de prueba', 'email' => 'contacto@example.test', 'topic' => 'Consulta general', 'message' => 'Quisiera conversar sobre un proyecto digital.'])->assertRedirect('/contacto?enviado=1');
         $this->assertDatabaseCount('contact_inquiries', 1);
         $this->actingAs($this->account())->get('/gestion/contactos')->assertForbidden();
-        $this->actingAs($this->account(true))->get('/gestion/contactos')->assertInertia(fn (Assert $p) => $p->has('inquiries', 1));
+        $this->actingAs($this->account(true))->get('/gestion/contactos')->assertInertia(fn(Assert $p) => $p->has('inquiries', 1));
     }
 
     // Recorre las referencias de diseño y los estados funcionales y prueba que sus datos no crean cuentas ni permisos de sesión.
@@ -493,7 +493,7 @@ class SynauxFlowTest extends TestCase
         $this->assertNotEmpty($screens);
         $this->assertCount(count($screens), array_unique(array_column($screens, 'key')));
         foreach ($screens as $screen) {
-            $this->get('/prototipo/'.$screen['key'])->assertOk()->assertInertia(fn (Assert $p) => $p->where('preview', true)->where('referenceKey', $screen['key'])->where('auth', null));
+            $this->get('/prototipo/' . $screen['key'])->assertOk()->assertInertia(fn(Assert $p) => $p->where('preview', true)->where('referenceKey', $screen['key'])->where('auth', null));
         }
         $this->assertGuest();
         $this->assertDatabaseCount('users', 0);
@@ -508,14 +508,14 @@ class SynauxFlowTest extends TestCase
         $this->actingAs($admin);
         $service = DB::table('services')->where('slug', 'sitio-institucional')->value('id');
         $components = DB::table('service_components')->where('service_id', $service)->get();
-        $prices = $components->map(fn ($c) => ['id' => $c->id, 'min' => 10, 'max' => 20])->all();
+        $prices = $components->map(fn($c) => ['id' => $c->id, 'min' => 10, 'max' => 20])->all();
         $tariff = ['name' => 'Tarifa de prueba', 'currency_code' => 'USD', 'active' => true, 'services' => [['id' => $service, 'min' => 100, 'max' => 200]], 'components' => $prices];
         $this->post('/admin/guardar/tarifario', [...$tariff, 'components' => []])->assertSessionHasErrors('active');
         $this->assertDatabaseCount('tariff_versions', 0);
         $this->post('/admin/guardar/tarifario', $tariff)->assertSessionHasNoErrors();
-        $answers = DB::table('estimator_questions')->where('service_id', $service)->get()->mapWithKeys(fn ($q) => [$q->id => (string) DB::table('estimator_options')->where('question_id', $q->id)->value('id')])->all();
+        $answers = DB::table('estimator_questions')->where('service_id', $service)->get()->mapWithKeys(fn($q) => [$q->id => (string)DB::table('estimator_options')->where('question_id', $q->id)->value('id')])->all();
         $this->actingAs($this->account());
-        $this->post('/estimador/calcular', ['service' => 'sitio-institucional', 'answers' => $answers])->assertSessionHas('pending_estimate', fn ($p) => $p['mode'] === 'automatic' && $p['min'] === 140 && $p['max'] === 280 && $p['currency'] === 'USD');
+        $this->post('/estimador/calcular', ['service' => 'sitio-institucional', 'answers' => $answers])->assertSessionHas('pending_estimate', fn($p) => $p['mode'] === 'automatic' && $p['min'] === 140 && $p['max'] === 280 && $p['currency'] === 'USD');
         $this->post('/acciones/guardar-estimacion', [])->assertRedirect();
         $this->actingAs($admin)->post('/admin/guardar/tarifario', [...$tariff, 'name' => 'Versión siguiente', 'currency_code' => 'ARS'])->assertSessionHasNoErrors();
         $this->assertDatabaseCount('tariff_versions', 2);
@@ -572,11 +572,11 @@ class SynauxFlowTest extends TestCase
         $next = [...$data, 'progress' => 80, 'notes' => 'Desarrollo terminado, falta revisión.', 'next_steps' => 'Revisar el sitio con el cliente.'];
         $this->post('/acciones/proyecto', $next)->assertSessionHasNoErrors();
         $this->assertDatabaseCount('project_updates', 2);
-        $this->actingAs($client)->get('/proyectos/'.$project)->assertInertia(fn (Assert $page) => $page
+        $this->actingAs($client)->get('/proyectos/' . $project)->assertInertia(fn(Assert $page) => $page
             ->where('selected.next_steps', $next['next_steps'])
             ->has('selected.updates', 2)->where('selected.updates.0.progress', 80)
             ->where('selected.updates.1.notes', $data['notes'])->missing('selected.updates.0.user_id'));
-        $this->actingAs($this->account())->get('/proyectos/'.$project)->assertNotFound();
+        $this->actingAs($this->account())->get('/proyectos/' . $project)->assertNotFound();
         $this->post('/acciones/proyecto', $next)->assertForbidden();
         $this->assertDatabaseCount('project_updates', 2);
         $this->actingAs($issuer)->post('/acciones/proyecto', [...$next, 'start_date' => null, 'end_date' => today()->toDateString()])

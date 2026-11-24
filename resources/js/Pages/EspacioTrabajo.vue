@@ -1,6 +1,6 @@
 <script setup>
-import { computed } from 'vue';
-import { Head, usePage } from '@inertiajs/vue3';
+import {computed} from 'vue';
+import {Head, usePage} from '@inertiajs/vue3';
 import PublicLayout from '../Layouts/PublicLayout.vue';
 import ServiceCatalog from '../Screens/Public/ServiceCatalog.vue';
 import ServiceDetail from '../Screens/Public/ServiceDetail.vue';
@@ -82,7 +82,7 @@ const clientScreens = {
     proyectos: RecordList,
 };
 const component = computed(() => {
-    const { screen, area, section, preview } = data.value;
+    const {screen, area, section, preview} = data.value;
     if (Object.hasOwn(publicScreens, screen)) return publicScreens[screen];
     if (Object.hasOwn(authScreens, screen)) return authScreens[screen];
     if (screen === 'estimador') return EstimatePreview;
@@ -106,4 +106,10 @@ const component = computed(() => {
     return null;
 });
 </script>
-<template><Head :title="data.selected?.title ?? 'synaux'" /><PublicLayout><component v-if="component" :is="component" :key="`${page.url}:${data.referenceKey ?? ''}`" :data="data" /><section v-else class="page shell" /></PublicLayout></template>
+<template>
+    <Head :title="data.selected?.title ?? 'synaux'"/>
+    <PublicLayout>
+        <component v-if="component" :is="component" :key="`${page.url}:${data.referenceKey ?? ''}`" :data="data"/>
+        <section v-else class="page shell"/>
+    </PublicLayout>
+</template>

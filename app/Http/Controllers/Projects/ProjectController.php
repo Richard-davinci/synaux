@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Projects;
 
 use App\Http\Controllers\Controller;
-use App\Services\Presupuestos\ConsultasPresupuestos;
 use App\Services\Notifications\NotificationCenter;
+use App\Services\Presupuestos\ConsultasPresupuestos;
 use App\Services\Projects\ProjectQueries;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +18,7 @@ class ProjectController extends Controller
     {
         $user = $request->user();
         $versionId = DB::table('projects')->where('id', $id)->value('accepted_budget_version_id') ?? abort(404);
-        $quotes = $budgetQueries->quotes($user->id, (bool) $user->is_admin, id: $versionId);
+        $quotes = $budgetQueries->quotes($user->id, (bool)$user->is_admin, id: $versionId);
         $selected = $projectQueries->projects($quotes, id: $id)[0] ?? abort(404);
         $notifications->readEntity($user, 'proyecto', $id);
 
@@ -42,11 +42,11 @@ class ProjectController extends Controller
         ]);
         DB::transaction(function () use ($request, $d, $budgetQueries, $notifications) {
             $project = DB::table('projects')->where('id', $d['id'])->lockForUpdate()->firstOrFail();
-            $version = $budgetQueries->quotes($request->user()->id, (bool) $request->user()->is_admin, id: $project->accepted_budget_version_id)[0] ?? null;
+            $version = $budgetQueries->quotes($request->user()->id, (bool)$request->user()->is_admin, id: $project->accepted_budget_version_id)[0] ?? null;
             abort_unless($version && ($request->user()->is_admin || $version['issuer_id'] === $request->user()->id), 403);
             // Estado y porcentaje deben comunicar el mismo avance.
-            if (($d['status'] === 'completed' && (int) $d['progress'] !== 100)
-                || ($d['status'] === 'pending' && (int) $d['progress'] !== 0)) {
+            if (($d['status'] === 'completed' && (int)$d['progress'] !== 100)
+                || ($d['status'] === 'pending' && (int)$d['progress'] !== 0)) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
                     'progress' => 'Usá 0% para pendiente y 100% para un proyecto completado.',
                 ]);
@@ -57,14 +57,14 @@ class ProjectController extends Controller
                 ...collect($d)->except('id')->all(),
             ];
             // Reenviar los mismos datos no duplica el historial.
-            $changed = collect($values)->contains(fn ($value, $key) => (string) $value !== (string) $project->$key);
+            $changed = collect($values)->contains(fn($value, $key) => (string)$value !== (string)$project->$key);
             if ($changed) {
                 DB::table('projects')->where('id', $project->id)->update([...$values, 'updated_at' => now()]);
                 $updateId = DB::table('project_updates')->insertGetId([
                     ...$values, 'project_id' => $project->id, 'user_id' => $request->user()->id, 'created_at' => now(),
                 ]);
                 // Un cambio real genera un aviso a las otras partes; reenviar los mismos datos no lo duplica.
-                $notifications->send('proyecto', $project->id, 'proyecto-actualizado:'.$updateId, 'Proyecto actualizado', $project->title,
+                $notifications->send('proyecto', $project->id, 'proyecto-actualizado:' . $updateId, 'Proyecto actualizado', $project->title,
                     $notifications->projectRecipients($project->id), management: true, actor: $request->user()->id);
             }
         });

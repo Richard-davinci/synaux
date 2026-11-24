@@ -25,12 +25,12 @@ class HomeTest extends TestCase
     {
         $this->get('/')
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
+            ->assertInertia(fn(Assert $page) => $page
                 ->component('Home')
                 ->where('appName', 'synaux')
                 ->where('homeUrl', '/')
                 ->where('platformUrl', '/plataforma')
-                ->where('year', (int) date('Y'))
+                ->where('year', (int)date('Y'))
                 ->missing('services')
             );
     }
@@ -40,7 +40,7 @@ class HomeTest extends TestCase
     {
         $this->get('/plataforma')
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
+            ->assertInertia(fn(Assert $page) => $page
                 ->component('Catalog')
                 ->where('homeUrl', '/')
                 ->where('platformUrl', '/plataforma')
@@ -84,15 +84,15 @@ class HomeTest extends TestCase
     {
         $slug = 'tienda-online';
 
-        $this->get('/servicios/'.$slug)
-            ->assertInertia(fn (Assert $page) => $page
+        $this->get('/servicios/' . $slug)
+            ->assertInertia(fn(Assert $page) => $page
                 ->component('EspacioTrabajo')
                 ->where('screen', 'servicio')
                 ->where('selected.id', $slug)
             );
 
-        $this->get('/estimador?servicio='.$slug)
-            ->assertInertia(fn (Assert $page) => $page
+        $this->get('/estimador?servicio=' . $slug)
+            ->assertInertia(fn(Assert $page) => $page
                 ->component('EspacioTrabajo')
                 ->where('screen', 'publicar')
                 ->where('selected.id', $slug)

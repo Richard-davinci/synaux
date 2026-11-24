@@ -1,42 +1,175 @@
 /* Espaciado del catálogo y ancho de sus textos introductorios. */
-.catalog-content { padding-block: 56px 72px; }
-.catalog-content h1 { max-width: 800px; font-size: clamp(2rem, 4vw, 3rem); }
-.catalog-intro { max-width: 620px; color: #446075; margin-top: 20px; font-size: 1.1rem; line-height: 1.8; }
+.catalog-content {
+    padding-block: 56px 72px;
+}
+
+.catalog-content h1 {
+    max-width: 800px;
+    font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.catalog-intro {
+    max-width: 620px;
+    color: #446075;
+    margin-top: 20px;
+    font-size: 1.1rem;
+    line-height: 1.8;
+}
+
 /* Filtros y buscador comparten una fila que puede envolver sus elementos si falta espacio. */
-.catalog-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 24px; margin-block: 38px 22px; }
-.catalog-filters { display: flex; flex-wrap: wrap; gap: 10px; }
-.catalog-filters .v-btn { font-size: .8rem; }
-.catalog-search { min-width: 220px; max-width: 320px; margin-left: auto; }
+.catalog-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin-block: 38px 22px;
+}
+
+.catalog-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.catalog-filters .v-btn {
+    font-size: .8rem;
+}
+
+.catalog-search {
+    min-width: 220px;
+    max-width: 320px;
+    margin-left: auto;
+}
+
 /* Contador y cuadrícula de resultados: tres servicios por fila en escritorio. */
-.catalog-count { margin-bottom: 20px; color: #446075; font-size: .85rem; }
-.catalog-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.catalog-count {
+    margin-bottom: 20px;
+    color: #446075;
+    font-size: .85rem;
+}
+
+.catalog-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+}
+
 /* Tarjetas del catálogo: categoría, título y resumen; la acción se alinea al final. */
-.catalog-card { display: flex; flex-direction: column; align-items: flex-start; padding: 28px; }
-.catalog-category { color: #1f6f7f; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
-.catalog-card h2 { margin-top: 18px; font-size: 1.5rem; }
-.catalog-summary { margin-block: 18px 24px; color: #446075; line-height: 1.8; }
-.catalog-card .v-btn { margin-top: auto; margin-left: -12px; }
-.catalog-card .v-btn span > span { margin-left: 16px; }
+.catalog-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 28px;
+}
+
+.catalog-category {
+    color: #1f6f7f;
+    font-size: .75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+.catalog-card h2 {
+    margin-top: 18px;
+    font-size: 1.5rem;
+}
+
+.catalog-summary {
+    margin-block: 18px 24px;
+    color: #446075;
+    line-height: 1.8;
+}
+
+.catalog-card .v-btn {
+    margin-top: auto;
+    margin-left: -12px;
+}
+
+.catalog-card .v-btn span > span {
+    margin-left: 16px;
+}
+
 /* Aclaración sobre el alcance de los servicios y su diferencia con un presupuesto formal. */
-.catalog-note { max-width: 780px; margin-top: 36px; color: #446075; font-size: .9rem; line-height: 1.8; }
+.catalog-note {
+    max-width: 780px;
+    margin-top: 36px;
+    color: #446075;
+    font-size: .9rem;
+    line-height: 1.8;
+}
+
 /* Estado sin resultados que acompaña la acción para limpiar los filtros. */
-.catalog-empty { padding: 40px 24px; border: 1px dashed #44607580; border-radius: 16px; }
-.catalog-empty h2 { font-size: 1.4rem; }
-.catalog-empty p { margin-block: 16px 24px; color: #446075; }
+.catalog-empty {
+    padding: 40px 24px;
+    border: 1px dashed #44607580;
+    border-radius: 16px;
+}
+
+.catalog-empty h2 {
+    font-size: 1.4rem;
+}
+
+.catalog-empty p {
+    margin-block: 16px 24px;
+    color: #446075;
+}
+
 /* Detalle del servicio dentro del diálogo: textos, entregables y aclaración de alcance. */
-.service-detail { padding: 32px; }
-.service-detail h2 { margin-block: 16px; font-size: 1.8rem; }
-.service-detail h3 { margin-block: 24px 16px; font-size: 1.1rem; }
-.service-detail p:not(.catalog-category) { color: #446075; line-height: 1.8; }
-.service-detail ul { padding-left: 22px; color: #446075; line-height: 1.9; }
-.service-detail-note { margin-block: 24px; font-size: .85rem; }
+.service-detail {
+    padding: 32px;
+}
+
+.service-detail h2 {
+    margin-block: 16px;
+    font-size: 1.8rem;
+}
+
+.service-detail h3 {
+    margin-block: 24px 16px;
+    font-size: 1.1rem;
+}
+
+.service-detail p:not(.catalog-category) {
+    color: #446075;
+    line-height: 1.8;
+}
+
+.service-detail ul {
+    padding-left: 22px;
+    color: #446075;
+    line-height: 1.9;
+}
+
+.service-detail-note {
+    margin-block: 24px;
+    font-size: .85rem;
+}
 
 /* En pantallas intermedias la cuadrícula muestra dos tarjetas por fila. */
-@media (max-width: 959px) { .catalog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 959px) {
+    .catalog-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 /* En celular se usa una columna y el buscador ocupa el ancho disponible. */
 @media (max-width: 599px) {
-    .catalog-content { padding-block: 36px 48px; }
-    .catalog-grid { grid-template-columns: 1fr; }
-    .catalog-search { max-width: none; margin: 0; flex-basis: 100%; }
-    .catalog-card, .service-detail { padding: 24px; }
+    .catalog-content {
+        padding-block: 36px 48px;
+    }
+
+    .catalog-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .catalog-search {
+        max-width: none;
+        margin: 0;
+        flex-basis: 100%;
+    }
+
+    .catalog-card, .service-detail {
+        padding: 24px;
+    }
 }

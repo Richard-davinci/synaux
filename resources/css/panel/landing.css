@@ -1,43 +1,175 @@
 @scope (.synaux-app) {
     /* Landing: se conserva la composición de Figma y se reemplaza únicamente la marca aprobada. */
-    .brand-hero { display: grid; grid-template-columns: 1fr 1fr; gap: 70px; align-items: center; min-height: 760px; padding-block: 90px; }
-    .brand-hero h1 { font-size: clamp(3.8rem,6vw,6.5rem); margin-bottom: 28px; }
-    .brand-hero h1 em { font-style: normal; color: #1f6f7f; }
-    .brand-hero > div > p { max-width: 560px; font-size: 1.1rem; }
-    .brand-hero small { display: block; margin-top: 32px; }
-    .brand-hero figure { display: grid; justify-items: center; margin: 0; }
-    .brand-hero .brand-logo { width: min(360px,100%); height: auto; }
-    .brand-hero figcaption { color: #1f6f7f; text-align: right; margin-top: 22px; width: min(360px,100%); }
-    .brand-disciplines { text-align: center; padding: 24px; font-size: .75rem; letter-spacing: .18em; color: #1f6f7f; background: #f5f9fa; }
-    .brand-disciplines i { padding-inline: 24px; }
-    .brand-section { padding-block: 110px; }
-    .brand-section h2, .brand-invitation h2 { font-size: clamp(2.3rem,4vw,4rem); }
-    .brand-intro { max-width: 690px; }
-    .brand-columns { display: grid; grid-template-columns: repeat(3,1fr); gap: 36px; margin: 65px 0 0; padding: 0; list-style: none; }
-    .brand-columns article { padding-top: 30px; border-top: 1px solid var(--line); }
-    .brand-columns article small { color: #2db3a3; display: block; margin-bottom: 55px; }
-    .brand-process { background: #f5f9fa; }
-    .brand-process .brand-columns { margin-bottom: 34px; }
-    .brand-columns li > span { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid #2db3a3; border-radius: 50%; margin-bottom: 30px; }
-    .brand-invitation { text-align: center; padding-block: 140px; }
-    .brand-invitation .btn { margin-top: 28px; }
+    .brand-hero {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 70px;
+        align-items: center;
+        min-height: 760px;
+        padding-block: 90px;
+    }
+    .brand-hero h1 {
+        font-size: clamp(3.8rem, 6vw, 6.5rem);
+        margin-bottom: 28px;
+    }
+    .brand-hero h1 em {
+        font-style: normal;
+        color: #1f6f7f;
+    }
+    .brand-hero > div > p {
+        max-width: 560px;
+        font-size: 1.1rem;
+    }
+    .brand-hero small {
+        display: block;
+        margin-top: 32px;
+    }
+    .brand-hero figure {
+        display: grid;
+        justify-items: center;
+        margin: 0;
+    }
+    .brand-hero .brand-logo {
+        width: min(360px, 100%);
+        height: auto;
+    }
+    .brand-hero figcaption {
+        color: #1f6f7f;
+        text-align: right;
+        margin-top: 22px;
+        width: min(360px, 100%);
+    }
+    .brand-disciplines {
+        text-align: center;
+        padding: 24px;
+        font-size: .75rem;
+        letter-spacing: .18em;
+        color: #1f6f7f;
+        background: #f5f9fa;
+    }
+    .brand-disciplines i {
+        padding-inline: 24px;
+    }
+    .brand-section {
+        padding-block: 110px;
+    }
+    .brand-section h2, .brand-invitation h2 {
+        font-size: clamp(2.3rem, 4vw, 4rem);
+    }
+    .brand-intro {
+        max-width: 690px;
+    }
+    .brand-columns {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 36px;
+        margin: 65px 0 0;
+        padding: 0;
+        list-style: none;
+    }
+    .brand-columns article {
+        padding-top: 30px;
+        border-top: 1px solid var(--line);
+    }
+    .brand-columns article small {
+        color: #2db3a3;
+        display: block;
+        margin-bottom: 55px;
+    }
+    .brand-process {
+        background: #f5f9fa;
+    }
+    .brand-process .brand-columns {
+        margin-bottom: 34px;
+    }
+    .brand-columns li > span {
+        display: grid;
+        place-items: center;
+        width: 38px;
+        height: 38px;
+        border: 1px solid #2db3a3;
+        border-radius: 50%;
+        margin-bottom: 30px;
+    }
+    .brand-invitation {
+        text-align: center;
+        padding-block: 140px;
+    }
+    .brand-invitation .btn {
+        margin-top: 28px;
+    }
 
     /* Firma con transparencia: el eslogan conserva su alineación dentro del SVG aprobado. */
-    footer { padding-block: 44px; background: white; border-top: 1px solid var(--line); margin-top: auto; color: #153b64; }
-    .footer-grid { display: grid; grid-template-columns: 200px 1fr auto; align-items: center; gap: 40px; }
-    .footer-grid .brand-logo { width: 200px; height: auto; }
-    .footer-grid p { font-size: .8rem; margin: 6px 0 0; }
-    .footer-grid nav { display: grid; gap: 10px; font-size: .9rem; }
-    .footer-nav-links { display: flex; flex-wrap: wrap; gap: 12px 18px; }
-    .footer-nav-title { font-size: .75rem; font-weight: 700; color: #446075; letter-spacing: .06em; text-transform: uppercase; }
+    footer {
+        padding-block: 44px;
+        background: white;
+        border-top: 1px solid var(--line);
+        margin-top: auto;
+        color: #153b64;
+    }
+    .footer-grid {
+        display: grid;
+        grid-template-columns: 200px 1fr auto;
+        align-items: center;
+        gap: 40px;
+    }
+    .footer-grid .brand-logo {
+        width: 200px;
+        height: auto;
+    }
+    .footer-grid p {
+        font-size: .8rem;
+        margin: 6px 0 0;
+    }
+    .footer-grid nav {
+        display: grid;
+        gap: 10px;
+        font-size: .9rem;
+    }
+    .footer-nav-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 18px;
+    }
+    .footer-nav-title {
+        font-size: .75rem;
+        font-weight: 700;
+        color: #446075;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+    }
 
     /* El pie usa la misma cuadrícula de la landing y la jerarquía tipográfica de la marca. */
 
-    .site-footer strong { font-family: 'Space Grotesk', sans-serif; font-size: 1rem; font-weight: 600; line-height: 1.5; text-wrap: balance; }
-    .site-footer p, .site-footer nav { font-family: 'Nunito', sans-serif; font-size: .875rem; font-weight: 500; }
+    .site-footer strong {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1rem;
+        font-weight: 600;
+        line-height: 1.5;
+        text-wrap: balance;
+    }
+    .site-footer p, .site-footer nav {
+        font-family: 'Nunito', sans-serif;
+        font-size: .875rem;
+        font-weight: 500;
+    }
     /* La frase y el copyright comparten línea cuando el ancho disponible lo permite. */
-    .site-footer .footer-grid > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
-    .site-footer p { margin: 0; color: #446075; white-space: nowrap; }
-    .site-footer nav a { color: #153b64; }
-    .site-footer nav a:hover, .site-footer nav a:focus-visible { color: #1f6f7f; text-decoration: underline; }
+    .site-footer .footer-grid > div {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 4px 12px;
+    }
+    .site-footer p {
+        margin: 0;
+        color: #446075;
+        white-space: nowrap;
+    }
+    .site-footer nav a {
+        color: #153b64;
+    }
+    .site-footer nav a:hover, .site-footer nav a:focus-visible {
+        color: #1f6f7f;
+        text-decoration: underline;
+    }
 }

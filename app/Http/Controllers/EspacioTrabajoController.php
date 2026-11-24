@@ -3,12 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Services\Admin\CatalogConfiguration;
-use App\Services\Presupuestos\ConsultasPresupuestos;
 use App\Services\Catalog\ServiceCatalog;
 use App\Services\Estimates\EstimateStore;
 use App\Services\Marketplace\MarketplaceQueries;
 use App\Services\Notifications\NotificationCenter;
 use App\Services\Portfolio\PortfolioQueries;
+use App\Services\Presupuestos\ConsultasPresupuestos;
 use App\Services\Projects\ProjectQueries;
 use App\Services\Solicitudes\ConsultasSolicitudes;
 use Illuminate\Http\Request;
@@ -18,22 +18,24 @@ use Inertia\Inertia;
 class EspacioTrabajoController extends Controller
 {
     public function __construct(
-        private ServiceCatalog $catalog,
+        private ServiceCatalog        $catalog,
         private ConsultasPresupuestos $budgetQueries,
-        private EstimateStore $estimates,
-        private MarketplaceQueries $marketplaceQueries,
-        private PortfolioQueries $portfolioQueries,
-        private ProjectQueries $projectQueries,
-        private ConsultasSolicitudes $requestQueries,
-        private CatalogConfiguration $configuration,
-        private NotificationCenter $notifications,
-    ) {}
+        private EstimateStore         $estimates,
+        private MarketplaceQueries    $marketplaceQueries,
+        private PortfolioQueries      $portfolioQueries,
+        private ProjectQueries        $projectQueries,
+        private ConsultasSolicitudes  $requestQueries,
+        private CatalogConfiguration  $configuration,
+        private NotificationCenter    $notifications,
+    )
+    {
+    }
 
     // Resuelve el área y su sección; Gestión y Administración exigen el permiso administrativo real.
     public function show(Request $request, string $area, string $section = '')
     {
         $admin = in_array($area, ['gestion', 'admin'], true);
-        abort_if($admin && ! $request->user()->is_admin, 403);
+        abort_if($admin && !$request->user()->is_admin, 403);
         $allowed = [
             'cliente' => ['', 'estimaciones', 'solicitudes', 'presupuestos', 'proyectos', 'publicaciones', 'propuestas', 'invitaciones'],
             'profesional' => ['', 'perfil', 'propuestas', 'invitaciones', 'presupuestos', 'proyectos', 'portfolio'],
@@ -44,13 +46,13 @@ class EspacioTrabajoController extends Controller
         abort_unless(isset($allowed[$area]) && in_array($section, $allowed[$area], true), 404);
         // Las vistas de cliente de la etapa 2 siguen disponibles desde su entrada de revisión.
         if ($area === 'cliente' && $request->user()->is_admin
-            && ! in_array($section, ['publicaciones', 'propuestas', 'invitaciones'], true)) {
+            && !in_array($section, ['publicaciones', 'propuestas', 'invitaciones'], true)) {
             return redirect('/gestion');
         }
         // Los accesos anteriores llevan a la configuración del servicio, sin duplicar administraciones.
         if ($area === 'admin' && in_array($section, ['preguntas', 'componentes', 'reglas'], true)) {
-            $serviceId = DB::table('services')->when($request->integer('servicio'), fn ($q) => $q->where('id', $request->integer('servicio')))->orderBy('id')->value('id');
-            return redirect($serviceId ? "/admin/servicios/$serviceId/editar?config=".($section === 'preguntas' ? 'preguntas' : 'estimacion') : '/admin/servicios');
+            $serviceId = DB::table('services')->when($request->integer('servicio'), fn($q) => $q->where('id', $request->integer('servicio')))->orderBy('id')->value('id');
+            return redirect($serviceId ? "/admin/servicios/$serviceId/editar?config=" . ($section === 'preguntas' ? 'preguntas' : 'estimacion') : '/admin/servicios');
         }
         $data = $area === 'admin'
             ? ['administration' => $this->configuration->data()]
@@ -60,7 +62,7 @@ class EspacioTrabajoController extends Controller
         $data['section'] = $section;
         if ($area === 'profesional' && in_array($section, ['presupuestos', 'proyectos'], true)) {
             // Distingue los presupuestos emitidos del historial de esta misma persona como cliente.
-            $data['quotes'] = array_values(array_filter($data['quotes'], fn ($q) => $q['issuer_id'] === $request->user()->id));
+            $data['quotes'] = array_values(array_filter($data['quotes'], fn($q) => $q['issuer_id'] === $request->user()->id));
             $data['projects'] = $this->projectQueries->projects($data['quotes']);
         }
         // El resumen necesita el total de consultas, sin cargar el contenido de sus mensajes.

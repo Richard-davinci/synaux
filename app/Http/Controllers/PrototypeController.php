@@ -16,27 +16,27 @@ class PrototypeController extends Controller
         abort_unless(app()->environment('local', 'testing'), 404);
         $screens = json_decode(File::get(resource_path('reference/screens.json')), true);
         // La galería también oculta los estados del marketplace para visitantes de la primera etapa.
-        if (! config('synaux.stage_two_enabled') && ! request()->user()?->is_admin) {
-            $screens = array_values(array_filter($screens, fn ($item) => ! str_starts_with($item['name'], '3.')));
+        if (!config('synaux.stage_two_enabled') && !request()->user()?->is_admin) {
+            $screens = array_values(array_filter($screens, fn($item) => !str_starts_with($item['name'], '3.')));
         }
         abort_unless(collect($screens)->contains('key', $screen), 404);
         $catalog = app(ServiceCatalog::class);
         $services = $catalog->services();
         $web = collect($services)->firstWhere('id', 'sitio-institucional');
         $questions = $catalog->questions($web['database_id']);
-        $answers = array_map(fn ($q) => ['id' => $q['id'], 'question' => $q['question'], 'value' => (string) ($q['options'][0]->id ?? ''), 'label' => $q['options'][0]->label ?? 'Proyecto de referencia'], $questions);
+        $answers = array_map(fn($q) => ['id' => $q['id'], 'question' => $q['question'], 'value' => (string)($q['options'][0]->id ?? ''), 'label' => $q['options'][0]->label ?? 'Proyecto de referencia'], $questions);
         $professionals = [
             ['id' => 21, 'name' => 'Lucía Ferrer', 'headline' => 'Diseño UX/UI y sistemas de diseño', 'bio' => 'Diseño productos digitales claros y escalables para equipos que necesitan ordenar experiencias complejas.', 'skills' => ['UX research', 'Figma', 'Sistemas de diseño', 'Prototipado'], 'location' => 'Córdoba, Argentina'],
             ['id' => 34, 'name' => 'Nicolás Acosta', 'headline' => 'Desarrollo web frontend', 'bio' => 'Desarrollo interfaces accesibles y veloces con foco en arquitecturas mantenibles.', 'skills' => ['React', 'TypeScript', 'Accesibilidad', 'APIs'], 'location' => 'Rosario, Argentina'],
             ['id' => 47, 'name' => 'Paula Méndez', 'headline' => 'Estrategia de contenidos y marketing', 'bio' => 'Conecto estrategia, contenidos y medición para lanzamientos de servicios digitales.', 'skills' => ['Estrategia', 'SEO', 'Analítica', 'Campañas'], 'location' => 'Buenos Aires, Argentina'],
         ];
-        $professionals = array_map(fn ($p) => [...$p, 'brand_name' => $p['name'], 'active' => true, 'availability_status' => 'available'], $professionals);
+        $professionals = array_map(fn($p) => [...$p, 'brand_name' => $p['name'], 'active' => true, 'availability_status' => 'available'], $professionals);
         $opportunities = [];
         foreach ([
-            [318, 'Rediseño de plataforma para asociados', 'Buscamos simplificar la consulta de beneficios y trámites para más de 4.000 asociados.', 'Producto digital', ['UX research', 'Figma', 'React', 'Accesibilidad'], '$3.200.000 – $4.500.000 ARS', '8 a 10 semanas', 3],
-            [322, 'Identidad y sitio para plataforma educativa', 'Necesitamos definir una identidad cercana y aplicarla a un sitio de lanzamiento responsive.', 'Marca y web', ['Identidad visual', 'Diseño web', 'Figma'], '$2.000.000 – $2.800.000 ARS', '6 semanas', 1],
-            [305, 'Campaña digital para nueva línea', 'Estrategia y piezas para presentar una línea de vinos jóvenes en canales digitales.', 'Marketing', ['Estrategia', 'Campañas', 'Analítica'], '', 'Inicio en agosto', 2],
-        ] as [$id, $title, $description, $category, $skills, $budget, $deadline, $count]) {
+                     [318, 'Rediseño de plataforma para asociados', 'Buscamos simplificar la consulta de beneficios y trámites para más de 4.000 asociados.', 'Producto digital', ['UX research', 'Figma', 'React', 'Accesibilidad'], '$3.200.000 – $4.500.000 ARS', '8 a 10 semanas', 3],
+                     [322, 'Identidad y sitio para plataforma educativa', 'Necesitamos definir una identidad cercana y aplicarla a un sitio de lanzamiento responsive.', 'Marca y web', ['Identidad visual', 'Diseño web', 'Figma'], '$2.000.000 – $2.800.000 ARS', '6 semanas', 1],
+                     [305, 'Campaña digital para nueva línea', 'Estrategia y piezas para presentar una línea de vinos jóvenes en canales digitales.', 'Marketing', ['Estrategia', 'Campañas', 'Analítica'], '', 'Inicio en agosto', 2],
+                 ] as [$id, $title, $description, $category, $skills, $budget, $deadline, $count]) {
             $opportunities[] = ['id' => $id, 'title' => $title, 'description' => $description, 'category' => $category, 'skills' => $skills, 'budget_reference' => $budget, 'desired_deadline' => $deadline, 'proposal_count' => $count, 'visibility' => 'public', 'status' => 'open', 'published_at' => '2025-06-18', 'created_at' => '2025-06-18', 'user_id' => 1, 'service_id' => $web['database_id'], 'service_name' => $web['name'], 'service_slug' => $web['id'], 'answers' => [], 'reviewed_at' => null];
         }
         $request = [...$opportunities[0], 'id' => 1042, 'title' => 'Renovación web para Estudio Norte', 'description' => 'Necesitamos ordenar la propuesta del estudio y captar consultas calificadas.', 'visibility' => 'private', 'answers' => $answers, 'reviewed_at' => '2025-06-18', 'estimate_id' => 64];
@@ -55,38 +55,40 @@ class PrototypeController extends Controller
         $project = ['id' => 78, 'title' => 'Sitio institucional Andina', 'status' => 'in_progress', 'progress' => 60, 'accepted_budget_version_id' => 2082, 'created_at' => '2025-06-12', 'start_date' => '2025-06-12', 'end_date' => null, 'notes' => 'Diseño aprobado. Estamos avanzando en desarrollo y carga de contenidos. Próximo paso: revisión del sitio.'];
         $works = [];
         foreach ([['Sitio institucional Andina', 'Desarrollo web', 'andina.png'], ['Campaña Aurora', 'Marketing', 'aurora.png'], ['Sistema visual Horizonte', 'Diseño', 'horizonte.png']] as $i => [$title, $category, $cover]) {
-            $works[] = ['id' => $i + 1, 'title' => $title, 'category' => $category, 'description' => 'Estrategia, diseño y tecnología para una experiencia digital clara.', 'challenge' => 'Ordenar la información y construir una presencia digital consistente.', 'result' => 'Una propuesta visual y funcional alineada con los objetivos del proyecto.', 'year' => 2025, 'cover_path' => '/images/prototype/'.$cover, 'images' => [], 'is_public' => true, 'service_id' => $web['database_id'], 'professional_profile_id' => 21, 'live_url' => null];
+            $works[] = ['id' => $i + 1, 'title' => $title, 'category' => $category, 'description' => 'Estrategia, diseño y tecnología para una experiencia digital clara.', 'challenge' => 'Ordenar la información y construir una presencia digital consistente.', 'result' => 'Una propuesta visual y funcional alineada con los objetivos del proyecto.', 'year' => 2025, 'cover_path' => '/images/prototype/' . $cover, 'images' => [], 'is_public' => true, 'service_id' => $web['database_id'], 'professional_profile_id' => 21, 'live_url' => null];
         }
         $proposals = [];
         foreach ($professionals as $i => $p) {
             $proposals[] = ['id' => 81 + $i, 'project_request_id' => 318, 'professional_profile_id' => $p['id'], 'professional_user_id' => 2 + $i, 'owner_id' => 1, 'name' => $p['name'], 'headline' => $p['headline'], 'skills' => $p['skills'], 'title' => $opportunities[0]['title'], 'message' => ['Comenzaría con entrevistas y un mapa de tareas para priorizar la experiencia de asociados.', 'Propongo una implementación incremental, con accesibilidad validada en cada entrega.', 'Estrategia de lanzamiento en tres momentos con tablero de indicadores.'][$i], 'estimated_delivery_days' => [56, 63, 42][$i], 'amount' => [3650000, 3980000, 1850000][$i], 'currency_code' => 'ARS', 'status' => 'submitted', 'created_at' => '2025-06-18'];
         }
-        $invitations = array_map(fn ($p) => ['id' => $p['id'], 'name' => $p['name'], 'project_request_id' => 318, 'professional_profile_id' => $p['id'], 'professional_user_id' => $p['professional_user_id'], 'owner_id' => 1, 'title' => $p['title'], 'status' => 'pending', 'request_status' => 'open', 'created_at' => '2025-06-18'], $proposals);
+        $invitations = array_map(fn($p) => ['id' => $p['id'], 'name' => $p['name'], 'project_request_id' => 318, 'professional_profile_id' => $p['id'], 'professional_user_id' => $p['professional_user_id'], 'owner_id' => 1, 'title' => $p['title'], 'status' => 'pending', 'request_status' => 'open', 'created_at' => '2025-06-18'], $proposals);
         $estimate = ['id' => 64, 'service_id' => $web['database_id'], 'status' => 'calculated', 'summary' => $web['name'], 'price_min' => 1900000, 'price_max' => 2600000, 'currency_snapshot' => 'ARS', 'created_at' => '2025-06-18', 'answers' => $answers, 'items' => []];
         // Este resultado ilustra el archivo de diseño: no se incorpora al tarifario operativo.
         $data = ['preview' => true, 'referenceKey' => $screen, 'referenceScreens' => $screens, 'area' => 'public', 'screen' => $screen, 'section' => '', 'services' => $services, 'questions' => $questions, 'works' => $works, 'professionals' => $professionals, 'profile' => $professionals[0], 'opportunities' => $opportunities, 'requests' => [$request, $draft, ...$opportunities], 'quotes' => [$quote, $previous, $expired], 'projects' => [$project], 'estimates' => [$estimate], 'proposals' => $proposals, 'invitations' => $invitations, 'selected' => null, 'pending' => ['key' => 'reference-only', 'mode' => 'automatic', 'service' => $web, 'min' => 1900000, 'max' => 2600000, 'currency' => 'ARS', 'date' => '2025-06-18', 'answers' => $answers, 'items' => []]];
         $data['referenceRoutes'] = ['/' => 'inicio', '/plataforma' => 'servicios', '/portfolio' => 'portfolio', '/nosotros' => 'perfil', '/contacto' => 'contacto', '/ingresar' => 'ingreso', '/crear-cuenta' => 'registro', '/recuperar-acceso' => 'recuperar', '/estimador' => 'estimador-1', '/cliente' => 'cliente', '/solicitudes/nueva' => 'publicar', '/oportunidades' => 'muro', '/profesionales' => 'profesionales', '/profesional' => 'profesional', '/gestion' => 'gestion', '/editor/presupuesto' => 'editor-presupuesto', '/editor/trabajo' => 'editor-trabajo'];
         foreach (['estimaciones', 'solicitudes', 'presupuestos', 'proyectos', 'publicaciones', 'propuestas', 'invitaciones'] as $section) {
-            $data['referenceRoutes']['/cliente/'.$section] = ['publicaciones' => 'mis-publicaciones', 'propuestas' => 'propuestas-recibidas', 'invitaciones' => 'invitaciones-enviadas'][$section] ?? $section;
+            $data['referenceRoutes']['/cliente/' . $section] = ['publicaciones' => 'mis-publicaciones', 'propuestas' => 'propuestas-recibidas', 'invitaciones' => 'invitaciones-enviadas'][$section] ?? $section;
         }
         foreach (['solicitudes', 'presupuestos', 'proyectos', 'portfolio', 'contactos'] as $section) {
-            $data['referenceRoutes']['/gestion/'.$section] = 'g-'.$section;
+            $data['referenceRoutes']['/gestion/' . $section] = 'g-' . $section;
         }
         foreach (['propuestas', 'invitaciones', 'perfil', 'presupuestos', 'proyectos'] as $section) {
-            $data['referenceRoutes']['/profesional/'.$section] = ['propuestas' => 'mis-propuestas', 'invitaciones' => 'invitaciones-recibidas', 'perfil' => 'mi-perfil'][$section] ?? 'profesional-'.$section;
+            $data['referenceRoutes']['/profesional/' . $section] = ['propuestas' => 'mis-propuestas', 'invitaciones' => 'invitaciones-recibidas', 'perfil' => 'mi-perfil'][$section] ?? 'profesional-' . $section;
         }
         foreach (['servicios', 'preguntas', 'componentes', 'reglas', 'tarifario'] as $section) {
-            $data['referenceRoutes']['/admin/'.$section] = 'admin-'.$section;
+            $data['referenceRoutes']['/admin/' . $section] = 'admin-' . $section;
         }
         // Los estados se resuelven explícitamente; ningún parámetro permite seleccionar un usuario real.
         if (str_starts_with($screen, 'servicio-')) {
             $data['screen'] = 'servicio';
             $data['selected'] = $services[match ($screen) {
-                'servicio-identidad' => 1, 'servicio-marketing' => 2, default => 0
+                'servicio-identidad' => 1,
+                'servicio-marketing' => 2,
+                default => 0
             }];
         } elseif (str_starts_with($screen, 'estimador-')) {
             $data['screen'] = 'estimador';
-            $data['step'] = (int) substr($screen, -1);
+            $data['step'] = (int)substr($screen, -1);
             $data['selected'] = $web;
         } elseif (in_array($screen, ['estimaciones', 'solicitudes', 'presupuestos', 'proyectos', 'mis-publicaciones', 'propuestas-recibidas', 'invitaciones-enviadas', 'comparar-propuestas'], true)) {
             $data['screen'] = 'cliente';
@@ -150,10 +152,18 @@ class PrototypeController extends Controller
         } else {
             $data['screen'] = ['contacto-enviado' => 'contacto', 'ingreso-error' => 'ingreso', 'catalogo-vacio' => 'servicios'][$screen] ?? $screen;
             $data['selected'] = match ($screen) {
-                'trabajo', 'editor-trabajo' => $works[0], 'oportunidad' => $opportunities[0], 'perfil-profesional' => $professionals[0], 'proyecto' => $project, 'editor-presupuesto' => $quote, default => null
+                'trabajo', 'editor-trabajo' => $works[0],
+                'oportunidad' => $opportunities[0],
+                'perfil-profesional' => $professionals[0],
+                'proyecto' => $project,
+                'editor-presupuesto' => $quote,
+                default => null
             };
             $data['area'] = match ($screen) {
-                'cliente', 'proyecto', 'publicar' => 'cliente', 'profesional', 'muro', 'oportunidad' => 'profesional', 'gestion', 'editor-presupuesto', 'editor-trabajo' => 'gestion', default => 'public'
+                'cliente', 'proyecto', 'publicar' => 'cliente',
+                'profesional', 'muro', 'oportunidad' => 'profesional',
+                'gestion', 'editor-presupuesto', 'editor-trabajo' => 'gestion',
+                default => 'public'
             };
         }
 

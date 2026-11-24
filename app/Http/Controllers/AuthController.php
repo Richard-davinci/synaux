@@ -20,7 +20,7 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         // La validación de unicidad usa el mismo correo normalizado que se guarda en la cuenta.
-        $request->merge(['email' => Str::lower((string) $request->input('email'))]);
+        $request->merge(['email' => Str::lower((string)$request->input('email'))]);
         $data = $request->validate(['name' => 'required|string|max:255', 'email' => 'required|email|max:254|unique:users,email',
             'password' => ['required', 'confirmed', PasswordRule::min(8)]]);
         $user = User::create(['name' => $data['name'], 'email' => Str::lower($data['email']), 'password' => Hash::make($data['password'])]);
@@ -38,13 +38,13 @@ class AuthController extends Controller
     // Valida las credenciales, limita intentos fallidos y regenera la sesión después del acceso.
     public function login(Request $request)
     {
-        $request->merge(['email' => Str::lower((string) $request->input('email'))]);
+        $request->merge(['email' => Str::lower((string)$request->input('email'))]);
         $data = $request->validate(['email' => 'required|email', 'password' => 'required|string']);
-        $key = Str::lower($data['email']).'|'.$request->ip();
+        $key = Str::lower($data['email']) . '|' . $request->ip();
         if (RateLimiter::tooManyAttempts($key, 5)) {
             throw ValidationException::withMessages(['email' => 'Esperá un minuto antes de volver a intentar.']);
         }
-        if (! Auth::attempt($data, $request->boolean('remember'))) {
+        if (!Auth::attempt($data, $request->boolean('remember'))) {
             RateLimiter::hit($key, 60);
             throw ValidationException::withMessages(['email' => 'El correo o la contraseña no son correctos.']);
         }
@@ -53,7 +53,7 @@ class AuthController extends Controller
 
         // El borrador previo al ingreso solo se puede retomar con una cuenta de cliente.
         $admin = $request->user()->is_admin;
-        if (! $admin && app(\App\Services\Solicitudes\RecorridoSolicitud::class)->pending($request)) {
+        if (!$admin && app(\App\Services\Solicitudes\RecorridoSolicitud::class)->pending($request)) {
             $request->session()->forget('url.intended');
             return redirect('/solicitudes/nueva?continuar=1');
         }

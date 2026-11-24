@@ -39,10 +39,10 @@ class LandingTariffTest extends TestCase
         $this->seed(SynauxLandingTariffSeeder::class);
         $this->assertDatabaseCount('tariff_versions', 2);
         $this->assertCount(1, $catalog->questions($service['database_id']));
-        $this->get('/plataforma')->assertInertia(fn (Assert $page) => $page->has('references.landing-page.segments', 3));
-        $this->get('/estimador?servicio=landing-page&cliente=PyME')->assertInertia(fn (Assert $page) => $page
+        $this->get('/plataforma')->assertInertia(fn(Assert $page) => $page->has('references.landing-page.segments', 3));
+        $this->get('/estimador?servicio=landing-page&cliente=PyME')->assertInertia(fn(Assert $page) => $page
             ->where('requestServiceId', $service['database_id'])
-            ->where('requestInitialAnswers.'.$questions[0]['id'], $questions[0]['options'][1]->id));
+            ->where('requestInitialAnswers.' . $questions[0]['id'], $questions[0]['options'][1]->id));
 
         // El recorrido público calcula el precio del segmento en el servidor antes de pedir el ingreso.
         $this->post('/solicitudes/preparar', [

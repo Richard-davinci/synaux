@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
+import {computed, onBeforeUnmount, onMounted, ref} from 'vue';
 import patternSource from '../../../images/brand/synaux-trama.svg?raw';
 
 // Los trazos originales conservan su color y escala; solo se muestran piezas que caben completas.
@@ -17,10 +17,19 @@ onMounted(() => {
         const coordinates = d.match(/-?\d*\.?\d+(?:[eE][-+]?\d+)?/g).map(Number);
         const x = coordinates.filter((_, index) => index % 2 === 0);
         const y = coordinates.filter((_, index) => index % 2 === 1);
-        return { d, fill: path.getAttribute('fill'), left: Math.min(...x), top: Math.min(...y), right: Math.max(...x), bottom: Math.max(...y) };
+        return {
+            d,
+            fill: path.getAttribute('fill'),
+            left: Math.min(...x),
+            top: Math.min(...y),
+            right: Math.max(...x),
+            bottom: Math.max(...y)
+        };
     }).filter(piece => piece.left >= 0 && piece.top >= 0 && piece.right <= 510 && piece.bottom <= 90);
     width.value = surface.value.getBoundingClientRect().width;
-    observer = new ResizeObserver(([entry]) => { width.value = entry.contentRect.width; });
+    observer = new ResizeObserver(([entry]) => {
+        width.value = entry.contentRect.width;
+    });
     observer.observe(surface.value);
 });
 onBeforeUnmount(() => observer?.disconnect());
@@ -29,7 +38,7 @@ onBeforeUnmount(() => observer?.disconnect());
 <template>
     <svg ref="surface" width="100%" height="180" aria-hidden="true" focusable="false">
         <g :transform="`scale(${scale})`" opacity="0.8">
-            <path v-for="piece in visiblePieces" :key="piece.d" :d="piece.d" :fill="piece.fill" />
+            <path v-for="piece in visiblePieces" :key="piece.d" :d="piece.d" :fill="piece.fill"/>
         </g>
     </svg>
 </template>

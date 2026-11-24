@@ -16,7 +16,7 @@ class ContactController extends Controller
         // La consulta y sus avisos se guardan juntos para que una confirmación siempre sea consistente.
         DB::transaction(function () use ($data, $request, $notifications) {
             $id = DB::table('contact_inquiries')->insertGetId([...$data, 'created_at' => now(), 'updated_at' => now()]);
-            $notifications->send('consulta', $id, 'consulta-recibida:'.$id,
+            $notifications->send('consulta', $id, 'consulta-recibida:' . $id,
                 'Nueva consulta', $data['topic'], management: true, actor: $request->user()?->id);
         });
 

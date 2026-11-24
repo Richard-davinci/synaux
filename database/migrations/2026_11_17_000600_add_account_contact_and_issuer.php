@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     // Los datos de contacto pertenecen a la cuenta; cada documento conserva su propia instantánea.
     public function up(): void
     {
@@ -22,7 +21,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('users', fn (Blueprint $table) => $table->dropColumn([
+        Schema::table('users', fn(Blueprint $table) => $table->dropColumn([
             'phone', 'company', 'address', 'issuer_name', 'issuer_email', 'issuer_phone', 'issuer_address',
         ]));
     }

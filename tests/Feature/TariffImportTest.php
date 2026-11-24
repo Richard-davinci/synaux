@@ -22,7 +22,7 @@ class TariffImportTest extends TestCase
         Http::fake([
             'https://tarifario.ar/' => Http::response('<script src="/_next/static/chunks/catalog.js"></script>'),
             'https://tarifario.ar/_next/static/chunks/catalog.js' => Http::response(
-                '{id:"pd-3",category:"dev-web-app",title:"Institucional",description:'.json_encode($scope, JSON_UNESCAPED_UNICODE).',priceUSD:800,priceType:"minimum"}'
+                '{id:"pd-3",category:"dev-web-app",title:"Institucional",description:' . json_encode($scope, JSON_UNESCAPED_UNICODE) . ',priceUSD:800,priceType:"minimum"}'
             ),
             TariffImport::RATE => Http::response(['casa' => 'contadoconliqui', 'venta' => $validRate ? 1690.9 : 0, 'fechaActualizacion' => now()->toIso8601String()]),
         ]);
@@ -56,10 +56,10 @@ class TariffImportTest extends TestCase
         $this->assertSame('Particular', $reference['segment']);
         $this->assertSame(TariffImport::SOURCE, $reference['source']);
         $this->assertArrayNotHasKey('identidad-visual', $catalog->references());
-        $this->get('/plataforma')->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+        $this->get('/plataforma')->assertInertia(fn(\Inertia\Testing\AssertableInertia $page) => $page
             ->has('references.sitio-institucional.segments', 3)
             ->where('references.sitio-institucional.segments.1.label', 'PyME'));
-        $this->get('/estimador?servicio=sitio-institucional')->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+        $this->get('/estimador?servicio=sitio-institucional')->assertInertia(fn(\Inertia\Testing\AssertableInertia $page) => $page
             ->where('references.sitio-institucional.currency', 'ARS')
             ->where('references.sitio-institucional.segment', 'Particular'));
         $question = $catalog->questions($service['database_id'])[0];
@@ -90,12 +90,12 @@ class TariffImportTest extends TestCase
         $question = DB::table('estimator_questions')->where('service_id', $service)->where('active', 1)->value('id');
         foreach (['Particular', 'PyME', 'Empresa'] as $label) {
             $option = DB::table('estimator_options')->where('question_id', $question)->where('label', $label)->value('id');
-            $this->get('/estimador?servicio=sitio-institucional&paso=2&cliente='.urlencode($label))
-                ->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+            $this->get('/estimador?servicio=sitio-institucional&paso=2&cliente=' . urlencode($label))
+                ->assertInertia(fn(\Inertia\Testing\AssertableInertia $page) => $page
                     ->where('step', 2)->where('selected.id', 'sitio-institucional')
-                    ->where('initialAnswers.'.$question, $option));
+                    ->where('initialAnswers.' . $question, $option));
         }
-        $this->get('/estimador?servicio=sitio-institucional&cliente=Otro')->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+        $this->get('/estimador?servicio=sitio-institucional&cliente=Otro')->assertInertia(fn(\Inertia\Testing\AssertableInertia $page) => $page
             ->where('initialAnswers', []));
         $this->assertDatabaseCount('estimates', 0);
     }

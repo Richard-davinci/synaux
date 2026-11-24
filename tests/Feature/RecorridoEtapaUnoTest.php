@@ -32,17 +32,17 @@ class RecorridoEtapaUnoTest extends TestCase
         $option = DB::table('estimator_options')->where('question_id', $question)->where('label', 'PyME')->value('id');
 
         // El cálculo público se recupera después del ingreso sin habilitar el marketplace.
-        $this->get('/plataforma')->assertInertia(fn (Assert $page) => $page->where('stageTwo', false));
-        $this->get('/servicios/sitio-institucional?cliente=Empresa')->assertInertia(fn (Assert $page) => $page
+        $this->get('/plataforma')->assertInertia(fn(Assert $page) => $page->where('stageTwo', false));
+        $this->get('/servicios/sitio-institucional?cliente=Empresa')->assertInertia(fn(Assert $page) => $page
             ->where('initialClientType', 'Empresa'));
-        $this->get('/servicios/sitio-institucional?cliente=Inventado')->assertInertia(fn (Assert $page) => $page
+        $this->get('/servicios/sitio-institucional?cliente=Inventado')->assertInertia(fn(Assert $page) => $page
             ->where('initialClientType', null));
         $this->post('/estimador/calcular', ['service' => 'sitio-institucional', 'answers' => [$question => $option]])
-            ->assertSessionHasNoErrors()->assertSessionHas('pending_estimate', fn ($estimate) => $estimate['min'] === 1352480);
+            ->assertSessionHasNoErrors()->assertSessionHas('pending_estimate', fn($estimate) => $estimate['min'] === 1352480);
         $this->post('/ingresar', ['email' => $client->email, 'password' => 'password'])->assertRedirect('/estimador?paso=4');
         $this->post('/acciones/guardar-estimacion', ['to_request' => true])->assertSessionHasNoErrors();
         $estimateId = DB::table('estimates')->where('user_id', $client->id)->value('id');
-        $this->get('/solicitudes/nueva?estimacion='.$estimateId)->assertInertia(fn (Assert $page) => $page
+        $this->get('/solicitudes/nueva?estimacion=' . $estimateId)->assertInertia(fn(Assert $page) => $page
             ->where('selectedEstimate.price_min', 1352480)->where('selectedEstimate.answers.0.label', 'PyME'));
         $this->get('/oportunidades')->assertNotFound();
 
@@ -55,16 +55,16 @@ class RecorridoEtapaUnoTest extends TestCase
         ];
         $this->post('/acciones/solicitud', $request)->assertSessionHasNoErrors();
         $requestId = DB::table('project_requests')->value('id');
-        $this->post('/acciones/solicitud', [...$request, 'id' => $requestId, 'publish' => true])->assertRedirect('/solicitudes/'.$requestId);
+        $this->post('/acciones/solicitud', [...$request, 'id' => $requestId, 'publish' => true])->assertRedirect('/solicitudes/' . $requestId);
         $this->assertDatabaseHas('project_requests', ['id' => $requestId, 'status' => 'open', 'visibility' => 'private', 'published_at' => null]);
 
         // Gestión recibe el pedido y prepara un borrador que el cliente todavía no puede consultar.
         $this->post('/salir')->assertRedirect('/plataforma');
         $this->post('/ingresar', ['email' => $manager->email, 'password' => 'password'])->assertRedirect('/gestion');
-        $this->get('/gestion/solicitudes')->assertInertia(fn (Assert $page) => $page->where('requests.0.id', $requestId));
-        $this->get('/solicitudes/'.$requestId)->assertInertia(fn (Assert $page) => $page
+        $this->get('/gestion/solicitudes')->assertInertia(fn(Assert $page) => $page->where('requests.0.id', $requestId));
+        $this->get('/solicitudes/' . $requestId)->assertInertia(fn(Assert $page) => $page
             ->where('selected.id', $requestId)->missing('requests')->missing('quotes')->missing('budgetRequests'));
-        $this->get('/editor/presupuesto?solicitud='.$requestId)->assertInertia(fn (Assert $page) => $page
+        $this->get('/editor/presupuesto?solicitud=' . $requestId)->assertInertia(fn(Assert $page) => $page
             ->where('budgetRequests.0.contact.email', $request['contact']['email'])
             ->where('budgetRequests.0.additional_services.0.service_id', $extra));
         $quote = [
@@ -79,24 +79,24 @@ class RecorridoEtapaUnoTest extends TestCase
         // El borrador permite excluir IVA; al incluirlo en la revisión el documento conserva subtotal, tasa y total.
         $this->post('/acciones/presupuesto', [...$quote, 'tax_rate' => 0])->assertSessionHasNoErrors();
         $draft = DB::table('budget_versions')->first();
-        $this->get('/presupuestos/'.$draft->id)->assertInertia(fn (Assert $page) => $page
+        $this->get('/presupuestos/' . $draft->id)->assertInertia(fn(Assert $page) => $page
             ->where('selected.tax_rate', 0)->where('selected.subtotal', 1552480)->where('selected.total', 1552480));
-        $this->actingAs($client)->get('/presupuestos/'.$draft->id)->assertNotFound();
+        $this->actingAs($client)->get('/presupuestos/' . $draft->id)->assertNotFound();
         $this->actingAs($manager)->post('/acciones/presupuesto', [...$quote, 'budget_id' => $draft->budget_id, 'send' => true])
             ->assertSessionHasNoErrors();
         $this->assertDatabaseCount('budget_versions', 1);
 
         // La aceptación de la versión enviada crea un solo proyecto y conserva el PDF acordado.
-        $this->actingAs($client)->get('/presupuestos/'.$draft->id)->assertInertia(fn (Assert $page) => $page
+        $this->actingAs($client)->get('/presupuestos/' . $draft->id)->assertInertia(fn(Assert $page) => $page
             ->where('selected.current', true)->where('selected.status', 'sent')->where('selected.tax_rate', 21)
             ->where('selected.subtotal', 1552480)->where('selected.total', 1878500.8));
-        $this->get('/presupuestos/'.$draft->id.'/pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->get('/presupuestos/' . $draft->id . '/pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $decision = ['id' => $draft->id, 'decision' => 'accepted', 'confirmed' => true];
         $this->post('/acciones/decidir-presupuesto', $decision)->assertRedirect();
         $projectId = DB::table('projects')->value('id');
         $this->post('/acciones/decidir-presupuesto', $decision)->assertSessionHasErrors('decision');
         $this->assertDatabaseCount('projects', 1);
-        $this->get('/proyectos/'.$projectId)->assertInertia(fn (Assert $page) => $page
+        $this->get('/proyectos/' . $projectId)->assertInertia(fn(Assert $page) => $page
             ->where('selected.status', 'pending')->where('selected.progress', 0)
             ->has('quotes', 1)->missing('requests')->missing('budgetRequests'));
         $this->get('/gestion')->assertForbidden();
@@ -109,11 +109,11 @@ class RecorridoEtapaUnoTest extends TestCase
             'start_date' => today()->toDateString(), 'end_date' => today()->toDateString(),
             'notes' => 'Entrega final realizada.', 'next_steps' => '',
         ])->assertSessionHasNoErrors();
-        $this->actingAs($client)->get('/proyectos/'.$projectId)->assertInertia(fn (Assert $page) => $page
+        $this->actingAs($client)->get('/proyectos/' . $projectId)->assertInertia(fn(Assert $page) => $page
             ->where('selected.status', 'completed')->where('selected.progress', 100)->has('selected.updates', 2)
             ->where('selected.updates.1.notes', $update['notes']));
         $this->get('/profesional')->assertNotFound();
-        $this->actingAs(User::factory()->create())->get('/proyectos/'.$projectId)->assertNotFound();
-        $this->get('/presupuestos/'.$draft->id.'/pdf')->assertNotFound();
+        $this->actingAs(User::factory()->create())->get('/proyectos/' . $projectId)->assertNotFound();
+        $this->get('/presupuestos/' . $draft->id . '/pdf')->assertNotFound();
     }
 }

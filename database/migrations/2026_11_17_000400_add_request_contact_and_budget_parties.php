@@ -5,8 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 // Conserva el pedido y los datos de las partes tal como se enviaron en cada etapa.
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         Schema::table('project_requests', function (Blueprint $table) {
@@ -21,7 +20,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('budget_versions', fn (Blueprint $table) => $table->dropColumn(['client_snapshot', 'issuer_snapshot']));
-        Schema::table('project_requests', fn (Blueprint $table) => $table->dropColumn(['contact_snapshot', 'requested_services']));
+        Schema::table('budget_versions', fn(Blueprint $table) => $table->dropColumn(['client_snapshot', 'issuer_snapshot']));
+        Schema::table('project_requests', fn(Blueprint $table) => $table->dropColumn(['contact_snapshot', 'requested_services']));
     }
 };

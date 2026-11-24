@@ -11,17 +11,19 @@ use Illuminate\Validation\ValidationException;
 // Las operaciones formales se ejecutan en transacciones y siempre verifican el dueño de la solicitud.
 class GestionPresupuestos
 {
-    public function __construct(private NotificationCenter $notifications) {}
+    public function __construct(private NotificationCenter $notifications)
+    {
+    }
 
     // Valida y guarda una versión formal sin sobrescribir ninguna versión ya enviada.
     public function save(Request $request): int
     {
         // La emisión directa es exclusiva de Gestión y usa un contacto externo guardado en la versión.
         $direct = $request->boolean('direct');
-        abort_if($direct && ! $request->user()->is_admin, 403);
+        abort_if($direct && !$request->user()->is_admin, 403);
         $data = $request->validate(['direct' => 'sometimes|boolean', 'budget_id' => 'nullable|integer',
-            'request_id' => ['nullable', Rule::requiredIf(! $direct), Rule::prohibitedIf($direct), 'integer', 'exists:project_requests,id'],
-            'client' => [Rule::excludeIf(! $direct), Rule::requiredIf($direct), 'array:name,email,company,phone,address'],
+            'request_id' => ['nullable', Rule::requiredIf(!$direct), Rule::prohibitedIf($direct), 'integer', 'exists:project_requests,id'],
+            'client' => [Rule::excludeIf(!$direct), Rule::requiredIf($direct), 'array:name,email,company,phone,address'],
             'client.name' => 'required_with:client|string|max:255', 'client.email' => 'nullable|email|max:254',
             'client.company' => 'nullable|string|max:255', 'client.phone' => 'nullable|string|max:50', 'client.address' => 'nullable|string|max:500',
             'title' => 'required|string|max:255', 'currency_code' => ['required', Rule::in(['ARS', 'USD', 'EUR'])],
@@ -43,17 +45,17 @@ class GestionPresupuestos
             if ($record?->user_id === $request->user()->id) {
                 throw ValidationException::withMessages(['request_id' => 'No podés preparar un presupuesto para tu propia solicitud.']);
             }
-            if (! $profile) {
+            if (!$profile) {
                 // El gestor de synaux puede completar su perfil de emisión desde el área profesional.
                 throw ValidationException::withMessages(['request_id' => 'Completá los datos de emisión en Mi perfil para identificar al emisor.']);
             }
-            if (! empty($data['budget_id'])) {
+            if (!empty($data['budget_id'])) {
                 $budget = DB::table('budgets')->where('id', $data['budget_id'])->lockForUpdate()->firstOrFail();
                 $origin = $budget->proposal_id ? DB::table('proposals')->where('id', $budget->proposal_id)->first() : null;
                 // El editor solo puede continuar la misma relación y el mismo emisor.
                 abort_unless(($budget->professional_profile_id ?? $origin?->professional_profile_id) === $profile->id
                     && ($budget->project_request_id ?? $origin?->project_request_id) === $record?->id
-                    && (! $direct || ($budget->client_user_id === null && $budget->direct_service_id === null)), 403);
+                    && (!$direct || ($budget->client_user_id === null && $budget->direct_service_id === null)), 403);
                 $budgetId = $budget->id;
             } else {
                 $budgetId = DB::table('budgets')->insertGetId(['proposal_id' => $proposal?->id,
@@ -91,7 +93,7 @@ class GestionPresupuestos
 
             // El cliente recibe el aviso únicamente cuando se envía la versión, nunca por borradores.
             if ($data['send'] && $record) {
-                $this->notifications->send('presupuesto', $versionId, 'presupuesto-enviado:'.$versionId,
+                $this->notifications->send('presupuesto', $versionId, 'presupuesto-enviado:' . $versionId,
                     'Nuevo presupuesto', $data['title'], [$record->user_id], actor: $request->user()->id);
             }
 
@@ -114,7 +116,7 @@ class GestionPresupuestos
                 throw ValidationException::withMessages(['decision' => 'La solicitud ya no está abierta. Actualizá la página para consultar su estado.']);
             }
             $latest = DB::table('budget_versions')->where('budget_id', $budget->id)->whereNotNull('sent_at')->max('version_number');
-            if ($version->status !== 'sent' || $version->version_number !== (int) $latest || $version->valid_until < today()->toDateString()) {
+            if ($version->status !== 'sent' || $version->version_number !== (int)$latest || $version->valid_until < today()->toDateString()) {
                 throw ValidationException::withMessages(['decision' => 'Esta versión ya no está vigente para decidir. Actualizá la página y revisá la última versión.']);
             }
             if (DB::table('budget_versions')->where('budget_id', $budget->id)->where('status', 'accepted')->exists()) {
@@ -133,7 +135,7 @@ class GestionPresupuestos
                 'status' => 'pending', 'progress' => 0, 'created_at' => now(), 'updated_at' => now()]);
             // El proyecto creado avisa a sus partes y a gestión dentro de la misma transacción.
             $center = $this->notifications;
-            $center->send('proyecto', $projectId, 'proyecto-creado:'.$projectId, 'Nuevo proyecto', $version->title,
+            $center->send('proyecto', $projectId, 'proyecto-creado:' . $projectId, 'Nuevo proyecto', $version->title,
                 $center->projectRecipients($projectId), management: true, actor: $request->user()->id);
 
             return $projectId;

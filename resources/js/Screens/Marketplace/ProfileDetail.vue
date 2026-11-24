@@ -1,26 +1,26 @@
 <script setup>
-import { computed, ref } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import {computed, ref} from 'vue';
+import {useForm} from '@inertiajs/vue3';
 import B from '../../Components/UI/AppButton.vue';
 import F from '../../Components/UI/FormField.vue';
 import S from '../../Components/UI/StatusBadge.vue';
 import SidePanel from '../../Components/UI/SidePanel.vue';
-import { initials } from '../../support/formatters';
-import { useSubmit } from '../../support/useSubmit';
+import {initials} from '../../support/formatters';
+import {useSubmit} from '../../support/useSubmit';
 
-const props = defineProps({ data: { type: Object, required: true } });
+const props = defineProps({data: {type: Object, required: true}});
 const selected = computed(() => props.data.selected ?? {});
 
 // Solo las solicitudes abiertas de la cuenta actual se ofrecen en el formulario de invitación.
 const requestOptions = computed(() => (props.data.requests ?? [])
     .filter(record => record.status === 'open')
-    .map(record => ({ value: record.id, label: record.title })));
+    .map(record => ({value: record.id, label: record.title})));
 const invitationOpen = ref(false);
-const invitationForm = useForm({ request_id: '', professional_id: selected.value.id });
+const invitationForm = useForm({request_id: '', professional_id: selected.value.id});
 const submit = useSubmit();
 
 function invite() {
-    submit(invitationForm, 'invitacion', { previewTarget: 'invitaciones-enviadas' });
+    submit(invitationForm, 'invitacion', {previewTarget: 'invitaciones-enviadas'});
 }
 </script>
 
@@ -33,7 +33,7 @@ function invite() {
                 <p class="eyebrow">Perfil profesional</p>
                 <h1>{{ selected.name }}</h1>
                 <p class="lead">{{ selected.headline }}</p>
-                <S :status="selected.availability_status" />
+                <S :status="selected.availability_status"/>
                 <p>{{ selected.location }}</p>
             </div>
         </div>
@@ -50,7 +50,8 @@ function invite() {
                 <v-card class="card">
                     <h2>Trabajos destacados</h2>
                     <div class="portfolio-grid">
-                        <a v-for="w in data.works" :key="w.id" :href="data.preview ? '/prototipo/trabajo' : `/trabajos/${w.id}`" class="work-card">
+                        <a v-for="w in data.works" :key="w.id"
+                           :href="data.preview ? '/prototipo/trabajo' : `/trabajos/${w.id}`" class="work-card">
                             <img v-if="w.cover_path" :src="w.cover_path" :alt="w.title">
                             <h3>{{ w.title }}</h3>
                         </a>
@@ -70,14 +71,17 @@ function invite() {
                 </v-card>
             </aside>
         </div>
-        <SidePanel v-model="invitationOpen" title="Propuestas e invitaciones" :persistent="invitationForm.processing" max-width="520">
+        <SidePanel v-model="invitationOpen" title="Propuestas e invitaciones" :persistent="invitationForm.processing"
+                   max-width="520">
             <div class="synaux-app">
                 <v-card class="card modal-card">
                     <h2>Invitar a {{ selected.name }}</h2>
                     <form @submit.prevent="invite">
-                        <F v-model="invitationForm.request_id" type="select" label="Elegí una solicitud" required :options="requestOptions" />
+                        <F v-model="invitationForm.request_id" type="select" label="Elegí una solicitud" required
+                           :options="requestOptions"/>
                         <div class="form-actions">
-                            <B variant="secondary" :disabled="invitationForm.processing" @click="invitationOpen = false">Cancelar</B>
+                            <B variant="secondary" :disabled="invitationForm.processing"
+                               @click="invitationOpen = false">Cancelar</B>
                             <B type="submit" :disabled="invitationForm.processing">Enviar invitación</B>
                         </div>
                     </form>

@@ -36,9 +36,9 @@ class EliminarEstimacionTest extends TestCase
     {
         $owner = User::factory()->create();
         [$id] = $this->estimate($owner);
-        $this->delete('/estimaciones/'.$id, ['confirmed' => true])->assertRedirect('/ingresar');
-        $this->actingAs(User::factory()->create())->delete('/estimaciones/'.$id, ['confirmed' => true])->assertNotFound();
-        $this->actingAs($owner)->delete('/estimaciones/'.$id, ['confirmed' => false])->assertSessionHasErrors('confirmed');
+        $this->delete('/estimaciones/' . $id, ['confirmed' => true])->assertRedirect('/ingresar');
+        $this->actingAs(User::factory()->create())->delete('/estimaciones/' . $id, ['confirmed' => true])->assertNotFound();
+        $this->actingAs($owner)->delete('/estimaciones/' . $id, ['confirmed' => false])->assertSessionHasErrors('confirmed');
         $this->assertDatabaseHas('estimates', ['id' => $id, 'deleted_at' => null]);
     }
 
@@ -46,12 +46,12 @@ class EliminarEstimacionTest extends TestCase
     {
         $owner = User::factory()->create();
         [$id] = $this->estimate($owner);
-        $this->actingAs($owner)->delete('/estimaciones/'.$id, ['confirmed' => true])->assertRedirect('/cliente/estimaciones');
+        $this->actingAs($owner)->delete('/estimaciones/' . $id, ['confirmed' => true])->assertRedirect('/cliente/estimaciones');
         $this->assertNotNull(DB::table('estimates')->where('id', $id)->value('deleted_at'));
-        $this->get('/cliente/estimaciones')->assertInertia(fn (Assert $page) => $page->has('estimates', 0));
-        $this->get('/estimaciones/'.$id)->assertNotFound();
-        $this->get('/solicitudes/nueva?estimacion='.$id)->assertNotFound();
-        $this->delete('/estimaciones/'.$id, ['confirmed' => true])->assertNotFound();
+        $this->get('/cliente/estimaciones')->assertInertia(fn(Assert $page) => $page->has('estimates', 0));
+        $this->get('/estimaciones/' . $id)->assertNotFound();
+        $this->get('/solicitudes/nueva?estimacion=' . $id)->assertNotFound();
+        $this->delete('/estimaciones/' . $id, ['confirmed' => true])->assertNotFound();
     }
 
     public function test_linked_draft_keeps_its_estimate_but_new_requests_cannot_reuse_it(): void
@@ -65,22 +65,22 @@ class EliminarEstimacionTest extends TestCase
         $this->actingAs($owner)->post('/acciones/solicitud', $data)->assertSessionHasNoErrors();
         $requestId = DB::table('project_requests')->value('id');
         $snapshot = DB::table('project_requests')->value('answers_snapshot');
-        $this->delete('/estimaciones/'.$id, ['confirmed' => true])->assertRedirect();
-        $this->get('/solicitudes/'.$requestId)->assertInertia(fn (Assert $page) => $page
+        $this->delete('/estimaciones/' . $id, ['confirmed' => true])->assertRedirect();
+        $this->get('/solicitudes/' . $requestId)->assertInertia(fn(Assert $page) => $page
             ->has('estimates', 0)->where('selectedEstimate.id', $id)->where('selectedEstimate.price_min', $calculation['min']));
         $this->post('/acciones/solicitud', [...$data, 'publish' => true])->assertSessionHasErrors('estimate_id');
         $this->post('/acciones/solicitud', [...$data, 'id' => $requestId, 'publish' => true])->assertSessionHasNoErrors();
         $this->assertDatabaseCount('project_requests', 1);
         $this->assertDatabaseHas('project_requests', ['id' => $requestId, 'estimate_id' => $id, 'status' => 'open', 'answers_snapshot' => $snapshot]);
-        $this->get('/solicitudes/'.$requestId)->assertOk();
+        $this->get('/solicitudes/' . $requestId)->assertOk();
     }
 
     public function test_explicitly_saving_the_same_calculation_recovers_its_original_record(): void
     {
         $owner = User::factory()->create();
         [$id, $calculation] = $this->estimate($owner);
-        $this->actingAs($owner)->delete('/estimaciones/'.$id, ['confirmed' => true])->assertRedirect();
-        $this->withSession(['pending_estimate' => $calculation])->post('/acciones/guardar-estimacion')->assertRedirect('/estimaciones/'.$id);
+        $this->actingAs($owner)->delete('/estimaciones/' . $id, ['confirmed' => true])->assertRedirect();
+        $this->withSession(['pending_estimate' => $calculation])->post('/acciones/guardar-estimacion')->assertRedirect('/estimaciones/' . $id);
         $this->assertDatabaseCount('estimates', 1);
         $this->assertDatabaseHas('estimates', ['id' => $id, 'deleted_at' => null, 'price_min' => $calculation['min']]);
     }

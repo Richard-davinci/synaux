@@ -1,11 +1,11 @@
 <script setup>
-import { computed } from 'vue';
+import {computed} from 'vue';
 import DeleteEstimateButton from '../../Components/Estimates/DeleteEstimateButton.vue';
 import EstimateResult from '../../Components/Estimates/EstimateResult.vue';
 import B from '../../Components/UI/AppButton.vue';
 import T from '../../Components/UI/PageTitle.vue';
 
-const props = defineProps({ data: { type: Object, required: true } });
+const props = defineProps({data: {type: Object, required: true}});
 
 // La estimación guardada se reconstruye con sus importes y moneda originales.
 const result = computed(() => {
@@ -32,12 +32,12 @@ const newEstimateHref = computed(() => result.value.service
 
 <template>
     <section class="page shell estimator">
-        <T eyebrow="Estimación orientativa" title="Tu estimación guardada" />
+        <T eyebrow="Estimación orientativa" title="Tu estimación guardada"/>
 
         <EstimateResult :result="result" :preview="Boolean(data.preview)">
             <template v-if="$page.props.auth || data.preview">
                 <B :href="'/solicitudes/nueva?estimacion=' + data.selected.id" arrow>Continuar con la solicitud</B>
-                <DeleteEstimateButton :estimate="data.selected" />
+                <DeleteEstimateButton :estimate="data.selected"/>
             </template>
             <B v-else href="/ingresar" arrow>Ingresar para solicitar presupuesto</B>
             <B :href="newEstimateHref" variant="secondary">Nueva estimación</B>
@@ -46,5 +46,7 @@ const newEstimateHref = computed(() => result.value.service
 </template>
 
 <style scoped>
-.estimator { max-width: 1180px; }
+.estimator {
+    max-width: 1180px;
+}
 </style>

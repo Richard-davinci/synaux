@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import {computed, ref} from 'vue';
 import B from '../../Components/UI/AppButton.vue';
 import F from '../../Components/UI/FormField.vue';
 import T from '../../Components/UI/PageTitle.vue';
@@ -7,9 +7,9 @@ import S from '../../Components/UI/StatusBadge.vue';
 import EmptyState from '../../Components/UI/EmptyState.vue';
 import DeleteEstimateButton from '../../Components/Estimates/DeleteEstimateButton.vue';
 import NewBadge from '../../Components/Notifications/NewBadge.vue';
-import { date, money } from '../../support/formatters';
+import {date, money} from '../../support/formatters';
 
-const props = defineProps({ data: { type: Object, required: true } });
+const props = defineProps({data: {type: Object, required: true}});
 const section = computed(() => props.data.section);
 
 // Cada listado usa la colección, los estados y el identificador de su sección.
@@ -17,12 +17,12 @@ const listings = {
     estimaciones: {
         collection: 'estimates', title: 'Mis estimaciones', prefix: 'EST',
         statuses: [['calculated', 'Calculada'], ['manual', 'Revisión profesional']],
-        create: { href: '/estimador', label: 'Nueva estimación', emptyLabel: 'Crear una estimación' },
+        create: {href: '/estimador', label: 'Nueva estimación', emptyLabel: 'Crear una estimación'},
     },
     solicitudes: {
         collection: 'requests', title: 'Mis solicitudes', prefix: 'SOL', notification: 'solicitud',
         statuses: [['draft', 'Borrador'], ['open', 'Enviada'], ['closed', 'Cerrada'], ['cancelled', 'Cancelada']],
-        create: { href: '/solicitudes/nueva', label: 'Nueva solicitud', emptyLabel: 'Crear una nueva solicitud' },
+        create: {href: '/solicitudes/nueva', label: 'Nueva solicitud', emptyLabel: 'Crear una nueva solicitud'},
     },
     presupuestos: {
         collection: 'quotes', title: 'Mis presupuestos', prefix: 'PRE', notification: 'presupuesto',
@@ -37,8 +37,8 @@ const listing = computed(() => listings[section.value]);
 const search = ref('');
 const status = ref('');
 const statusOptions = computed(() => [
-    { value: '', label: 'Todos' },
-    ...listing.value.statuses.map(([value, label]) => ({ value, label })),
+    {value: '', label: 'Todos'},
+    ...listing.value.statuses.map(([value, label]) => ({value, label})),
 ]);
 
 // Los filtros solo recorren los registros que el servidor autorizó para esta sección.
@@ -70,12 +70,13 @@ function clearFilters() {
 
 <template>
     <section class="page shell">
-        <T eyebrow="Área cliente" :title="listing.title" description="Consultá el estado y los próximos pasos de cada proyecto.">
+        <T eyebrow="Área cliente" :title="listing.title"
+           description="Consultá el estado y los próximos pasos de cada proyecto.">
             <B v-if="listing.create" :href="listing.create.href" arrow>{{ listing.create.label }}</B>
         </T>
         <div class="filters">
-            <F v-model="search" label="Buscar" placeholder="Título o identificador" />
-            <F v-model="status" label="Estado" type="select" :options="statusOptions" />
+            <F v-model="search" label="Buscar" placeholder="Título o identificador"/>
+            <F v-model="status" label="Estado" type="select" :options="statusOptions"/>
         </div>
         <div class="stack">
             <v-card v-for="record in rows" :key="record.id" class="card list-row">
@@ -83,39 +84,52 @@ function clearFilters() {
                     <small>{{ listing.prefix }}-{{ record.id }} · {{ date(record.created_at) }}</small>
                     <div class="record-heading">
                         <h3>{{ record.title ?? record.summary }}</h3>
-                        <NewBadge :type="listing.notification" :id="record.id" />
+                        <NewBadge :type="listing.notification" :id="record.id"/>
                     </div>
                     <p>{{ description(record) }}</p>
-                    <S :status="record.display_status ?? record.status" />
+                    <S :status="record.display_status ?? record.status"/>
                     <template v-if="section === 'proyectos'">
                         <p>Avance informado: {{ record.progress }}%</p>
-                        <progress max="100" :value="record.progress" :aria-label="'Avance de ' + record.title" />
+                        <progress max="100" :value="record.progress" :aria-label="'Avance de ' + record.title"/>
                         <p v-if="record.next_steps">{{ record.next_steps }}</p>
                     </template>
                 </div>
                 <div class="estimate-row-actions">
                     <B :href="'/' + section + '/' + record.id" variant="secondary">
-                        {{ record.status === 'draft' && section === 'solicitudes' ? 'Continuar borrador' : 'Ver detalle' }}
+                        {{
+                            record.status === 'draft' && section === 'solicitudes' ? 'Continuar borrador' : 'Ver detalle'
+                        }}
                     </B>
-                    <DeleteEstimateButton v-if="section === 'estimaciones'" :estimate="record" />
+                    <DeleteEstimateButton v-if="section === 'estimaciones'" :estimate="record"/>
                 </div>
             </v-card>
         </div>
 
         <template v-if="!rows.length && (search || status)">
             <EmptyState title="No encontramos resultados"
-                text="Probá con otro texto o estado, o quitá los filtros para ver todos los registros." />
+                        text="Probá con otro texto o estado, o quitá los filtros para ver todos los registros."/>
             <B variant="secondary" @click="clearFilters">Limpiar filtros</B>
         </template>
         <EmptyState v-else-if="!rows.length" :title="'Todavía no tenés ' + section"
-            text="Cuando haya actividad, aparecerá acá con su estado actualizado."
-            :href="listing.create?.href ?? '/solicitudes/nueva'"
-            :action="listing.create?.emptyLabel ?? 'Crear una nueva solicitud'" />
+                    text="Cuando haya actividad, aparecerá acá con su estado actualizado."
+                    :href="listing.create?.href ?? '/solicitudes/nueva'"
+                    :action="listing.create?.emptyLabel ?? 'Crear una nueva solicitud'"/>
     </section>
 </template>
 
 <style scoped>
 /* Las acciones de cada registro se mantienen juntas y se apilan cuando falta espacio. */
-.estimate-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; flex-shrink: 0; }
-@media (max-width: 600px) { .estimate-row-actions { width: 100%; } }
+.estimate-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+    .estimate-row-actions {
+        width: 100%;
+    }
+}
 </style>

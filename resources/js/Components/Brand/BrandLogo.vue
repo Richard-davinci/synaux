@@ -7,7 +7,7 @@ import compactWhiteLogo from '../../../images/brand/synaux-vertical-sin-slogan-b
 
 // withSlogan elige la composición; variant permite usar el original a color o el blanco.
 defineProps({
-    withSlogan: { type: Boolean, default: true },
+    withSlogan: {type: Boolean, default: true},
     variant: {
         type: String,
         default: 'color',

@@ -2,30 +2,41 @@
 
 Fuente: [00 · Aprobado · Texto recto y S 12°](https://www.figma.com/design/DAWObWWcHYQlYXYOgb38Q1?node-id=668-2).
 
-Aplicado a la web local el 20 de octubre de 2026 por solicitud del usuario. Exportaciones SVG completas de los maestros de Figma mediante `exportAsync`, con `contentsOnly: true` y `svgOutlineText: true`, para conservar transparencia y texto convertido a contornos. Se exporta únicamente el contenido de la marca, sin los fondos de sus tarjetas de presentación. No se reconstruyeron ni modificaron los originales.
+Aplicado a la web local el 20 de octubre de 2026 por solicitud del usuario. Exportaciones SVG completas de los maestros
+de Figma mediante `exportAsync`, con `contentsOnly: true` y `svgOutlineText: true`, para conservar transparencia y texto
+convertido a contornos. Se exporta únicamente el contenido de la marca, sin los fondos de sus tarjetas de presentación.
+No se reconstruyeron ni modificaron los originales.
 
-| Archivo | Nodo maestro | Dimensiones SVG |
-| --- | --- | --- |
-| synaux-vertical-sin-slogan-color.svg | 668:10 | 250 × 168 |
-| synaux-vertical-con-slogan-color.svg | 668:42 | 250 × 179 |
-| synaux-vertical-sin-slogan-blanco.svg | 668:30 | 250 × 168 |
-| synaux-vertical-con-slogan-blanco.svg | 668:66 | 250 × 179 |
+| Archivo                               | Nodo maestro | Dimensiones SVG |
+|---------------------------------------|--------------|-----------------|
+| synaux-vertical-sin-slogan-color.svg  | 668:10       | 250 × 168       |
+| synaux-vertical-con-slogan-color.svg  | 668:42       | 250 × 179       |
+| synaux-vertical-sin-slogan-blanco.svg | 668:30       | 250 × 168       |
+| synaux-vertical-con-slogan-blanco.svg | 668:66       | 250 × 179       |
 
-La S ya incorpora su giro de 12°. No aplicar rotación adicional. La bajada conserva la alineación aprobada desde la n hasta la x. El recurso es una imagen única, sin texto HTML superpuesto.
+La S ya incorpora su giro de 12°. No aplicar rotación adicional. La bajada conserva la alineación aprobada desde la n
+hasta la x. El recurso es una imagen única, sin texto HTML superpuesto.
 
-Mínimos del aprobado: 100 px de ancho sin eslogan, 200 px con eslogan y 64 px de alto para el símbolo independiente. Mantener espacio libre alrededor y escalar proporcionalmente.
+Mínimos del aprobado: 100 px de ancho sin eslogan, 200 px con eslogan y 64 px de alto para el símbolo independiente.
+Mantener espacio libre alrededor y escalar proporcionalmente.
 
 Los recursos horizontales anteriores permanecen en esta carpeta como referencia histórica, sin cambios.
 
 ## Logo horizontal actualizado
 
-El usuario entregó el archivo `Z:/Escritorio/logo Synauz horizontal.svg` el 17 de noviembre de 2026 para actualizar la variante horizontal de la web. Se copió sin cambios a `synaux-horizontal-sin-slogan-color.svg` y se verificó la coincidencia SHA-256 con el original.
+El usuario entregó el archivo `Z:/Escritorio/logo Synauz horizontal.svg` el 17 de noviembre de 2026 para actualizar la
+variante horizontal de la web. Se copió sin cambios a `synaux-horizontal-sin-slogan-color.svg` y se verificó la
+coincidencia SHA-256 con el original.
 
-Dimensiones nativas: 405 × 140. Se utiliza completo y proporcional en el navbar de la landing y de la plataforma, reemplazando el PNG horizontal anterior. Los SVG verticales con eslogan mantienen su uso en la presentación y el pie.
-
+Dimensiones nativas: 405 × 140. Se utiliza completo y proporcional en el navbar de la landing y de la plataforma,
+reemplazando el PNG horizontal anterior. Los SVG verticales con eslogan mantienen su uso en la presentación y el pie.
 
 ## Trama de intensidad uniforme
 
 ## Trama vigente · Group 3
 
-`./synaux-trama.svg` es una copia exacta de `07 - Recursos finales/Group 3.svg` (3600 × 90), entregada por el usuario. Es el único archivo de trama del repositorio y se utiliza en todos los pies de navegación. `BrandPatternFragment.vue` lee los trazos de ese mismo SVG para mostrar piezas completas detrás de la fotografía, sin conservar duplicados ni modificar el original. La escala compartida es 380 / 510 (2682 px para el original completo); el footer solo amplía proporcionalmente en pantallas superiores a ese ancho.
+`./synaux-trama.svg` es una copia exacta de `07 - Recursos finales/Group 3.svg` (3600 × 90), entregada por el usuario.
+Es el único archivo de trama del repositorio y se utiliza en todos los pies de navegación. `BrandPatternFragment.vue`
+lee los trazos de ese mismo SVG para mostrar piezas completas detrás de la fotografía, sin conservar duplicados ni
+modificar el original. La escala compartida es 380 / 510 (2682 px para el original completo); el footer solo amplía
+proporcionalmente en pantallas superiores a ese ancho.

@@ -6,14 +6,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 // Crea las tablas del DER V4 sin ejecutar su CREATE DATABASE ni reemplazar usuarios existentes.
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         // is_admin solo se asigna desde una acción de administración, nunca desde el registro público.
-        Schema::table('users', fn (Blueprint $table) => $table->boolean('is_admin')->default(false));
+        Schema::table('users', fn(Blueprint $table) => $table->boolean('is_admin')->default(false));
         $driver = DB::getDriverName();
-        if (! in_array($driver, ['sqlite', 'mysql'], true)) {
+        if (!in_array($driver, ['sqlite', 'mysql'], true)) {
             throw new RuntimeException('Esta migración admite SQLite y MySQL/MariaDB.');
         }
         // Se conservan claves, unicidad y comprobaciones; SQLite usa su sintaxis equivalente.
@@ -1033,6 +1032,6 @@ SQL
         foreach (['projects', 'budget_items', 'budget_versions', 'project_request_answers', 'budgets', 'estimate_answers', 'option_services', 'option_components', 'proposals', 'project_request_invitations', 'project_request_components', 'estimator_options', 'project_requests', 'estimate_items', 'component_prices', 'estimator_questions', 'portfolio_project_images', 'portfolio_project_technologies', 'professional_capabilities', 'estimates', 'service_prices', 'portfolio_projects', 'professional_services', 'professional_technologies', 'service_components', 'professional_profiles', 'services', 'service_categories', 'tariff_versions', 'technologies'] as $name) {
             Schema::dropIfExists($name);
         }
-        Schema::table('users', fn (Blueprint $table) => $table->dropColumn('is_admin'));
+        Schema::table('users', fn(Blueprint $table) => $table->dropColumn('is_admin'));
     }
 };

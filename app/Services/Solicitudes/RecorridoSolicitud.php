@@ -10,7 +10,9 @@ use Illuminate\Validation\ValidationException;
 // El borrador anónimo vive en la sesión; nunca permite consultar solicitudes ni estimaciones de otra cuenta.
 class RecorridoSolicitud
 {
-    public function __construct(private ServiceCatalog $catalog) {}
+    public function __construct(private ServiceCatalog $catalog)
+    {
+    }
 
     // Carga preguntas públicas en dos consultas para que el selector pueda cambiar de servicio sin perder el formulario.
     public function questionMap(array $services): array
@@ -19,8 +21,8 @@ class RecorridoSolicitud
         $options = DB::table('estimator_options')->where('active', 1)->orderBy('sort_order')->get()->groupBy('question_id');
         $map = [];
         foreach ($services as $service) {
-            $map[$service['database_id']] = $questions->filter(fn ($question) => $question->service_id === null || (int) $question->service_id === (int) $service['database_id'])
-                ->map(fn ($question) => [...(array) $question, 'options' => ($options[$question->id] ?? collect())->values()->all(),
+            $map[$service['database_id']] = $questions->filter(fn($question) => $question->service_id === null || (int)$question->service_id === (int)$service['database_id'])
+                ->map(fn($question) => [...(array)$question, 'options' => ($options[$question->id] ?? collect())->values()->all(),
                     'from_project_description' => $service['estimation_mode'] === 'manual' && $question->input_type === 'text'
                         && $question->question === '¿Qué objetivo querés lograr y qué necesitás resolver?',
                 ])->values()->all();
@@ -45,16 +47,16 @@ class RecorridoSolicitud
         $estimate = $data['selectedEstimate'] ?? null;
         $requestedSlug = $request->query('servicio');
         // Una solicitud basada en una estimación guardada solo retoma el borrador de esa misma estimación.
-        $resume = $pending && (int) ($pending['form']['estimate_id'] ?? 0) === (int) ($estimate['id'] ?? 0)
-            && (int) ($pending['form']['id'] ?? 0) === (int) $draftId
-            && (! $requestedSlug || $requestedSlug === $pending['calculation']['service']['id']);
+        $resume = $pending && (int)($pending['form']['estimate_id'] ?? 0) === (int)($estimate['id'] ?? 0)
+            && (int)($pending['form']['id'] ?? 0) === (int)$draftId
+            && (!$requestedSlug || $requestedSlug === $pending['calculation']['service']['id']);
         $service = $estimate
             ? collect($data['services'])->firstWhere('database_id', $estimate['service_id'])
-            : ($requestedSlug ? $this->catalog->service((string) $requestedSlug)
+            : ($requestedSlug ? $this->catalog->service((string)$requestedSlug)
                 : ($resume ? $pending['calculation']['service'] : ($data['selected'] ?? $data['services'][0] ?? null)));
         $map = $this->questionMap($data['services']);
         $initialAnswers = array_replace(
-            collect($data['pending']['answers'] ?? [])->mapWithKeys(fn ($answer) => [$answer['id'] => $answer['value']])->all(),
+            collect($data['pending']['answers'] ?? [])->mapWithKeys(fn($answer) => [$answer['id'] => $answer['value']])->all(),
             $data['initialAnswers'] ?? [],
         );
         $descriptionQuestion = collect($map[$service['database_id'] ?? 0] ?? [])->firstWhere('from_project_description', true);
@@ -73,15 +75,15 @@ class RecorridoSolicitud
             'requestCalculation' => $resume ? $pending['calculation'] : null,
             'requestAdditionalPricing' => $resume ? ($pending['additional_services'] ?? []) : [],
             'requestStep' => $resume ? 3 : 1, 'requestInitialAnswers' => $initialAnswers,
-            'requestInitialDescription' => is_string($description) ? $description : '', 'allowPublicRequest' => (bool) config('synaux.stage_two_enabled'),
+            'requestInitialDescription' => is_string($description) ? $description : '', 'allowPublicRequest' => (bool)config('synaux.stage_two_enabled'),
         ];
     }
 
     // La descripción del proyecto responde la pregunta genérica de servicios manuales, sin pedir el mismo texto dos veces.
     public function calculate(array $data): array
     {
-        $service = collect($this->catalog->services())->firstWhere('database_id', (int) $data['service_id']);
-        if (! $service) throw ValidationException::withMessages(['service_id' => 'Elegí un servicio disponible.']);
+        $service = collect($this->catalog->services())->firstWhere('database_id', (int)$data['service_id']);
+        if (!$service) throw ValidationException::withMessages(['service_id' => 'Elegí un servicio disponible.']);
         $answers = $data['answers'] ?? [];
         foreach ($this->questionMap([$service])[$service['database_id']] as $question) {
             if ($question['from_project_description']) $answers[$question['id']] = $data['description'];
@@ -92,25 +94,25 @@ class RecorridoSolicitud
     // Cada adicional se valida con sus propias preguntas. Las comunes se contestan en el servicio principal.
     public function calculateAdditionalServices(int $mainId, array $items, array $mainAnswers, string $currency, array $previous = [], bool $allowIncomplete = false): array
     {
-        if (! $items) {
+        if (!$items) {
             return [];
         }
 
         $catalog = collect($this->catalog->services())->keyBy('database_id');
         $previousByService = array_column($previous, null, 'service_id');
         $segments = ['Particular', 'PyME', 'Empresa'];
-        $mainSegment = collect($mainAnswers)->pluck('label')->first(fn ($label) => in_array($label, $segments, true)) ?? 'Particular';
+        $mainSegment = collect($mainAnswers)->pluck('label')->first(fn($label) => in_array($label, $segments, true)) ?? 'Particular';
         $snapshots = [];
         foreach ($items as $index => $item) {
-            $serviceId = (int) $item['service_id'];
+            $serviceId = (int)$item['service_id'];
             $service = $catalog->get($serviceId);
-            if (! $service || $serviceId === $mainId) {
+            if (!$service || $serviceId === $mainId) {
                 throw ValidationException::withMessages(["additional_services.$index.service_id" => 'Elegí otro servicio disponible.']);
             }
             $questions = $this->catalog->questions($serviceId, specificOnly: true);
             $answers = $item['answers'] ?? [];
             // Los pedidos guardados con el formulario anterior usaban el segmento del principal.
-            if (! array_key_exists('answers', $item)) {
+            if (!array_key_exists('answers', $item)) {
                 foreach ($questions as $question) {
                     $options = collect($question['options']);
                     if ($service['estimation_mode'] === 'manual' && $question['input_type'] === 'text'
@@ -127,14 +129,14 @@ class RecorridoSolicitud
             } catch (ValidationException $error) {
                 $prefix = "additional_services.$index.";
                 throw ValidationException::withMessages(collect($error->errors())->mapWithKeys(
-                    fn ($messages, $field) => [$prefix.$field => $messages],
+                    fn($messages, $field) => [$prefix . $field => $messages],
                 )->all());
             }
             $priced = $result['min'] !== null && $result['currency'] === $currency;
             $reference = $priced ? ['min' => $result['min'], 'max' => $result['max'], 'currency' => $currency] : null;
             $breakdown = $priced ? ['base_min' => $result['base_min'], 'base_max' => $result['base_max'], 'items' => $result['items']] : null;
             $saved = $previousByService[$serviceId] ?? null;
-            if ((! $allowIncomplete || $priced) && ($saved['pricing_reference']['currency'] ?? null) === $currency
+            if ((!$allowIncomplete || $priced) && ($saved['pricing_reference']['currency'] ?? null) === $currency
                 && ($saved['answers'] ?? null) == $result['answers']) {
                 $reference = $saved['pricing_reference'];
                 $breakdown = $saved['pricing_breakdown'] ?? null;
@@ -172,19 +174,19 @@ class RecorridoSolicitud
                 ->where('status', 'draft')->firstOrFail();
         }
         $estimateId = $request->user() ? ($data['estimate_id'] ?? $draft->estimate_id ?? null) : null;
-        if (! $estimateId) {
+        if (!$estimateId) {
             unset($data['estimate_id']);
         }
         $previous = $this->pending($request);
-        if ((int) ($previous['form']['service_id'] ?? 0) !== (int) $data['service_id']
-            || (int) ($previous['form']['estimate_id'] ?? 0) !== (int) $estimateId
-            || (int) ($previous['form']['id'] ?? 0) !== (int) $draftId) {
+        if ((int)($previous['form']['service_id'] ?? 0) !== (int)$data['service_id']
+            || (int)($previous['form']['estimate_id'] ?? 0) !== (int)$estimateId
+            || (int)($previous['form']['id'] ?? 0) !== (int)$draftId) {
             $previous = null;
         }
         if ($estimateId) {
             $estimate = DB::table('estimates')->where('id', $estimateId)->where('user_id', $request->user()->id)
                 ->where('service_id', $data['service_id'])
-                ->when((int) ($draft->estimate_id ?? 0) !== (int) $estimateId, fn ($query) => $query->whereNull('deleted_at'))
+                ->when((int)($draft->estimate_id ?? 0) !== (int)$estimateId, fn($query) => $query->whereNull('deleted_at'))
                 ->firstOrFail();
             $data['estimate_id'] = $estimateId;
             $calculation = [
@@ -194,14 +196,14 @@ class RecorridoSolicitud
             ];
         } else {
             $calculation = $this->calculate($data);
-            if (! ($previous['form']['estimate_id'] ?? null) && $previous
-                && $previous['calculation']['service']['database_id'] === (int) $data['service_id']
+            if (!($previous['form']['estimate_id'] ?? null) && $previous
+                && $previous['calculation']['service']['database_id'] === (int)$data['service_id']
                 && $previous['calculation']['answers'] == $calculation['answers']) {
                 $calculation = $previous['calculation'];
             }
         }
         $additional = $this->calculateAdditionalServices(
-            (int) $data['service_id'], $data['additional_services'], $calculation['answers'],
+            (int)$data['service_id'], $data['additional_services'], $calculation['answers'],
             $calculation['currency'] ?? 'ARS', $previous['additional_services'] ?? [],
         );
         $form = collect($data)->except('destination')->all();
@@ -209,10 +211,10 @@ class RecorridoSolicitud
             'form' => $form, 'calculation' => $calculation, 'additional_services' => $additional, 'expires_at' => now()->addHours(2)->timestamp,
         ]);
         if ($draftId) {
-            return '/solicitudes/'.$draftId;
+            return '/solicitudes/' . $draftId;
         }
         if ($estimateId) {
-            return '/solicitudes/nueva?estimacion='.$estimateId.'&continuar=1';
+            return '/solicitudes/nueva?estimacion=' . $estimateId . '&continuar=1';
         }
 
         return ($request->user() || $data['destination'] === 'review') ? '/solicitudes/nueva?continuar=1' : ($data['destination'] === 'register' ? '/crear-cuenta' : '/ingresar');

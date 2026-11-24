@@ -1,7 +1,7 @@
 <script setup>
 import SidePanel from '../UI/SidePanel.vue';
-import { computed, ref, watch } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import {computed, ref, watch} from 'vue';
+import {useForm} from '@inertiajs/vue3';
 import B from '../UI/AppButton.vue';
 import BudgetDocument from './DocumentoPresupuesto.vue';
 import BudgetLines from './ConceptosPresupuesto.vue';
@@ -9,12 +9,12 @@ import BudgetPreviewSidebar from './VistaPreviaPresupuesto.vue';
 import BudgetSourceFields from './OrigenPresupuesto.vue';
 import BudgetTerms from './CondicionesPresupuesto.vue';
 import BudgetVatFields from './CamposIva.vue';
-import { money } from '../../support/formatters';
-import { useSubmit } from '../../support/useSubmit';
-import { referenceLine, requestBudgetLines } from '../../support/calculoPreciosSolicitud';
+import {money} from '../../support/formatters';
+import {useSubmit} from '../../support/useSubmit';
+import {referenceLine, requestBudgetLines} from '../../support/calculoPreciosSolicitud';
 
 // El editor recibe solo las solicitudes autorizadas; Laravel vuelve a comprobar permisos y valores al guardar.
-const props = defineProps({ data: Object });
+const props = defineProps({data: Object});
 const selected = props.data.selected ?? {};
 const submit = useSubmit();
 const step = ref(1);
@@ -22,19 +22,23 @@ const preview = ref(false);
 // El presupuesto directo solicita solo los datos del destinatario y comienza con un concepto editable.
 const direct = Boolean(props.data.directBudget);
 const labels = [direct ? 'Cliente' : 'Solicitud', 'Servicios', 'Condiciones'];
-const emptyItem = () => ({ description: '', quantity: 1, unit_price: '' });
+const emptyItem = () => ({description: '', quantity: 1, unit_price: ''});
 const quote = useForm({
     budget_id: selected.budget_id ?? null,
     direct,
     request_id: direct ? null : (selected.request_id ?? props.data.requestId ?? ''),
-    client: direct ? { name: '', email: '', company: '', phone: '', address: '', ...selected.client } : null,
+    client: direct ? {name: '', email: '', company: '', phone: '', address: '', ...selected.client} : null,
     title: selected.title ?? '',
     currency_code: selected.currency_code ?? 'ARS',
     tax_rate: selected.tax_rate ?? 0,
     valid_until: selected.valid_until ?? new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
     estimated_delivery_days: selected.estimated_delivery_days ?? 30,
     terms: selected.terms ?? '',
-    items: selected.items?.map(item => ({ description: item.description, quantity: item.quantity, unit_price: item.unit_price })) ?? (direct ? [emptyItem()] : []),
+    items: selected.items?.map(item => ({
+        description: item.description,
+        quantity: item.quantity,
+        unit_price: item.unit_price
+    })) ?? (direct ? [emptyItem()] : []),
     send: false,
 });
 // El interruptor aplica IVA a todo el presupuesto; desactivarlo conserva la tasa para volver a incluirlo.
@@ -43,14 +47,17 @@ const includeVat = computed({
     get: () => Number(quote.tax_rate) > 0,
     set: enabled => {
         if (enabled) quote.tax_rate = previousVatRate.value;
-        else { previousVatRate.value = Number(quote.tax_rate) || previousVatRate.value; quote.tax_rate = 0; }
+        else {
+            previousVatRate.value = Number(quote.tax_rate) || previousVatRate.value;
+            quote.tax_rate = 0;
+        }
     },
 });
 const requests = computed(() => props.data.budgetRequests ?? props.data.requests ?? []);
 const source = computed(() => requests.value.find(item => item.id == quote.request_id));
 const requestOptions = computed(() => requests.value.filter(item =>
     (item.status === 'open' && item.user_id !== props.data.auth?.id) || item.id == selected.request_id
-).map(item => ({ value: item.id, label: 'SOL-' + item.id + ' · ' + item.title })));
+).map(item => ({value: item.id, label: 'SOL-' + item.id + ' · ' + item.title})));
 const client = computed(() => direct ? quote.client : (source.value?.contact ?? selected.client));
 const issuer = computed(() => props.data.issuerDetails ?? ({
     name: props.data.profile?.brand_name ?? selected.issuer?.name ?? 'synaux',
@@ -85,7 +92,7 @@ function suggestedPrice(reference, currency) {
 }
 
 function newItem(description, quantity, reference) {
-    return { description, quantity, unit_price: suggestedPrice(reference, quote.currency_code), reference };
+    return {description, quantity, unit_price: suggestedPrice(reference, quote.currency_code), reference};
 }
 
 function priceHint(reference) {
@@ -103,8 +110,10 @@ watch(() => quote.request_id, () => {
     const additional = source.value.additional_services ?? [];
     quote.currency_code = source.value.pricing_reference?.currency ?? additional.find(item => item.pricing_reference)?.pricing_reference.currency ?? 'ARS';
     const services = [
-        { name: source.value.service_name, description: source.value.description, quantity: 1,
-            reference: source.value.pricing_reference, breakdown: source.value.pricing_breakdown },
+        {
+            name: source.value.service_name, description: source.value.description, quantity: 1,
+            reference: source.value.pricing_reference, breakdown: source.value.pricing_breakdown
+        },
         ...additional.map(item => ({
             name: item.name, description: item.notes, quantity: item.quantity,
             reference: item.pricing_reference, breakdown: item.pricing_breakdown,
@@ -112,9 +121,12 @@ watch(() => quote.request_id, () => {
     ];
     // El presupuesto acepta hasta 100 renglones. Si el desglose excede el límite, se conserva un renglón por servicio.
     const detail = services.flatMap(requestBudgetLines);
-    const items = detail.length <= 100 ? detail : services.flatMap(service => requestBudgetLines({ ...service, breakdown: null }));
+    const items = detail.length <= 100 ? detail : services.flatMap(service => requestBudgetLines({
+        ...service,
+        breakdown: null
+    }));
     quote.items = items.map(item => newItem(item.description, item.quantity, item.reference));
-}, { immediate: true });
+}, {immediate: true});
 // Un importe sugerido no se traslada automáticamente a otra moneda.
 watch(() => quote.currency_code, (currency, previous) => {
     for (const item of quote.items) {
@@ -123,12 +135,13 @@ watch(() => quote.currency_code, (currency, previous) => {
             item.unit_price = '';
         }
     }
-}, { flush: 'sync' });
+}, {flush: 'sync'});
 
 function advance() {
     if (step.value < 3) step.value += 1;
     else preview.value = true;
 }
+
 function save(send) {
     quote.send = send;
     submit(quote, 'presupuesto', {
@@ -146,54 +159,208 @@ function save(send) {
 <template>
     <section class="page shell budget-editor">
         <B href="/gestion/presupuestos" variant="ghost">← Volver a presupuestos</B>
-        <div class="budget-heading"><p class="eyebrow">Gestión · Presupuesto formal</p><h1>{{ selected.budget_id ? 'Prepará la próxima versión' : 'Prepará el presupuesto' }}</h1><p>{{ direct ? 'Cargá los datos del cliente, definí los servicios y prepará el PDF.' : 'Revisá el pedido del cliente, definí los servicios y comprobá el documento antes de enviarlo.' }}</p><p v-if="selected.budget_id" class="editor-note">Los documentos enviados se conservan. {{ selected.status === 'draft' ? 'Estás editando el borrador de la versión' : 'Se guardará una nueva versión:' }} {{ version }}.</p></div>
-        <ol class="budget-steps" aria-label="Pasos para preparar presupuesto"><li v-for="(label, index) in labels" :key="label"><button type="button" :disabled="index + 1 > step || quote.processing" :aria-current="step === index + 1 ? 'step' : undefined" @click="step = index + 1">{{ index + 1 }}. {{ label }}</button></li></ol>
-        <div v-if="Object.keys(quote.errors).length" class="notice" role="alert"><div><strong>Revisá los datos del presupuesto</strong><ul><li v-for="(error, field) in quote.errors" :key="field">{{ error }}</li></ul></div></div>
-        <div v-if="needsIssuer" class="editor-note" role="status"><p>Completá los datos del emisor antes de guardar o enviar el presupuesto.</p><B href="/mi-perfil#emision" variant="secondary">Completar datos del emisor</B></div>
+        <div class="budget-heading"><p class="eyebrow">Gestión · Presupuesto formal</p>
+            <h1>{{ selected.budget_id ? 'Prepará la próxima versión' : 'Prepará el presupuesto' }}</h1>
+            <p>{{
+                    direct ? 'Cargá los datos del cliente, definí los servicios y prepará el PDF.' : 'Revisá el pedido del cliente, definí los servicios y comprobá el documento antes de enviarlo.'
+                }}</p>
+            <p v-if="selected.budget_id" class="editor-note">Los documentos enviados se conservan. {{
+                    selected.status === 'draft' ? 'Estás editando el borrador de la versión' : 'Se guardará una nueva versión:'
+                }} {{ version }}.</p></div>
+        <ol class="budget-steps" aria-label="Pasos para preparar presupuesto">
+            <li v-for="(label, index) in labels" :key="label">
+                <button type="button" :disabled="index + 1 > step || quote.processing"
+                        :aria-current="step === index + 1 ? 'step' : undefined" @click="step = index + 1">{{
+                        index + 1
+                    }}. {{ label }}
+                </button>
+            </li>
+        </ol>
+        <div v-if="Object.keys(quote.errors).length" class="notice" role="alert">
+            <div><strong>Revisá los datos del presupuesto</strong>
+                <ul>
+                    <li v-for="(error, field) in quote.errors" :key="field">{{ error }}</li>
+                </ul>
+            </div>
+        </div>
+        <div v-if="needsIssuer" class="editor-note" role="status"><p>Completá los datos del emisor antes de guardar o
+            enviar el presupuesto.</p><B href="/mi-perfil#emision" variant="secondary">Completar datos del emisor</B>
+        </div>
 
         <!-- El formulario valida el paso visible y conserva los datos al volver a editar. -->
         <form class="budget-editor-grid" @submit.prevent="advance">
             <v-card class="card budget-panel">
                 <p class="eyebrow">Paso {{ step }} de 3</p>
                 <BudgetSourceFields v-if="step === 1" :quote="quote" :selected="selected" :data="data"
-                    :direct="direct" :source="source" :client="client" :request-options="requestOptions" />
+                                    :direct="direct" :source="source" :client="client"
+                                    :request-options="requestOptions"/>
                 <BudgetLines v-else-if="step === 2" :quote="quote" :line-cents="lineCents" :price-hint="priceHint"
-                    @add-item="quote.items.push(emptyItem())" />
-                <BudgetTerms v-else :quote="quote" :direct="direct" />
+                             @add-item="quote.items.push(emptyItem())"/>
+                <BudgetTerms v-else :quote="quote" :direct="direct"/>
                 <!-- Una sola tasa de IVA se comparte entre servicios, condiciones y documento. -->
-                <BudgetVatFields v-if="step > 1" v-model="includeVat" :quote="quote" />
-                <p v-if="source && !canPrepare" class="editor-note" role="status">Esta solicitud ya no está abierta. Consultá el presupuesto y el estado del proyecto antes de continuar.</p>
-                <div class="form-actions"><B v-if="step > 1" variant="secondary" :disabled="quote.processing" @click="step -= 1">Anterior</B><span v-else /><B type="submit" :disabled="!canPrepare || needsIssuer || quote.processing" arrow>{{ step === 3 ? 'Revisar documento' : 'Continuar' }}</B></div>
+                <BudgetVatFields v-if="step > 1" v-model="includeVat" :quote="quote"/>
+                <p v-if="source && !canPrepare" class="editor-note" role="status">Esta solicitud ya no está abierta.
+                    Consultá el presupuesto y el estado del proyecto antes de continuar.</p>
+                <div class="form-actions"><B v-if="step > 1" variant="secondary" :disabled="quote.processing"
+                                             @click="step -= 1">Anterior</B><span v-else/><B type="submit"
+                                                                                             :disabled="!canPrepare || needsIssuer || quote.processing"
+                                                                                             arrow>{{
+                        step === 3 ? 'Revisar documento' : 'Continuar'
+                    }}</B></div>
             </v-card>
 
             <BudgetPreviewSidebar :budget="documentPreview" :client="client" :issuer="issuer" :direct="direct"
-                :disabled="!canPrepare || needsIssuer || quote.processing" :saving="quote.processing && !quote.send"
-                @expand="preview = true" @save="save(false)" />
+                                  :disabled="!canPrepare || needsIssuer || quote.processing"
+                                  :saving="quote.processing && !quote.send"
+                                  @expand="preview = true" @save="save(false)"/>
         </form>
-        <SidePanel title="Vista previa del presupuesto" v-model="preview" max-width="800" :persistent="quote.processing">
-            <div class="synaux-app"><v-card class="card modal-card budget-preview"><div class="context-heading"><h2>{{ direct ? 'Revisá antes de emitir' : 'Revisá antes de enviar' }}</h2></div><BudgetDocument :budget="documentPreview" :client="client" :issuer="issuer" /><div class="form-actions"><B variant="secondary" :disabled="quote.processing" @click="preview = false">Volver a editar</B><B v-if="step === 3" :disabled="quote.processing || !canPrepare || needsIssuer" arrow @click="save(true)">{{ direct ? (quote.processing ? 'Emitiendo…' : 'Emitir presupuesto') : (quote.processing ? 'Enviando…' : 'Enviar presupuesto al cliente') }}</B></div></v-card></div>
+        <SidePanel title="Vista previa del presupuesto" v-model="preview" max-width="800"
+                   :persistent="quote.processing">
+            <div class="synaux-app">
+                <v-card class="card modal-card budget-preview">
+                    <div class="context-heading"><h2>{{
+                            direct ? 'Revisá antes de emitir' : 'Revisá antes de enviar'
+                        }}</h2></div>
+                    <BudgetDocument :budget="documentPreview" :client="client" :issuer="issuer"/>
+                    <div class="form-actions"><B variant="secondary" :disabled="quote.processing"
+                                                 @click="preview = false">Volver a editar</B><B v-if="step === 3"
+                                                                                                :disabled="quote.processing || !canPrepare || needsIssuer"
+                                                                                                arrow
+                                                                                                @click="save(true)">{{
+                            direct ? (quote.processing ? 'Emitiendo…' : 'Emitir presupuesto') : (quote.processing ? 'Enviando…' : 'Enviar presupuesto al cliente')
+                        }}</B></div>
+                </v-card>
+            </div>
         </SidePanel>
     </section>
 </template>
 
 <style scoped>
 /* La grilla, las tarjetas y los pasos siguen el recorrido del cliente sin comprimir los conceptos. */
-.budget-heading { margin: 26px 0; max-width: 860px; }
-.budget-heading h1 { font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 700; line-height: 1.12; margin-bottom: 16px; }
-.budget-panel :deep(h2) { font-size: clamp(1.5rem, 2.5vw, 2rem); font-weight: 700; }
-.budget-panel :deep(h3) { font-size: 1.1rem; font-weight: 700; }
-.budget-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 0; margin: 0 0 24px; list-style: none; }
-.budget-steps button { min-height: 48px; width: 100%; border: 1px solid #1f6f7f33; border-radius: 10px; color: #153b64; background: white; font: inherit; font-weight: 700; cursor: pointer; }
-.budget-steps button[aria-current='step'] { background: #153b64; color: white; }
-.budget-steps button:disabled { opacity: .6; cursor: default; }
-.budget-steps button:focus-visible { outline: 3px solid #1f6f7f; outline-offset: 3px; }
-.budget-editor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }
-.budget-editor-grid > * { min-width: 0; }
-.editor-note { background: #f5f9fa; border: 1px solid #1f6f7f22; padding: 16px; border-radius: 12px; margin: 16px 0; }
-.editor-note .icon { width: 20px; vertical-align: middle; margin-right: 6px; }
-.context-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
-.context-heading h3, .context-heading h2 { margin: 0; }
-.budget-preview { max-height: 90vh; overflow-y: auto; }
-@media (max-width: 900px) { .budget-editor-grid { grid-template-columns: 1fr; } }
-@media (max-width: 600px) { .budget-steps { gap: 6px; } .budget-steps button { font-size: .85rem; padding: 8px 4px; } .form-actions { flex-wrap: wrap; gap: 12px; } .form-actions .btn { flex: 1 1 100%; } }
+.budget-heading {
+    margin: 26px 0;
+    max-width: 860px;
+}
+
+.budget-heading h1 {
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    font-weight: 700;
+    line-height: 1.12;
+    margin-bottom: 16px;
+}
+
+.budget-panel :deep(h2) {
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    font-weight: 700;
+}
+
+.budget-panel :deep(h3) {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.budget-steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    padding: 0;
+    margin: 0 0 24px;
+    list-style: none;
+}
+
+.budget-steps button {
+    min-height: 48px;
+    width: 100%;
+    border: 1px solid #1f6f7f33;
+    border-radius: 10px;
+    color: #153b64;
+    background: white;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.budget-steps button[aria-current='step'] {
+    background: #153b64;
+    color: white;
+}
+
+.budget-steps button:disabled {
+    opacity: .6;
+    cursor: default;
+}
+
+.budget-steps button:focus-visible {
+    outline: 3px solid #1f6f7f;
+    outline-offset: 3px;
+}
+
+.budget-editor-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    align-items: start;
+}
+
+.budget-editor-grid > * {
+    min-width: 0;
+}
+
+.editor-note {
+    background: #f5f9fa;
+    border: 1px solid #1f6f7f22;
+    padding: 16px;
+    border-radius: 12px;
+    margin: 16px 0;
+}
+
+.editor-note .icon {
+    width: 20px;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+.context-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.context-heading h3, .context-heading h2 {
+    margin: 0;
+}
+
+.budget-preview {
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+@media (max-width: 900px) {
+    .budget-editor-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .budget-steps {
+        gap: 6px;
+    }
+
+    .budget-steps button {
+        font-size: .85rem;
+        padding: 8px 4px;
+    }
+
+    .form-actions {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .form-actions .btn {
+        flex: 1 1 100%;
+    }
+}
 </style>

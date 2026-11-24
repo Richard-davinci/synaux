@@ -8,32 +8,36 @@ export function referenceLine(reference, quantity = 1, segment = null, currency 
     const code = reference?.currency || 'ARS';
     if (min == null || max == null || !Number.isFinite(Number(min)) || !Number.isFinite(Number(max))
         || Number(min) < 0 || Number(max) < Number(min) || !Number.isInteger(count) || count < 1 || count > 1000
-        || (currency && code !== currency)) return { priced: false, quantity: count };
-    return { priced: true, quantity: count, currency: code,
+        || (currency && code !== currency)) return {priced: false, quantity: count};
+    return {
+        priced: true, quantity: count, currency: code,
         unitMin: Number(min), unitMax: Number(max), segment: selected?.label ?? reference?.segment,
-        min: Math.round(Number(min) * 100) * count / 100, max: Math.round(Number(max) * 100) * count / 100 };
+        min: Math.round(Number(min) * 100) * count / 100, max: Math.round(Number(max) * 100) * count / 100
+    };
 }
 
 // Suma solo los renglones cotizados en una misma moneda y distingue un subtotal de un total completo.
 export function summarizePrices(lines, currency = 'ARS') {
     const priced = lines.filter(line => line.priced && line.currency === currency);
-    return { currency, hasPrice: priced.length > 0, pending: lines.length - priced.length,
+    return {
+        currency, hasPrice: priced.length > 0, pending: lines.length - priced.length,
         min: priced.reduce((sum, line) => sum + Math.round(line.min * 100), 0) / 100,
-        max: priced.reduce((sum, line) => sum + Math.round(line.max * 100), 0) / 100 };
+        max: priced.reduce((sum, line) => sum + Math.round(line.max * 100), 0) / 100
+    };
 }
 
 
 // Desglosa únicamente instantáneas coherentes y mantiene la referencia agrupada si no se puede conservar el importe.
-export function requestBudgetLines({ name, description, quantity, reference, breakdown }) {
+export function requestBudgetLines({name, description, quantity, reference, breakdown}) {
     const title = name || 'Servicio';
     const text = (title + (description ? '\n' + description : '')).slice(0, 2000);
-    const fallback = [{ description: text, quantity, reference }];
+    const fallback = [{description: text, quantity, reference}];
     if (!reference || !breakdown?.items?.length || breakdown.base_min == null || breakdown.base_max == null) return fallback;
 
     const currency = reference.currency;
-    const currencyReference = (min, max) => ({ min, max, currency });
+    const currencyReference = (min, max) => ({min, max, currency});
     const base = currencyReference(Number(breakdown.base_min), Number(breakdown.base_max));
-    const lines = [{ description: text, quantity, reference: base }];
+    const lines = [{description: text, quantity, reference: base}];
     const cents = (price, count) => Math.round(Number(price) * count * 100);
     for (const item of breakdown.items) {
         const count = Number(item.quantity);

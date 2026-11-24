@@ -20,7 +20,7 @@ class SynauxInstitutionalTariffSeeder extends Seeder
             }
 
             $service = DB::table('services')->where('slug', 'sitio-institucional')->first();
-            if (! $service) {
+            if (!$service) {
                 throw new \RuntimeException('Cargá primero SynauxCatalogSeeder.');
             }
             $otherAutomatic = DB::table('services')->where('active', 1)->where('estimation_mode', 'automatic')->where('id', '!=', $service->id)->exists();

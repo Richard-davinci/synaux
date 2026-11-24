@@ -1,5 +1,5 @@
-import { router, usePage } from '@inertiajs/vue3';
-import { demoNotice } from './prototype';
+import {router, usePage} from '@inertiajs/vue3';
+import {demoNotice} from './prototype';
 
 // Inertia conserva los errores del formulario; en el prototipo se simula el envío.
 export function useSubmit() {
@@ -13,6 +13,6 @@ export function useSubmit() {
         }
 
         const url = action.startsWith('/') ? action : `/acciones/${action}`;
-        form.post(url, { preserveScroll: true, ...options });
+        form.post(url, {preserveScroll: true, ...options});
     };
 }

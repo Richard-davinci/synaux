@@ -1,15 +1,15 @@
 <script setup>
-import { computed, ref } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import {computed, ref} from 'vue';
+import {useForm} from '@inertiajs/vue3';
 import B from '../../Components/UI/AppButton.vue';
 import F from '../../Components/UI/FormField.vue';
 import S from '../../Components/UI/StatusBadge.vue';
 import SidePanel from '../../Components/UI/SidePanel.vue';
 import T from '../../Components/UI/PageTitle.vue';
-import { date } from '../../support/formatters';
-import { useSubmit } from '../../support/useSubmit';
+import {date} from '../../support/formatters';
+import {useSubmit} from '../../support/useSubmit';
 
-const props = defineProps({ data: { type: Object, required: true } });
+const props = defineProps({data: {type: Object, required: true}});
 const selected = computed(() => props.data.selected ?? {});
 
 // La propuesta se prepara para la oportunidad seleccionada y conserva el borrador al cerrar el panel.
@@ -20,7 +20,7 @@ const proposalForm = useForm({
 const submit = useSubmit();
 
 function propose() {
-    submit(proposalForm, 'propuesta', { previewTarget: 'mis-propuestas' });
+    submit(proposalForm, 'propuesta', {previewTarget: 'mis-propuestas'});
 }
 </script>
 
@@ -28,7 +28,7 @@ function propose() {
     <section class="page shell">
         <B href="/oportunidades" variant="ghost">← Volver al muro</B>
         <T :eyebrow="`${selected.category} · SOL-${selected.id}`" :title="selected.title">
-        <S :status="selected.status" /></T>
+            <S :status="selected.status"/></T>
         <div class="detail-layout">
             <v-card class="card">
                 <h2>Sobre el proyecto</h2>
@@ -63,28 +63,35 @@ function propose() {
                     </dl>
                     <template v-if="$page.props.auth || data.preview">
                         <B v-if="selected.is_owner" :href="`/solicitudes/${selected.id}`">Administrar solicitud</B>
-                        <B v-else-if="data.existingProposal" href="/profesional/propuestas" variant="secondary">Ver mi propuesta</B>
-                        <B v-else-if="data.profile?.active || data.preview" :disabled="selected.status !== 'open'" @click="proposalOpen = true">Presentar propuesta</B>
+                        <B v-else-if="data.existingProposal" href="/profesional/propuestas" variant="secondary">Ver mi
+                            propuesta</B>
+                        <B v-else-if="data.profile?.active || data.preview" :disabled="selected.status !== 'open'"
+                           @click="proposalOpen = true">Presentar propuesta</B>
                         <B v-else href="/profesional/perfil">Completar perfil profesional</B>
                     </template>
                     <B v-else href="/ingresar">Ingresar para postularme</B>
-                    <p class="reference-note">La selección abre la preparación de un presupuesto. No implica contratación automática.</p>
+                    <p class="reference-note">La selección abre la preparación de un presupuesto. No implica
+                        contratación automática.</p>
                 </v-card>
             </aside>
         </div>
-        <SidePanel v-model="proposalOpen" title="Propuestas e invitaciones" :persistent="proposalForm.processing" max-width="520">
+        <SidePanel v-model="proposalOpen" title="Propuestas e invitaciones" :persistent="proposalForm.processing"
+                   max-width="520">
             <div class="synaux-app">
                 <v-card class="card modal-card">
                     <p class="eyebrow">{{ selected.title }}</p>
                     <h2>Presentar propuesta</h2>
                     <p>Contá cómo abordarías el proyecto. Los importes son una referencia inicial.</p>
                     <form @submit.prevent="propose">
-                        <F v-model="proposalForm.message" label="Tu enfoque y experiencia" type="textarea" required />
+                        <F v-model="proposalForm.message" label="Tu enfoque y experiencia" type="textarea" required/>
                         <div class="form-grid">
-                            <F v-model="proposalForm.estimated_delivery_days" label="Plazo estimado (días)" type="number" min="1" required />
-                            <F v-model="proposalForm.amount" label="Importe de referencia (opcional)" type="number" min="0" step="0.01" />
+                            <F v-model="proposalForm.estimated_delivery_days" label="Plazo estimado (días)"
+                               type="number" min="1" required/>
+                            <F v-model="proposalForm.amount" label="Importe de referencia (opcional)" type="number"
+                               min="0" step="0.01"/>
                         </div>
-                        <F v-model="proposalForm.currency_code" label="Moneda" type="select" :options="['ARS','USD','EUR']" />
+                        <F v-model="proposalForm.currency_code" label="Moneda" type="select"
+                           :options="['ARS','USD','EUR']"/>
                         <div class="form-actions">
                             <B variant="secondary" :disabled="proposalForm.processing" @click="proposalOpen = false">Cancelar</B>
                             <B type="submit" :disabled="proposalForm.processing">Enviar propuesta</B>

@@ -11,7 +11,9 @@ use Inertia\Inertia;
 
 class EstimateController extends Controller
 {
-    public function __construct(private EstimateStore $estimates) {}
+    public function __construct(private EstimateStore $estimates)
+    {
+    }
 
     // Recupera el cálculo de sesión y conduce al detalle o a una solicitud basada en esa estimación.
     public function store(Request $request): RedirectResponse
@@ -23,7 +25,7 @@ class EstimateController extends Controller
         abort_unless($pending, 422, 'Primero completá el estimador.');
         $id = $this->estimates->save($request->user()->id, $pending);
 
-        return redirect($request->boolean('to_request') ? '/solicitudes/nueva?estimacion='.$id : '/estimaciones/'.$id)
+        return redirect($request->boolean('to_request') ? '/solicitudes/nueva?estimacion=' . $id : '/estimaciones/' . $id)
             ->with('notice', 'Estimación guardada. Podés crear una solicitud con estas respuestas.');
     }
 
@@ -48,7 +50,7 @@ class EstimateController extends Controller
         $result = $catalog->calculate($data['service'], $data['answers']);
         $request->session()->put('pending_estimate', $result);
 
-        return redirect('/estimador?paso=4&servicio='.$data['service']);
+        return redirect('/estimador?paso=4&servicio=' . $data['service']);
     }
 
     // Carga una estimación visible de la propia cuenta junto con el catálogo que usa su resumen.
@@ -60,7 +62,7 @@ class EstimateController extends Controller
             'screen' => 'estimacion',
             'area' => $request->user()->is_admin ? 'gestion' : 'cliente',
             'selected' => $selected,
-            'services' => $catalog->services((bool) $request->user()->is_admin),
+            'services' => $catalog->services((bool)$request->user()->is_admin),
         ]);
     }
 }

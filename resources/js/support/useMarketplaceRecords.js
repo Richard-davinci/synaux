@@ -1,5 +1,5 @@
-import { computed } from 'vue';
-import { usePage } from '@inertiajs/vue3';
+import {computed} from 'vue';
+import {usePage} from '@inertiajs/vue3';
 
 // Las listas distinguen registros recibidos y enviados dentro de las colecciones autorizadas por Laravel.
 export function useMarketplaceRecords(props) {
@@ -14,5 +14,5 @@ export function useMarketplaceRecords(props) {
     const proposals = computed(() => (props.data.proposals ?? []).filter(forAccount));
     const invitations = computed(() => (props.data.invitations ?? []).filter(forAccount));
 
-    return { professional, proposals, invitations };
+    return {professional, proposals, invitations};
 }

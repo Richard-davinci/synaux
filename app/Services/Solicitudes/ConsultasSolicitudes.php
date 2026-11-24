@@ -10,14 +10,14 @@ class ConsultasSolicitudes
     public function requests(?int $owner, bool $management = false, bool $public = false, ?array $only = null): array
     {
         return DB::table('project_requests as r')->leftJoin('services as s', 's.id', '=', 'r.service_id')
-            ->leftJoin('estimates as e', fn ($join) => $join->on('e.id', '=', 'r.estimate_id')
+            ->leftJoin('estimates as e', fn($join) => $join->on('e.id', '=', 'r.estimate_id')
                 ->on('e.user_id', '=', 'r.user_id')->on('e.service_id', '=', 'r.service_id'))
             ->join('users as contact_owner', 'contact_owner.id', '=', 'r.user_id')
-            ->when($only !== null, fn ($q) => $q->whereIn('r.id', $only))
-            ->when($public, fn ($q) => $q->where('r.visibility', 'public')->where('r.status', 'open'))
-            ->when(! $public && ! $management, fn ($q) => $q->where('r.user_id', $owner))
+            ->when($only !== null, fn($q) => $q->whereIn('r.id', $only))
+            ->when($public, fn($q) => $q->where('r.visibility', 'public')->where('r.status', 'open'))
+            ->when(!$public && !$management, fn($q) => $q->where('r.user_id', $owner))
             // Los borradores pertenecen al cliente hasta que se envía el pedido.
-            ->when($management, fn ($q) => $q->where(fn ($drafts) => $drafts->where('r.status', '!=', 'draft')->orWhere('r.user_id', $owner)))
+            ->when($management, fn($q) => $q->where(fn($drafts) => $drafts->where('r.status', '!=', 'draft')->orWhere('r.user_id', $owner)))
             ->orderByDesc('r.created_at')->select('r.*', 's.name as service_name', 's.slug as service_slug', 'contact_owner.name as contact_name', 'contact_owner.email as contact_email',
                 'e.price_min as estimate_min', 'e.price_max as estimate_max', 'e.currency_snapshot as estimate_currency', 'e.tariff_version_id',
                 'e.base_min_snapshot', 'e.base_max_snapshot', 'e.items_snapshot as estimate_items')->get()->map(function ($r) use ($public) {

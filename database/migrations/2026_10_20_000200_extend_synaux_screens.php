@@ -5,8 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 // Añade los campos de presentación y las instantáneas que necesitan las pantallas del prototipo.
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         Schema::table('services', function (Blueprint $t) {
@@ -76,16 +75,16 @@ return new class extends Migration
         Schema::dropIfExists('estimation_rules');
         Schema::dropIfExists('contact_inquiries');
         foreach ([
-            'services' => ['summary', 'deliverables'],
-            'professional_profiles' => ['location', 'skills', 'active'],
-            'portfolio_projects' => ['category', 'challenge', 'result', 'cover_path', 'year'],
-            'estimates' => ['request_key', 'answers_snapshot', 'items_snapshot', 'currency_snapshot'],
-            'project_requests' => ['answers_snapshot', 'skills', 'category', 'budget_reference', 'desired_deadline', 'reviewed_at'],
-            'proposals' => ['amount', 'currency_code'],
-            'budget_versions' => ['title', 'sent_at'],
-            'projects' => ['progress', 'notes'],
-        ] as $table => $columns) {
-            Schema::table($table, fn (Blueprint $t) => $t->dropColumn($columns));
+                     'services' => ['summary', 'deliverables'],
+                     'professional_profiles' => ['location', 'skills', 'active'],
+                     'portfolio_projects' => ['category', 'challenge', 'result', 'cover_path', 'year'],
+                     'estimates' => ['request_key', 'answers_snapshot', 'items_snapshot', 'currency_snapshot'],
+                     'project_requests' => ['answers_snapshot', 'skills', 'category', 'budget_reference', 'desired_deadline', 'reviewed_at'],
+                     'proposals' => ['amount', 'currency_code'],
+                     'budget_versions' => ['title', 'sent_at'],
+                     'projects' => ['progress', 'notes'],
+                 ] as $table => $columns) {
+            Schema::table($table, fn(Blueprint $t) => $t->dropColumn($columns));
         }
     }
 };

@@ -1,68 +1,277 @@
 @scope (.synaux-app) {
     /* El catálogo reproduce el buscador dentro de un panel y las tarjetas numeradas de Figma. */
-    .catalog-tools { border: 1px solid var(--line); border-radius: 14px; padding: 24px; margin-bottom: 30px; }
-    .catalog-page .page-title h1 { max-width: 680px; }
-    .catalog-tools-row { display: grid; grid-template-columns: 1.5fr 1fr; gap: 30px; align-items: end; }
-    .catalog-tools .field { margin-bottom: 0; }
-    .catalog-tools .filter-row { margin: 0; flex-wrap: wrap; overflow: visible; }
-    .catalog-count { margin: 18px 0 0; font-size: .85rem; }
-    .service-card { min-height: 350px; }
-    .service-card h2 { font-size: 1.55rem; }
-    .service-card .card-link { color: #1f6f7f; }
-    .service-card .card-link .btn { padding-left: 0; }
-    .service-number { color: #f5f9fa; }
-    .empty-state { padding: 44px; }
-    .empty-state .btn { margin-top: 18px; }
+    .catalog-tools {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 24px;
+        margin-bottom: 30px;
+    }
+    .catalog-page .page-title h1 {
+        max-width: 680px;
+    }
+    .catalog-tools-row {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr;
+        gap: 30px;
+        align-items: end;
+    }
+    .catalog-tools .field {
+        margin-bottom: 0;
+    }
+    .catalog-tools .filter-row {
+        margin: 0;
+        flex-wrap: wrap;
+        overflow: visible;
+    }
+    .catalog-count {
+        margin: 18px 0 0;
+        font-size: .85rem;
+    }
+    .service-card {
+        min-height: 350px;
+    }
+    .service-card h2 {
+        font-size: 1.55rem;
+    }
+    .service-card .card-link {
+        color: #1f6f7f;
+    }
+    .service-card .card-link .btn {
+        padding-left: 0;
+    }
+    .service-number {
+        color: #f5f9fa;
+    }
+    .empty-state {
+        padding: 44px;
+    }
+    .empty-state .btn {
+        margin-top: 18px;
+    }
 
     /* Cuenta real y galería visual están diferenciadas; sus controles nunca intercambian permisos. */
-    .account-bar, .reference-bar { background: #153b64; color: white; font-size: .8rem; }
-    .account-bar .shell, .reference-bar .shell { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-block: 8px; }
-    .account-bar nav { display: flex; flex-wrap: wrap; gap: 18px; }
-    .account-bar button { color: white; border: 0; background: transparent; cursor: pointer; }
-    .reference-bar label { display: flex; align-items: center; gap: 10px; }
-    .reference-bar select { min-height: 30px; max-width: 450px; font-size: .75rem; color: #153b64; padding: 4px 10px; }
-    .account-bar a:hover, .reference-bar a:hover { color: #2db3a3; }
+    .account-bar, .reference-bar {
+        background: #153b64;
+        color: white;
+        font-size: .8rem;
+    }
+    .account-bar .shell, .reference-bar .shell {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding-block: 8px;
+    }
+    .account-bar nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+    }
+    .account-bar button {
+        color: white;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+    }
+    .reference-bar label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .reference-bar select {
+        min-height: 30px;
+        max-width: 450px;
+        font-size: .75rem;
+        color: #153b64;
+        padding: 4px 10px;
+    }
+    .account-bar a:hover, .reference-bar a:hover {
+        color: #2db3a3;
+    }
 
     /* Listados de cuenta y tarjetas de proyecto usan el mismo espacio y jerarquía del archivo fuente. */
-    .list-stack { display: grid; gap: 18px; }
-    .list-card { display: flex; justify-content: space-between; gap: 24px; align-items: center; }
-    .list-card h3 { margin-block: 14px 5px; }
-    .list-card p { margin-bottom: 0; font-size: .9rem; }
-    .detail-layout { display: grid; grid-template-columns: 1.8fr .8fr; gap: 24px; }
-    .detail-main { display: grid; gap: 20px; align-content: start; }
-    .detail-layout > aside { display: grid; gap: 20px; align-content: start; }
-    .summary-card { background: #f5f9fa !important; }
-    .detail-main .field:last-child { margin-bottom: 0; }
-    .row-between { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
-    .text-block { white-space: pre-line; overflow-wrap: anywhere; }
-    .status-open, .status-sent, .status-issued, .status-in_progress, .status-review { background: #edf9fa; color: #1f6f7f; }
-    .status-accepted, .status-completed { color: #237a57; background: #e9f6ef; }
-    .status-expired, .status-rejected, .status-cancelled { color: #a13b42; background: #fcebed; }
-    .status-draft, .status-pending { color: #946213; background: #fff5dd; }
-    .stats-four { grid-template-columns: repeat(4, 1fr); }
-    .progress-track { height: 8px; border-radius: 8px; background: #f5f9fa; margin: 20px 0; overflow: hidden; }
-    .progress-track span { display: block; height: 100%; background: #2db3a3; }
-    .reference-note { font-size: .8rem; color: #446075; }
-    .select-row { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
-    .select-row input { width: 18px; min-height: 18px; }
-    .version button { background: none; border: 0; color: #1f6f7f; cursor: pointer; text-align: left; }
+    .list-stack {
+        display: grid;
+        gap: 18px;
+    }
+    .list-card {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        align-items: center;
+    }
+    .list-card h3 {
+        margin-block: 14px 5px;
+    }
+    .list-card p {
+        margin-bottom: 0;
+        font-size: .9rem;
+    }
+    .detail-layout {
+        display: grid;
+        grid-template-columns: 1.8fr .8fr;
+        gap: 24px;
+    }
+    .detail-main {
+        display: grid;
+        gap: 20px;
+        align-content: start;
+    }
+    .detail-layout > aside {
+        display: grid;
+        gap: 20px;
+        align-content: start;
+    }
+    .summary-card {
+        background: #f5f9fa !important;
+    }
+    .detail-main .field:last-child {
+        margin-bottom: 0;
+    }
+    .row-between {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+    }
+    .text-block {
+        white-space: pre-line;
+        overflow-wrap: anywhere;
+    }
+    .status-open, .status-sent, .status-issued, .status-in_progress, .status-review {
+        background: #edf9fa;
+        color: #1f6f7f;
+    }
+    .status-accepted, .status-completed {
+        color: #237a57;
+        background: #e9f6ef;
+    }
+    .status-expired, .status-rejected, .status-cancelled {
+        color: #a13b42;
+        background: #fcebed;
+    }
+    .status-draft, .status-pending {
+        color: #946213;
+        background: #fff5dd;
+    }
+    .stats-four {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    .progress-track {
+        height: 8px;
+        border-radius: 8px;
+        background: #f5f9fa;
+        margin: 20px 0;
+        overflow: hidden;
+    }
+    .progress-track span {
+        display: block;
+        height: 100%;
+        background: #2db3a3;
+    }
+    .reference-note {
+        font-size: .8rem;
+        color: #446075;
+    }
+    .select-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    .select-row input {
+        width: 18px;
+        min-height: 18px;
+    }
+    .version button {
+        background: none;
+        border: 0;
+        color: #1f6f7f;
+        cursor: pointer;
+        text-align: left;
+    }
 
     /* Formularios de edición y tablas desbordan dentro de su panel, nunca fuera de la pantalla. */
-    .admin-layout { display: grid; grid-template-columns: 190px 1fr; gap: 40px; }
-    .admin-menu { display: flex; flex-direction: column; gap: 6px; padding-right: 20px; border-right: 1px solid var(--line); }
-    .admin-menu a { padding: 12px; border-radius: 6px; }
-    .admin-menu .active { background: #153b64; color: white; }
-    .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
-    .admin-layout > *, .detail-layout > *, .editor-grid > * { min-width: 0; }
-    table { border-collapse: collapse; width: 100%; text-align: left; }
-    th, td { padding: 16px 18px; border-bottom: 1px solid var(--line); font-size: .9rem; }
-    th { background: #f5f9fa; color: #446075; font-size: .8rem; }
-    tr:last-child td { border-bottom: 0; }
-    .budget-line { display: grid; grid-template-columns: 1fr 90px 150px 42px; gap: 8px; margin-block: 12px; }
-    .budget-line .field { margin-bottom: 0; }
-    .editor-panels { display: grid; gap: 20px; }
-    .editor-grid { display: grid; grid-template-columns: 1.8fr .8fr; gap: 24px; align-items: start; }
-    .upload-preview { max-height: 240px; max-width: 100%; object-fit: contain; margin-bottom: 20px; }
-    .gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 28px; }
-    .gallery img { width: 100%; height: auto; border-radius: 12px; }
+    .admin-layout {
+        display: grid;
+        grid-template-columns: 190px 1fr;
+        gap: 40px;
+    }
+    .admin-menu {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding-right: 20px;
+        border-right: 1px solid var(--line);
+    }
+    .admin-menu a {
+        padding: 12px;
+        border-radius: 6px;
+    }
+    .admin-menu .active {
+        background: #153b64;
+        color: white;
+    }
+    .table-scroll {
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+    }
+    .admin-layout > *, .detail-layout > *, .editor-grid > * {
+        min-width: 0;
+    }
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        text-align: left;
+    }
+    th, td {
+        padding: 16px 18px;
+        border-bottom: 1px solid var(--line);
+        font-size: .9rem;
+    }
+    th {
+        background: #f5f9fa;
+        color: #446075;
+        font-size: .8rem;
+    }
+    tr:last-child td {
+        border-bottom: 0;
+    }
+    .budget-line {
+        display: grid;
+        grid-template-columns: 1fr 90px 150px 42px;
+        gap: 8px;
+        margin-block: 12px;
+    }
+    .budget-line .field {
+        margin-bottom: 0;
+    }
+    .editor-panels {
+        display: grid;
+        gap: 20px;
+    }
+    .editor-grid {
+        display: grid;
+        grid-template-columns: 1.8fr .8fr;
+        gap: 24px;
+        align-items: start;
+    }
+    .upload-preview {
+        max-height: 240px;
+        max-width: 100%;
+        object-fit: contain;
+        margin-bottom: 20px;
+    }
+    .gallery {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        margin-top: 28px;
+    }
+    .gallery img {
+        width: 100%;
+        height: auto;
+        border-radius: 12px;
+    }
 }

@@ -11,20 +11,22 @@ class GestionSolicitudes
     public function __construct(
         private RecorridoSolicitud $journey,
         private NotificationCenter $notifications,
-    ) {}
+    )
+    {
+    }
 
     // Recibe el usuario autenticado y los datos validados. Bloquea el borrador al editar y conserva la estimación de origen.
     public function save(int $userId, array $d, ?array $pending = null): int
     {
         return DB::transaction(function () use ($userId, $d, $pending) {
-            $existing = ! empty($d['id']) ? DB::table('project_requests')->where('id', $d['id'])->lockForUpdate()->firstOrFail() : null;
+            $existing = !empty($d['id']) ? DB::table('project_requests')->where('id', $d['id'])->lockForUpdate()->firstOrFail() : null;
             if ($existing) {
                 abort_unless($existing->user_id === $userId && $existing->status === 'draft', 403);
             }
             // La categoría se deriva del catálogo. Un borrador antiguo conserva su servicio aunque se haya desactivado.
             $service = DB::table('services as s')->join('service_categories as c', 'c.id', '=', 's.service_category_id')
                 ->where('s.id', $d['service_id'])->select('s.id', 's.active', 'c.active as category_active', 'c.name as category')->firstOrFail();
-            if ((! $existing || $existing->service_id !== (int) $d['service_id']) && (! $service->active || ! $service->category_active)) {
+            if ((!$existing || $existing->service_id !== (int)$d['service_id']) && (!$service->active || !$service->category_active)) {
                 throw ValidationException::withMessages(['service_id' => 'Elegí un servicio disponible en el catálogo.']);
             }
             $d['category'] = $service->category;
@@ -33,21 +35,21 @@ class GestionSolicitudes
             $estimateId = $d['estimate_id'] ?? $existing?->estimate_id;
             $estimate = $estimateId ? DB::table('estimates')->where('id', $estimateId)->where('user_id', $userId)->firstOrFail() : null;
             // Solo el borrador que ya estaba vinculado puede seguir usando una estimación eliminada.
-            if ($estimate?->deleted_at && (! $existing || $existing->estimate_id !== $estimate->id)) {
+            if ($estimate?->deleted_at && (!$existing || $existing->estimate_id !== $estimate->id)) {
                 throw ValidationException::withMessages(['estimate_id' => 'Esta estimación fue eliminada. Prepará una nueva estimación.']);
             }
-            if ($estimate && $estimate->service_id !== (int) $d['service_id']) {
+            if ($estimate && $estimate->service_id !== (int)$d['service_id']) {
                 throw ValidationException::withMessages(['service_id' => 'El servicio debe coincidir con la estimación de origen.']);
             }
             // Los servicios se identifican por registros del catálogo y sus nombres quedan en la instantánea del pedido.
             $additional = json_decode($existing?->requested_services ?? '[]', true);
             if (array_key_exists('additional_services', $d)) {
-                $samePreparedService = (int) ($pending['form']['service_id'] ?? 0) === (int) $d['service_id']
-                    && (int) ($pending['form']['id'] ?? 0) === (int) ($d['id'] ?? 0);
+                $samePreparedService = (int)($pending['form']['service_id'] ?? 0) === (int)$d['service_id']
+                    && (int)($pending['form']['id'] ?? 0) === (int)($d['id'] ?? 0);
                 $additional = $this->journey->calculateAdditionalServices(
-                    (int) $d['service_id'], $d['additional_services'], json_decode($estimate?->answers_snapshot ?? '[]', true),
+                    (int)$d['service_id'], $d['additional_services'], json_decode($estimate?->answers_snapshot ?? '[]', true),
                     $estimate?->currency_snapshot ?? 'ARS',
-                    [...$additional, ...($samePreparedService ? ($pending['additional_services'] ?? []) : [])], allowIncomplete: ! $d['publish'],
+                    [...$additional, ...($samePreparedService ? ($pending['additional_services'] ?? []) : [])], allowIncomplete: !$d['publish'],
                 );
             }
             $owner = DB::table('users')->where('id', $userId)->firstOrFail();
@@ -68,7 +70,7 @@ class GestionSolicitudes
             }
             // Solo el envío definitivo avisa a gestión; guardar un borrador no publica su existencia.
             if ($d['publish']) {
-                $this->notifications->send('solicitud', $id, 'solicitud-enviada:'.$id,
+                $this->notifications->send('solicitud', $id, 'solicitud-enviada:' . $id,
                     'Nueva solicitud', $d['title'], management: true, actor: $userId);
             }
 

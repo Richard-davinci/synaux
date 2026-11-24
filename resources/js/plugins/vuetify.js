@@ -1,17 +1,17 @@
 // Constructor de Vuetify, componentes utilizados, iconos SVG y traducciones al español.
-import { createVuetify } from 'vuetify';
-import { VApp, VBtn, VCard, VCol, VContainer, VDialog, VMain, VRow, VTextField } from 'vuetify/components';
-import { aliases, mdi } from 'vuetify/iconsets/mdi-svg';
-import { es } from 'vuetify/locale';
+import {createVuetify} from 'vuetify';
+import {VApp, VBtn, VCard, VCol, VContainer, VDialog, VMain, VRow, VTextField} from 'vuetify/components';
+import {aliases, mdi} from 'vuetify/iconsets/mdi-svg';
+import {es} from 'vuetify/locale';
 
 // Esta instancia se registra en app.js y comparte su configuración con todas las páginas.
 export default createVuetify({
     // Registra explícitamente los componentes que aparecen en las pantallas actuales.
-    components: { VApp, VBtn, VCard, VCol, VContainer, VDialog, VMain, VRow, VTextField },
+    components: {VApp, VBtn, VCard, VCol, VContainer, VDialog, VMain, VRow, VTextField},
     // Traduce los textos internos de los controles y define el español como idioma de respaldo.
-    locale: { locale: 'es', fallback: 'es', messages: { es } },
+    locale: {locale: 'es', fallback: 'es', messages: {es}},
     // Usa iconos SVG para evitar depender de una fuente de iconos externa.
-    icons: { defaultSet: 'mdi', aliases, sets: { mdi } },
+    icons: {defaultSet: 'mdi', aliases, sets: {mdi}},
     // El tema vincula los nombres primary, secondary y surface con la paleta aprobada.
     theme: {
         defaultTheme: 'synaux',
@@ -37,12 +37,12 @@ export default createVuetify({
     // Aspecto inicial de botones y tarjetas; cada pantalla puede ajustar estas opciones si lo necesita.
     defaults: {
         // Los controles de formulario usan una densidad consistente en todas las vistas.
-        VTextField: { density: 'compact', variant: 'outlined' },
-        VSelect: { density: 'compact', variant: 'outlined' },
-        VTextarea: { density: 'compact', variant: 'outlined' },
-        VAutocomplete: { density: 'compact', variant: 'outlined' },
-        VBtn: { rounded: 'lg', style: 'text-transform: none; letter-spacing: normal;' },
+        VTextField: {density: 'compact', variant: 'outlined'},
+        VSelect: {density: 'compact', variant: 'outlined'},
+        VTextarea: {density: 'compact', variant: 'outlined'},
+        VAutocomplete: {density: 'compact', variant: 'outlined'},
+        VBtn: {rounded: 'lg', style: 'text-transform: none; letter-spacing: normal;'},
         // La profundidad se define con sombras de la marca en CSS; elevation: 0 las anulaba.
-        VCard: { rounded: 'xl' },
+        VCard: {rounded: 'xl'},
     },
 });

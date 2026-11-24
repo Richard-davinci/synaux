@@ -1,54 +1,197 @@
 @scope (.synaux-app) {
-    :scope { background: #fff; color: #153b64; font-family: 'Nunito', sans-serif; }
-    h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 400; max-width: none; text-wrap: balance; }
-    h1 { font-size: clamp(2.1rem, 4vw, 4rem); }
-    .page { width: min(1180px, calc(100% - 48px)); padding-block: 64px 100px; }
-    .page-title { margin-bottom: 48px; }
-    .page-title h1 { max-width: 1050px; }
-    .narrow h1 { font-size: clamp(2rem, 4vw, 3rem); }
-    .page-title p { margin-bottom: 0; }
+    :scope {
+        background: #fff;
+        color: #153b64;
+        font-family: 'Nunito', sans-serif;
+    }
+    h1, h2, h3 {
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 400;
+        max-width: none;
+        text-wrap: balance;
+    }
+    h1 {
+        font-size: clamp(2.1rem, 4vw, 4rem);
+    }
+    .page {
+        width: min(1180px, calc(100% - 48px));
+        padding-block: 64px 100px;
+    }
+    .page-title {
+        margin-bottom: 48px;
+    }
+    .page-title h1 {
+        max-width: 1050px;
+    }
+    .narrow h1 {
+        font-size: clamp(2rem, 4vw, 3rem);
+    }
+    .page-title p {
+        margin-bottom: 0;
+    }
     /* El ajuste tipográfico evita finales de una sola palabra sin introducir saltos manuales. */
-    p, li { text-wrap: pretty; }
-    p { margin-bottom: 16px; }
-    a { color: inherit; text-decoration: none; }
-    a:hover { color: #1f6f7f; }
+    p, li {
+        text-wrap: pretty;
+    }
+    p {
+        margin-bottom: 16px;
+    }
+    a {
+        color: inherit;
+        text-decoration: none;
+    }
+    a:hover {
+        color: #1f6f7f;
+    }
 
     /* Se conserva el menú del diseño; su altura admite el nuevo logo vertical sin comprimirlo. */
-    .header { height: auto; min-height: 76px; padding-block: 10px; gap: 24px; }
-    /* Ajusta el ancho del logo horizontal y conserva su proporción. */
-    .header .brand-logo { width: 150px; height: auto; }
-    .main-nav { gap: 12px; }
-    /* El badge acompaña al título del registro y permite saltos de línea en tarjetas angostas. */
-    .record-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-block: 4px 8px; }
-    .record-heading h3 { margin: 0; }
-    [id^='consulta-'] { scroll-margin-top: 180px; }
-    /* La línea inferior sigue las esquinas redondeadas de las tarjetas; el fondo permanece transparente. */
-    .main-nav > a:not(.btn) { display: inline-flex; align-items: center; min-height: 40px; padding: 8px 12px; border-radius: 8px; font-weight: 500; transition: box-shadow .15s ease; }
-    .main-nav > a:not(.btn):hover { color: #153b64; background: transparent; box-shadow: inset 0 -2px 0 var(--workspace-accent, #1f6f7f); text-decoration: none; }
-    .main-nav > a:not(.btn)[aria-current='page'] { color: #153b64; background: transparent; font-weight: 600; box-shadow: inset 0 -3px 0 var(--workspace-accent, #1f6f7f); }
-    .main-nav > a:not(.btn):focus-visible { color: #153b64; background: transparent; outline: 2px solid #1f6f7f; outline-offset: 3px; }
-    @media (prefers-reduced-motion: reduce) { .main-nav > a:not(.btn) { transition: none; } }
-    .btn.v-btn { min-height: 46px; height: auto; min-width: 0; padding-block: 10px; font-family: 'Nunito', sans-serif; font-size: 1rem; text-transform: none; letter-spacing: 0; border-radius: 10px; }
-    .btn .v-btn__content { gap: 9px; white-space: normal; }
-    .card.v-card { border: 1px solid var(--line); border-radius: 14px; background: white; overflow: visible; }
-    /* La sombra compartida distingue las superficies del fondo; solo las tarjetas interactivas reaccionan al puntero. */
-    .card, .card.v-card { box-shadow: var(--card-shadow); }
-    .card.soft-panel { box-shadow: 0 3px 12px rgba(21, 59, 100, .06); }
-    .card.modal-card { box-shadow: var(--dialog-shadow); }
-    .catalog-tools, .budget-summary { box-shadow: var(--card-shadow); }
-    @media (hover: hover) {
-        .service-card { transition: box-shadow .2s ease, border-color .2s ease; }
-        .service-card:hover { box-shadow: var(--card-shadow-raised); }
+    .header {
+        height: auto;
+        min-height: 76px;
+        padding-block: 10px;
+        gap: 24px;
     }
-    @media (prefers-reduced-motion: reduce) { .service-card { transition: none; } }
-    @media print { .card, .card.v-card, .catalog-tools, .budget-summary { box-shadow: none; } }
-    .card h2 { margin-bottom: 18px; }
-    .field input, .field textarea, .field select { font-weight: 400; font-size: 1rem; }
-    .field input[type='checkbox'] { width: 18px; min-height: 18px; }
-    .field [aria-invalid='true'] { border-color: #a13b42; }
-    .button-stack .btn { width: 100%; }
-    .notice { border-radius: 0; background: #edf9fa; border-color: #2db3a3; }
-    .notice button { background: transparent; border: 0; margin-left: auto; cursor: pointer; font-size: 1.3rem; }
-    .error-summary { border-color: #a13b42; }
-    .error-summary p { margin: 4px 0; }
+    /* Ajusta el ancho del logo horizontal y conserva su proporción. */
+    .header .brand-logo {
+        width: 150px;
+        height: auto;
+    }
+    .main-nav {
+        gap: 12px;
+    }
+    /* El badge acompaña al título del registro y permite saltos de línea en tarjetas angostas. */
+    .record-heading {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-block: 4px 8px;
+    }
+    .record-heading h3 {
+        margin: 0;
+    }
+    [id^='consulta-'] {
+        scroll-margin-top: 180px;
+    }
+    /* La línea inferior sigue las esquinas redondeadas de las tarjetas; el fondo permanece transparente. */
+    .main-nav > a:not(.btn) {
+        display: inline-flex;
+        align-items: center;
+        min-height: 40px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: box-shadow .15s ease;
+    }
+    .main-nav > a:not(.btn):hover {
+        color: #153b64;
+        background: transparent;
+        box-shadow: inset 0 -2px 0 var(--workspace-accent, #1f6f7f);
+        text-decoration: none;
+    }
+    .main-nav > a:not(.btn)[aria-current='page'] {
+        color: #153b64;
+        background: transparent;
+        font-weight: 600;
+        box-shadow: inset 0 -3px 0 var(--workspace-accent, #1f6f7f);
+    }
+    .main-nav > a:not(.btn):focus-visible {
+        color: #153b64;
+        background: transparent;
+        outline: 2px solid #1f6f7f;
+        outline-offset: 3px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .main-nav > a:not(.btn) {
+            transition: none;
+        }
+    }
+    .btn.v-btn {
+        min-height: 46px;
+        height: auto;
+        min-width: 0;
+        padding-block: 10px;
+        font-family: 'Nunito', sans-serif;
+        font-size: 1rem;
+        text-transform: none;
+        letter-spacing: 0;
+        border-radius: 10px;
+    }
+    .btn .v-btn__content {
+        gap: 9px;
+        white-space: normal;
+    }
+    .card.v-card {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: white;
+        overflow: visible;
+    }
+    /* La sombra compartida distingue las superficies del fondo; solo las tarjetas interactivas reaccionan al puntero. */
+    .card, .card.v-card {
+        box-shadow: var(--card-shadow);
+    }
+    .card.soft-panel {
+        box-shadow: 0 3px 12px rgba(21, 59, 100, .06);
+    }
+    .card.modal-card {
+        box-shadow: var(--dialog-shadow);
+    }
+    .catalog-tools, .budget-summary {
+        box-shadow: var(--card-shadow);
+    }
+    @media (hover: hover) {
+        .service-card {
+            transition: box-shadow .2s ease, border-color .2s ease;
+        }
+
+        .service-card:hover {
+            box-shadow: var(--card-shadow-raised);
+        }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .service-card {
+            transition: none;
+        }
+    }
+    @media print {
+        .card, .card.v-card, .catalog-tools, .budget-summary {
+            box-shadow: none;
+        }
+    }
+    .card h2 {
+        margin-bottom: 18px;
+    }
+    .field input, .field textarea, .field select {
+        font-weight: 400;
+        font-size: 1rem;
+    }
+    .field input[type='checkbox'] {
+        width: 18px;
+        min-height: 18px;
+    }
+    .field [aria-invalid='true'] {
+        border-color: #a13b42;
+    }
+    .button-stack .btn {
+        width: 100%;
+    }
+    .notice {
+        border-radius: 0;
+        background: #edf9fa;
+        border-color: #2db3a3;
+    }
+    .notice button {
+        background: transparent;
+        border: 0;
+        margin-left: auto;
+        cursor: pointer;
+        font-size: 1.3rem;
+    }
+    .error-summary {
+        border-color: #a13b42;
+    }
+    .error-summary p {
+        margin: 4px 0;
+    }
 }

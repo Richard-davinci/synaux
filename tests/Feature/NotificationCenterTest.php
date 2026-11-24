@@ -30,12 +30,12 @@ class NotificationCenterTest extends TestCase
         $this->assertDatabaseCount('synaux_notifications', 0);
         $this->post('/acciones/solicitud', [...$data, 'id' => $id, 'publish' => true])->assertSessionHasNoErrors();
         $this->assertDatabaseCount('synaux_notifications', 2);
-        $this->actingAs($admin)->get('/gestion/solicitudes')->assertInertia(fn (Assert $page) => $page
+        $this->actingAs($admin)->get('/gestion/solicitudes')->assertInertia(fn(Assert $page) => $page
             ->where('notifications.unread_count', 1)->where('notifications.unread_entities.solicitud.0', $id));
-        $this->get('/solicitudes/'.$id)->assertOk()->assertInertia(fn (Assert $page) => $page->where('notifications.unread_count', 0));
+        $this->get('/solicitudes/' . $id)->assertOk()->assertInertia(fn(Assert $page) => $page->where('notifications.unread_count', 0));
         $this->assertDatabaseHas('synaux_notifications', ['user_id' => $otherAdmin->id, 'entity_id' => $id, 'read_at' => null]);
-        $this->actingAs($other)->get('/cliente')->assertInertia(fn (Assert $page) => $page->where('notifications.unread_count', 0)->has('notifications.items', 0));
-        $this->get('/solicitudes/'.$id)->assertNotFound();
+        $this->actingAs($other)->get('/cliente')->assertInertia(fn(Assert $page) => $page->where('notifications.unread_count', 0)->has('notifications.items', 0));
+        $this->get('/solicitudes/' . $id)->assertNotFound();
     }
 
     // Las rutas de lectura no aceptan avisos ajenos y un administrador revocado pierde sus avisos de gestión.
@@ -48,13 +48,13 @@ class NotificationCenterTest extends TestCase
         $center->send('solicitud', 5, 'solicitud-enviada:5', 'Nueva solicitud', 'Pedido privado', management: true);
         $id = DB::table('synaux_notifications')->value('id');
         $this->assertDatabaseCount('synaux_notifications', 1);
-        $this->patch('/notificaciones/'.$id.'/leer')->assertRedirect('/ingresar');
-        $this->actingAs($other)->patch('/notificaciones/'.$id.'/leer')->assertNotFound();
+        $this->patch('/notificaciones/' . $id . '/leer')->assertRedirect('/ingresar');
+        $this->actingAs($other)->patch('/notificaciones/' . $id . '/leer')->assertNotFound();
         $this->patch('/notificaciones/leer-todas')->assertRedirect();
         $this->assertDatabaseHas('synaux_notifications', ['id' => $id, 'read_at' => null]);
         $admin->forceFill(['is_admin' => false])->save();
-        $this->actingAs($admin)->get('/cliente')->assertInertia(fn (Assert $page) => $page->where('notifications.unread_count', 0)->has('notifications.items', 0));
-        $this->patch('/notificaciones/'.$id.'/leer')->assertNotFound();
+        $this->actingAs($admin)->get('/cliente')->assertInertia(fn(Assert $page) => $page->where('notifications.unread_count', 0)->has('notifications.items', 0));
+        $this->patch('/notificaciones/' . $id . '/leer')->assertNotFound();
     }
 
     // El ciclo completo distingue borrador, envío, creación y avance; las lecturas no se comparten entre cuentas.
@@ -75,25 +75,25 @@ class NotificationCenterTest extends TestCase
         $this->assertDatabaseCount('synaux_notifications', 0);
         $version = DB::table('budget_versions')->first();
         $this->post('/acciones/presupuesto', [...$quote, 'budget_id' => $version->budget_id, 'send' => true])->assertSessionHasNoErrors();
-        $this->actingAs($client)->get('/cliente/presupuestos')->assertInertia(fn (Assert $page) => $page
+        $this->actingAs($client)->get('/cliente/presupuestos')->assertInertia(fn(Assert $page) => $page
             ->where('notifications.unread_entities.presupuesto.0', $version->id));
-        $this->get('/presupuestos/'.$version->id)->assertInertia(fn (Assert $page) => $page->where('notifications.unread_count', 0));
+        $this->get('/presupuestos/' . $version->id)->assertInertia(fn(Assert $page) => $page->where('notifications.unread_count', 0));
         $decision = ['id' => $version->id, 'decision' => 'accepted', 'confirmed' => true];
         $this->post('/acciones/decidir-presupuesto', $decision)->assertSessionHasNoErrors();
         $project = DB::table('projects')->first();
         $this->assertDatabaseHas('synaux_notifications', ['user_id' => $admin->id, 'entity_type' => 'proyecto', 'entity_id' => $project->id, 'read_at' => null]);
-        $this->assertDatabaseHas('synaux_notifications', ['user_id' => $watcher->id, 'event_key' => 'proyecto-creado:'.$project->id]);
+        $this->assertDatabaseHas('synaux_notifications', ['user_id' => $watcher->id, 'event_key' => 'proyecto-creado:' . $project->id]);
         $this->post('/acciones/decidir-presupuesto', $decision)->assertSessionHasErrors('decision');
-        $this->assertSame(2, DB::table('synaux_notifications')->where('event_key', 'proyecto-creado:'.$project->id)->count());
-        $this->actingAs($admin)->get('/gestion/proyectos')->assertInertia(fn (Assert $page) => $page->where('notifications.unread_entities.proyecto.0', $project->id));
-        $this->get('/proyectos/'.$project->id)->assertInertia(fn (Assert $page) => $page->where('notifications.unread_count', 0));
+        $this->assertSame(2, DB::table('synaux_notifications')->where('event_key', 'proyecto-creado:' . $project->id)->count());
+        $this->actingAs($admin)->get('/gestion/proyectos')->assertInertia(fn(Assert $page) => $page->where('notifications.unread_entities.proyecto.0', $project->id));
+        $this->get('/proyectos/' . $project->id)->assertInertia(fn(Assert $page) => $page->where('notifications.unread_count', 0));
         $update = ['id' => $project->id, 'status' => 'in_progress', 'progress' => 25, 'notes' => 'Diseño en curso.'];
         $this->post('/acciones/proyecto', $update)->assertSessionHasNoErrors();
         $this->post('/acciones/proyecto', $update)->assertSessionHasNoErrors();
         $this->assertSame(2, DB::table('synaux_notifications')->where('event_key', 'like', 'proyecto-actualizado:%')->count());
-        $this->actingAs($client)->get('/cliente/proyectos')->assertInertia(fn (Assert $page) => $page->where('notifications.unread_entities.proyecto.0', $project->id));
+        $this->actingAs($client)->get('/cliente/proyectos')->assertInertia(fn(Assert $page) => $page->where('notifications.unread_entities.proyecto.0', $project->id));
         $this->patch('/notificaciones/leer-todas')->assertRedirect();
-        $this->get('/cliente')->assertInertia(fn (Assert $page) => $page->where('notifications.unread_count', 0)->has('notifications.items', 2));
+        $this->get('/cliente')->assertInertia(fn(Assert $page) => $page->where('notifications.unread_count', 0)->has('notifications.items', 2));
         $this->assertSame(2, app(NotificationCenter::class)->data($watcher)['unread_count']);
     }
 
@@ -105,10 +105,10 @@ class NotificationCenterTest extends TestCase
             $this->post('/contacto', ['name' => 'Cliente', 'email' => 'cliente@example.test', 'topic' => $topic, 'message' => 'Quiero conocer más sobre sus servicios.'])->assertSessionHasNoErrors();
         }
         $id = DB::table('contact_inquiries')->value('id');
-        $this->actingAs($admin)->get('/gestion/contactos?consulta='.$id)->assertInertia(fn (Assert $page) => $page
+        $this->actingAs($admin)->get('/gestion/contactos?consulta=' . $id)->assertInertia(fn(Assert $page) => $page
             ->where('notifications.unread_count', 1)->has('notifications.unread_entities.consulta', 1));
         $notification = DB::table('synaux_notifications')->whereNull('read_at')->first();
-        $this->patch('/notificaciones/'.$notification->id.'/leer')->assertRedirect();
-        $this->get('/gestion')->assertInertia(fn (Assert $page) => $page->where('notifications.unread_count', 0));
+        $this->patch('/notificaciones/' . $notification->id . '/leer')->assertRedirect();
+        $this->get('/gestion')->assertInertia(fn(Assert $page) => $page->where('notifications.unread_count', 0));
     }
 }

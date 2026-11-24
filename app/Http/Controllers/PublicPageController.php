@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Services\Catalog\ServiceCatalog;
 use App\Services\Marketplace\MarketplaceQueries;
 use App\Services\Portfolio\PortfolioQueries;
-use App\Services\Solicitudes\RecorridoSolicitud;
 use App\Services\Solicitudes\ConsultasSolicitudes;
+use App\Services\Solicitudes\RecorridoSolicitud;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -14,12 +14,14 @@ use Inertia\Inertia;
 class PublicPageController extends Controller
 {
     public function __construct(
-        private ServiceCatalog $catalog,
-        private MarketplaceQueries $marketplaceQueries,
-        private PortfolioQueries $portfolioQueries,
+        private ServiceCatalog       $catalog,
+        private MarketplaceQueries   $marketplaceQueries,
+        private PortfolioQueries     $portfolioQueries,
         private ConsultasSolicitudes $requestQueries,
-        private RecorridoSolicitud $journey,
-    ) {}
+        private RecorridoSolicitud   $journey,
+    )
+    {
+    }
 
     // Prepara una pantalla pública y agrega únicamente los datos que su recorrido necesita.
     public function show(Request $request, string $screen = 'servicios', ?string $id = null)
@@ -43,18 +45,18 @@ class PublicPageController extends Controller
         }
         if (in_array($screen, ['portfolio', 'trabajo'], true)) {
             $data['works'] = $this->portfolioQueries->works();
-            $data['selected'] = $id ? collect($data['works'])->firstWhere('id', (int) $id) ?? abort(404) : null;
+            $data['selected'] = $id ? collect($data['works'])->firstWhere('id', (int)$id) ?? abort(404) : null;
         }
         if (in_array($screen, ['muro', 'oportunidad'], true)) {
             $data['opportunities'] = $this->requestQueries->requests(null, public: true);
-            $data['selected'] = $id ? collect($data['opportunities'])->firstWhere('id', (int) $id) : null;
-            if ($id && ! $data['selected']) {
+            $data['selected'] = $id ? collect($data['opportunities'])->firstWhere('id', (int)$id) : null;
+            if ($id && !$data['selected']) {
                 // Una invitación aceptada permite ver el contexto privado, sin revelar respuestas ni contacto.
                 $record = DB::table('project_requests')->where('id', $id)->firstOrFail();
                 $profile = $request->user() ? DB::table('professional_profiles')->where('user_id', $request->user()->id)->first() : null;
                 $invited = $profile && DB::table('project_request_invitations')->where('project_request_id', $id)->where('professional_profile_id', $profile->id)->where('status', 'accepted')->exists();
                 abort_unless($request->user() && ($record->user_id === $request->user()->id || $invited), 404);
-                $data['selected'] = collect($this->requestQueries->requests($record->user_id, only: [(int) $id]))->firstWhere('id', (int) $id);
+                $data['selected'] = collect($this->requestQueries->requests($record->user_id, only: [(int)$id]))->firstWhere('id', (int)$id);
                 unset($data['selected']['answers'], $data['selected']['estimate_id'], $data['selected']['user_id'], $data['selected']['contact']);
             }
             if ($id) {
@@ -65,18 +67,18 @@ class PublicPageController extends Controller
         }
         if (in_array($screen, ['profesionales', 'perfil-profesional'], true)) {
             $data['professionals'] = $this->marketplaceQueries->professionals();
-            $data['selected'] = $id ? collect($data['professionals'])->firstWhere('id', (int) $id) ?? abort(404) : null;
+            $data['selected'] = $id ? collect($data['professionals'])->firstWhere('id', (int)$id) ?? abort(404) : null;
             if ($id) {
-                $data['works'] = collect($this->portfolioQueries->works())->where('professional_profile_id', (int) $id)->values();
+                $data['works'] = collect($this->portfolioQueries->works())->where('professional_profile_id', (int)$id)->values();
                 $data['requests'] = $request->user() ? $this->requestQueries->requests($request->user()->id) : [];
             }
         }
         if ($screen === 'estimador') {
             // Al volver de la cuenta, el resultado reabre el servicio del cálculo guardado en sesión.
-            $step = max(1, min(4, (int) $request->query('paso', 1)));
+            $step = max(1, min(4, (int)$request->query('paso', 1)));
             $pending = $request->session()->get('pending_estimate');
             $pendingSlug = $pending['service']['id'] ?? null;
-            $slug = (string) $request->query('servicio', ($step === 4 ? $pendingSlug : null) ?? 'sitio-institucional');
+            $slug = (string)$request->query('servicio', ($step === 4 ? $pendingSlug : null) ?? 'sitio-institucional');
             $service = $this->catalog->service($slug);
             $data['questions'] = $this->catalog->questions($service['database_id']);
             $data['selected'] = $service;
@@ -93,13 +95,13 @@ class PublicPageController extends Controller
             }
             // Las respuestas de otro servicio no se pueden reutilizar en el formulario actual.
             $data['pending'] = $pendingSlug === $slug ? $pending : null;
-            $data['step'] = $step === 4 && ! $data['pending'] ? 1 : $step;
+            $data['step'] = $step === 4 && !$data['pending'] ? 1 : $step;
             // El acceso anterior al estimador abre ahora el mismo recorrido público de solicitud.
             $data = $this->journey->pageData($request, $data);
         }
         if ($screen === 'restablecer') {
             $data['token'] = $id;
-            $data['email'] = (string) $request->query('email');
+            $data['email'] = (string)$request->query('email');
         }
 
         return Inertia::render($screen === 'servicios' ? 'Catalog' : 'EspacioTrabajo', $data);

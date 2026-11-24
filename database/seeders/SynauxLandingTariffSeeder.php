@@ -15,7 +15,7 @@ class SynauxLandingTariffSeeder extends Seeder
             $name = 'Synaux · Landing optimizada · 2026-11-17';
             if (DB::table('tariff_versions')->where('name', $name)->exists()) return;
             $service = DB::table('services')->where('slug', 'landing-page')->lockForUpdate()->first();
-            if (! $service) throw new \RuntimeException('Cargá primero SynauxCatalogSeeder.');
+            if (!$service) throw new \RuntimeException('Cargá primero SynauxCatalogSeeder.');
             $latest = DB::table('tariff_versions')->where('active', 1)->where('effective_from', '<=', now())
                 ->orderByDesc('effective_from')->orderByDesc('id')->first();
             if ($latest && $latest->currency_code !== 'ARS') throw new \RuntimeException('La versión vigente debe usar ARS.');

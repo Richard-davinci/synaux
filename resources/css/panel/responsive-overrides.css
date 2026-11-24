@@ -1,39 +1,174 @@
 @scope (.synaux-app) {
     /* Adaptación a tablet y celular manteniendo completos el logo y los controles del prototipo. */
-    @media (max-width: 1100px) { .header { flex-wrap: wrap; } .main-nav { flex-wrap: wrap; } .stats-four { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 760px) {
-        .stats-grid, .professional-grid, .compare-grid, .brand-hero, .brand-columns { grid-template-columns: 1fr; }
-        .brand-hero { gap: 40px; padding-block: 60px; }
-        .brand-hero h1 { font-size: clamp(3rem,15vw,3.8rem); }
-        .brand-section, .brand-invitation { padding-block: 64px; }
-        .brand-disciplines i { padding-inline: 5px; }
-        .brand-disciplines { letter-spacing: .06em; font-size: .6rem; }
-        .brand-columns article small { margin-bottom: 22px; }
-        .filters, .wall-filters, .form-grid, .field-row, .tariff-row { grid-template-columns: 1fr; gap: 0; }
-        .list-row, .section-head { flex-wrap: wrap; }
-        .form-actions { flex-wrap: wrap; }
-        .form-actions > .btn { flex: 1 1 180px; }
-        .tariff-row { border-bottom: 1px solid var(--line); padding-block: 14px; }
-        .progress > li { flex-direction: column; font-size: .7rem; }
-        .review-list > div { grid-template-columns: 1fr; gap: 8px; }
-        .sticky { position: static; }
-        .page { padding-block: 36px 60px; }
-        .header { min-height: 72px; padding-inline: 20px; }
-        .mobile-toggle { display: block; margin-left: auto; }
-        .main-nav { display: none; width: 100%; align-items: stretch; flex-direction: column; gap: 6px; }
-        .main-nav.mobile-open { display: flex; }
-        .detail-layout, .editor-grid, .admin-layout, .catalog-tools-row { grid-template-columns: 1fr; }
-        .page-title { align-items: flex-start; flex-direction: column; gap: 22px; }
-        .list-card { align-items: flex-start; flex-direction: column; }
-        .form-card, .card { padding: 24px; }
-        .detail-hero, .content-grid { gap: 30px; }
-        .admin-menu { flex-direction: row; flex-wrap: wrap; border-right: 0; padding-right: 0; }
-        .footer-grid { grid-template-columns: 1fr; gap: 28px; }
-        .budget-line { grid-template-columns: 1fr 80px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
-        .budget-line .field:first-child { grid-column: 1 / -1; }
-        .account-bar .shell, .reference-bar .shell { align-items: flex-start; flex-wrap: wrap; }
-        .reference-bar select { max-width: 220px; }
-        .gallery { grid-template-columns: 1fr; }
+    @media (max-width: 1100px) {
+        .header {
+            flex-wrap: wrap;
+        }
+
+        .main-nav {
+            flex-wrap: wrap;
+        }
+
+        .stats-four {
+            grid-template-columns: repeat(2, 1fr);
+        }
     }
-    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+    @media (max-width: 760px) {
+        .stats-grid, .professional-grid, .compare-grid, .brand-hero, .brand-columns {
+            grid-template-columns: 1fr;
+        }
+
+        .brand-hero {
+            gap: 40px;
+            padding-block: 60px;
+        }
+
+        .brand-hero h1 {
+            font-size: clamp(3rem, 15vw, 3.8rem);
+        }
+
+        .brand-section, .brand-invitation {
+            padding-block: 64px;
+        }
+
+        .brand-disciplines i {
+            padding-inline: 5px;
+        }
+
+        .brand-disciplines {
+            letter-spacing: .06em;
+            font-size: .6rem;
+        }
+
+        .brand-columns article small {
+            margin-bottom: 22px;
+        }
+
+        .filters, .wall-filters, .form-grid, .field-row, .tariff-row {
+            grid-template-columns: 1fr;
+            gap: 0;
+        }
+
+        .list-row, .section-head {
+            flex-wrap: wrap;
+        }
+
+        .form-actions {
+            flex-wrap: wrap;
+        }
+
+        .form-actions > .btn {
+            flex: 1 1 180px;
+        }
+
+        .tariff-row {
+            border-bottom: 1px solid var(--line);
+            padding-block: 14px;
+        }
+
+        .progress > li {
+            flex-direction: column;
+            font-size: .7rem;
+        }
+
+        .review-list > div {
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+
+        .sticky {
+            position: static;
+        }
+
+        .page {
+            padding-block: 36px 60px;
+        }
+
+        .header {
+            min-height: 72px;
+            padding-inline: 20px;
+        }
+
+        .mobile-toggle {
+            display: block;
+            margin-left: auto;
+        }
+
+        .main-nav {
+            display: none;
+            width: 100%;
+            align-items: stretch;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .main-nav.mobile-open {
+            display: flex;
+        }
+
+        .detail-layout, .editor-grid, .admin-layout, .catalog-tools-row {
+            grid-template-columns: 1fr;
+        }
+
+        .page-title {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        .list-card {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .form-card, .card {
+            padding: 24px;
+        }
+
+        .detail-hero, .content-grid {
+            gap: 30px;
+        }
+
+        .admin-menu {
+            flex-direction: row;
+            flex-wrap: wrap;
+            border-right: 0;
+            padding-right: 0;
+        }
+
+        .footer-grid {
+            grid-template-columns: 1fr;
+            gap: 28px;
+        }
+
+        .budget-line {
+            grid-template-columns: 1fr 80px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .budget-line .field:first-child {
+            grid-column: 1 / -1;
+        }
+
+        .account-bar .shell, .reference-bar .shell {
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .reference-bar select {
+            max-width: 220px;
+        }
+
+        .gallery {
+            grid-template-columns: 1fr;
+        }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation: none !important;
+            transition: none !important;
+            scroll-behavior: auto !important;
+        }
+    }
 }

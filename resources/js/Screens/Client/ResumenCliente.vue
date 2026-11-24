@@ -4,16 +4,16 @@ import T from '../../Components/UI/PageTitle.vue';
 import S from '../../Components/UI/StatusBadge.vue';
 import EmptyState from '../../Components/UI/EmptyState.vue';
 import NewBadge from '../../Components/Notifications/NewBadge.vue';
-import { date } from '../../support/formatters';
+import {date} from '../../support/formatters';
 
 // Los conteos y la actividad salen de las colecciones autorizadas que devuelve Laravel.
-defineProps({ data: { type: Object, required: true } });
+defineProps({data: {type: Object, required: true}});
 </script>
 
 <template>
     <section class="page shell">
         <T eyebrow="Área cliente" :title="'Hola, ' + ($page.props.auth?.name?.split(' ')[0] ?? 'Martina')"
-            description="Revisá tus solicitudes, presupuestos y proyectos en un solo lugar.">
+           description="Revisá tus solicitudes, presupuestos y proyectos en un solo lugar.">
             <B href="/solicitudes/nueva" arrow>Nueva solicitud</B>
         </T>
         <div class="stats-grid">
@@ -40,14 +40,14 @@ defineProps({ data: { type: Object, required: true } });
                         <small>SOL-{{ request.id }} · {{ date(request.created_at) }}</small>
                         <div class="record-heading">
                             <h3>{{ request.title }}</h3>
-                            <NewBadge type="solicitud" :id="request.id" />
+                            <NewBadge type="solicitud" :id="request.id"/>
                         </div>
-                        <S :status="request.status" />
+                        <S :status="request.status"/>
                     </div>
                     <B :href="'/solicitudes/' + request.id" variant="secondary">Ver detalle</B>
                 </div>
                 <EmptyState v-if="!data.requests?.length" title="Todavía no tenés solicitudes"
-                    text="Empezá contando qué necesitás resolver." />
+                            text="Empezá contando qué necesitás resolver."/>
             </v-card>
             <aside>
                 <v-card class="card soft-panel">

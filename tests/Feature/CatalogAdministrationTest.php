@@ -34,7 +34,7 @@ class CatalogAdministrationTest extends TestCase
         $admin = User::factory()->create(['is_admin' => true]);
         $service = DB::table('services')->value('id');
         foreach (['/admin/categorias', '/admin/servicios/nuevo', "/admin/servicios/$service/editar"] as $url) {
-            $this->actingAs($admin)->get($url)->assertOk()->assertInertia(fn (Assert $page) => $page
+            $this->actingAs($admin)->get($url)->assertOk()->assertInertia(fn(Assert $page) => $page
                 ->component('EspacioTrabajo')->where('screen', 'admin')->has('administration.categories')->has('administration.services'));
         }
         $this->get('/admin/servicios/999999/editar')->assertNotFound();

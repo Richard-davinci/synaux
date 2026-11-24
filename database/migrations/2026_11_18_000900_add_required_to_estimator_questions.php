@@ -8,10 +8,11 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::table('estimator_questions', fn (Blueprint $table) => $table->boolean('required')->default(true));
+        Schema::table('estimator_questions', fn(Blueprint $table) => $table->boolean('required')->default(true));
     }
+
     public function down(): void
     {
-        Schema::table('estimator_questions', fn (Blueprint $table) => $table->dropColumn('required'));
+        Schema::table('estimator_questions', fn(Blueprint $table) => $table->dropColumn('required'));
     }
 };

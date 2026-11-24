@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     // SQLite exige suspender las claves foráneas antes de iniciar la transacción de reconstrucción.
     public $withinTransaction = false;
 
@@ -15,7 +14,7 @@ return new class extends Migration
 
     public function up(): void
     {
-        $this->changeConstraint('('.self::REGISTERED.' OR '.self::EXTERNAL.')', 'ck_27_01', 'ck_budgets_origin');
+        $this->changeConstraint('(' . self::REGISTERED . ' OR ' . self::EXTERNAL . ')', 'ck_27_01', 'ck_budgets_origin');
     }
 
     public function down(): void
@@ -43,16 +42,16 @@ return new class extends Migration
         }
 
         // Reconstruye solamente la tabla de origen, conservando IDs, índices y referencias.
-        Schema::withoutForeignKeyConstraints(fn () => DB::transaction(function () use ($oldName, $newName, $condition) {
+        Schema::withoutForeignKeyConstraints(fn() => DB::transaction(function () use ($oldName, $newName, $condition) {
             $definition = DB::table('sqlite_master')->where('type', 'table')->where('name', 'budgets')->value('sql');
             $indexes = DB::table('sqlite_master')->where('type', 'index')->where('tbl_name', 'budgets')->whereNotNull('sql')->pluck('sql');
             $sequence = DB::table('sqlite_sequence')->where('name', 'budgets')->value('seq');
-            $constraint = strpos($definition, 'CONSTRAINT `'.$oldName.'` CHECK');
+            $constraint = strpos($definition, 'CONSTRAINT `' . $oldName . '` CHECK');
             if ($constraint === false) {
                 throw new RuntimeException('No se encontró la restricción de origen de presupuestos.');
             }
             $definition = preg_replace('/^CREATE TABLE ["`]?budgets["`]?/i', 'CREATE TABLE budgets_rebuild', substr($definition, 0, $constraint));
-            DB::statement($definition.'CONSTRAINT `'.$newName.'` CHECK ('.$condition.'))');
+            DB::statement($definition . 'CONSTRAINT `' . $newName . '` CHECK (' . $condition . '))');
             DB::statement('INSERT INTO budgets_rebuild SELECT * FROM budgets');
             DB::statement('DROP TABLE budgets');
             DB::statement('ALTER TABLE budgets_rebuild RENAME TO budgets');

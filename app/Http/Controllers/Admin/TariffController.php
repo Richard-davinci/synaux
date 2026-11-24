@@ -26,8 +26,8 @@ class TariffController extends Controller
                 || collect(array_column($values['components'], 'id'))->diff($components)->isNotEmpty()) {
                 throw ValidationException::withMessages(['components' => 'Completá únicamente los componentes activos de este servicio.']);
             }
-            $services = $tariff ? DB::table('service_prices')->where('tariff_version_id', $tariff->id)->get()->map(fn ($p) => ['id' => $p->service_id, 'min' => $p->price_min, 'max' => $p->price_max])->keyBy('id') : collect();
-            $prices = $tariff ? DB::table('component_prices')->where('tariff_version_id', $tariff->id)->get()->map(fn ($p) => ['id' => $p->service_component_id, 'min' => $p->price_min, 'max' => $p->price_max])->keyBy('id') : collect();
+            $services = $tariff ? DB::table('service_prices')->where('tariff_version_id', $tariff->id)->get()->map(fn($p) => ['id' => $p->service_id, 'min' => $p->price_min, 'max' => $p->price_max])->keyBy('id') : collect();
+            $prices = $tariff ? DB::table('component_prices')->where('tariff_version_id', $tariff->id)->get()->map(fn($p) => ['id' => $p->service_component_id, 'min' => $p->price_min, 'max' => $p->price_max])->keyBy('id') : collect();
             $services[$values['service_id']] = ['id' => $values['service_id'], 'min' => $values['min'], 'max' => $values['max']];
             foreach ($values['components'] as $price) $prices[$price['id']] = $price;
             $request->merge(['name' => $values['name'], 'currency_code' => $tariff->currency_code ?? 'ARS', 'active' => true,

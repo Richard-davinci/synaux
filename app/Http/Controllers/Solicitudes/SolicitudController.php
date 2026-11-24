@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Services\Catalog\ServiceCatalog;
 use App\Services\Estimates\EstimateStore;
 use App\Services\Notifications\NotificationCenter;
-use App\Services\Solicitudes\RecorridoSolicitud;
 use App\Services\Solicitudes\ConsultasSolicitudes;
 use App\Services\Solicitudes\GestionSolicitudes;
+use App\Services\Solicitudes\RecorridoSolicitud;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +17,9 @@ use Inertia\Inertia;
 
 class SolicitudController extends Controller
 {
-    public function __construct(private GestionSolicitudes $requests) {}
+    public function __construct(private GestionSolicitudes $requests)
+    {
+    }
 
     // Valida el formulario autenticado y redirige al detalle del borrador o la solicitud publicada.
     public function store(Request $request): RedirectResponse
@@ -52,7 +54,7 @@ class SolicitudController extends Controller
         ]);
 
         // La publicación en el muro pertenece al marketplace y requiere acceso a la segunda etapa.
-        if ($data['visibility'] === 'public' && ! config('synaux.stage_two_enabled')) {
+        if ($data['visibility'] === 'public' && !config('synaux.stage_two_enabled')) {
             throw \Illuminate\Validation\ValidationException::withMessages(['visibility' => 'En esta etapa las solicitudes se envían de forma privada a synaux.']);
         }
 
@@ -64,8 +66,8 @@ class SolicitudController extends Controller
             $pending = $journey->pending($request);
             if (array_key_exists('answers', $data) && empty($data['estimate_id'])) {
                 $calculation = $journey->calculate($data);
-                if ($pending && ! ($pending['form']['estimate_id'] ?? null) && $pending['calculation']['service']['database_id'] === (int) $data['service_id']
-                    && (int) ($pending['form']['id'] ?? 0) === (int) ($data['id'] ?? 0)
+                if ($pending && !($pending['form']['estimate_id'] ?? null) && $pending['calculation']['service']['database_id'] === (int)$data['service_id']
+                    && (int)($pending['form']['id'] ?? 0) === (int)($data['id'] ?? 0)
                     && $pending['calculation']['answers'] == $calculation['answers']) {
                     $calculation = $pending['calculation'];
                 }
@@ -76,7 +78,7 @@ class SolicitudController extends Controller
         });
         $request->session()->forget('pending_request');
 
-        return redirect('/solicitudes/'.$id)->with('notice', $data['publish'] ? 'Solicitud enviada.' : 'Borrador guardado.');
+        return redirect('/solicitudes/' . $id)->with('notice', $data['publish'] ? 'Solicitud enviada.' : 'Borrador guardado.');
     }
 
     // Abre el formulario público con la estimación elegida por su titular, si corresponde.
@@ -86,8 +88,8 @@ class SolicitudController extends Controller
             return redirect('/gestion');
         }
 
-        $id = (int) $request->query('estimacion', 0);
-        if ($id && ! $request->user()) {
+        $id = (int)$request->query('estimacion', 0);
+        if ($id && !$request->user()) {
             return redirect()->guest('/ingresar');
         }
 
@@ -102,7 +104,7 @@ class SolicitudController extends Controller
     public function show(Request $request, ConsultasSolicitudes $requestQueries, ServiceCatalog $catalog, EstimateStore $estimates, RecorridoSolicitud $journey, NotificationCenter $notifications, int $id)
     {
         $user = $request->user();
-        $management = (bool) $user->is_admin;
+        $management = (bool)$user->is_admin;
         $selected = $requestQueries->requests($user->id, $management, only: [$id])[0] ?? abort(404);
         $data = ['screen' => 'solicitud', 'area' => $management ? 'gestion' : 'cliente', 'selected' => $selected];
 
@@ -112,7 +114,7 @@ class SolicitudController extends Controller
             $data['selectedEstimate'] = $selected['estimate_id']
                 ? $estimates->find($user->id, $selected['estimate_id'], includeDeleted: true)
                 : null;
-            $data['estimates'] = $data['selectedEstimate'] && ! $data['selectedEstimate']['deleted_at']
+            $data['estimates'] = $data['selectedEstimate'] && !$data['selectedEstimate']['deleted_at']
                 ? [$data['selectedEstimate']]
                 : [];
             $data = $journey->pageData($request, $data, $id);

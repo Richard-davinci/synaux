@@ -5,8 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 // Guarda procedencia y conversión para poder explicar el importe de cada versión importada.
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         Schema::table('tariff_versions', function (Blueprint $table) {

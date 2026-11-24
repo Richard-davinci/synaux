@@ -16,20 +16,20 @@ class TariffImport
     {
         $html = $this->read('https://tarifario.ar/');
         preg_match_all('~<script[^>]+src="(/_next/static/chunks/[^"]+\.js)"~', $html, $scripts);
-        if (count($scripts[1]) > 30 || ! $scripts[1]) {
+        if (count($scripts[1]) > 30 || !$scripts[1]) {
             throw new RuntimeException('Cambió la estructura de Tarifario.ar. Revisá la integración.');
         }
 
         // Se acepta únicamente la ficha vinculada al alcance de hasta siete secciones.
         $card = null;
         foreach (array_unique($scripts[1]) as $path) {
-            $script = $this->read('https://tarifario.ar'.$path);
+            $script = $this->read('https://tarifario.ar' . $path);
             if (preg_match('~\{id:"pd-3",[^{}]+\}~u', $script, $match)) {
                 $card = $match[0];
                 break;
             }
         }
-        if (! $card || ! str_contains($card, 'category:"dev-web-app"') || ! str_contains($card, 'priceType:"minimum"')) {
+        if (!$card || !str_contains($card, 'category:"dev-web-app"') || !str_contains($card, 'priceType:"minimum"')) {
             throw new RuntimeException('No se encontró la ficha institucional con el formato esperado.');
         }
         preg_match('~description:("[^"]*")~u', $card, $description);
@@ -38,10 +38,10 @@ class TariffImport
             throw new RuntimeException('Cambió el alcance de la ficha. Revisalo antes de actualizar sus precios.');
         }
         preg_match('~priceUSD:([0-9]+(?:\.[0-9]+)?(?:e[+-]?[0-9]+)?)(?:,|\})~i', $card, $price);
-        $usd = (float) ($price[1] ?? 0);
+        $usd = (float)($price[1] ?? 0);
         $rateData = Http::connectTimeout(5)->timeout(15)->get(self::RATE)->throw()->json();
         $rate = $rateData['venta'] ?? null;
-        if ($usd <= 0 || $usd > 1000000 || ! is_numeric($rate) || $rate <= 0 || $rate > 1000000
+        if ($usd <= 0 || $usd > 1000000 || !is_numeric($rate) || $rate <= 0 || $rate > 1000000
             || ($rateData['casa'] ?? '') !== 'contadoconliqui') {
             throw new RuntimeException('El precio o la cotización recibida no son válidos.');
         }
@@ -49,10 +49,10 @@ class TariffImport
         if ($checked->lt(now()->subDays(7)) || $checked->gt(now()->addHour())) {
             throw new RuntimeException('La cotización recibida está fuera de fecha.');
         }
-        $rate = (float) $rate;
-        $amount = (int) round($usd * $rate * 0.5);
+        $rate = (float)$rate;
+        $amount = (int)round($usd * $rate * 0.5);
         // El esquema de componentes representa incrementos iguales entre los tres segmentos.
-        if ((int) round($usd * $rate) !== 2 * $amount || (int) round($usd * $rate * 1.5) !== 3 * $amount) {
+        if ((int)round($usd * $rate) !== 2 * $amount || (int)round($usd * $rate * 1.5) !== 3 * $amount) {
             throw new RuntimeException('Los redondeos requieren revisar el esquema de segmentos antes de importar.');
         }
         $fingerprint = hash('sha256', json_encode([$scope, $usd, $rate]));
@@ -62,7 +62,7 @@ class TariffImport
             $service = DB::table('services')->where('slug', 'sitio-institucional')->lockForUpdate()->firstOrFail();
             $component = DB::table('service_components')->where('service_id', $service->id)
                 ->where('slug', 'segmento-tarifario-2026-11')->where('active', 1)->first();
-            if (! $component || DB::table('service_components')->where('service_id', $service->id)->where('active', 1)->count() !== 1) {
+            if (!$component || DB::table('service_components')->where('service_id', $service->id)->where('active', 1)->count() !== 1) {
                 throw new RuntimeException('Prepará primero el paquete institucional con SynauxInstitutionalTariffSeeder.');
             }
             $existing = DB::table('tariff_versions')->where('source_fingerprint', $fingerprint)->first();
@@ -72,7 +72,7 @@ class TariffImport
             $latest = DB::table('tariff_versions')->where('active', 1)->where('effective_from', '<=', now())
                 ->orderByDesc('effective_from')->orderByDesc('id')->first();
             $id = DB::table('tariff_versions')->insertGetId([
-                'name' => 'Tarifario.ar · Institucional · '.now()->format('Y-m-d H:i'),
+                'name' => 'Tarifario.ar · Institucional · ' . now()->format('Y-m-d H:i'),
                 'currency_code' => 'ARS', 'active' => true, 'effective_from' => now(), 'created_at' => now(),
                 'source_url' => self::SOURCE, 'source_usd' => $usd, 'source_rate' => $rate,
                 'source_checked_at' => now(), 'source_fingerprint' => $fingerprint,

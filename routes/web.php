@@ -5,26 +5,26 @@ use App\Http\Controllers\Admin\CatalogConfigurationController;
 use App\Http\Controllers\Admin\TariffController;
 use App\Http\Controllers\Admin\TariffImportController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\Presupuestos\PresupuestoController;
-use App\Http\Controllers\Presupuestos\PdfPresupuestoController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\EspacioTrabajoController;
 use App\Http\Controllers\Estimates\EstimateController;
 use App\Http\Controllers\Marketplace\InvitationController;
 use App\Http\Controllers\Marketplace\ProfessionalProfileController;
 use App\Http\Controllers\Marketplace\ProposalController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Portfolio\PortfolioWorkController;
+use App\Http\Controllers\Presupuestos\PdfPresupuestoController;
+use App\Http\Controllers\Presupuestos\PresupuestoController;
 use App\Http\Controllers\Projects\ProjectController;
 use App\Http\Controllers\PrototypeController;
 use App\Http\Controllers\PublicPageController;
 use App\Http\Controllers\Solicitudes\SolicitudController;
-use App\Http\Controllers\EspacioTrabajoController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 // La presentación de marca sigue siendo independiente del catálogo y de las cuentas privadas.
-Route::get('/', fn () => Inertia::render('Home'))->name('home');
+Route::get('/', fn() => Inertia::render('Home'))->name('home');
 Route::get('/plataforma', [PublicPageController::class, 'show'])->name('platform');
 // La galería no tiene rutas de escritura y el controlador la bloquea fuera del entorno local.
 Route::get('/prototipo/{screen?}', [PrototypeController::class, 'show']);
@@ -33,10 +33,10 @@ Route::get('/media/portfolio/{file}', [PortfolioWorkController::class, 'media'])
 // Pantallas públicas: los detalles se resuelven por identificador y nunca muestran datos privados.
 foreach (['portfolio', 'nosotros' => 'perfil', 'contacto', 'oportunidades' => 'muro', 'profesionales', 'estimador'] as $path => $screen) {
     $path = is_int($path) ? $screen : $path;
-    Route::get('/'.$path, fn (Request $r, PublicPageController $c) => $c->show($r, $screen));
+    Route::get('/' . $path, fn(Request $r, PublicPageController $c) => $c->show($r, $screen));
 }
 foreach (['servicios' => 'servicio', 'trabajos' => 'trabajo', 'oportunidades' => 'oportunidad', 'profesionales' => 'perfil-profesional'] as $path => $screen) {
-    Route::get('/'.$path.'/{id}', fn (Request $r, PublicPageController $c, string $id) => $c->show($r, $screen, $id));
+    Route::get('/' . $path . '/{id}', fn(Request $r, PublicPageController $c, string $id) => $c->show($r, $screen, $id));
 }
 Route::post('/contacto', [ContactController::class, 'store'])->middleware('throttle:6,1');
 // El formulario nuevo es público; consultar registros guardados y enviar pedidos sigue requiriendo autenticación.
@@ -46,13 +46,13 @@ Route::post('/estimador/calcular', [EstimateController::class, 'calculate'])->mi
 
 // Registro e ingreso usan sesiones y límites de intentos; la recuperación usa el broker de Laravel.
 Route::middleware('guest')->group(function () {
-    Route::get('/ingresar', fn (Request $r, PublicPageController $c) => $c->show($r, 'ingreso'))->name('login');
-    Route::get('/crear-cuenta', fn (Request $r, PublicPageController $c) => $c->show($r, 'registro'));
+    Route::get('/ingresar', fn(Request $r, PublicPageController $c) => $c->show($r, 'ingreso'))->name('login');
+    Route::get('/crear-cuenta', fn(Request $r, PublicPageController $c) => $c->show($r, 'registro'));
     Route::post('/ingresar', [AuthController::class, 'login'])->middleware('throttle:20,1');
     Route::post('/crear-cuenta', [AuthController::class, 'register'])->middleware('throttle:6,1');
-    Route::get('/recuperar-acceso', fn (Request $r, PublicPageController $c) => $c->show($r, 'recuperar'))->name('password.request');
+    Route::get('/recuperar-acceso', fn(Request $r, PublicPageController $c) => $c->show($r, 'recuperar'))->name('password.request');
     Route::post('/recuperar-acceso', [AuthController::class, 'forgot'])->middleware('throttle:3,1');
-    Route::get('/restablecer/{token}', fn (Request $r, PublicPageController $c, string $token) => $c->show($r, 'restablecer', $token))->name('password.reset');
+    Route::get('/restablecer/{token}', fn(Request $r, PublicPageController $c, string $token) => $c->show($r, 'restablecer', $token))->name('password.reset');
     Route::post('/restablecer', [AuthController::class, 'reset'])->middleware('throttle:6,1');
 });
 
@@ -68,7 +68,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/mi-perfil/emision', [AccountController::class, 'updateIssuer'])->middleware('throttle:10,1');
     Route::post('/salir', [AuthController::class, 'logout']);
     foreach (['cliente', 'profesional'] as $area) {
-        Route::get('/'.$area.'/{section?}', fn (Request $r, EspacioTrabajoController $c, string $section = '') => $c->show($r, $area, $section));
+        Route::get('/' . $area . '/{section?}', fn(Request $r, EspacioTrabajoController $c, string $section = '') => $c->show($r, $area, $section));
     }
     Route::get('/presupuestos/{id}/pdf', [PdfPresupuestoController::class, 'show'])->whereNumber('id')->middleware('throttle:20,1');
     Route::get('/solicitudes/{id}', [SolicitudController::class, 'show'])->whereNumber('id');
@@ -96,18 +96,18 @@ Route::middleware('auth')->group(function () {
         Route::post('/acciones/decidir-presupuesto', [PresupuestoController::class, 'decide']);
         Route::post('/acciones/proyecto', [ProjectController::class, 'update']);
         Route::post('/acciones/trabajo', [PortfolioWorkController::class, 'store']);
-        Route::post('/acciones/{action}', fn () => abort(404));
+        Route::post('/acciones/{action}', fn() => abort(404));
     });
     // Gestión y Administración comparten autorización de área, además de la autenticación del grupo exterior.
     Route::middleware('synaux.management')->group(function () {
         Route::post('/admin/tarifario/importar', [TariffImportController::class, 'store'])->middleware('throttle:2,1');
         // Entrada administrativa de revisión para las funciones de la segunda etapa.
-        Route::get('/admin/etapa-2', fn () => Inertia::render('RevisionEtapaDos'))->name('stage-two');
+        Route::get('/admin/etapa-2', fn() => Inertia::render('RevisionEtapaDos'))->name('stage-two');
         // El asistente usa una página propia y conserva el permiso real del grupo administrativo.
-        Route::get('/admin/servicios/nuevo', fn (Request $r, EspacioTrabajoController $c) => $c->show($r, 'admin', 'servicios'));
+        Route::get('/admin/servicios/nuevo', fn(Request $r, EspacioTrabajoController $c) => $c->show($r, 'admin', 'servicios'));
         Route::get('/admin/servicios/{service}/editar', [EspacioTrabajoController::class, 'editService'])->whereNumber('service');
         foreach (['gestion', 'admin'] as $area) {
-            Route::get('/'.$area.'/{section?}', fn (Request $r, EspacioTrabajoController $c, string $section = '') => $c->show($r, $area, $section));
+            Route::get('/' . $area . '/{section?}', fn(Request $r, EspacioTrabajoController $c, string $section = '') => $c->show($r, $area, $section));
         }
         // Los precios publican versiones del tarifario; el resto configura el catálogo.
         Route::middleware('throttle:30,1')->group(function () {

@@ -1,5 +1,5 @@
 // Vite compila los recursos; sus complementos integran Laravel y los componentes .vue.
-import { defineConfig } from 'vite';
+import {defineConfig} from 'vite';
 import laravel from 'laravel-vite-plugin';
 import vue from '@vitejs/plugin-vue';
 

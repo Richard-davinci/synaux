@@ -3,10 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Database\Seeders\SynauxCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Database\Seeders\SynauxCatalogSeeder;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -19,7 +19,7 @@ class AccountProfileTest extends TestCase
     {
         $this->get('/mi-perfil')->assertRedirect('/ingresar');
         $user = User::factory()->create();
-        $this->actingAs($user)->get('/mi-perfil')->assertInertia(fn (Assert $page) => $page
+        $this->actingAs($user)->get('/mi-perfil')->assertInertia(fn(Assert $page) => $page
             ->component('PerfilCuenta')->where('profile.email', $user->email)->missing('profile.password'));
         $this->patch('/mi-perfil', ['name' => 'Nombre actualizado', 'email' => $user->email, 'is_admin' => true])
             ->assertSessionHasNoErrors();
@@ -41,6 +41,7 @@ class AccountProfileTest extends TestCase
         $this->assertSame('nuevo@example.test', $user->fresh()->email);
         $this->assertNull($user->fresh()->email_verified_at);
     }
+
     // El contacto se ofrece en pedidos nuevos y no se propaga a las instantáneas existentes.
     public function test_contact_details_prefill_new_requests_without_changing_existing_requests(): void
     {
@@ -49,7 +50,7 @@ class AccountProfileTest extends TestCase
         $data = ['name' => 'Cliente de prueba', 'email' => $user->email, 'company' => 'Estudio Uno', 'phone' => '1122334455', 'address' => 'Dirección de prueba'];
         $this->actingAs($user)->patch('/mi-perfil', [...$data, 'issuer_name' => 'No autorizado'])->assertSessionHasNoErrors();
         $this->assertNull($user->fresh()->issuer_name);
-        $this->get('/solicitudes/nueva')->assertInertia(fn (Assert $page) => $page
+        $this->get('/solicitudes/nueva')->assertInertia(fn(Assert $page) => $page
             ->where('accountContact.company', 'Estudio Uno')->where('accountContact.phone', $data['phone']));
         $this->post('/acciones/solicitud', [
             'service_id' => DB::table('services')->value('id'),
@@ -60,8 +61,8 @@ class AccountProfileTest extends TestCase
         $this->assertSame('Estudio Uno', json_decode($request->contact_snapshot, true)['company']);
         $this->patch('/mi-perfil', [...$data, 'company' => 'Estudio Dos', 'phone' => ''])->assertSessionHasNoErrors();
         $this->assertNull($user->fresh()->phone);
-        $this->get('/solicitudes/nueva')->assertInertia(fn (Assert $page) => $page->where('accountContact.company', 'Estudio Dos'));
-        $this->get('/solicitudes/'.$request->id)->assertInertia(fn (Assert $page) => $page
+        $this->get('/solicitudes/nueva')->assertInertia(fn(Assert $page) => $page->where('accountContact.company', 'Estudio Dos'));
+        $this->get('/solicitudes/' . $request->id)->assertInertia(fn(Assert $page) => $page
             ->where('selected.contact.company', 'Estudio Uno')->where('selected.contact.phone', $data['phone']));
         $this->patch('/mi-perfil/emision', ['name' => 'No autorizado', 'email' => 'otro@example.test'])->assertForbidden();
     }
@@ -86,7 +87,7 @@ class AccountProfileTest extends TestCase
         ])->assertSessionHasNoErrors();
         $this->assertTrue(Hash::check('NuevaClave123!', $user->fresh()->password));
         $this->assertSame($otherHash, $other->fresh()->password);
-        $this->get('/mi-perfil')->assertInertia(fn (Assert $page) => $page->missing('profile.password')->missing('profile.current_password'));
+        $this->get('/mi-perfil')->assertInertia(fn(Assert $page) => $page->missing('profile.password')->missing('profile.current_password'));
         $this->post('/salir');
         $this->post('/ingresar', ['email' => $user->email, 'password' => 'NuevaClave123!'])->assertRedirect('/cliente');
     }
@@ -102,7 +103,7 @@ class AccountProfileTest extends TestCase
         $this->actingAs($manager)->patch('/mi-perfil/emision', $issuer)->assertSessionHasNoErrors();
         $this->assertSame($manager->email, $manager->fresh()->email);
         $this->assertDatabaseHas('professional_profiles', ['user_id' => $manager->id, 'brand_name' => $issuer['name'], 'active' => 0]);
-        $this->get('/mi-perfil')->assertInertia(fn (Assert $page) => $page
+        $this->get('/mi-perfil')->assertInertia(fn(Assert $page) => $page
             ->where('profile.is_admin', true)->where('issuer.email', $issuer['email']));
         $requestId = DB::table('project_requests')->insertGetId([
             'user_id' => $client->id, 'service_id' => DB::table('services')->value('id'),
@@ -119,9 +120,9 @@ class AccountProfileTest extends TestCase
         $this->post('/acciones/presupuesto', [...$quote, 'budget_id' => $first->budget_id])->assertSessionHasNoErrors();
         $second = DB::table('budget_versions')->orderByDesc('id')->first();
         $this->assertSame('Synaux Nuevo', json_decode($second->issuer_snapshot, true)['name']);
-        $this->actingAs($client)->get('/presupuestos/'.$first->id)->assertInertia(fn (Assert $page) => $page
+        $this->actingAs($client)->get('/presupuestos/' . $first->id)->assertInertia(fn(Assert $page) => $page
             ->where('selected.issuer.name', $issuer['name'])->where('selected.issuer.phone', $issuer['phone']));
-        $this->get('/presupuestos/'.$first->id.'/pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->get('/presupuestos/' . $first->id . '/pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
     }
 
 }

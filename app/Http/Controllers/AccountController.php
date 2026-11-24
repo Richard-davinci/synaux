@@ -17,7 +17,7 @@ class AccountController extends Controller
         $user = $request->user();
         $brand = DB::table('professional_profiles')->where('user_id', $user->id)->value('brand_name');
         return Inertia::render('PerfilCuenta', [
-            'profile' => [...$user->contactDetails(), 'is_admin' => (bool) $user->is_admin, 'created_at' => $user->created_at?->toDateString()],
+            'profile' => [...$user->contactDetails(), 'is_admin' => (bool)$user->is_admin, 'created_at' => $user->created_at?->toDateString()],
             'issuer' => $user->is_admin ? $user->issuerDetails($brand) : null,
             'area' => $user->is_admin ? 'gestion' : 'cliente',
         ]);
@@ -27,7 +27,7 @@ class AccountController extends Controller
     public function update(Request $request)
     {
         $user = $request->user();
-        $request->merge(['email' => Str::lower(trim((string) $request->input('email')))]);
+        $request->merge(['email' => Str::lower(trim((string)$request->input('email')))]);
         $emailChanged = $request->input('email') !== $user->email;
         $data = $request->validate([
             'name' => 'required|string|max:255',
@@ -66,14 +66,14 @@ class AccountController extends Controller
     public function updateIssuer(Request $request)
     {
         abort_unless($request->user()->is_admin, 403);
-        $request->merge(['email' => Str::lower(trim((string) $request->input('email')))]);
+        $request->merge(['email' => Str::lower(trim((string)$request->input('email')))]);
         $data = $request->validate([
             'name' => 'required|string|max:255', 'email' => 'required|email|max:254',
             'phone' => 'nullable|string|max:50', 'address' => 'nullable|string|max:500',
         ]);
         DB::transaction(function () use ($request, $data) {
             $user = $request->user();
-            foreach (['name', 'email', 'phone', 'address'] as $field) $user->{'issuer_'.$field} = $data[$field] ?? null;
+            foreach (['name', 'email', 'phone', 'address'] as $field) $user->{'issuer_' . $field} = $data[$field] ?? null;
             $user->save();
             // La relación de emisión del modelo usa este registro interno, sin publicar un perfil profesional.
             $profile = DB::table('professional_profiles')->where('user_id', $user->id)->first();

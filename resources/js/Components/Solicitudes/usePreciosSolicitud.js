@@ -1,5 +1,5 @@
-import { computed } from 'vue';
-import { referenceLine, summarizePrices } from '../../support/calculoPreciosSolicitud';
+import {computed} from 'vue';
+import {referenceLine, summarizePrices} from '../../support/calculoPreciosSolicitud';
 
 // Contrasta todas las preguntas activas para invalidar la referencia al cambiar cualquier respuesta.
 function sameAnswers(questionsForService, snapshot, readValue) {
@@ -12,7 +12,7 @@ function sameAnswers(questionsForService, snapshot, readValue) {
 }
 
 // Usa las instantáneas del servidor cuando coinciden las respuestas y las referencias publicadas al editar.
-export function useRequestPricing(data, form, { estimate, old, selectedService, questions, extraQuestions }) {
+export function useRequestPricing(data, form, {estimate, old, selectedService, questions, extraQuestions}) {
     const matchingCalculation = computed(() => {
         const calculation = data.value.requestCalculation;
         if (!calculation || calculation.service?.database_id != form.service_id) return null;
@@ -36,17 +36,19 @@ export function useRequestPricing(data, form, { estimate, old, selectedService, 
         const labels = questions.value.flatMap(question => (question.options ?? [])
             .filter(option => String(option.id) === String(form.answers[question.id])).map(option => option.label));
         const segment = published?.segments?.find(item => labels.includes(item.label));
-        return segment ? {...published,min:segment.min,max:segment.max,segment:segment.label} : published;
+        return segment ? {...published, min: segment.min, max: segment.max, segment: segment.label} : published;
     });
     const preliminaryReference = computed(() => Boolean(reference.value && !estimate && !matchingCalculation.value));
     // Cada adicional tiene su propia referencia confirmada, en la misma moneda que el resumen.
     const summaryCurrency = computed(() => reference.value?.currency ?? estimate?.currency_snapshot ?? matchingCalculation.value?.currency ?? 'ARS');
     const extraSnapshots = computed(() => data.value.requestAdditionalPricing?.length
         ? data.value.requestAdditionalPricing : old?.additional_services ?? []);
+
     function matchingExtra(item) {
         const previous = extraSnapshots.value.find(snapshot => snapshot.service_id == item.service_id && Array.isArray(snapshot.answers));
         return previous && sameAnswers(extraQuestions(item.service_id), previous.answers, question => item.answers[question.id]) ? previous : null;
     }
+
     const pendingExtraCalculation = computed(() => form.additional_services.some(item => extraQuestions(item.service_id).length && !matchingExtra(item)));
     const additionalPrices = computed(() => form.additional_services.map(item => {
         const verified = matchingExtra(item);
@@ -59,5 +61,5 @@ export function useRequestPricing(data, form, { estimate, old, selectedService, 
         referenceLine(reference.value, 1, null, summaryCurrency.value), ...additionalPrices.value,
     ], summaryCurrency.value));
 
-    return { reference, preliminaryReference, summaryCurrency, pendingExtraCalculation, additionalPrices, summaryPrice };
+    return {reference, preliminaryReference, summaryCurrency, pendingExtraCalculation, additionalPrices, summaryPrice};
 }

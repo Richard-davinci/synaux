@@ -1,5 +1,5 @@
-import { computed } from 'vue';
-import { usePage } from '@inertiajs/vue3';
+import {computed} from 'vue';
+import {usePage} from '@inertiajs/vue3';
 
 export const publicNav = [
     ['Catálogo', '/plataforma'],
@@ -39,8 +39,13 @@ const workspaceNav = {
 
 const stageTwoPaths = ['/cliente/publicaciones', '/cliente/propuestas', '/cliente/invitaciones'];
 const sectionsByScreen = {
-    solicitud: 'solicitudes', publicar: 'solicitudes', presupuesto: 'presupuestos', 'editor-presupuesto': 'presupuestos',
-    proyecto: 'proyectos', estimacion: 'estimaciones', 'editor-trabajo': 'portfolio',
+    solicitud: 'solicitudes',
+    publicar: 'solicitudes',
+    presupuesto: 'presupuestos',
+    'editor-presupuesto': 'presupuestos',
+    proyecto: 'proyectos',
+    estimacion: 'estimaciones',
+    'editor-trabajo': 'portfolio',
 };
 
 // El estado de cada área sale de Inertia. Mostrar un enlace no concede permisos.
@@ -78,5 +83,15 @@ export function useNavigationContext() {
     });
     const showAreaSwitch = computed(() => page.props.preview ? area.value === 'gestion' : Boolean(page.props.auth?.is_admin));
 
-    return { area, nav, hasWorkspace, navbarRole, accountName, currentSection, adminView, workspaceTitle, showAreaSwitch };
+    return {
+        area,
+        nav,
+        hasWorkspace,
+        navbarRole,
+        accountName,
+        currentSection,
+        adminView,
+        workspaceTitle,
+        showAreaSwitch
+    };
 }

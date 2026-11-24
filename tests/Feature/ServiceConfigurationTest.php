@@ -27,7 +27,7 @@ class ServiceConfigurationTest extends TestCase
     {
         $id = DB::table('services')->orderBy('id')->value('id');
         foreach (['preguntas' => 'preguntas', 'componentes' => 'estimacion', 'reglas' => 'estimacion'] as $old => $tab) {
-            $this->get('/admin/'.$old)->assertRedirect("/admin/servicios/$id/editar?config=$tab");
+            $this->get('/admin/' . $old)->assertRedirect("/admin/servicios/$id/editar?config=$tab");
         }
     }
 
@@ -66,7 +66,7 @@ class ServiceConfigurationTest extends TestCase
         $version = DB::table('tariff_versions')->max('id');
         $history = DB::table('service_prices')->where('tariff_version_id', $version)->orderBy('id')->get()->toJson();
         $other = DB::table('service_prices')->where('tariff_version_id', $version)->where('service_id', $web)->first();
-        $components = DB::table('service_components')->where('service_id', $landing)->where('active', 1)->pluck('id')->map(fn ($id) => ['id' => $id, 'min' => 10, 'max' => 20])->all();
+        $components = DB::table('service_components')->where('service_id', $landing)->where('active', 1)->pluck('id')->map(fn($id) => ['id' => $id, 'min' => 10, 'max' => 20])->all();
         $payload = ['service_id' => $landing, 'name' => 'Actualización individual', 'min' => 100, 'max' => 200, 'components' => $components];
         $this->post('/admin/guardar/precios-servicio', $payload)->assertRedirect()->assertSessionHasNoErrors();
         $next = DB::table('tariff_versions')->max('id');

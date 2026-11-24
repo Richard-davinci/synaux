@@ -9,13 +9,14 @@
     {{-- Metadatos de respaldo; cada página puede definir su propio título y descripción con Head. --}}
     <x-inertia::head>
         <title>synaux</title>
-        <meta name="description" content="Servicios digitales de synaux: definí tu necesidad y conocé cómo avanzar con tu proyecto.">
+        <meta name="description"
+              content="Servicios digitales de synaux: definí tu necesidad y conocé cómo avanzar con tu proyecto.">
     </x-inertia::head>
 </head>
 <body>
-    {{-- Punto de montaje donde Inertia entrega a Vue la página y sus datos iniciales. --}}
-    <x-inertia::app />
-    {{-- Mensaje alternativo cuando el navegador tiene JavaScript desactivado. --}}
-    <noscript>Activá JavaScript para acceder a las pantallas de synaux.</noscript>
+{{-- Punto de montaje donde Inertia entrega a Vue la página y sus datos iniciales. --}}
+<x-inertia::app/>
+{{-- Mensaje alternativo cuando el navegador tiene JavaScript desactivado. --}}
+<noscript>Activá JavaScript para acceder a las pantallas de synaux.</noscript>
 </body>
 </html>

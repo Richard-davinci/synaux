@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Artisan;
 // La administración se otorga deliberadamente a una cuenta existente desde la consola local.
 Artisan::command('synaux:admin {email}', function () {
     $user = User::where('email', $this->argument('email'))->first();
-    if (! $user) {
+    if (!$user) {
         $this->error('La cuenta no existe. Registrala primero desde la aplicación.');
 
         return 1;
@@ -22,11 +22,11 @@ Artisan::command('synaux:admin {email}', function () {
 Artisan::command('synaux:tarifario', function (\App\Services\Tariffs\TariffImport $import) {
     try {
         $result = $import->sync();
-        $this->info(($result['created'] ? 'Nueva versión importada. ' : 'Sin cambios. ').'Referencia PyME: ARS '.$result['pyme']);
+        $this->info(($result['created'] ? 'Nueva versión importada. ' : 'Sin cambios. ') . 'Referencia PyME: ARS ' . $result['pyme']);
         return 0;
     } catch (\Throwable $exception) {
         report($exception);
-        $this->error('Importación cancelada: '.$exception->getMessage());
+        $this->error('Importación cancelada: ' . $exception->getMessage());
         return 1;
     }
 })->purpose('Actualiza Sitio institucional desde Tarifario.ar');

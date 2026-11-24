@@ -11,7 +11,7 @@ class EstimateStore
     public function find(int $userId, int $id, bool $includeDeleted = false): ?array
     {
         $estimate = DB::table('estimates')->where('user_id', $userId)->where('id', $id)
-            ->when(! $includeDeleted, fn ($query) => $query->whereNull('deleted_at'))->first();
+            ->when(!$includeDeleted, fn($query) => $query->whereNull('deleted_at'))->first();
 
         return $estimate ? $this->withSnapshots($estimate) : null;
     }
@@ -26,7 +26,7 @@ class EstimateStore
     private function withSnapshots(object $estimate): array
     {
         return [
-            ...(array) $estimate,
+            ...(array)$estimate,
             'answers' => json_decode($estimate->answers_snapshot, true),
             'items' => json_decode($estimate->items_snapshot ?? '[]', true),
         ];

@@ -65,20 +65,24 @@ class SynauxCatalogSeeder extends Seeder
             DB::table('service_components')->insertOrIgnore(['service_id' => $web, 'slug' => $slug, 'name' => $name, 'description' => $name,
                 'unit_code' => 'unidad', 'is_default' => $default, 'default_quantity' => 1, 'active' => 1]);
         }
-        if (! DB::table('estimator_questions')->where('service_id', $web)->exists()) {
+        if (!DB::table('estimator_questions')->where('service_id', $web)->exists()) {
             foreach ([
-                ['¿Cuántas secciones tendrá el sitio?', ['1 a 5', '6 a 10', 'Más de 10']],
-                ['¿Ya tenés los textos e imágenes?', ['Sí, están listos', 'Necesito ayuda']],
-                ['¿Necesitás vender online?', ['No', 'Sí, hasta 20 productos', 'Sí, más de 20 productos']],
-            ] as $order => [$question, $options]) {
+                         ['¿Cuántas secciones tendrá el sitio?', ['1 a 5', '6 a 10', 'Más de 10']],
+                         ['¿Ya tenés los textos e imágenes?', ['Sí, están listos', 'Necesito ayuda']],
+                         ['¿Necesitás vender online?', ['No', 'Sí, hasta 20 productos', 'Sí, más de 20 productos']],
+                     ] as $order => [$question, $options]) {
                 $qid = DB::table('estimator_questions')->insertGetId(['service_id' => $web, 'question' => $question, 'input_type' => 'single_choice', 'sort_order' => $order, 'active' => 1]);
                 foreach ($options as $position => $label) {
                     $oid = DB::table('estimator_options')->insertGetId(['question_id' => $qid, 'label' => $label, 'sort_order' => $position, 'active' => 1]);
                     $componentSlug = match ($order) {
-                        0 => 'seccion', 1 => 'contenido', 2 => 'tienda'
+                        0 => 'seccion',
+                        1 => 'contenido',
+                        2 => 'tienda'
                     };
                     $quantity = match ($order) {
-                        0 => [3, 8, 12][$position], 1 => $position === 1 ? 8 : 0, 2 => $position === 0 ? 0 : 1
+                        0 => [3, 8, 12][$position],
+                        1 => $position === 1 ? 8 : 0,
+                        2 => $position === 0 ? 0 : 1
                     };
                     DB::table('estimation_rules')->insert(['estimator_option_id' => $oid, 'service_component_id' => DB::table('service_components')->where('service_id', $web)->where('slug', $componentSlug)->value('id'), 'quantity' => $quantity, 'active' => 1]);
                 }
@@ -91,7 +95,7 @@ class SynauxCatalogSeeder extends Seeder
             }
 
             $id = DB::table('services')->where('slug', $slug)->value('id');
-            if (! DB::table('estimator_questions')->where('service_id', $id)->exists()) {
+            if (!DB::table('estimator_questions')->where('service_id', $id)->exists()) {
                 DB::table('estimator_questions')->insert(['service_id' => $id, 'question' => '¿Qué objetivo querés lograr y qué necesitás resolver?', 'input_type' => 'text', 'sort_order' => 0, 'active' => 1]);
             }
         }
