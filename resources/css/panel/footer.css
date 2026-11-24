@@ -7,9 +7,18 @@
     background: #fff;
 }
 
+/* El pie de la landing reserva 200 px al logo principal con eslogan. */
+.site-footer {
+    --footer-logo-width: 160px;
+}
+
+.site-footer.landing-footer {
+    --footer-logo-width: 200px;
+}
+
 .site-footer > .footer-grid {
     display: grid;
-    grid-template-columns: 160px minmax(240px, 1fr) auto;
+    grid-template-columns: var(--footer-logo-width) minmax(240px, 1fr) auto;
     align-items: center;
     padding-block: 28px;
     gap: clamp(20px, 3.4vw, 40px);
@@ -23,7 +32,8 @@
 
 /* El logo del pie de la landing ocupa menos espacio y conserva su proporción. */
 .synaux-app .site-footer .footer-grid .brand-logo {
-    width: 160px;
+    width: var(--footer-logo-width);
+    max-width: 100%;
     height: auto;
 }
 
@@ -45,7 +55,7 @@
 
 @media (max-width: 900px) {
     .site-footer > .footer-grid {
-        grid-template-columns: 160px minmax(0, 1fr);
+        grid-template-columns: var(--footer-logo-width) minmax(0, 1fr);
         align-items: center;
         gap: 24px;
     }

@@ -18,7 +18,8 @@ const page = usePage();
                 <BrandLogo/>
             </a>
             <div class="footer-copy">
-                <strong>Conexión, transparencia y crecimiento digital.</strong>
+                <!-- El logo de la landing ya firma el pie con su eslogan. -->
+                <strong v-if="!landing">Conexión, transparencia y crecimiento digital.</strong>
                 <p>© {{ year }} synaux.</p>
             </div>
             <nav aria-label="Navegación del pie">

@@ -5,7 +5,7 @@ import I from '../UI/AppIcon.vue';
 import {date, money} from '../../support/formatters';
 
 // El editor y el documento recibido comparten los datos de una versión, sin consultar perfiles actuales.
-const props = defineProps({budget: Object, client: Object, issuer: Object, compact: Boolean});
+const props = defineProps({budget: Object, client: Object, issuer: Object, compact: Boolean, example: Boolean});
 const pending = computed(() => (props.budget.items ?? []).some(item => item.unit_price === '' || item.unit_price == null));
 const tax = computed(() => Math.round((Number(props.budget.total ?? 0) - Number(props.budget.subtotal ?? 0)) * 100) / 100);
 const scope = description => String(description ?? '').split('\n').slice(1).join('\n');
@@ -17,7 +17,9 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
             <BrandLogo :with-slogan="false" variant="white"/>
             <div>
                 <p class="document-label">Presupuesto</p>
-                <p class="document-number">{{ budget.budget_id ? 'PRE-' + budget.budget_id : 'Borrador' }} · Versión
+                <!-- Solo la muestra pública usa esta etiqueta; las versiones reales conservan su numeración. -->
+                <p v-if="example" class="document-number">Propuesta de ejemplo</p>
+                <p v-else class="document-number">{{ budget.budget_id ? 'PRE-' + budget.budget_id : 'Borrador' }} · Versión
                     {{ budget.version_number ?? 1 }}</p>
             </div>
         </header>
@@ -56,7 +58,7 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
                     <tbody>
                     <tr v-for="(item,index) in budget.items" :key="index">
                         <td><strong>{{ concept(item.description) }}</strong>
-                            <p v-if="!compact && scope(item.description)" class="preserve-lines">
+                            <p v-if="(!compact || example) && scope(item.description)" class="preserve-lines">
                                 {{ scope(item.description) }}</p></td>
                         <td v-if="!compact">{{ item.quantity }}</td>
                         <td v-if="!compact">{{
@@ -92,8 +94,10 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
                 definir sus precios.</p>
         </div>
         <!-- La landing resume las condiciones; las vistas de trabajo conservan el documento completo. -->
-        <section v-if="compact" class="document-conditions document-conditions-summary"><p>Entrega estimada:
-            {{ budget.estimated_delivery_days }} días. Alcance y condiciones a acordar en la propuesta formal.</p>
+        <section v-if="compact" class="document-conditions document-conditions-summary">
+            <p v-if="example">Entrega estimada: {{ budget.estimated_delivery_days }} días desde el inicio acordado.</p>
+            <p v-else>Entrega estimada: {{ budget.estimated_delivery_days }} días. Alcance y condiciones a acordar en la propuesta formal.</p>
+            <p v-if="example && budget.terms">{{ budget.terms }}</p>
         </section>
         <section v-else class="document-conditions"><h3 class="document-section-title"><I name="check"/>Plazos y
             condiciones</h3>
@@ -452,6 +456,10 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
 
 .budget-document-compact .document-conditions-summary p {
     margin: 0;
+}
+
+.budget-document-compact .document-conditions-summary p + p {
+    margin-top: 4px;
 }
 
 @container (max-width: 420px) {

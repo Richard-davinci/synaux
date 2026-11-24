@@ -14,46 +14,46 @@ const areas = [
     {
         icon: 'web',
         title: 'Desarrollo web',
-        text: 'Presentá tu organización o lanzá una tienda con una experiencia adaptada a tu negocio.'
+        text: 'Sitios institucionales, páginas de lanzamiento y tiendas con carrito y medios de pago.'
     },
     {
         icon: 'palette',
         title: 'Identidad visual',
-        text: 'Construí una marca reconocible y mantené una imagen coherente en cada aplicación.'
+        text: 'Logotipo y variantes, paleta, tipografías y guía de uso de la marca.'
     },
     {
         icon: 'megaphone',
         title: 'Marketing digital',
-        text: 'Planificá campañas y contenidos con objetivos, canales y entregables definidos.'
+        text: 'Piezas para campañas, calendarios editoriales y recomendaciones para mejorar la visibilidad en buscadores.'
     },
     {
         icon: 'layout',
         title: 'Diseño UX/UI',
-        text: 'Organizá los recorridos y las pantallas de tu producto antes de desarrollarlo.'
+        text: 'Flujos de navegación, diseño de pantallas y prototipos interactivos.'
     },
 ];
 // El recorrido explica cuándo aparece una referencia orientativa y cuándo se confirma un presupuesto formal.
 const steps = [
     {
         icon: 'folder',
-        title: 'Elegí tu servicio',
-        text: 'Explorá el catálogo y conocé qué incluye cada propuesta. Cuando haya una tarifa disponible, vas a ver su precio orientativo.'
+        title: 'Explorá el catálogo',
+        text: 'Mirá qué incluye cada servicio. Algunos muestran un precio orientativo.'
     },
     {
         icon: 'edit',
-        title: 'Prepará tu solicitud',
-        text: 'Contanos el objetivo, agregá los servicios que necesitás y revisá el resumen. Ingresá a tu cuenta para confirmar el envío.'
+        title: 'Armá y enviá tu solicitud',
+        text: 'Agregá los servicios, contanos qué querés lograr y revisá el resumen. Iniciá sesión o creá una cuenta para confirmar el envío.'
     },
     {
         icon: 'check',
-        title: 'Revisá el presupuesto',
-        text: 'Recibí la propuesta con servicios, precio, plazos y condiciones. Podés descargarla y aceptar o rechazar la versión vigente.'
+        title: 'Revisá la propuesta',
+        text: 'Cuando recibas la propuesta, podés revisarla y descargarla desde tu cuenta antes de decidir si la aceptás.'
     },
 ];
 // Los dos renglones ilustrativos reciben los conceptos e importes del ejemplo; la cantidad unitaria permite sumar sus precios sin depender del catálogo.
 const exampleItems = [
-    {description: 'Desarrollo Sitio Web Corporativo / Institucional', quantity: 1, unit_price: 676360},
-    {description: 'Desarrollo Manual de Identidad Visual', quantity: 1, unit_price: 537164},
+    {description: 'Sitio institucional\nDiseño adaptable a celulares, desarrollo y carga inicial de hasta cinco secciones.', quantity: 1, unit_price: 676360},
+    {description: 'Identidad visual\nLogotipo y variantes, paleta, tipografías y guía básica de uso.', quantity: 1, unit_price: 537164},
 ];
 // El subtotal suma los renglones y el total aplica el IVA del ejemplo en centavos para conservar los decimales del documento.
 const exampleSubtotal = exampleItems.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
@@ -66,33 +66,39 @@ const exampleBudget = {
     valid_until: new Date(exampleDate.getTime() + 30 * 86400000).toISOString().slice(0, 10),
     currency_code: 'ARS', tax_rate: exampleTaxRate, estimated_delivery_days: 30,
     items: exampleItems, subtotal: exampleSubtotal, total: exampleTotal,
-    terms: 'Ejemplo ilustrativo. El alcance, la forma de pago y las revisiones se acuerdan en cada presupuesto.',
+    terms: 'Incluye una ronda de ajustes por servicio. Las revisiones adicionales se cotizan aparte.',
 };
 </script>
 
 <template>
-    <Head title="Servicios digitales con un alcance claro">
-        <meta name="description"
-              content="Explorá los servicios de synaux, prepará tu solicitud y revisá tu presupuesto desde un mismo lugar.">
+    <Head title="Pedí un presupuesto para tu proyecto digital">
+        <meta name="description" content="Explorá los servicios de synaux y prepará tu solicitud. Recibí una propuesta con el alcance, el precio y los plazos.">
     </Head>
     <PublicLayout landing>
-        <!-- La marca principal se presenta sobre blanco, integrada a la foto sin alterar el SVG original. -->
+        <!-- El inicio presenta el logo principal con eslogan y enlaza al formulario público. -->
         <section class="landing-hero shell" aria-labelledby="landing-title">
-            <div class="landing-hero-copy"><p class="eyebrow">Diseño · Desarrollo · Estrategia</p>
-                <h1 id="landing-title">De tu idea a un <em>proyecto digital.</em></h1>
-                <p class="landing-lead">Explorá servicios digitales, prepará tu solicitud y revisá tu presupuesto antes
-                    de avanzar.</p>
-                <div class="landing-actions"><B href="/plataforma" arrow>Explorar servicios</B><a href="#como-funciona">Cómo
-                    funciona</a></div>
-                <p class="landing-support">Podés empezar sin registrarte. Te pedimos una cuenta al enviar tu
-                    solicitud.</p></div>
+            <div class="landing-hero-copy">
+                <p class="eyebrow">Diseño · Desarrollo · Estrategia</p>
+                <h1 id="landing-title">Pedí un presupuesto para tu <em>proyecto digital</em></h1>
+                <p class="landing-lead">Elegí los servicios que necesitás y contanos qué querés hacer. Después de enviar tu solicitud, synaux te prepara una propuesta con el alcance, el precio y los plazos.</p>
+                <div class="landing-actions">
+                    <B v-if="!$page.props.auth?.is_admin" href="/solicitudes/nueva" arrow>Preparar mi solicitud</B>
+                    <B v-else href="/plataforma" arrow>Explorar servicios</B>
+                    <a href="#presupuesto-de-ejemplo">Ver presupuesto de ejemplo</a>
+                </div>
+                <p v-if="!$page.props.auth" class="landing-support">Podés explorar y preparar tu solicitud sin cuenta. Para enviarla, iniciá sesión o creá una cuenta.</p>
+            </div>
             <div class="landing-visual-wrap">
-                <BrandPatternFragment class="landing-hero-pattern"/>
-                <figure class="landing-visual"><img src="/images/landing/colaboracion-ricardo-catalogo.webp"
-                                                    alt="Colaboración en el diseño de un proyecto digital." width="1536"
-                                                    height="1024" fetchpriority="high"></figure>
                 <div class="landing-brand-signature">
-                    <BrandLogo/>
+                    <BrandLogo :with-slogan="true"/>
+                </div>
+                <div class="landing-visual-media">
+                    <BrandPatternFragment class="landing-hero-pattern"/>
+                    <figure class="landing-visual">
+                        <img src="/images/landing/colaboracion-ricardo-catalogo.webp"
+                             alt="Dos personas revisan el catálogo de synaux en una notebook."
+                             width="1536" height="1024" fetchpriority="high">
+                    </figure>
                 </div>
             </div>
         </section>
@@ -100,9 +106,8 @@ const exampleBudget = {
         <section class="landing-services" aria-labelledby="services-title">
             <div class="shell landing-section">
                 <div class="landing-section-heading">
-                    <div><p class="eyebrow">Qué necesitás resolver</p>
-                        <h2 id="services-title">Servicios que acompañan tu idea</h2></div>
-                    <B compact href="/plataforma" variant="secondary" arrow>Ver catálogo</B></div>
+                    <h2 id="services-title">Qué podés contratar</h2>
+                    <B compact href="/plataforma" variant="secondary" arrow>Explorar servicios</B></div>
                 <div class="landing-service-grid">
                     <article v-for="area in areas" :key="area.title"><I :name="area.icon" class="landing-service-icon"/>
                         <h3>{{ area.title }}</h3>
@@ -113,8 +118,7 @@ const exampleBudget = {
         <!-- El proceso usa tres columnas equilibradas y se apila en móvil sin fotografías que generen vacíos. -->
         <section id="como-funciona" class="shell landing-section landing-process" aria-labelledby="process-title">
             <div class="landing-section-heading">
-                <div><p class="eyebrow">Cómo funciona</p>
-                    <h2 id="process-title">Un recorrido, de principio a fin</h2></div>
+                <h2 id="process-title">Cómo pedir un presupuesto</h2>
             </div>
             <ol class="landing-steps">
                 <li v-for="(step,index) in steps" :key="step.title">
@@ -123,43 +127,37 @@ const exampleBudget = {
                     <p>{{ step.text }}</p></li>
             </ol>
         </section>
-        <!-- La muestra utiliza el documento real de la aplicación con datos ficticios identificados como ejemplo. -->
+        <!-- El enlace apunta a la muestra para que el documento aparezca primero al llegar desde el inicio. -->
         <section class="landing-budget-section" aria-labelledby="budget-title">
             <div class="shell landing-section landing-budget">
-                <div><p class="eyebrow">Antes de confirmar</p>
-                    <h2 id="budget-title">Una propuesta que podés revisar</h2>
-                    <p class="landing-lead">El precio orientativo te ayuda a empezar. El presupuesto formal define qué
-                        se entrega, cuánto cuesta y bajo qué condiciones.</p>
+                <div>
+                    <h2 id="budget-title">Qué incluye tu presupuesto</h2>
+                    <p class="landing-lead">El precio orientativo es una referencia. La propuesta que recibís indica qué se entrega, cuánto cuesta y en qué plazo.</p>
                     <ul class="landing-benefits">
-                        <li><I name="file"/><span><strong>Servicios y precios desglosados</strong>Conceptos, cantidades, subtotal e IVA cuando corresponda.</span>
-                        </li>
-                        <li><I name="clock"/><span><strong>Plazos y condiciones visibles</strong>Vigencia de la propuesta y entregas acordadas.</span>
-                        </li>
-                        <li><I name="user"/><span><strong>El documento en tu cuenta</strong>Consultalo, descargalo y revisalo antes de decidir.</span>
-                        </li>
+                        <li><I name="file"/><span><strong>Alcance y precio por servicio</strong>Entregables, subtotal e IVA cuando corresponda.</span></li>
+                        <li><I name="clock" /><span><strong>Plazos y condiciones</strong>Fecha de vigencia, plazo estimado de entrega y ajustes incluidos.</span></li>
+                        <li><I name="user" /><span><strong>Disponible en tu cuenta</strong>Podés consultarlo y descargarlo.</span></li>
                     </ul>
-                    <B v-if="!$page.props.auth?.is_admin" compact href="/solicitudes/nueva" arrow>Preparar mi
-                        solicitud</B></div>
-                <div class="landing-budget-example"><p class="example-label">Documento de ejemplo · Importes
-                    ilustrativos</p>
-                    <div class="landing-budget-preview">
-                        <BudgetDocument compact :budget="exampleBudget"
-                                        :client="{name:'Cliente de ejemplo',company:'Tu organización'}"
-                                        :issuer="{name:'synaux'}"/>
-                    </div>
+                    <B v-if="!$page.props.auth?.is_admin" compact href="/solicitudes/nueva" arrow>Preparar mi solicitud</B>
                 </div>
+                <figure id="presupuesto-de-ejemplo" class="landing-budget-example" tabindex="-1" aria-labelledby="budget-example-caption">
+                    <figcaption id="budget-example-caption" class="example-label">Documento de ejemplo · Importes ilustrativos</figcaption>
+                    <BudgetDocument compact example :budget="exampleBudget" :client="{ name: 'Cliente de ejemplo', company: 'Tu organización' }" :issuer="{ name: 'synaux' }" />
+                </figure>
             </div>
         </section>
-        <!-- El cierre ofrece una siguiente acción concreta y deja al footer su función de navegación y firma. -->
-        <section class="shell landing-section">
+        <!-- El cierre explica cuándo conviene preparar un pedido y cuándo consultar. -->
+        <section class="shell landing-section" aria-labelledby="landing-close-title">
             <div class="landing-close">
-                <div><p class="eyebrow">Tu próximo paso</p>
-                    <h2>Contanos qué necesitás.</h2>
-                    <p>Empezá por un servicio o consultanos si todavía estás definiendo tu proyecto.</p></div>
-                <div class="landing-close-actions"><B v-if="!$page.props.auth?.is_admin" href="/solicitudes/nueva"
-                                                      arrow>Comenzar mi solicitud</B><B href="/contacto"
-                                                                                        variant="secondary">Hacer una
-                    consulta</B></div>
+                <div>
+                    <h2 id="landing-close-title">Contanos qué necesitás</h2>
+                    <p v-if="$page.props.auth?.is_admin">Si tenés dudas sobre qué servicio elegir, consultanos.</p>
+                    <p v-else>Si ya sabés qué necesitás, prepará tu solicitud. Si tenés dudas sobre qué servicio elegir, consultanos.</p>
+                </div>
+                <div class="landing-close-actions">
+                    <B v-if="!$page.props.auth?.is_admin" href="/solicitudes/nueva" arrow>Preparar mi solicitud</B>
+                    <B href="/contacto" variant="secondary">Hacer una consulta</B>
+                </div>
             </div>
         </section>
     </PublicLayout>
@@ -200,11 +198,12 @@ p {
     padding-block: clamp(32px, 4vw, 52px);
 }
 
+/* El título aprovecha todo el ancho antes de pasar palabras a la línea siguiente. */
 h1 {
-    font-size: clamp(2.5rem, 4.7vw, 4.25rem);
+    font-size: clamp(2.25rem, 4.3vw, 3.9rem);
+    text-wrap: pretty;
     line-height: 1.05;
     margin: 0 0 20px;
-    max-width: 17ch;
 }
 
 h1 em {
@@ -242,24 +241,29 @@ h1 em {
     margin: 16px 0 0;
 }
 
+/* En escritorio la firma conserva 360 px y se apoya apenas sobre la foto. */
 .landing-visual-wrap {
+    display: flex;
+    flex-direction: column-reverse;
+    min-width: 0;
+}
+
+.landing-visual-media {
     position: relative;
     min-width: 0;
     padding-top: 20px;
-    padding-bottom: 90px;
 }
 
-/* La firma mantiene el tamaño del logo con menos margen blanco y deja libre la pantalla. */
 .landing-brand-signature {
-    position: absolute;
-    bottom: 0;
-    right: -12px;
-    width: min(238px, 80%);
-    padding: 8px;
+    position: relative;
+    z-index: 1;
+    width: min(386px, 100%);
+    margin: -32px 0 0 auto;
+    padding: 12px;
     background: #fff;
-    border: 1px solid #1f6f7f0a;
+    border: 1px solid #1f6f7f14;
     border-radius: 16px;
-    box-shadow: 0 4px 16px #153b640a;
+    box-shadow: 0 4px 16px #153b6412;
 }
 
 .landing-brand-signature :deep(.brand-logo) {
@@ -424,8 +428,11 @@ h1 em {
     margin-bottom: 3px;
 }
 
+/* El enlace enfoca el documento y lo sitúa por debajo del encabezado fijo. */
 .landing-budget-example {
     min-width: 0;
+    margin: 0;
+    scroll-margin-top: calc(var(--navbar-height, 76px) - 8px);
     padding: 12px;
     background: #fff;
     border: 1px solid #1f6f7f26;
@@ -433,15 +440,16 @@ h1 em {
     box-shadow: 0 10px 28px #153b6412;
 }
 
+.landing-budget-example:focus-visible {
+    outline: 2px solid #1f6f7f;
+    outline-offset: 3px;
+}
+
 .example-label {
     margin: 0;
     padding: 4px 8px 12px;
     font-size: .8rem;
     color: #446075;
-}
-
-.landing-budget-preview {
-    border-radius: 10px;
 }
 
 .landing-close {
@@ -479,7 +487,30 @@ h1 em {
     }
 
     .landing-hero {
+        align-items: start;
         gap: 28px;
+    }
+
+    /* En móvil la marca aparece antes del título y la foto queda debajo de las acciones. */
+    .landing-visual-wrap {
+        display: contents;
+    }
+
+    .landing-brand-signature {
+        grid-row: 1;
+        width: min(250px, 100%);
+        margin: 0;
+        padding: 0;
+        border: 0;
+        box-shadow: none;
+    }
+
+    .landing-hero-copy {
+        grid-row: 2;
+    }
+
+    .landing-visual-media {
+        grid-row: 3;
     }
 
     h1 {
@@ -509,16 +540,6 @@ h1 em {
     .landing-hero-pattern {
         top: -24px;
         right: -10px;
-    }
-
-    .landing-visual-wrap {
-        padding-bottom: 80px;
-    }
-
-    .landing-brand-signature {
-        right: 0;
-        width: min(218px, 80%);
-        padding: 8px;
     }
 
     .landing-service-grid {
