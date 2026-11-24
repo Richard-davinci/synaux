@@ -243,7 +243,7 @@ h1 em {
     margin: 16px 0 0;
 }
 
-/* En escritorio la firma conserva 360 px sobre el fondo blanco, separada de la foto. */
+/* La firma completa acompaña la foto sin competir con el título. */
 .landing-visual-wrap {
     display: flex;
     flex-direction: column-reverse;
@@ -257,7 +257,7 @@ h1 em {
 }
 
 .landing-brand-signature {
-    width: min(360px, 100%);
+    width: min(230px, 100%);
     margin: 16px 0 0 auto;
 }
 
@@ -500,7 +500,7 @@ h1 em {
 
     .landing-brand-signature {
         grid-row: 1;
-        width: min(250px, 100%);
+        width: min(200px, 100%);
         margin: 0;
     }
 
