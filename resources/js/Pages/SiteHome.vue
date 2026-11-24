@@ -22,8 +22,8 @@ defineProps({
         <!-- La primera acción lleva al formulario de presupuesto; el catálogo queda como alternativa. -->
         <section class="shell site-home-hero" aria-labelledby="site-home-title">
             <div>
-                <h1 id="site-home-title">Diseño y desarrollo para tu <em>presencia digital</em></h1>
-                <p>Creamos sitios web, identidades visuales y campañas digitales. Contanos qué necesitás para recibir una propuesta con alcance, precio y plazos.</p>
+                <h1 id="site-home-title">Sitios web, marcas y <em>campañas digitales</em></h1>
+                <p>Elegí los servicios que necesitás para tu organización. Podés preparar tu solicitud sin crear una cuenta.</p>
                 <div class="site-home-actions">
                     <AppButton v-if="!$page.props.auth?.is_admin" href="/solicitudes/nueva" arrow>Pedir presupuesto</AppButton>
                     <AppButton href="/plataforma" :variant="$page.props.auth?.is_admin ? 'primary' : 'secondary'">Explorar servicios</AppButton>
@@ -33,19 +33,26 @@ defineProps({
                  alt="Bocetos de un sitio web junto a una notebook." width="1200" height="800" fetchpriority="high">
         </section>
 
-        <!-- El ejemplo se consulta en la propia portada y la acción abre el formulario público. -->
+        <!-- La muestra responde qué recibe el cliente y ofrece pedir presupuesto después de revisarla. -->
         <section class="site-home-budget" aria-labelledby="site-home-budget-title">
-            <div class="shell site-home-section">
-                <div class="site-home-section-heading">
-                    <div>
-                        <h2 id="site-home-budget-title">Presupuestos para tu proyecto</h2>
-                        <p>Elegí los servicios y prepará tu solicitud sin cuenta. Después de enviarla, synaux te prepara una propuesta con los entregables, el precio, los plazos y las condiciones.</p>
-                    </div>
-                    <AppButton v-if="!$page.props.auth?.is_admin" href="/solicitudes/nueva" arrow>Pedir presupuesto</AppButton>
+            <div class="shell site-home-section site-home-budget-layout">
+                <div class="site-home-budget-copy">
+                    <h2 id="site-home-budget-title">Qué incluye tu presupuesto</h2>
+                    <p>Después de enviar tu solicitud, recibís una propuesta con el detalle del trabajo, el precio, el plazo de entrega y las condiciones.</p>
                 </div>
                 <details class="site-home-budget-details">
-                    <summary>Ver presupuesto de ejemplo</summary>
-                    <EjemploPresupuesto/>
+                    <summary>
+                        <AppIcon name="file"/>
+                        <span>
+                            <strong>Ver presupuesto de ejemplo</strong>
+                            <small>Documento con importes ilustrativos</small>
+                        </span>
+                        <AppIcon name="arrow" class="site-home-budget-chevron"/>
+                    </summary>
+                    <div class="site-home-budget-document">
+                        <EjemploPresupuesto/>
+                        <AppButton v-if="!$page.props.auth?.is_admin" href="/solicitudes/nueva" arrow>Pedir presupuesto</AppButton>
+                    </div>
                 </details>
             </div>
         </section>
@@ -302,32 +309,75 @@ h1 em {
     margin-bottom: 16px;
 }
 
-/* El ejemplo se despliega sin desplazar las acciones ni abrir otra página. */
+/* La explicación y el control del ejemplo se leen juntos; al abrirlo, el documento usa su propia columna. */
 .site-home-budget {
     border-block: 1px solid #1f6f7f14;
     background: #f5f9fa;
 }
 
-.site-home-budget p {
-    max-width: 64ch;
-    margin: 12px 0 0;
+.site-home-budget-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, .95fr);
+    align-items: start;
+    gap: clamp(20px, 4vw, 52px);
+}
+
+.site-home-budget-copy h2 {
+    margin: 0 0 12px;
+}
+
+.site-home-budget-copy p {
+    max-width: 55ch;
+    margin: 0;
     text-wrap: pretty;
 }
 
-.site-home-budget-details {
-    max-width: 650px;
-}
-
 .site-home-budget-details summary {
-    width: fit-content;
-    padding: 12px 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border: 1px solid #1f6f7f33;
+    border-radius: 12px;
+    background: #fff;
     color: #153b64;
-    font-weight: 700;
     cursor: pointer;
+    list-style: none;
 }
 
-.site-home-budget-details[open] summary {
-    margin-bottom: 12px;
+.site-home-budget-details summary::-webkit-details-marker {
+    display: none;
+}
+
+.site-home-budget-details summary:hover {
+    border-color: #1f6f7f;
+}
+
+.site-home-budget-details summary small {
+    display: block;
+    margin-top: 2px;
+    color: #446075;
+    font-size: .875rem;
+}
+
+.site-home-budget-chevron {
+    transform: rotate(90deg);
+}
+
+.site-home-budget-details[open] .site-home-budget-chevron {
+    transform: rotate(-90deg);
+}
+
+.site-home-budget-document {
+    display: grid;
+    justify-items: start;
+    gap: 16px;
+    margin-top: 12px;
+}
+
+.site-home-budget-document > :first-child {
+    width: 100%;
 }
 
 /* El cierre agrupa las dos alternativas para quien todavía está definiendo el alcance. */
@@ -342,7 +392,7 @@ h1 em {
 }
 
 @media (max-width: 760px) {
-    .site-home-hero {
+    .site-home-hero, .site-home-budget-layout {
         grid-template-columns: minmax(0, 1fr);
     }
 }
