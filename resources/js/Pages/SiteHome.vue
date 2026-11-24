@@ -31,7 +31,7 @@ const budgetOpen = ref(false);
                 <h1 id="site-home-title">Sitios web, marcas y <em>campañas digitales</em></h1>
                 <p>Elegí los servicios que necesitás para tu organización. Podés preparar tu solicitud sin crear una cuenta.</p>
                 <div class="site-home-actions">
-                    <AppButton v-if="!$page.props.auth?.is_admin" href="/solicitudes/nueva" arrow>Pedir presupuesto</AppButton>
+                    <AppButton v-if="!$page.props.auth?.is_admin" href="/solicitudes/nueva" arrow>Preparar presupuesto</AppButton>
                     <AppButton href="/plataforma" :variant="$page.props.auth?.is_admin ? 'primary' : 'secondary'">Explorar servicios</AppButton>
                 </div>
             </div>
@@ -69,7 +69,7 @@ const budgetOpen = ref(false);
                             <EjemploPresupuesto/>
                         </div>
                         <div v-if="!$page.props.auth?.is_admin" class="site-home-budget-drawer-actions">
-                            <AppButton href="/solicitudes/nueva" arrow>Pedir presupuesto</AppButton>
+                            <AppButton href="/solicitudes/nueva" arrow>Preparar presupuesto</AppButton>
                         </div>
                     </div>
                 </v-dialog>
