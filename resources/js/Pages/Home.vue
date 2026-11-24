@@ -198,15 +198,17 @@ p {
     padding-block: clamp(32px, 4vw, 52px);
 }
 
-/* El título aprovecha todo el ancho antes de pasar palabras a la línea siguiente. */
+/* El título deja espacio para leer «proyecto digital» como una unidad en escritorio. */
 h1 {
-    font-size: clamp(2.25rem, 4.3vw, 3.9rem);
+    font-size: clamp(2.25rem, 3.75vw, 3.375rem);
     text-wrap: pretty;
     line-height: 1.05;
     margin: 0 0 20px;
 }
 
 h1 em {
+    display: inline-block;
+    max-width: 100%;
     color: #1f6f7f;
     font-style: normal;
 }
@@ -241,7 +243,7 @@ h1 em {
     margin: 16px 0 0;
 }
 
-/* En escritorio la firma conserva 360 px y se apoya apenas sobre la foto. */
+/* En escritorio la firma conserva 360 px sobre el fondo blanco, separada de la foto. */
 .landing-visual-wrap {
     display: flex;
     flex-direction: column-reverse;
@@ -255,15 +257,8 @@ h1 em {
 }
 
 .landing-brand-signature {
-    position: relative;
-    z-index: 1;
-    width: min(386px, 100%);
-    margin: -32px 0 0 auto;
-    padding: 12px;
-    background: #fff;
-    border: 1px solid #1f6f7f14;
-    border-radius: 16px;
-    box-shadow: 0 4px 16px #153b6412;
+    width: min(360px, 100%);
+    margin: 16px 0 0 auto;
 }
 
 .landing-brand-signature :deep(.brand-logo) {
@@ -475,6 +470,13 @@ h1 em {
     gap: 12px;
 }
 
+/* La trama se acerca al borde de la foto cuando disminuye el margen lateral. */
+@media (max-width: 1244px) {
+    .landing-hero-pattern {
+        right: -10px;
+    }
+}
+
 @media (max-width: 1000px) {
     .landing-service-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -500,9 +502,6 @@ h1 em {
         grid-row: 1;
         width: min(250px, 100%);
         margin: 0;
-        padding: 0;
-        border: 0;
-        box-shadow: none;
     }
 
     .landing-hero-copy {
@@ -514,7 +513,7 @@ h1 em {
     }
 
     h1 {
-        max-width: 20ch;
+        font-size: clamp(1.75rem, 8.25vw, 2.25rem);
     }
 
     .landing-visual img {
@@ -539,7 +538,6 @@ h1 em {
 @media (max-width: 540px) {
     .landing-hero-pattern {
         top: -24px;
-        right: -10px;
     }
 
     .landing-service-grid {
