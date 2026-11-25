@@ -65,13 +65,49 @@ function seleccionar(fecha) {
 .fecha-activador:hover { border-color: #1f6f7f; }
 .fecha-activador[aria-invalid="true"] { border-color: #a13b42; }
 .fecha-activador .icon { width: 18px; height: 18px; flex-shrink: 0; }
-.selector-fecha { max-width: calc(100vw - 24px); }
-.selector-fecha :deep(.v-date-picker) { max-width: 100%; }
+/* El cabezal y el borde delimitan el calendario sobre un formulario blanco. */
+.selector-fecha {
+    max-width: calc(100vw - 24px);
+    border: 1px solid #153b64;
+    box-shadow: 0 10px 24px #153b6440;
+    overflow: hidden;
+}
+.selector-fecha :deep(.v-date-picker) {
+    max-width: 100%;
+    color: #153b64;
+}
+.selector-fecha :deep(.v-date-picker-controls) {
+    background: #153b64;
+    color: #fff;
+}
+.selector-fecha :deep(.v-date-picker-controls .v-btn) {
+    color: #fff;
+    font-weight: 700;
+}
+.selector-fecha :deep(.v-date-picker-controls .v-btn:focus-visible) {
+    outline-color: #fff;
+    outline-offset: -2px;
+}
+.selector-fecha :deep(.v-date-picker-month__day--adjacent:not(.v-date-picker-month__day--hide-adjacent)) {
+    opacity: 1;
+    color: #446075;
+}
+.selector-fecha :deep(.v-date-picker-month__weekday) {
+    color: #446075;
+    font-weight: 700;
+}
+.selector-fecha :deep(.v-date-picker-month__day-btn:not(:disabled)) {
+    font-weight: 700;
+}
+.selector-fecha :deep(.v-date-picker-month__day--adjacent .v-date-picker-month__day-btn:not(:disabled)) {
+    font-weight: 400;
+}
 .selector-fecha-acciones {
     display: flex;
     justify-content: space-between;
     gap: 8px;
     padding: 8px 12px 12px;
-    border-top: 1px solid #1f6f7f26;
+    border-top: 1px solid #1f6f7f55;
+    background: #f5f9fa;
 }
 </style>
