@@ -46,7 +46,7 @@ onMounted(() => heading.value?.focus({preventScroll: true}));
         <main class="access-error">
             <section class="access-error-card" aria-labelledby="access-error-title">
                 <BrandLogo :with-slogan="false" class="access-error-brand"/>
-                <p class="access-error-status">Error {{ status }}</p>
+                <p class="access-error-status" :data-status="status">Error {{ status }}</p>
                 <h1 id="access-error-title" ref="heading" tabindex="-1">{{ current.title }}</h1>
                 <p class="access-error-description">{{ current.description }}</p>
                 <div class="access-error-actions">
@@ -93,6 +93,11 @@ onMounted(() => heading.value?.focus({preventScroll: true}));
     color: #1f6f7f;
     font-size: 1rem;
     font-weight: 700;
+}
+
+/* El 404 usa un código de 20 px con el tamaño de fuente base. */
+.access-error-status[data-status="404"] {
+    font-size: 1.25rem;
 }
 
 .access-error h1 {
