@@ -1,6 +1,6 @@
 <script setup>
 import SidePanel from '../UI/SidePanel.vue';
-import {computed, ref} from 'vue';
+import {computed, ref, useId} from 'vue';
 import {useForm} from '@inertiajs/vue3';
 import B from '../UI/AppButton.vue';
 import F from '../UI/FormField.vue';
@@ -11,6 +11,13 @@ import {useSubmit} from '../../support/useSubmit';
 // La ficha separa lo propio del servicio de las preguntas compartidas por todo el catálogo.
 const props = defineProps({service: Object, administration: Object, section: String});
 const submit = useSubmit();
+// Los botones del pie flotante envían su formulario con la validación nativa.
+const idEditor = useId();
+const formularios = {
+    plantilla: idEditor + '-plantilla',
+    precios: idEditor + '-precios',
+    configuracion: idEditor + '-configuracion',
+};
 const questions = computed(() => props.administration.questions.filter(q => q.service_id == props.service.id || q.service_id == null));
 const components = computed(() => props.administration.components.filter(c => c.service_id == props.service.id));
 const gruposPreguntas = computed(() => [
@@ -289,21 +296,29 @@ function publishPrices() {
 
         <SidePanel :title="reutilizar ? 'Reutilizar ' + titulos[reutilizar] : 'Reutilizar'" :model-value="Boolean(reutilizar)"
                    @update:model-value="reutilizar = null">
-            <form v-if="reutilizar" class="form-configuracion" @submit.prevent="copiarPlantilla">
-                <p>Copiá una definición de otro servicio y ajustala para {{ service.name }}. Las reglas y los precios se configuran por separado.</p>
+            <form v-if="reutilizar" :id="formularios.plantilla" class="form-configuracion" @submit.prevent="copiarPlantilla">
+                <div class="contexto-configuracion">
+                    <span>Servicio de destino</span>
+                    <strong>{{ service.name }}</strong>
+                </div>
                 <F v-if="opcionesPlantilla.length" v-model="seleccionPlantilla" :label="reutilizar === 'preguntas' ? 'Elegí una pregunta' : 'Elegí un concepto'"
                    type="select" :options="opcionesPlantilla" required/>
                 <p v-else class="notice">No hay registros activos de otros servicios disponibles para copiar.</p>
-                <div class="form-actions">
-                    <B variant="secondary" @click="reutilizar = null">Cancelar</B>
-                    <B type="submit" :disabled="!seleccionPlantilla">Usar como plantilla</B>
-                </div>
+                <p v-if="opcionesPlantilla.length" class="ayuda-configuracion">Vas a poder editar la copia antes de guardarla. Las reglas y los precios se configuran por separado.</p>
             </form>
+            <template #footer>
+                <B variant="secondary" @click="reutilizar = null">Cancelar</B>
+                <B type="submit" :form="formularios.plantilla" :disabled="!seleccionPlantilla">Usar como plantilla</B>
+            </template>
         </SidePanel>
 
         <SidePanel title="Actualizar precios" v-model="publicar" :persistent="prices.processing">
-            <form class="form-configuracion" @submit.prevent="publishPrices">
-                <p>Publicar crea una versión del tarifario en {{ moneda }} y conserva los importes anteriores.</p>
+            <form :id="formularios.precios" class="form-configuracion" @submit.prevent="publishPrices">
+                <div class="contexto-configuracion">
+                    <span>Servicio · {{ moneda }}</span>
+                    <strong>{{ service.name }}</strong>
+                    <p>Publicar crea una versión del tarifario y conserva los importes anteriores.</p>
+                </div>
                 <div v-if="otrosErroresDePrecio.length" class="notice" role="alert">
                     <p v-for="(error, indice) in otrosErroresDePrecio" :key="indice">{{ error }}</p>
                 </div>
@@ -326,27 +341,31 @@ function publishPrices() {
                 </div>
                 <p>Las reglas de respuestas y las cantidades se suman a esta base. Para un importe fijo, usá el mismo
                     mínimo y máximo.</p>
-                <div class="form-actions">
-                    <B variant="secondary" :disabled="prices.processing" @click="publicar = false">Cancelar</B>
-                    <B type="submit" :disabled="prices.processing">{{ prices.processing ? 'Publicando…' : 'Publicar nueva versión' }}</B>
-                </div>
             </form>
+            <template #footer>
+                <B variant="secondary" :disabled="prices.processing" @click="publicar = false">Cancelar</B>
+                <B type="submit" :form="formularios.precios" :disabled="prices.processing">{{ prices.processing ? 'Publicando…' : 'Publicar nueva versión' }}</B>
+            </template>
         </SidePanel>
 
         <SidePanel :title="(form.id ? 'Editar ' : 'Agregar ') + titulos[resource]" v-model="dialog" :persistent="form.processing">
-            <form class="form-configuracion" @submit.prevent="save">
-                <p>{{ service.name }}</p>
+            <form :id="formularios.configuracion" class="form-configuracion" @submit.prevent="save">
+                <div class="contexto-configuracion">
+                    <span>Servicio</span>
+                    <strong>{{ service.name }}</strong>
+                </div>
                 <div v-if="Object.keys(form.errors).length" class="notice" role="alert"><p
                     v-for="(error,key) in form.errors" :key="key">{{ error }}</p></div>
                 <template v-if="resource === 'preguntas'">
                     <F v-if="puedeGeneralizar" v-model="alcance" label="Alcance de la pregunta" type="select" required
                        :options="[{value: 'servicio', label: 'Solo este servicio'}, {value: 'general', label: 'Todos los servicios'}]"/>
                     <p v-if="alcance === 'general'" class="notice">Pregunta general. Se aplica a todos los servicios.</p>
-                    <p v-if="form.errors.service_id" class="error">{{ form.errors.service_id }}</p>
                     <F v-model="form.question" label="Pregunta" required maxlength="1000"
                        :error="form.errors.question"/>
-                    <F v-model="form.input_type" label="Tipo de respuesta" type="select" :options="types"
-                       required/>
+                    <div class="field-row">
+                        <F v-model="form.input_type" label="Tipo de respuesta" type="select" :options="types" required/>
+                        <F v-model="form.sort_order" label="Orden de aparición" type="number" min="0" max="1000" required/>
+                    </div>
                     <F v-if="['single_choice','multiple_choice'].includes(form.input_type)"
                        v-model="form.options_text" label="Opciones (una por línea)" type="textarea" required
                        maxlength="5000"
@@ -354,10 +373,6 @@ function publishPrices() {
                     <F v-if="form.input_type === 'number' && form.service_id !== null"
                        v-model="form.quantity_component_id" label="Concepto cuya cantidad define (opcional)"
                        type="select" :options="[{value:'',label:'Sin componente'}, ...componentOptions]"/>
-                    <F v-model="form.sort_order" label="Orden de aparición" type="number" min="0" max="1000"
-                       required/>
-                    <label class="select-row"><input v-model="form.required" type="checkbox">Respuesta
-                        obligatoria</label>
                 </template>
                 <template v-else-if="resource === 'componentes'">
                     <F v-model="form.name" label="Nombre" required maxlength="255"/>
@@ -370,8 +385,6 @@ function publishPrices() {
                         <F v-model="form.default_quantity" label="Cantidad inicial" type="number" min="0.001"
                            max="10000" step="0.001" required/>
                     </div>
-                    <label class="select-row"><input v-model="form.is_default" type="checkbox">Incluir por
-                        defecto en la estimación</label>
                 </template>
                 <template v-else>
                     <F v-model="form.estimator_option_id" label="Respuesta que activa la regla" type="select"
@@ -381,16 +394,24 @@ function publishPrices() {
                     <F v-model="form.quantity" label="Cantidad que incorpora" type="number" min="0" max="10000"
                        step="0.001" required/>
                 </template>
-                <label class="select-row"><input v-model="form.active" type="checkbox">{{
-                        resource === 'preguntas' ? 'Pregunta activa' : 'Activo'
-                    }}</label>
-                <p v-if="form.id">Desactivar conserva las respuestas y estimaciones anteriores.</p>
-                <div class="form-actions"><B variant="secondary" :disabled="form.processing"
-                                             @click="dialog=false">Cancelar</B><B type="submit"
-                                                                                  :disabled="form.processing">{{
-                        form.processing ? 'Guardando…' : 'Guardar'
-                    }}</B></div>
+                <fieldset class="controles-configuracion">
+                    <legend>Opciones</legend>
+                    <label v-if="resource === 'preguntas'" class="select-row">
+                        <input v-model="form.required" type="checkbox">Respuesta obligatoria
+                    </label>
+                    <label v-if="resource === 'componentes'" class="select-row">
+                        <input v-model="form.is_default" type="checkbox">Incluir por defecto en la estimación
+                    </label>
+                    <label class="select-row">
+                        <input v-model="form.active" type="checkbox">{{ resource === 'preguntas' ? 'Pregunta activa' : 'Activo' }}
+                    </label>
+                    <p v-if="form.id" class="ayuda-configuracion">Desactivar conserva las respuestas y estimaciones anteriores.</p>
+                </fieldset>
             </form>
+            <template #footer>
+                <B variant="secondary" :disabled="form.processing" @click="dialog = false">Cancelar</B>
+                <B type="submit" :form="formularios.configuracion" :disabled="form.processing">{{ form.processing ? 'Guardando…' : 'Guardar' }}</B>
+            </template>
         </SidePanel>
     </div>
 </template>
@@ -489,13 +510,57 @@ function publishPrices() {
     color: #446075;
 }
 
+/* Los formularios tienen el mismo margen del encabezado y una separación única entre campos. */
 .form-configuracion {
     display: grid;
     gap: 16px;
+    padding: 20px clamp(16px, 4vw, 24px) 24px;
+    min-width: 0;
+}
+
+.form-configuracion :deep(.field) {
+    min-width: 0;
+    margin: 0;
 }
 
 .form-configuracion p, .form-configuracion h3 {
     margin: 0;
+}
+
+.contexto-configuracion,
+.controles-configuracion {
+    margin: 0;
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid #1f6f7f26;
+    border-radius: 10px;
+    background: #f5f9fa;
+}
+
+.contexto-configuracion {
+    display: grid;
+    gap: 3px;
+    overflow-wrap: anywhere;
+}
+
+.contexto-configuracion > span,
+.contexto-configuracion p,
+.ayuda-configuracion {
+    color: #446075;
+    font-size: .875rem;
+}
+
+.controles-configuracion legend {
+    padding-inline: 5px;
+    color: #153b64;
+    font-weight: 700;
+    font-size: .875rem;
+}
+
+.controles-configuracion .select-row {
+    margin: 0;
+    min-height: 36px;
+    cursor: pointer;
 }
 
 .component-price {
