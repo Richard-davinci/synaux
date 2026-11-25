@@ -94,13 +94,6 @@ function read(item, navigate = false) {
     cursor: pointer;
 }
 
-/* La campana forma un par visual con el acceso de salida del navbar. */
-.notification-trigger {
-    border: 1px solid #1f6f7f33;
-    background: #fff;
-    box-shadow: var(--control-shadow);
-}
-
 .notification-trigger:hover, .notification-icon-button:hover, .notification-mark:hover {
     background: #f5f9fa;
 }

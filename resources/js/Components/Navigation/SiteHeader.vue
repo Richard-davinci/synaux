@@ -79,7 +79,7 @@ watch(() => page.url, () => {
                 <slot name="acceso-panel"/>
                 <div class="header-session-actions">
                     <NotificationCenter/>
-                    <AccionIcono icono="logout" texto="Cerrar sesión" :deshabilitada="salida.processing"
+                    <AccionIcono icono="logout" texto="Cerrar sesión" sin-marco :deshabilitada="salida.processing"
                                  @click="salida.post('/salir')"/>
                 </div>
             </template>
