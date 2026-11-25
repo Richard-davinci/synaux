@@ -29,7 +29,7 @@ class DirectorioUsuariosTest extends TestCase
                 ->where('section', 'usuarios')->has('users.data', 2)
                 ->has('users.data.0', fn(Assert $row) => $row
                     ->where('id', $admin->id)->where('name', $admin->name)->where('email', $admin->email)
-                    ->where('is_admin', true)->has('created_at')->where('rol_organizacion', null))
+                    ->where('is_admin', true)->has('created_at')->where('rol_organizacion', null)->where('activacion_pendiente', false))
                 ->where('users.data.1.is_admin', false));
     }
 
@@ -60,19 +60,44 @@ class DirectorioUsuariosTest extends TestCase
         $admin = User::factory()->create(['is_admin' => true]);
         $cliente = User::factory()->create();
         $alta = ['modo' => 'nueva', 'email' => 'equipo@example.test', 'name' => 'Profesional de prueba',
-            'password' => 'ClaveTemporal123!', 'rol' => 'supervisor'];
+            'rol' => 'supervisor'];
 
         $this->actingAs($cliente)->post('/admin/usuarios/equipo', $alta)->assertForbidden();
         $this->actingAs($admin)->post('/admin/usuarios/equipo', $alta)->assertSessionHasNoErrors();
         $usuario = User::where('email', $alta['email'])->firstOrFail();
         $this->assertFalse($usuario->is_admin);
-        $this->assertTrue(\Illuminate\Support\Facades\Hash::check($alta['password'], $usuario->password));
+        $this->assertTrue($usuario->activacion_pendiente);
         $this->post('/admin/usuarios/equipo', $alta)->assertSessionHasErrors('email');
         $this->post('/admin/usuarios/equipo', ['modo' => 'existente', 'email' => $usuario->email, 'rol' => 'profesional'])
             ->assertSessionHasNoErrors();
         $this->assertDatabaseHas('organizacion_miembros', ['user_id' => $usuario->id, 'rol' => 'profesional']);
         $this->get('/admin/usuarios?buscar=equipo%40example.test')->assertInertia(fn (Assert $page) => $page
-            ->where('users.data.0.rol_organizacion', 'profesional'));
-        $this->actingAs($usuario)->get('/admin/usuarios')->assertForbidden();
+            ->where('users.data.0.rol_organizacion', 'profesional')->where('users.data.0.activacion_pendiente', true));
+        // Únicamente Administración puede compartir, y cada enlace nuevo reemplaza al anterior.
+        $ruta = '/admin/usuarios/' . $usuario->id . '/activacion';
+        $this->actingAs($cliente)->postJson($ruta)->assertForbidden();
+        $this->actingAs($admin)->postJson('/admin/usuarios/' . $cliente->id . '/activacion')->assertNotFound();
+        $anterior = parse_url($this->postJson($ruta)->assertOk()->json('enlace'), PHP_URL_PATH);
+        $vencido = parse_url($this->postJson($ruta)->assertOk()->json('enlace'), PHP_URL_PATH);
+        $usuario->forceFill(['activacion_vence' => now()->subMinute()])->save();
+        $this->post('/salir');
+        $this->get($vencido)->assertInertia(fn (Assert $page) => $page->where('vigente', false));
+        $this->actingAs($admin);
+        $vigente = parse_url($this->postJson($ruta)->assertOk()->json('enlace'), PHP_URL_PATH);
+        $this->assertNotSame($anterior, $vigente);
+        $this->assertNotSame(basename($vigente), $usuario->fresh()->activacion_hash);
+
+        $this->post('/salir');
+        // Una cuenta pendiente necesita el enlace incluso si alguien conoce sus credenciales anteriores.
+        $clave = 'ClaveElegida123!';
+        $usuario->forceFill(['password' => $clave])->save();
+        $this->post('/ingresar', ['email' => $usuario->email, 'password' => $clave])->assertSessionHasErrors('email');
+        $this->get($anterior)->assertInertia(fn (Assert $page) => $page->where('vigente', false));
+        $this->get($vigente)->assertInertia(fn (Assert $page) => $page->where('vigente', true));
+        $this->post($vigente, ['password' => $clave, 'password_confirmation' => 'distinta'])->assertSessionHasErrors('password');
+        $this->post($vigente, ['password' => $clave, 'password_confirmation' => $clave])->assertRedirect('/ingresar');
+        $this->get($vigente)->assertInertia(fn (Assert $page) => $page->where('vigente', false));
+        $this->post('/ingresar', ['email' => $usuario->email, 'password' => $clave])->assertRedirect('/cliente');
+        $this->get('/admin/usuarios')->assertForbidden();
     }
 }

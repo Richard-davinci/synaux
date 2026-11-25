@@ -27,7 +27,7 @@ class DirectorioUsuariosController extends Controller
             ->when($search !== '', fn($query) => $query->where(fn($account) => $account
                 ->whereLike('name', '%' . $search . '%')
                 ->orWhereLike('email', '%' . $search . '%')))
-            ->select('id', 'name', 'email', 'is_admin', 'created_at')
+            ->select('id', 'name', 'email', 'is_admin', 'created_at', 'activacion_pendiente')
             ->selectSub(DB::table('organizacion_miembros')->select('rol')
                 ->where('organizacion_id', $organizacion->id)->whereColumn('user_id', 'users.id'), 'rol_organizacion')
             ->latest('id')
@@ -43,14 +43,13 @@ class DirectorioUsuariosController extends Controller
         ])->toResponse($request)->header('Cache-Control', 'private, no-store');
     }
 
-    // Una cuenta existente se incorpora por correo. Una cuenta nueva recibe su propia contraseña.
+    // El alta queda pendiente de activación. La membresía de una cuenta existente se actualiza por correo.
     public function guardarMiembro(Request $request)
     {
         $data = $request->validate([
             'modo' => ['required', Rule::in(['existente', 'nueva'])],
             'email' => 'required|email|max:254',
             'name' => 'exclude_unless:modo,nueva|required|string|max:255',
-            'password' => 'exclude_unless:modo,nueva|required|string|min:12|max:72',
             'rol' => ['required', Rule::in(['administrador', 'supervisor', 'profesional'])],
         ]);
 
@@ -61,9 +60,9 @@ class DirectorioUsuariosController extends Controller
                 if ($usuario) {
                     throw ValidationException::withMessages(['email' => 'Ese correo ya tiene una cuenta. Elegí Cuenta existente.']);
                 }
-                $usuario = User::query()->createOrFirst(['email' => $correo], [
-                    'name' => $data['name'], 'password' => $data['password'],
-                ]);
+                $usuario = User::unguarded(fn () => User::query()->createOrFirst(['email' => $correo], [
+                    'name' => $data['name'], 'password' => Str::random(64), 'activacion_pendiente' => true,
+                ]));
                 if (!$usuario->wasRecentlyCreated) {
                     throw ValidationException::withMessages(['email' => 'Ese correo ya tiene una cuenta. Elegí Cuenta existente.']);
                 }
@@ -80,7 +79,31 @@ class DirectorioUsuariosController extends Controller
             ], ['organizacion_id', 'user_id'], ['rol']);
         });
 
-        return back()->with('notice', 'Guardamos la cuenta y su rol en el equipo de synaux.');
+        if ($data['modo'] === 'nueva') {
+            return redirect()->route('admin.users.index', ['buscar' => Str::lower($data['email'])])
+                ->with('notice', 'Cuenta creada. Usá Compartir para entregar el enlace de activación.');
+        }
+
+        return back()->with('notice', 'Guardamos el rol en el equipo de synaux.');
+    }
+
+    // Solo un alta pendiente del espacio puede recibir un enlace. Compartir uno nuevo revoca el anterior.
+    public function compartirActivacion(User $user)
+    {
+        $organizacion = Organizacion::principal();
+        $token = bin2hex(random_bytes(32));
+        $actualizadas = User::query()->whereKey($user->id)->where('activacion_pendiente', true)
+            ->whereExists(DB::table('organizacion_miembros')->selectRaw('1')
+                ->where('organizacion_id', $organizacion->id)->whereColumn('user_id', 'users.id'))
+            ->update([
+                'activacion_hash' => hash('sha256', $token),
+                'activacion_vence' => now()->addHours(48),
+            ]);
+        abort_unless($actualizadas, 404, 'Esta cuenta ya no está pendiente de activación.');
+
+        return response()->json([
+            'enlace' => rtrim(config('app.url'), '/') . route('cuenta.activar', $token, absolute: false),
+        ])->header('Cache-Control', 'private, no-store');
     }
 
     // Expone datos de la cuenta y una lista resumida; los proyectos se editan en el panel de Gestión.
@@ -102,7 +125,7 @@ class DirectorioUsuariosController extends Controller
             'screen' => 'admin',
             'area' => 'gestion',
             'section' => 'usuarios',
-            'selectedUser' => $user->only('id', 'name', 'email', 'is_admin', 'created_at'),
+            'selectedUser' => $user->only('id', 'name', 'email', 'is_admin', 'created_at', 'activacion_pendiente'),
             'clientProjects' => $projects->forClient($user->id)->appends($projectFilters),
             'userDirectoryUrl' => route('admin.users.index', $directoryFilters, absolute: false),
         ])->toResponse($request)->header('Cache-Control', 'private, no-store');

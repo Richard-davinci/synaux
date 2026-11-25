@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\ActivacionCuentaController;
 use App\Http\Controllers\Admin\CatalogConfigurationController;
 use App\Http\Controllers\Admin\TariffController;
 use App\Http\Controllers\Admin\TariffImportController;
@@ -53,6 +54,11 @@ Route::middleware('guest')->group(function () {
     Route::get('/crear-cuenta', fn(Request $r, PublicPageController $c) => $c->show($r, 'registro'));
     Route::post('/ingresar', [AuthController::class, 'login'])->middleware('throttle:20,1');
     Route::post('/crear-cuenta', [AuthController::class, 'register'])->middleware('throttle:6,1');
+    // La activación del equipo tiene su propio enlace de un solo uso.
+    Route::get('/activar-cuenta/{token}', [ActivacionCuentaController::class, 'edit'])
+        ->where('token', '[a-f0-9]{64}')->middleware('throttle:30,1')->name('cuenta.activar');
+    Route::post('/activar-cuenta/{token}', [ActivacionCuentaController::class, 'update'])
+        ->where('token', '[a-f0-9]{64}')->middleware('throttle:10,1');
     Route::get('/recuperar-acceso', fn(Request $r, PublicPageController $c) => $c->show($r, 'recuperar'))->name('password.request');
     Route::post('/recuperar-acceso', [AuthController::class, 'forgot'])->middleware('throttle:3,1');
     Route::get('/restablecer/{token}', fn(Request $r, PublicPageController $c, string $token) => $c->show($r, 'restablecer', $token))->name('password.reset');
@@ -109,6 +115,8 @@ Route::middleware('auth')->group(function () {
         // El listado de cuentas usa el mismo permiso administrativo que el catálogo.
         Route::get('/admin/usuarios', DirectorioUsuariosController::class)->name('admin.users.index');
         Route::post('/admin/usuarios/equipo', [DirectorioUsuariosController::class, 'guardarMiembro'])->middleware('throttle:10,1');
+        Route::post('/admin/usuarios/{user}/activacion', [DirectorioUsuariosController::class, 'compartirActivacion'])
+            ->whereNumber('user')->middleware('throttle:10,1');
         Route::get('/admin/usuarios/{user}', [DirectorioUsuariosController::class, 'show'])->whereNumber('user')->name('admin.users.show');
         Route::post('/admin/tarifario/importar', [TariffImportController::class, 'store'])->middleware('throttle:2,1');
         // Entrada administrativa de revisión para las funciones de la segunda etapa.

@@ -44,7 +44,8 @@ class AuthController extends Controller
         if (RateLimiter::tooManyAttempts($key, 5)) {
             throw ValidationException::withMessages(['email' => 'Esperá un minuto antes de volver a intentar.']);
         }
-        if (!Auth::attempt($data, $request->boolean('remember'))) {
+        // Las altas del equipo solo pueden ingresar después de elegir su contraseña.
+        if (!Auth::attempt([...$data, 'activacion_pendiente' => false], $request->boolean('remember'))) {
             RateLimiter::hit($key, 60);
             throw ValidationException::withMessages(['email' => 'El correo o la contraseña no son correctos.']);
         }
@@ -83,7 +84,8 @@ class AuthController extends Controller
     public function forgot(Request $request)
     {
         $data = $request->validate(['email' => 'required|email']);
-        Password::sendResetLink($data);
+        // La recuperación normal se reserva para cuentas que ya completaron la activación.
+        Password::sendResetLink([...$data, 'activacion_pendiente' => false]);
 
         // La misma respuesta evita revelar si el correo está registrado.
         return back()->with('notice', 'Si existe una cuenta con ese correo, se generarán las instrucciones de recuperación.');
@@ -94,7 +96,7 @@ class AuthController extends Controller
     {
         $data = $request->validate(['token' => 'required|string', 'email' => 'required|email',
             'password' => ['required', 'confirmed', PasswordRule::min(8)]]);
-        $status = Password::reset($data, function (User $user, string $password) {
+        $status = Password::reset([...$data, 'activacion_pendiente' => false], function (User $user, string $password) {
             $user->forceFill(['password' => Hash::make($password), 'remember_token' => Str::random(60)])->save();
             event(new PasswordReset($user));
         });

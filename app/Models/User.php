@@ -34,6 +34,7 @@ class User extends Authenticatable
         'remember_token',
         'profile_details',
         'issuer_cuit',
+        'activacion_hash',
     ];
 
     // El contacto propio se reutiliza al iniciar un pedido, sin modificar pedidos ya guardados.
@@ -78,6 +79,7 @@ class User extends Authenticatable
         return [
             // El rol administrativo se interpreta como booleano y no forma parte de fillable.
             'is_admin' => 'boolean',
+            'activacion_pendiente' => 'boolean',
             'profile_details' => 'array',
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
