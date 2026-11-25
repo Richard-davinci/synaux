@@ -1,6 +1,6 @@
 <script setup>
 import {useForm} from '@inertiajs/vue3';
-import {ref} from 'vue';
+import {onBeforeUnmount, ref} from 'vue';
 import B from '../../Components/UI/AppButton.vue';
 import F from '../../Components/UI/FormField.vue';
 import T from '../../Components/UI/PageTitle.vue';
@@ -21,14 +21,50 @@ const work = useForm({
     year: selected.year ?? (selected.id ? null : new Date().getFullYear()),
     live_url: selected.live_url ?? '',
     is_public: !!selected.is_public,
-    cover: null,
     gallery: [],
 });
 
 // El orden, los reemplazos y las bajas se envían junto con los datos del trabajo.
 const galleryItems = ref((selected.images ?? []).map(image => ({...image, replacement: null})));
+// La portada puede ser un archivo nuevo, una imagen guardada o la portada independiente anterior.
+const savedCover = galleryItems.value.find(image => image.image_path === selected.cover_path);
+const standaloneCover = Boolean(selected.cover_path && !savedCover);
+const coverChoice = ref(savedCover ? 'saved:' + savedCover.id : standaloneCover ? 'current' : 'none');
+const newImages = ref([]);
+
+function resetCoverChoice() {
+    const firstSaved = galleryItems.value[0];
+    coverChoice.value = standaloneCover ? 'current'
+        : firstSaved ? 'saved:' + firstSaved.id
+            : newImages.value.length ? 'new:0' : 'none';
+}
+
+function clearUploadPreviews() {
+    newImages.value.forEach(image => URL.revokeObjectURL(image.preview));
+}
+
+function selectUploads(files) {
+    clearUploadPreviews();
+    work.gallery = Array.from(files);
+    newImages.value = work.gallery.map(file => ({name: file.name, preview: URL.createObjectURL(file)}));
+
+    if (coverChoice.value.startsWith('new:') || coverChoice.value === 'none') {
+        resetCoverChoice();
+    }
+}
+
+function removeImage(index) {
+    const [removed] = galleryItems.value.splice(index, 1);
+    if (coverChoice.value === 'saved:' + removed.id) {
+        resetCoverChoice();
+    }
+}
+
+onBeforeUnmount(clearUploadPreviews);
+
 work.transform(data => ({
     ...data,
+    cover_choice: coverChoice.value,
     ...(props.data.galleryRevision ? {
         gallery_revision: props.data.galleryRevision,
         gallery_items: JSON.stringify(galleryItems.value.map(({id, alt_text}) => ({id, alt_text}))),
@@ -69,20 +105,27 @@ function saveWork() {
                 <F v-model="work.challenge" label="El desafío" type="textarea"/>
                 <F v-model="work.result" label="La solución y el resultado" type="textarea"/>
                 <F v-model="work.live_url" type="url" label="Enlace al proyecto (opcional)"/>
-                <img v-if="selected.cover_path" :src="selected.cover_path" :alt="selected.title" class="upload-preview">
-                <label class="field">
-                    Imagen de portada (JPG, PNG o WebP · hasta 5 MB)
-                    <input type="file" accept="image/jpeg,image/png,image/webp"
-                           @change="work.cover = $event.target.files[0]">
-                </label>
                 <section class="work-gallery" aria-labelledby="work-gallery-title">
                     <h2 id="work-gallery-title">Galería</h2>
-                    <p v-if="selected.id">Podés ordenar, reemplazar o quitar imágenes. Los cambios se aplican al guardar.</p>
+                    <p>Marcá «Usar como portada» en una imagen para mostrarla en la tarjeta del portfolio.</p>
+                    <div v-if="standaloneCover" class="work-gallery-item">
+                        <img :src="selected.cover_path" alt="Portada actual" class="work-gallery-preview">
+                        <label class="cover-option">
+                            <input v-model="coverChoice" type="radio" name="portfolio-cover" value="current">
+                            Conservar portada actual
+                        </label>
+                    </div>
+                    <p v-if="work.errors.cover_choice" role="alert" class="gallery-error">{{ work.errors.cover_choice }}</p>
                     <p v-if="work.errors.gallery_items" role="alert" class="gallery-error">{{ work.errors.gallery_items }}</p>
                     <ol v-if="galleryItems.length" class="work-gallery-list">
                         <li v-for="(image, index) in galleryItems" :key="image.id" class="work-gallery-item">
                             <img :src="image.image_path" :alt="image.alt_text ?? ''" class="work-gallery-preview">
                             <div class="work-gallery-fields">
+                                <label class="cover-option">
+                                    <input v-model="coverChoice" type="radio" name="portfolio-cover" :value="'saved:' + image.id"
+                                           :aria-label="'Usar como portada: imagen ' + (index + 1) + (image.alt_text ? ' · ' + image.alt_text : '')">
+                                    Usar como portada
+                                </label>
                                 <F v-model="image.alt_text" :label="`Texto alternativo de la imagen ${index + 1}`" :maxlength="255"
                                    :error="work.errors[`gallery_items.${index}.alt_text`]"/>
                                 <label class="field">
@@ -99,16 +142,29 @@ function saveWork() {
                                     <B compact variant="secondary" :disabled="index === galleryItems.length - 1"
                                        :aria-label="`Bajar imagen ${index + 1}`" @click="moveImage(index, 1)">Bajar</B>
                                     <B compact variant="ghost" :aria-label="`Quitar imagen ${index + 1}`"
-                                       @click="galleryItems.splice(index, 1)">Quitar</B>
+                                       @click="removeImage(index)">Quitar</B>
                                 </div>
                             </div>
                         </li>
                     </ol>
                     <label class="field">
-                        Agregar imágenes a la galería (hasta 8 por envío)
+                        Agregar imágenes a la galería (JPG, PNG o WebP · hasta 8 por envío, 5 MB por imagen)
                         <input type="file" multiple accept="image/jpeg,image/png,image/webp"
-                               @change="work.gallery = Array.from($event.target.files)">
+                               @change="selectUploads($event.target.files)">
                     </label>
+                    <ol v-if="newImages.length" class="work-gallery-list" aria-label="Imágenes nuevas">
+                        <li v-for="(image, index) in newImages" :key="image.preview" class="work-gallery-item">
+                            <img :src="image.preview" alt="" class="work-gallery-preview">
+                            <div class="work-gallery-fields">
+                                <p class="upload-name">{{ image.name }}</p>
+                                <label class="cover-option">
+                                    <input v-model="coverChoice" type="radio" name="portfolio-cover" :value="'new:' + index"
+                                           :aria-label="'Usar como portada: ' + image.name">
+                                    Usar como portada
+                                </label>
+                            </div>
+                        </li>
+                    </ol>
                 </section>
                 <label class="select-row"><input v-model="work.is_public" type="checkbox">Publicar este trabajo en el
                     portfolio</label>
@@ -168,6 +224,25 @@ function saveWork() {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+}
+
+/* Un único control de radio identifica la portada entre las imágenes disponibles. */
+.cover-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    cursor: pointer;
+    color: #153b64;
+    font-weight: 700;
+}
+
+.cover-option input {
+    accent-color: #1f6f7f;
+}
+
+.upload-name {
+    overflow-wrap: anywhere;
 }
 
 .gallery-error {

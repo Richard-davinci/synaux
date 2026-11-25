@@ -573,11 +573,12 @@ class SynauxFlowTest extends TestCase
         ];
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l1sAAAAASUVORK5CYII=');
         $image = fn(string $name) => UploadedFile::fake()->createWithContent($name . '.png', $png);
-        $this->actingAs($owner)->post('/acciones/trabajo', [...$data, 'gallery' => [
+        $this->actingAs($owner)->post('/acciones/trabajo', [...$data, 'cover_choice' => 'new:1', 'gallery' => [
             $image('primera'), $image('segunda'), $image('tercera'),
         ]])->assertSessionHasNoErrors();
         $work = DB::table('portfolio_projects')->first();
         $images = DB::table('portfolio_project_images')->orderBy('sort_order')->get();
+        $this->assertSame($images[1]->image_path, $work->cover_path);
         $revision = app(\App\Services\Portfolio\PortfolioGallery::class)->revision($images);
         $this->get('/editor/trabajo/' . $work->id)->assertInertia(fn(Assert $page) => $page
             ->where('galleryRevision', $revision)->has('selected.images', 3));
@@ -590,6 +591,7 @@ class SynauxFlowTest extends TestCase
             ]),
         ];
         $this->post('/acciones/trabajo', [...$data, ...$selection,
+            'cover_choice' => 'saved:' . $images[0]->id,
             'gallery_replacements' => [$images[0]->id => $image('nuevo-catalogo')],
             'gallery' => [$image('cuarta')],
         ])->assertSessionHasNoErrors();
@@ -598,6 +600,9 @@ class SynauxFlowTest extends TestCase
         $this->assertSame('Página de inicio', $updated[0]->alt_text);
         $this->assertSame('Catálogo', $updated[1]->alt_text);
         $this->assertNotSame($images[0]->image_path, $updated[1]->image_path);
+        $this->assertDatabaseHas('portfolio_projects', ['id' => $work->id, 'cover_path' => $updated[1]->image_path]);
+        $this->post('/acciones/trabajo', [...$data, 'id' => $work->id, 'cover_choice' => 'saved:999999'])
+            ->assertSessionHasErrors('cover_choice');
         $this->assertCount(3, $updated);
         $this->get($images[1]->image_path)->assertNotFound();
 
@@ -605,8 +610,10 @@ class SynauxFlowTest extends TestCase
         $this->assertDatabaseCount('portfolio_project_images', 3);
         $this->post('/acciones/trabajo', [...$data, ...$selection, 'gallery_items' => '[]',
             'gallery_revision' => app(\App\Services\Portfolio\PortfolioGallery::class)->revision($updated),
+            'cover_choice' => 'none',
         ])->assertSessionHasNoErrors();
         $this->assertDatabaseCount('portfolio_project_images', 0);
+        $this->assertDatabaseHas('portfolio_projects', ['id' => $work->id, 'cover_path' => null]);
     }
 
     public function test_project_progress_can_be_updated_only_by_issuer_or_management(): void

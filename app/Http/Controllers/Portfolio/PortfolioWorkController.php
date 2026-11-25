@@ -45,6 +45,7 @@ class PortfolioWorkController extends Controller
             'result' => 'nullable|string|max:10000', 'year' => 'nullable|integer|min:1990|max:2100', 'is_public' => 'required|boolean',
             'live_url' => 'nullable|url:http,https|max:2048', 'cover' => 'nullable|' . $imageRules,
             'gallery' => 'nullable|array|max:8', 'gallery.*' => $imageRules,
+            'cover_choice' => ['nullable', 'regex:/^(?:current|none|saved:[1-9][0-9]*|new:[0-9]+)$/D'],
             'gallery_items' => 'nullable|json|max:250000', 'gallery_revision' => 'required_with:gallery_items|nullable|string|size:64',
             'gallery_replacements' => 'nullable|array|max:8', 'gallery_replacements.*' => $imageRules,
         ]);
@@ -58,7 +59,7 @@ class PortfolioWorkController extends Controller
         }
 
         $profile = DB::table('professional_profiles')->where('user_id', $request->user()->id)->firstOrFail();
-        $values = collect($d)->except(['id', 'cover', 'gallery', 'gallery_items', 'gallery_revision', 'gallery_replacements'])->all();
+        $values = collect($d)->except(['id', 'cover', 'gallery', 'gallery_items', 'gallery_revision', 'gallery_replacements', 'cover_choice'])->all();
         $uploaded = [];
 
         try {
@@ -89,10 +90,19 @@ class PortfolioWorkController extends Controller
                 }
 
                 $order = (DB::table('portfolio_project_images')->where('portfolio_project_id', $id)->max('sort_order') ?? -1) + 1;
-                foreach ($request->file('gallery', []) as $image) {
+                $newImages = [];
+                foreach ($request->file('gallery', []) as $index => $image) {
+                    $newImages[$index] = $this->saveImage($image, $uploaded);
                     DB::table('portfolio_project_images')->insert([
-                        'portfolio_project_id' => $id, 'image_path' => $this->saveImage($image, $uploaded),
+                        'portfolio_project_id' => $id, 'image_path' => $newImages[$index],
                         'alt_text' => $values['title'], 'sort_order' => $order++,
+                    ]);
+                }
+
+                $coverChoice = $d['cover_choice'] ?? 'current';
+                if ($coverChoice !== 'current') {
+                    DB::table('portfolio_projects')->where('id', $id)->update([
+                        'cover_path' => $this->coverPath($id, $coverChoice, $newImages),
                     ]);
                 }
 
@@ -104,6 +114,24 @@ class PortfolioWorkController extends Controller
         }
 
         return redirect('/editor/trabajo/' . $id)->with('notice', 'Trabajo guardado.');
+    }
+
+    // Resuelve la portada dentro del trabajo autorizado y reutiliza el archivo de la galería.
+    private function coverPath(int $work, string $choice, array $newImages): ?string
+    {
+        if ($choice === 'none') {
+            return null;
+        }
+
+        [$source, $reference] = explode(':', $choice, 2);
+        $path = $source === 'new'
+            ? ($newImages[$reference] ?? null)
+            : DB::table('portfolio_project_images')->where('portfolio_project_id', $work)->where('id', $reference)->value('image_path');
+        if (!$path) {
+            throw ValidationException::withMessages(['cover_choice' => 'Elegí una imagen disponible para la portada.']);
+        }
+
+        return $path;
     }
 
     // Registra los archivos nuevos para retirarlos si la transacción no se completa.
