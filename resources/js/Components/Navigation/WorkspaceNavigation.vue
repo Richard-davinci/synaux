@@ -94,7 +94,6 @@ function isActive(href) {
 /* Cada área usa su acento y un color de texto con contraste en el enlace activo. */
 .workspace-navigation {
     --role-accent: #153b64;
-    --role-selection: #153b64;
     --role-tint: #153b640a;
     display: flex;
     flex-direction: column;
@@ -104,22 +103,24 @@ function isActive(href) {
     color: #153b64;
 }
 
+/* El azul claro del indicador se deriva del azul de Cliente para que se vea sobre el fondo activo. */
+.workspace-navigation[data-role='cliente'] {
+    --role-indicator: color-mix(in srgb, #153b64 45%, #fff);
+}
+
 .workspace-navigation[data-role='profesional'] {
     --role-accent: #2db3a3;
-    --role-selection: #153b64;
     --role-tint: #2db3a31a;
 }
 
-/* Gestión y Administración distinguen la selección con sus respectivos fondos turquesa. */
+/* Gestión y Administración se distinguen por el tono de la línea activa. */
 .workspace-navigation[data-role='gestion'] {
     --role-accent: #1f6f7f;
-    --role-selection: #1f6f7f;
     --role-tint: #1f6f7f12;
 }
 
 .workspace-navigation[data-role='admin'] {
     --role-accent: #2db3a3;
-    --role-selection: #2db3a3;
     --role-tint: #2db3a31a;
 }
 
@@ -181,8 +182,8 @@ function isActive(href) {
 
 .workspace-navigation a[aria-current='page'] {
     color: #fff;
-    background: var(--role-selection);
-    box-shadow: inset 3px 0 0 var(--role-accent), var(--button-shadow);
+    background: #153b64;
+    box-shadow: inset 4px 0 0 var(--role-indicator, var(--role-accent)), var(--button-shadow);
 }
 
 .workspace-navigation a:focus-visible {
