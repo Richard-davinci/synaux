@@ -47,7 +47,7 @@ const recientes = computed(() => (props.data.requests ?? []).slice(0, 3));
                             <NewBadge type="solicitud" :id="solicitud.id"/>
                         </div>
                     </div>
-                    <StatusBadge :status="solicitud.status"/>
+                    <StatusBadge :status="solicitud.status" request/>
                     <AppButton :href="'/solicitudes/' + solicitud.id" variant="ghost" compact
                                :aria-label="(solicitud.status === 'draft' ? 'Continuar borrador de ' : 'Ver detalle de ') + solicitud.title">
                         {{ solicitud.status === 'draft' ? 'Continuar borrador' : 'Ver detalle' }}

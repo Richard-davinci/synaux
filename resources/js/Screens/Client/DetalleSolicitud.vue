@@ -20,16 +20,16 @@ function closeRequest() {
 </script>
 
 <template>
-    <section class="page shell narrow">
+    <section class="page shell workspace-view detalle-solicitud">
+        <B variant="ghost" compact class="workspace-back" href="/cliente/solicitudes">← Volver a solicitudes</B>
         <template v-if="record.status === 'draft'">
             <T eyebrow="Solicitud en borrador" :title="record.title"
                description="Podés completar y revisar la información antes de enviarla."/>
             <RequestForm :data="data"/>
         </template>
         <template v-else>
-            <B variant="ghost" href="/cliente/solicitudes">← Volver a solicitudes</B>
             <T :eyebrow="'SOL-' + record.id + ' · Solicitud'" :title="record.title">
-                <S :status="record.status"/>
+                <S :status="record.status" request/>
             </T>
             <div class="detail-layout">
                 <v-card class="card">
@@ -55,8 +55,14 @@ function closeRequest() {
                     </dl>
                     <section v-if="record.contact">
                         <h3>Contacto del pedido</h3>
-                        <p>{{ record.contact.name }} · {{ record.contact.email }}</p>
-                        <p>{{ record.contact.company }} {{ record.contact.phone }} {{ record.contact.address }}</p>
+                        <dl class="data-list">
+                            <template v-for="[campo, etiqueta] in [['name', 'Nombre'], ['email', 'Correo'], ['company', 'Organización'], ['phone', 'Teléfono'], ['address', 'Domicilio']]" :key="campo">
+                                <div v-if="record.contact[campo]">
+                                    <dt>{{ etiqueta }}</dt>
+                                    <dd>{{ record.contact[campo] }}</dd>
+                                </div>
+                            </template>
+                        </dl>
                     </section>
                     <section v-if="record.additional_services?.length">
                         <h3>Servicios adicionales</h3>
@@ -104,3 +110,20 @@ function closeRequest() {
         </template>
     </section>
 </template>
+
+<style scoped>
+/* Los datos de contacto y las notas se mantienen dentro del ancho de la tarjeta. */
+.detalle-solicitud .detail-layout {
+    overflow-wrap: anywhere;
+}
+
+.detalle-solicitud .card h3 {
+    margin-bottom: 8px;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.detalle-solicitud .data-list dd {
+    min-width: 0;
+}
+</style>

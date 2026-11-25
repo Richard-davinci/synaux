@@ -7,7 +7,7 @@ defineProps({data: {type: Object, required: true}});
 </script>
 
 <template>
-    <section class="page shell">
+    <section class="page shell" :class="{ 'workspace-view': data.area === 'cliente' }">
         <T eyebrow="Estimación y solicitud" title="Prepará tu proyecto"
            description="Elegí los servicios, revisá la referencia de precio y completá tu pedido. Podés comenzar sin registrarte."/>
         <RequestForm :data="data"/>

@@ -91,9 +91,9 @@ function decide() {
 </script>
 
 <template>
-    <section class="page shell">
+    <section class="page shell" :class="{ 'workspace-view': data.area === 'cliente' }">
         <div class="client-budget">
-            <B :href="data.area === 'gestion' ? '/gestion/presupuestos' : '/cliente/presupuestos'" variant="ghost">←
+            <B :href="data.area === 'gestion' ? '/gestion/presupuestos' : '/cliente/presupuestos'" variant="ghost" :compact="data.area === 'cliente'" class="workspace-back">←
                 Volver a presupuestos</B>
             <T :eyebrow="'PRE-' + record.budget_id + ' · Presupuesto formal'" :title="record.title"
                :description="'Versión ' + record.version_number + ' · Emitida el ' + date(record.sent_at ?? record.created_at)">
@@ -227,7 +227,7 @@ function decide() {
     display: grid;
     gap: 20px;
     position: sticky;
-    top: 24px;
+    top: calc(var(--navbar-height, 76px) + var(--workspace-bar-height, 0px) + 16px);
 }
 
 .client-budget h2, .budget-decision h2 {

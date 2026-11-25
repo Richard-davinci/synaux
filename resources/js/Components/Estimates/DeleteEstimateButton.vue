@@ -6,7 +6,7 @@ import B from '../UI/AppButton.vue';
 import {demoNotice} from '../../support/prototype';
 
 // La confirmación identifica el registro y solo envía el borrado cuando el cliente lo acepta explícitamente.
-const props = defineProps({estimate: Object});
+const props = defineProps({estimate: Object, compact: Boolean});
 const page = usePage();
 const open = ref(false);
 const titleId = useId();
@@ -37,7 +37,7 @@ function remove() {
 }
 </script>
 <template>
-    <B variant="ghost" :aria-label="'Eliminar estimación EST-' + estimate.id" @click="ask">Eliminar</B>
+    <B variant="ghost" :compact="compact" :aria-label="'Eliminar estimación EST-' + estimate.id" @click="ask">Eliminar</B>
     <SidePanel title="Eliminar estimación" :model-value="open" max-width="440" :persistent="form.processing"
                @update:model-value="value => { if (!value) close(); }" :aria-labelledby="titleId">
         <div class="synaux-app">

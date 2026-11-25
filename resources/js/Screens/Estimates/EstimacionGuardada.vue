@@ -31,7 +31,8 @@ const newEstimateHref = computed(() => result.value.service
 </script>
 
 <template>
-    <section class="page shell estimator">
+    <section class="page shell estimator workspace-view">
+        <B href="/cliente/estimaciones" compact variant="ghost" class="workspace-back">← Volver a estimaciones</B>
         <T eyebrow="Estimación orientativa" title="Tu estimación guardada"/>
 
         <EstimateResult :result="result" :preview="Boolean(data.preview)">
@@ -48,5 +49,10 @@ const newEstimateHref = computed(() => result.value.service
 <style scoped>
 .estimator {
     max-width: 1180px;
+}
+
+/* El importe conserva prioridad dentro de la escala del panel. */
+.estimator :deep(.result-card h2) {
+    font-size: clamp(1.4rem, 2.5vw, 2rem);
 }
 </style>

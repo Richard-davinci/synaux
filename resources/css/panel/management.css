@@ -8,6 +8,10 @@
         gap: 16px;
         margin-bottom: 24px;
     }
+    /* El regreso a un listado acompaña el encabezado de los detalles del panel. */
+    .workspace-view .workspace-back {
+        margin-bottom: 12px;
+    }
     .workspace-view .page-title h1 {
         margin-bottom: 8px;
         font-size: clamp(1.75rem, 3vw, 2.3rem);

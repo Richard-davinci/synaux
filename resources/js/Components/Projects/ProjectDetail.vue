@@ -23,9 +23,10 @@ const guidance = computed(() => ({
 </script>
 
 <template>
-    <section class="page shell">
+    <section class="page shell" :class="{ 'workspace-view': data.area === 'cliente' }">
         <div class="project-detail">
-            <B :href="management ? '/gestion/proyectos' : '/cliente/proyectos'" variant="ghost">← Volver a proyectos</B>
+            <B :href="management ? '/gestion/proyectos' : '/cliente/proyectos'" variant="ghost" :compact="data.area === 'cliente'"
+               class="workspace-back">← Volver a proyectos</B>
             <T :eyebrow="'PRY-' + project.id + ' · Proyecto'" :title="project.title">
                 <div class="button-row">
                     <S :status="project.status"/>
@@ -137,7 +138,7 @@ const guidance = computed(() => ({
 
 .project-grid aside {
     position: sticky;
-    top: 24px;
+    top: calc(var(--navbar-height, 76px) + var(--workspace-bar-height, 0px) + 16px);
 }
 
 .project-detail h2 {
