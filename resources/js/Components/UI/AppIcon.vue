@@ -44,6 +44,11 @@ defineProps({name: {type: String, default: 'arrow'}});
             <path d="m4 16-1 5 5-1L19 9l-4-4z"/>
             <path d="m13 7 4 4"/>
         </g>
+        <!-- El icono de compartir distingue el enlace de activación de la edición del rol. -->
+        <g v-else-if="name === 'share'">
+            <circle cx="5" cy="12" r="3"/><circle cx="19" cy="5" r="3"/><circle cx="19" cy="19" r="3"/>
+            <path d="m7.7 10.7 8.6-4.4m-8.6 7 8.6 4.4"/>
+        </g>
         <!-- Iconos de servicios con el mismo trazo que los controles existentes. -->
         <g v-else-if="name === 'web'">
             <rect x="3" y="4" width="18" height="16" rx="2"/>

@@ -6,6 +6,7 @@ import B from '../../Components/UI/AppButton.vue';
 import F from '../../Components/UI/FormField.vue';
 import T from '../../Components/UI/PageTitle.vue';
 import SidePanel from '../../Components/UI/SidePanel.vue';
+import AccionIcono from '../../Components/UI/AccionIcono.vue';
 import {date} from '../../support/formatters';
 
 const props = defineProps({data: {type: Object, required: true}});
@@ -228,12 +229,13 @@ function findUsers() {
                     </td>
                     <td><time v-if="user.created_at" :datetime="user.created_at">{{ date(user.created_at) }}</time><span v-else>—</span></td>
                     <td><div class="user-search-actions">
-                        <B v-if="!esEquipo" :href="profileHref(user.id)" :aria-label="'Ver ficha de ' + user.name" compact variant="secondary">Ver ficha</B>
-                        <B v-if="user.activacion_pendiente && user.rol_organizacion" compact variant="secondary"
-                           :disabled="preparandoEnlace" :aria-label="'Compartir enlace de activación de ' + user.name"
-                           @click="prepararEnlace(user)">Compartir</B>
-                        <B v-if="esEquipo && !user.is_admin" compact variant="ghost" :aria-label="'Cambiar rol de ' + user.name"
-                           @click="editarRol(user)">Cambiar rol</B>
+                        <AccionIcono v-if="!esEquipo" icono="eye" texto="Ver ficha" :href="profileHref(user.id)"
+                                     :etiqueta="'Ver ficha de ' + user.name"/>
+                        <AccionIcono v-if="user.activacion_pendiente && user.rol_organizacion" icono="share"
+                                     texto="Compartir enlace de activación" :deshabilitada="preparandoEnlace"
+                                     :etiqueta="'Compartir enlace de activación de ' + user.name" @click="prepararEnlace(user)"/>
+                        <AccionIcono v-if="esEquipo && !user.is_admin" icono="edit" texto="Cambiar rol"
+                                     :etiqueta="'Cambiar rol de ' + user.name" @click="editarRol(user)"/>
                     </div></td>
                 </tr>
                 <tr v-if="!data.users.data.length">
