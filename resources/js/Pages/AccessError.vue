@@ -11,11 +11,6 @@ const props = defineProps({
 
 // Cada estado ofrece una salida segura, con el panel que corresponde a la sesión si ya hay una.
 const messages = {
-    401: {
-        title: 'Ingresá para continuar',
-        description: 'Si tu cuenta tiene acceso, vas a poder abrir esta página después de ingresar.',
-        action: ['Ingresar', '/ingresar'],
-    },
     403: {
         title: 'Tu cuenta no tiene acceso a esta página',
         description: 'Volvé a tu panel para ver las opciones disponibles para tu cuenta.',

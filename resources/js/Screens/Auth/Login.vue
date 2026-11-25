@@ -21,7 +21,7 @@ function send() {
 
 <template>
     <AuthFrame eyebrow="Bienvenido de nuevo" title="Ingresá a tu cuenta"
-               description="Consultá solicitudes, presupuestos y proyectos."
+               :description="data.loginRequired ? 'Ingresá para acceder a la página que intentaste abrir.' : 'Consultá solicitudes, presupuestos y proyectos.'"
                :alternative="{ prompt: '¿Todavía no tenés cuenta?', label: 'Crear cuenta', href: '/crear-cuenta' }">
         <form @submit.prevent="send">
             <F v-model="form.email" label="Correo electrónico" type="email" autocomplete="email" required

@@ -3,7 +3,6 @@
 use App\Http\Middleware\EnsureSynauxManagement;
 use App\Http\Middleware\EnsureSynauxStageTwo;
 use App\Http\Middleware\HandleInertiaRequests;
-use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -32,11 +31,9 @@ return Application::configure(basePath: dirname(__DIR__))
                 return $response;
             }
 
-            // Laravel ya guardó el destino en sesión al preparar la redirección de autenticación.
-            $status = $exception instanceof AuthenticationException && $response->isRedirect()
-                ? 401
-                : $response->getStatusCode();
-            if (!in_array($status, [401, 403, 404], true)) {
+            // Laravel redirige al ingreso y guarda el destino cuando falta la sesión.
+            $status = $response->getStatusCode();
+            if (!in_array($status, [403, 404], true)) {
                 return $response;
             }
 

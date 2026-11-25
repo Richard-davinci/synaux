@@ -91,7 +91,7 @@ class SynauxFlowTest extends TestCase
         $owner = $this->account();
         $stranger = $this->account();
         $id = $this->projectRequest($owner);
-        $this->get('/solicitudes/' . $id)->assertUnauthorized();
+        $this->get('/solicitudes/' . $id)->assertRedirect('/ingresar');
         $this->actingAs($stranger)->get('/solicitudes/' . $id)->assertNotFound();
         $this->get('/oportunidades/' . $id)->assertNotFound();
         $this->post('/acciones/estado-solicitud', ['id' => $id, 'status' => 'closed'])->assertForbidden();
@@ -250,7 +250,7 @@ class SynauxFlowTest extends TestCase
     // Las áreas de Gestión y Administración aplican el mismo permiso en lectura y escritura.
     public function test_management_routes_require_the_persisted_management_permission(): void
     {
-        $this->get('/gestion')->assertUnauthorized();
+        $this->get('/gestion')->assertRedirect('/ingresar');
         $this->actingAs($this->account())->get('/gestion')->assertForbidden();
         $this->get('/admin/tarifario')->assertForbidden();
         $this->post('/admin/guardar/servicios', [])->assertForbidden();

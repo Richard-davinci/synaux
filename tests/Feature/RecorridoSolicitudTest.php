@@ -146,7 +146,7 @@ class RecorridoSolicitudTest extends TestCase
                 ->where('screen', 'publicar')->where('area', 'public')->where('auth', null)
                 ->has('requestQuestions')->missing('requests')->missing('estimates')->missing('quotes'));
         }
-        $this->get('/solicitudes/nueva?estimacion=5')->assertUnauthorized()
+        $this->get('/solicitudes/nueva?estimacion=5')->assertRedirect('/ingresar')
             ->assertSessionHas('url.intended', url('/solicitudes/nueva?estimacion=5'));
         $this->post('/acciones/solicitud', $this->project())->assertRedirect('/ingresar');
         $this->assertDatabaseCount('project_requests', 0);

@@ -119,6 +119,10 @@ class PublicPageController extends Controller
             // El acceso anterior al estimador abre ahora el mismo recorrido público de solicitud.
             $data = $this->journey->pageData($request, $data);
         }
+        // El formulario recibe solo un indicador; la dirección a retomar queda en la sesión.
+        if ($screen === 'ingreso') {
+            $data['loginRequired'] = $request->session()->has('url.intended');
+        }
         if ($screen === 'restablecer') {
             $data['token'] = $id;
             $data['email'] = (string)$request->query('email');

@@ -16,10 +16,14 @@ class AccessErrorTest extends TestCase
     {
         $admin = User::factory()->create(['is_admin' => true]);
 
-        $this->get('/admin/servicios?buscar=web')->assertUnauthorized()
-            ->assertInertia(fn(Assert $page) => $page->component('AccessError')
-                ->where('status', 401)->where('accountArea', null)->missing('administration'))
+        $this->get('/ingresar')->assertInertia(fn(Assert $page) => $page
+            ->where('screen', 'ingreso')->where('loginRequired', false));
+
+        $this->get('/admin/servicios?buscar=web')->assertRedirect('/ingresar')
             ->assertSessionHas('url.intended', url('/admin/servicios?buscar=web'));
+
+        $this->get('/ingresar')->assertInertia(fn(Assert $page) => $page
+            ->where('screen', 'ingreso')->where('loginRequired', true)->missing('administration'));
 
         $this->post('/ingresar', ['email' => $admin->email, 'password' => 'password'])
             ->assertRedirect('/admin/servicios?buscar=web');
