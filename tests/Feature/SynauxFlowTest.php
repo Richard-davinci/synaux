@@ -544,7 +544,17 @@ class SynauxFlowTest extends TestCase
         $this->actingAs($owner)->post('/acciones/trabajo', [...$data, 'cover' => UploadedFile::fake()->createWithContent('portada.png', $png)])->assertSessionHasNoErrors()->assertRedirect();
         $work = DB::table('portfolio_projects')->first();
         $this->get($work->cover_path)->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
-        $this->actingAs($this->account())->get($work->cover_path)->assertOk();
+        $visitor = $this->account();
+        $this->actingAs($visitor)->get($work->cover_path)->assertOk();
+
+        // Ocultar un perfil profesional oculta su trabajo; Gestión puede publicar con su perfil interno.
+        DB::table('professional_profiles')->where('user_id', $owner->id)->update(['active' => false]);
+        $this->get('/trabajos/' . $work->id)->assertNotFound();
+        $this->get($work->cover_path)->assertNotFound();
+        $owner->forceFill(['is_admin' => true])->save();
+        $this->get('/trabajos/' . $work->id)->assertOk();
+        $this->get($work->cover_path)->assertOk();
+
         $this->actingAs($owner)->post('/acciones/trabajo', [...$data, 'id' => $work->id, 'is_public' => false])->assertSessionHasNoErrors();
         $this->actingAs($this->account())->get($work->cover_path)->assertNotFound();
         $this->actingAs($owner)->get($work->cover_path)->assertOk();

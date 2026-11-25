@@ -61,15 +61,12 @@ class PortfolioWorkController extends Controller
     }
 
     // Entrega una imagen solo si el trabajo es público o pertenece a la cuenta que la solicita.
-    public function media(Request $request, string $file)
+    public function media(Request $request, PortfolioQueries $portfolio, string $file)
     {
         // Se resuelve un nombre generado por Laravel; la consulta determina si la imagen es pública o propia.
         abort_unless(preg_match('/^[a-zA-Z0-9]+\.(jpg|jpeg|png|webp)$/i', $file), 404);
         $path = '/media/portfolio/' . $file;
-        $work = DB::table('portfolio_projects as w')->join('professional_profiles as p', 'p.id', '=', 'w.professional_profile_id')
-            ->where(fn($q) => $q->where('w.cover_path', $path)->orWhereExists(fn($sub) => $sub->selectRaw('1')->from('portfolio_project_images as i')->whereColumn('i.portfolio_project_id', 'w.id')->where('i.image_path', $path)))
-            ->select('w.is_public', 'p.active', 'p.user_id')->first();
-        abort_unless($work && (($work->is_public && $work->active) || $request->user()?->id === $work->user_id), 404);
+        abort_unless($portfolio->canReadImage($path, $request->user()?->id), 404);
         abort_unless(Storage::disk('public')->exists('portfolio/' . $file), 404);
 
         return Storage::disk('public')->response('portfolio/' . $file, null, ['X-Content-Type-Options' => 'nosniff']);
