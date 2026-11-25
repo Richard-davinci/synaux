@@ -2,9 +2,8 @@
 import {computed} from 'vue';
 import RequestsTable from '../../Components/Management/TablaSolicitudes.vue';
 import B from '../../Components/UI/AppButton.vue';
-import I from '../../Components/UI/AppIcon.vue';
+import IndicadoresPanel from '../../Components/Navigation/IndicadoresPanel.vue';
 import T from '../../Components/UI/PageTitle.vue';
-import {referenceHref} from '../../support/prototype';
 
 const props = defineProps({data: {type: Object, required: true}});
 
@@ -24,13 +23,7 @@ const summary = computed(() => [
         <T eyebrow="Gestión" title="Resumen de gestión"
            description="Revisá los pedidos que requieren atención y accedé a los presupuestos y proyectos."/>
 
-        <ul class="management-metrics">
-            <li v-for="[label, key, icon, count] in summary" :key="key">
-                <a class="workspace-metric" :href="referenceHref('/gestion/' + key, data)">
-                    <I :name="icon"/><span>{{ label }}</span><strong>{{ count }}</strong>
-                </a>
-            </li>
-        </ul>
+        <IndicadoresPanel :indicadores="summary" ruta-base="/gestion" :contexto="data"/>
         <section class="card management-queue" aria-labelledby="management-queue-title">
             <div class="section-head">
                 <h2 id="management-queue-title">Solicitudes por revisar</h2>

@@ -1,62 +1,128 @@
 <script setup>
-import B from '../../Components/UI/AppButton.vue';
-import T from '../../Components/UI/PageTitle.vue';
-import S from '../../Components/UI/StatusBadge.vue';
-import EmptyState from '../../Components/UI/EmptyState.vue';
+import {computed} from 'vue';
+import {usePage} from '@inertiajs/vue3';
+import AppButton from '../../Components/UI/AppButton.vue';
+import PageTitle from '../../Components/UI/PageTitle.vue';
+import StatusBadge from '../../Components/UI/StatusBadge.vue';
+import IndicadoresPanel from '../../Components/Navigation/IndicadoresPanel.vue';
 import NewBadge from '../../Components/Notifications/NewBadge.vue';
 import {date} from '../../support/formatters';
 
-// Los conteos y la actividad salen de las colecciones autorizadas que devuelve Laravel.
-defineProps({data: {type: Object, required: true}});
+// El resumen muestra las colecciones propias que Laravel reunió para esta cuenta.
+const props = defineProps({data: {type: Object, required: true}});
+const page = usePage();
+const nombre = computed(() => page.props.auth?.name?.trim().split(/\s+/)[0] || (props.data.preview ? 'Martina' : ''));
+const indicadores = computed(() => [
+    ['Estimaciones', 'estimaciones', 'edit', props.data.estimates?.length ?? 0],
+    ['Solicitudes', 'solicitudes', 'file', props.data.requests?.length ?? 0],
+    ['Presupuestos', 'presupuestos', 'receipt', props.data.quotes?.length ?? 0],
+    ['Proyectos', 'proyectos', 'folder', props.data.projects?.length ?? 0],
+]);
+const recientes = computed(() => (props.data.requests ?? []).slice(0, 3));
 </script>
 
 <template>
-    <section class="page shell">
-        <T eyebrow="Área cliente" :title="'Hola, ' + ($page.props.auth?.name?.split(' ')[0] ?? 'Martina')"
-           description="Revisá tus solicitudes, presupuestos y proyectos en un solo lugar.">
-            <B href="/solicitudes/nueva" arrow>Nueva solicitud</B>
-        </T>
-        <div class="stats-grid">
-            <v-card v-for="[label, value, link] in [
-                ['Estimaciones', data.estimates?.length ?? 0, 'estimaciones'],
-                ['Solicitudes', data.requests?.length ?? 0, 'solicitudes'],
-                ['Presupuestos', data.quotes?.length ?? 0, 'presupuestos'],
-                ['Proyectos', data.projects?.length ?? 0, 'proyectos'],
-            ]" :key="link" class="card stat">
-                <span>{{ label }}</span>
-                <strong>{{ value }}</strong>
-                <B variant="ghost" :href="'/cliente/' + link">Ver {{ label.toLowerCase() }} →</B>
-            </v-card>
-        </div>
+    <section class="page shell workspace-view">
+        <PageTitle eyebrow="Área cliente" :title="nombre ? 'Hola, ' + nombre : 'Resumen'"
+                   description="Revisá tus solicitudes, presupuestos y proyectos.">
+            <AppButton href="/solicitudes/nueva" arrow>Nueva solicitud</AppButton>
+        </PageTitle>
 
-        <div class="detail-layout">
-            <v-card class="card">
-                <div class="section-head">
-                    <h2>Actividad reciente</h2>
-                    <B variant="ghost" href="/cliente/solicitudes">Ver todas</B>
-                </div>
-                <div v-for="request in (data.requests ?? []).slice(0, 3)" :key="request.id" class="list-row">
-                    <div>
-                        <small>SOL-{{ request.id }} · {{ date(request.created_at) }}</small>
+        <IndicadoresPanel :indicadores="indicadores" ruta-base="/cliente" :contexto="data"/>
+
+        <!-- La actividad presenta solicitudes recientes y distingue la acción de los borradores. -->
+        <section class="card solicitudes-recientes" aria-labelledby="titulo-solicitudes-recientes">
+            <div class="section-head">
+                <h2 id="titulo-solicitudes-recientes">Solicitudes recientes</h2>
+                <AppButton v-if="recientes.length" compact variant="secondary" href="/cliente/solicitudes">
+                    Ver todas
+                </AppButton>
+            </div>
+            <ul v-if="recientes.length" class="lista-recientes">
+                <li v-for="solicitud in recientes" :key="solicitud.id">
+                    <div class="solicitud-reciente-identidad">
+                        <small>SOL-{{ solicitud.id }} · {{ date(solicitud.created_at) }}</small>
                         <div class="record-heading">
-                            <h3>{{ request.title }}</h3>
-                            <NewBadge type="solicitud" :id="request.id"/>
+                            <h3>{{ solicitud.title }}</h3>
+                            <NewBadge type="solicitud" :id="solicitud.id"/>
                         </div>
-                        <S :status="request.status"/>
                     </div>
-                    <B :href="'/solicitudes/' + request.id" variant="secondary">Ver detalle</B>
-                </div>
-                <EmptyState v-if="!data.requests?.length" title="Todavía no tenés solicitudes"
-                            text="Empezá contando qué necesitás resolver."/>
-            </v-card>
-            <aside>
-                <v-card class="card soft-panel">
-                    <p class="eyebrow">Tu próximo paso</p>
-                    <h3>De la idea al proyecto</h3>
-                    <p>Estimá el alcance, creá una solicitud y revisá la propuesta formal antes de confirmar.</p>
-                    <B href="/estimador" arrow>Estimar un proyecto</B>
-                </v-card>
-            </aside>
-        </div>
+                    <StatusBadge :status="solicitud.status"/>
+                    <AppButton :href="'/solicitudes/' + solicitud.id" variant="ghost" compact
+                               :aria-label="(solicitud.status === 'draft' ? 'Continuar borrador de ' : 'Ver detalle de ') + solicitud.title">
+                        {{ solicitud.status === 'draft' ? 'Continuar borrador' : 'Ver detalle' }}
+                    </AppButton>
+                </li>
+            </ul>
+            <p v-else class="sin-solicitudes">Todavía no tenés solicitudes.</p>
+        </section>
     </section>
 </template>
+
+<style scoped>
+/* El resumen conserva una tarjeta de actividad compacta y apila cada fila en pantallas pequeñas. */
+.solicitudes-recientes {
+    padding: clamp(16px, 3vw, 26px);
+}
+
+.solicitudes-recientes .section-head {
+    flex-flow: row wrap;
+    align-items: center;
+    gap: 8px 12px;
+    margin-bottom: 12px;
+}
+
+.lista-recientes {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.lista-recientes > li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(104px, auto) minmax(146px, auto);
+    align-items: center;
+    gap: 10px 16px;
+    padding-block: 14px;
+    border-top: 1px solid #1f6f7f22;
+}
+
+.lista-recientes > li:last-child {
+    padding-bottom: 0;
+}
+
+.solicitud-reciente-identidad {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.solicitud-reciente-identidad small {
+    color: #446075;
+}
+
+.solicitudes-recientes .record-heading h3 {
+    margin: 3px 0 0;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.lista-recientes > li > .btn {
+    justify-self: end;
+}
+
+.sin-solicitudes {
+    margin: 0;
+    color: #446075;
+}
+
+@media (max-width: 600px) {
+    .lista-recientes > li {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .solicitud-reciente-identidad {
+        grid-column: 1 / -1;
+    }
+}
+</style>
