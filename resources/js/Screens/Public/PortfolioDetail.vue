@@ -2,6 +2,7 @@
 import './public-screen.css';
 import {computed, ref} from 'vue';
 import B from '../../Components/UI/AppButton.vue';
+import AppIcon from '../../Components/UI/AppIcon.vue';
 import T from '../../Components/UI/PageTitle.vue';
 
 const props = defineProps({data: Object});
@@ -22,13 +23,53 @@ const galleryImages = computed(() => {
 
 // El visor conserva la imagen completa y devuelve el foco al control que lo abrió.
 const imageOpen = ref(false);
-const activeImage = ref(null);
+const indiceActivo = ref(0);
+const imagenActiva = computed(() => galleryImages.value[indiceActivo.value]);
+const tituloImagen = computed(() => imagenActiva.value?.alt_text || 'Imagen de la galería');
 let imageTrigger;
+let inicioDeslizamiento;
 
-function showImage(path, label, event) {
+function showImage(indice, event) {
     imageTrigger = event.currentTarget;
-    activeImage.value = {path, label};
+    indiceActivo.value = indice;
     imageOpen.value = true;
+}
+
+// Botones, teclado y gestos recorren el mismo orden y vuelven al principio al llegar al final.
+function moverImagen(pasos) {
+    const cantidad = galleryImages.value.length;
+    if (cantidad > 1) indiceActivo.value = (indiceActivo.value + pasos + cantidad) % cantidad;
+}
+
+// El diálogo recibe las flechas incluso cuando el foco aún está en su contenedor.
+function navegarConTeclado(event) {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+
+    event.preventDefault();
+    moverImagen(event.key === 'ArrowLeft' ? -1 : 1);
+}
+
+// Solo un gesto intencional en sentido horizontal cambia la imagen.
+function iniciarDeslizamiento(event) {
+    if (!event.isPrimary || event.button !== 0 || galleryImages.value.length < 2) return;
+
+    inicioDeslizamiento = {id: event.pointerId, x: event.clientX, y: event.clientY};
+    event.currentTarget.setPointerCapture(event.pointerId);
+}
+
+function cancelarDeslizamiento(event) {
+    if (inicioDeslizamiento?.id === event.pointerId) inicioDeslizamiento = null;
+}
+
+function terminarDeslizamiento(event) {
+    if (inicioDeslizamiento?.id !== event.pointerId) return;
+
+    const horizontal = event.clientX - inicioDeslizamiento.x;
+    const vertical = event.clientY - inicioDeslizamiento.y;
+    inicioDeslizamiento = null;
+    if (Math.abs(horizontal) >= 48 && Math.abs(horizontal) > Math.abs(vertical) * 1.3) {
+        moverImagen(horizontal < 0 ? 1 : -1);
+    }
 }
 
 function restoreImageFocus() {
@@ -62,9 +103,9 @@ function restoreImageFocus() {
         <section v-if="galleryImages.length" class="case-gallery" aria-labelledby="case-gallery-title">
             <h2 id="case-gallery-title">Galería del trabajo</h2>
             <div class="case-gallery-grid">
-                <figure v-for="image in galleryImages" :key="image.id">
+                <figure v-for="(image, indice) in galleryImages" :key="image.id">
                     <button type="button" class="case-image" :aria-label="'Ampliar ' + (image.alt_text || 'imagen de la galería')"
-                            @click="showImage(image.image_path, image.alt_text || 'Imagen de la galería', $event)">
+                            @click="showImage(indice, $event)">
                         <img :src="image.image_path" :alt="image.alt_text ?? ''" loading="lazy">
                     </button>
                     <figcaption>
@@ -80,15 +121,25 @@ function restoreImageFocus() {
         </div>
 
         <v-dialog v-model="imageOpen" fullscreen class="case-gallery-dialog" aria-labelledby="case-viewer-title"
-                  @after-leave="restoreImageFocus">
-            <div v-if="activeImage" class="case-viewer">
+                  :content-props="{ onKeydown: navegarConTeclado }" @after-leave="restoreImageFocus">
+            <div v-if="imagenActiva" class="case-viewer">
                 <div class="case-viewer-header">
-                    <h2 id="case-viewer-title">{{ activeImage.label }}</h2>
+                    <h2 id="case-viewer-title">{{ tituloImagen }}</h2>
                     <B compact variant="ghost" @click="imageOpen = false">Cerrar</B>
                 </div>
-                <div class="case-viewer-content">
-                    <img :src="activeImage.path" :alt="activeImage.label">
+                <div class="case-viewer-content" @pointerdown="iniciarDeslizamiento"
+                     @pointerup="terminarDeslizamiento" @lostpointercapture="cancelarDeslizamiento">
+                    <img :src="imagenActiva.image_path" :alt="tituloImagen" draggable="false">
                 </div>
+                <nav v-if="galleryImages.length > 1" class="case-viewer-navigation" aria-label="Navegación de imágenes">
+                    <button type="button" class="case-viewer-arrow" aria-label="Imagen anterior" @click="moverImagen(-1)">
+                        <AppIcon name="arrow" class="case-viewer-arrow-back"/>
+                    </button>
+                    <span role="status">Imagen {{ indiceActivo + 1 }} de {{ galleryImages.length }}</span>
+                    <button type="button" class="case-viewer-arrow" aria-label="Imagen siguiente" @click="moverImagen(1)">
+                        <AppIcon name="arrow"/>
+                    </button>
+                </nav>
             </div>
         </v-dialog>
     </section>
@@ -193,7 +244,7 @@ figcaption [aria-hidden="true"] {
 
 .case-viewer {
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
     width: 100%;
     height: 100dvh;
     min-height: 0;
@@ -231,6 +282,8 @@ figcaption [aria-hidden="true"] {
 .case-viewer-content {
     display: grid;
     grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+    touch-action: pan-y pinch-zoom;
+    user-select: none;
     padding: 8px max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
 }
 
@@ -241,5 +294,52 @@ figcaption [aria-hidden="true"] {
     min-width: 0;
     min-height: 0;
     object-fit: contain;
+}
+/* Las flechas quedan fuera de la imagen para que nunca tapen parte de la captura. */
+.case-viewer-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 4px max(12px, env(safe-area-inset-right)) max(4px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    border-top: 1px solid #1f6f7f26;
+    background: #fff;
+    color: #153b64;
+    font-weight: 700;
+}
+
+.case-viewer-arrow {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid #1f6f7f4d;
+    border-radius: 8px;
+    color: inherit;
+    background: #fff;
+    cursor: pointer;
+}
+
+.case-viewer-arrow:hover {
+    background: #f5f9fa;
+}
+
+.case-viewer-arrow:focus-visible {
+    outline: 2px solid #1f6f7f;
+    outline-offset: 2px;
+}
+
+.case-viewer-arrow .icon {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.case-viewer-arrow-back {
+    transform: rotate(180deg);
 }
 </style>
