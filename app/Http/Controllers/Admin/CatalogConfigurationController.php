@@ -62,7 +62,7 @@ class CatalogConfigurationController extends Controller
         if ($context && in_array($resource, ['preguntas', 'componentes'], true)) {
             $old = $id ? DB::table($table)->where('id', $id)->firstOrFail() : null;
             abort_if($old && $old->service_id !== null && (int)$old->service_id !== (int)$context, 422, 'El registro pertenece a otro servicio.');
-            abort_if($data['service_id'] !== null && (int)$data['service_id'] !== (int)$context, 422, 'Elegí el servicio de este editor.');
+            abort_if(($data['service_id'] ?? null) !== null && (int)$data['service_id'] !== (int)$context, 422, 'Elegí el servicio de este editor.');
         }
         if ($context && $resource === 'reglas') {
             $component = DB::table('service_components')->where('id', $data['service_component_id'])->firstOrFail();
@@ -74,7 +74,16 @@ class CatalogConfigurationController extends Controller
         }
         $savedId = DB::transaction(function () use ($resource, $table, $id, $data) {
             if ($id) {
-                DB::table($table)->where('id', $id)->firstOrFail();
+                $anterior = DB::table($table)->where('id', $id)->lockForUpdate()->firstOrFail();
+                // Cambiar el alcance no debe romper cantidades ni retirar una pregunta de otros servicios.
+                if ($resource === 'preguntas' && array_key_exists('service_id', $data)) {
+                    if ($anterior->service_id === null && $data['service_id'] !== null) {
+                        throw ValidationException::withMessages(['service_id' => 'Una pregunta general debe conservar su alcance.']);
+                    }
+                    if ($anterior->quantity_component_id !== null && $data['service_id'] === null) {
+                        throw ValidationException::withMessages(['service_id' => 'Desvinculá el concepto de cantidad antes de convertirla en pregunta general.']);
+                    }
+                }
             }
             if ($resource === 'servicios') {
                 $data['deliverables'] = json_encode(array_values(array_filter(array_map('trim', explode("\n", $data['deliverables'])))));

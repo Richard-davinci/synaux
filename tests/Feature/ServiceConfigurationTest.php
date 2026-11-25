@@ -59,6 +59,45 @@ class ServiceConfigurationTest extends TestCase
         $this->assertDatabaseHas('estimator_questions', ['id' => $question->id, 'service_id' => $landing, 'question' => $question->question]);
     }
 
+    // Una pregunta general se reutiliza conservando su identidad y las reglas existentes.
+    public function test_service_editor_can_share_a_question_without_changing_its_options(): void
+    {
+        $landing = DB::table('services')->where('slug', 'landing-page')->value('id');
+        $web = DB::table('services')->where('slug', 'sitio-institucional')->value('id');
+        $datos = [
+            'catalog_service_id' => $landing, 'service_id' => $landing, 'question' => '¿Tenés material de referencia?',
+            'input_type' => 'single_choice', 'options_text' => "Sí\nNo", 'sort_order' => 20, 'active' => true, 'required' => false,
+        ];
+        $this->post('/admin/guardar/preguntas', $datos)->assertSessionHasNoErrors();
+        $id = DB::table('estimator_questions')->where('question', $datos['question'])->value('id');
+        $opciones = DB::table('estimator_options')->where('question_id', $id)->orderBy('id')->pluck('id')->all();
+
+        $this->post('/admin/guardar/preguntas', [...$datos, 'id' => $id, 'service_id' => null])->assertSessionHasNoErrors();
+        $this->assertContains($id, array_column(app(ServiceCatalog::class)->questions($web), 'id'));
+        $this->assertSame($opciones, DB::table('estimator_options')->where('question_id', $id)->orderBy('id')->pluck('id')->all());
+
+        $this->post('/admin/guardar/preguntas', [...$datos, 'id' => $id])->assertSessionHasErrors('service_id');
+        $this->assertDatabaseHas('estimator_questions', ['id' => $id, 'service_id' => null]);
+    }
+
+    // Desvincular una cantidad requiere un cambio explícito antes de compartir la pregunta.
+    public function test_linked_quantity_question_cannot_be_shared_directly(): void
+    {
+        $concepto = DB::table('service_components')->where('active', 1)->first();
+        $datos = [
+            'catalog_service_id' => $concepto->service_id, 'service_id' => $concepto->service_id,
+            'quantity_component_id' => $concepto->id, 'question' => '¿Cuántas unidades necesitás?',
+            'input_type' => 'number', 'sort_order' => 20, 'active' => true,
+        ];
+        $this->post('/admin/guardar/preguntas', $datos)->assertSessionHasNoErrors();
+        $id = DB::table('estimator_questions')->where('question', $datos['question'])->value('id');
+
+        $this->post('/admin/guardar/preguntas', [...$datos, 'id' => $id, 'service_id' => null, 'quantity_component_id' => null])
+            ->assertSessionHasErrors('service_id');
+        $this->assertDatabaseHas('estimator_questions', ['id' => $id, 'quantity_component_id' => $concepto->id]);
+    }
+
+
     public function test_service_prices_publish_a_complete_version_and_preserve_other_prices(): void
     {
         $web = DB::table('services')->where('slug', 'sitio-institucional')->value('id');
