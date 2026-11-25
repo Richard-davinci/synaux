@@ -2,7 +2,7 @@
 import {onBeforeUnmount, ref} from 'vue';
 import B from '../UI/AppButton.vue';
 import F from '../UI/FormField.vue';
-import CoverOption from './PortfolioCoverOption.vue';
+import OpcionPortada from './OpcionPortada.vue';
 
 const props = defineProps({
     images: {type: Array, default: () => []},
@@ -77,7 +77,7 @@ defineExpose({payload});
         <p>Marcá «Usar como portada» en una imagen para mostrarla en la tarjeta del portfolio.</p>
         <div v-if="standaloneCover" class="work-gallery-item">
             <img :src="coverPath" alt="Portada actual" class="work-gallery-preview">
-            <CoverOption v-model="coverChoice" value="current" label="Conservar portada actual"/>
+            <OpcionPortada v-model="coverChoice" value="current" label="Conservar portada actual"/>
         </div>
         <p v-if="errors.cover_choice" role="alert" class="gallery-error">{{ errors.cover_choice }}</p>
         <p v-if="errors.gallery_items" role="alert" class="gallery-error">{{ errors.gallery_items }}</p>
@@ -85,7 +85,7 @@ defineExpose({payload});
             <li v-for="(image, index) in galleryItems" :key="image.id" class="work-gallery-item">
                 <img :src="image.image_path" :alt="image.alt_text ?? ''" class="work-gallery-preview">
                 <div class="work-gallery-fields">
-                    <CoverOption v-model="coverChoice" :value="'saved:' + image.id"
+                    <OpcionPortada v-model="coverChoice" :value="'saved:' + image.id"
                                  :accessible-label="'Usar como portada: imagen ' + (index + 1) + (image.alt_text ? ' · ' + image.alt_text : '')"/>
                     <F v-model="image.alt_text" :label="`Texto alternativo de la imagen ${index + 1}`" :maxlength="255"
                        :error="errors[`gallery_items.${index}.alt_text`]"/>
@@ -119,7 +119,7 @@ defineExpose({payload});
                 <img :src="image.preview" alt="" class="work-gallery-preview">
                 <div class="work-gallery-fields">
                     <p class="upload-name">{{ image.file.name }}</p>
-                    <CoverOption v-model="coverChoice" :value="'new:' + index"
+                    <OpcionPortada v-model="coverChoice" :value="'new:' + index"
                                  :accessible-label="'Usar como portada: ' + image.file.name"/>
                 </div>
             </li>

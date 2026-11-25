@@ -6,7 +6,7 @@ import F from '../../Components/UI/FormField.vue';
 import T from '../../Components/UI/PageTitle.vue';
 import S from '../../Components/UI/StatusBadge.vue';
 import SidePanel from '../../Components/UI/SidePanel.vue';
-import FeaturedServices from '../../Components/Admin/FeaturedServices.vue';
+import ServiciosDestacados from '../../Components/Admin/ServiciosDestacados.vue';
 import {useSubmit} from '../../support/useSubmit';
 import {slugify} from './catalogSlug';
 
@@ -77,7 +77,7 @@ function saveCategory() {
                 <B v-else compact href="/admin/servicios/nuevo">Nuevo servicio</B>
             </div>
         </T>
-        <FeaturedServices v-if="!categoriesView && $page.props.auth?.is_admin && !$page.props.preview"
+        <ServiciosDestacados v-if="!categoriesView && $page.props.auth?.is_admin && !$page.props.preview"
                           :catalog="catalog"/>
         <div class="filters workspace-filters catalog-filters" :class="{ 'catalog-category-filters': categoriesView }">
             <F v-model="search" type="search" label="Buscar por nombre"/>

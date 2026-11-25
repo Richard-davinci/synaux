@@ -1,7 +1,7 @@
 <script setup>
 import {useForm} from '@inertiajs/vue3';
 import {ref} from 'vue';
-import PortfolioGalleryEditor from '../../Components/Portfolio/PortfolioGalleryEditor.vue';
+import EditorGaleria from '../../Components/Portfolio/EditorGaleria.vue';
 import ServicePicker from '../../Components/Catalog/ServicePicker.vue';
 import B from '../../Components/UI/AppButton.vue';
 import F from '../../Components/UI/FormField.vue';
@@ -48,7 +48,7 @@ function saveWork() {
                 <F v-model="work.challenge" label="El desafío" type="textarea"/>
                 <F v-model="work.result" label="La solución y el resultado" type="textarea"/>
                 <F v-model="work.live_url" type="url" label="Enlace al proyecto (opcional)"/>
-                <PortfolioGalleryEditor ref="galleryEditor" :images="selected.images" :cover-path="selected.cover_path"
+                <EditorGaleria ref="galleryEditor" :images="selected.images" :cover-path="selected.cover_path"
                                         :revision="data.galleryRevision" :errors="work.errors"/>
                 <label class="select-row"><input v-model="work.is_public" type="checkbox">Publicar este trabajo en el
                     portfolio</label>
