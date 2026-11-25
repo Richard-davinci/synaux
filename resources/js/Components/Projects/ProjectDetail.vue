@@ -5,12 +5,15 @@ import T from '../UI/PageTitle.vue';
 import S from '../UI/StatusBadge.vue';
 import I from '../UI/AppIcon.vue';
 import ProjectUpdate from './ProjectUpdate.vue';
+import PagoProyecto from './PagoProyecto.vue';
 import {date, money} from '../../support/formatters';
 
 // El presupuesto y el historial llegan filtrados por la cuenta; el cliente consulta el seguimiento.
 const props = defineProps({data: Object});
 const project = computed(() => props.data.selected ?? {});
 const budget = computed(() => props.data.quotes?.find(item => item.id === project.value.accepted_budget_version_id));
+// La cuota usa el título y el momento acordados en el presupuesto aceptado.
+const cuotasPorConcepto = computed(() => Object.fromEntries((budget.value?.plan_pago?.cuotas ?? []).map(cuota => [cuota.concepto, cuota])));
 const management = computed(() => props.data.area === 'gestion' || props.data.area === 'profesional');
 // Gestión reutiliza el formulario de seguimiento desde el detalle del proyecto.
 const updating = ref(false);
@@ -64,6 +67,16 @@ const guidance = computed(() => ({
                             {{ project.notes || 'Todavía no hay una actualización registrada por synaux.' }}</p>
                         <p v-if="project.updates?.length" class="project-help">Registrada el
                             {{ date(project.updates[0].created_at) }}</p>
+                    </v-card>
+                    <v-card v-if="data.pagos?.length" class="card pagos-proyecto">
+                        <h2>Pagos del proyecto</h2>
+                        <div v-if="budget?.plan_pago?.instrucciones">
+                            <h3>Datos para la transferencia</h3>
+                            <p class="preserve-lines">{{ budget.plan_pago.instrucciones }}</p>
+                        </div>
+                        <PagoProyecto v-for="pago in data.pagos" :key="pago.id" :pago="pago" :cuota="cuotasPorConcepto[pago.concepto]"
+                                      :moneda="budget.currency_code" :proyecto-id="project.id"
+                                      :puede-presentar="data.puedePresentarComprobante" :puede-revisar="data.puedeRevisarComprobante"/>
                     </v-card>
                     <v-card class="card next-steps"><p class="eyebrow">Qué sigue</p>
                         <h2>Próximos pasos</h2>
@@ -120,6 +133,8 @@ const guidance = computed(() => ({
 
 <style scoped>
 /* El seguimiento y las condiciones se leen en columnas amplias y se apilan en móvil. */
+.pagos-proyecto { display: grid; gap: 12px; }
+.pagos-proyecto h3 { font-size: .95rem; }
 .project-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
@@ -240,7 +255,9 @@ const guidance = computed(() => ({
 }
 
 @media (max-width: 900px) {
-    .project-grid {
+    .pagos-proyecto { display: grid; gap: 12px; }
+.pagos-proyecto h3 { font-size: .95rem; }
+.project-grid {
         grid-template-columns: 1fr;
     }
 

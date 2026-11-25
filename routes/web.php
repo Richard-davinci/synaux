@@ -19,6 +19,7 @@ use App\Http\Controllers\Portfolio\PortfolioWorkController;
 use App\Http\Controllers\Presupuestos\PdfPresupuestoController;
 use App\Http\Controllers\Presupuestos\PresupuestoController;
 use App\Http\Controllers\Projects\ProjectController;
+use App\Http\Controllers\Projects\PagoProyectoController;
 use App\Http\Controllers\PrototypeController;
 use App\Http\Controllers\PublicPageController;
 use App\Http\Controllers\Solicitudes\SolicitudController;
@@ -85,6 +86,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/estimaciones/{id}', [EstimateController::class, 'show'])->whereNumber('id');
     Route::get('/presupuestos/{id}', [PresupuestoController::class, 'show'])->whereNumber('id');
     Route::get('/proyectos/{id}', [ProjectController::class, 'show'])->whereNumber('id');
+    // Cada operación verifica la asociación entre el proyecto, el comprobante y la cuenta.
+    Route::prefix('/proyectos/{proyecto}/pagos/{pago}')->whereNumber(['proyecto', 'pago'])->middleware('throttle:30,1')->group(function () {
+        Route::post('/comprobante', [PagoProyectoController::class, 'presentar']);
+        Route::get('/comprobante', [PagoProyectoController::class, 'descargar']);
+        Route::patch('/revision', [PagoProyectoController::class, 'revisar']);
+    });
     Route::get('/editor/presupuesto/{id?}', [PresupuestoController::class, 'edit'])->whereNumber('id');
     Route::get('/editor/trabajo/{id?}', [PortfolioWorkController::class, 'edit'])->whereNumber('id');
     // El formulario de solicitudes conserva su URL y el mismo límite de envíos.

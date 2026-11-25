@@ -21,6 +21,7 @@ const step = ref(1);
 const preview = ref(false);
 // El presupuesto directo solicita solo los datos del destinatario y comienza con un concepto editable.
 const direct = Boolean(props.data.directBudget);
+const configuraPago = props.data.area === 'gestion' && !props.data.preview;
 const labels = [direct ? 'Cliente' : 'Solicitud', 'Servicios', 'Condiciones'];
 const emptyItem = () => ({description: '', quantity: 1, unit_price: ''});
 const quote = useForm({
@@ -34,6 +35,11 @@ const quote = useForm({
     valid_until: selected.valid_until ?? new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
     estimated_delivery_days: selected.estimated_delivery_days ?? 30,
     terms: selected.terms ?? '',
+    ...(configuraPago ? {
+        modalidad_pago: selected.plan_pago?.modalidad ?? 'sena_saldo',
+        porcentaje_sena: selected.plan_pago?.porcentaje_sena || 50,
+        instrucciones_transferencia: selected.plan_pago?.instrucciones ?? '',
+    } : {}),
     items: selected.items?.map(item => ({
         description: item.description,
         quantity: item.quantity,
@@ -73,7 +79,20 @@ const emiteOrganizacion = computed(() => props.data.area === 'gestion');
 const lineCents = item => Math.round(Number(item.quantity || 0) * Number(item.unit_price || 0) * 100);
 const subtotalCents = computed(() => quote.items.reduce((sum, item) => sum + lineCents(item), 0));
 const subtotal = computed(() => subtotalCents.value / 100);
-const total = computed(() => Math.round(subtotalCents.value * (1 + Number(quote.tax_rate || 0) / 100)) / 100);
+const totalCentavos = computed(() => Math.round(subtotalCents.value * (1 + Number(quote.tax_rate || 0) / 100)));
+const total = computed(() => totalCentavos.value / 100);
+// La vista previa parte del total en centavos y asigna la diferencia al saldo.
+const planPago = computed(() => {
+    if (!configuraPago) return selected.plan_pago;
+    const porcentaje = quote.modalidad_pago === 'sena_saldo' ? Number(quote.porcentaje_sena) : 0;
+    const sena = Math.round(totalCentavos.value * porcentaje / 100);
+    const cuotas = [];
+    if (sena > 0) cuotas.push({titulo: 'Seña', momento: 'Antes de iniciar el proyecto', importe_centavos: sena});
+    if (totalCentavos.value > 0) cuotas.push({
+        titulo: sena ? 'Saldo' : 'Pago total', momento: 'Al finalizar el trabajo', importe_centavos: totalCentavos.value - sena,
+    });
+    return {cuotas, instrucciones: quote.instrucciones_transferencia};
+});
 // Si ya existe un borrador, Laravel reutiliza su número; solo las versiones enviadas generan otro.
 const version = computed(() => {
     if (!selected.budget_id) return 1;
@@ -83,7 +102,7 @@ const version = computed(() => {
         : Math.max(selected.version_number ?? 0, ...versions.map(item => item.version_number)) + 1);
 });
 const documentPreview = computed(() => ({
-    ...quote.data(), subtotal: subtotal.value, total: total.value, version_number: version.value,
+    ...quote.data(), subtotal: subtotal.value, total: total.value, version_number: version.value, plan_pago: planPago.value,
     created_at: selected.status === 'draft' ? selected.created_at : undefined, sent_at: null,
 }));
 
@@ -206,7 +225,7 @@ function save(send) {
                                     :request-options="requestOptions"/>
                 <BudgetLines v-else-if="step === 2" :quote="quote" :line-cents="lineCents" :price-hint="priceHint"
                              @add-item="quote.items.push(emptyItem())"/>
-                <BudgetTerms v-else :quote="quote" :direct="direct"/>
+                <BudgetTerms v-else :quote="quote" :direct="direct" :configura-pago="configuraPago" :requiere-transferencia="total > 0"/>
                 <!-- Una sola tasa de IVA se comparte entre servicios, condiciones y documento. -->
                 <BudgetVatFields v-if="step > 1" v-model="includeVat" :quote="quote"/>
                 <p v-if="source && !canPrepare" class="editor-note" role="status">Esta solicitud ya no está abierta.

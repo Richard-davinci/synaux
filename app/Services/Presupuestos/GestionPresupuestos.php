@@ -32,7 +32,11 @@ class GestionPresupuestos
             'estimated_delivery_days' => 'required|integer|min:1|max:3650', 'terms' => 'required|string|max:10000',
             'items' => 'required|array|min:1|max:100', 'items.*.description' => 'required|string|max:2000',
             'items.*.quantity' => 'required|numeric|min:0.001|max:10000', 'items.*.unit_price' => 'required|numeric|min:0|max:100000000',
+            'modalidad_pago' => ['sometimes', 'nullable', Rule::in(PlanPago::MODALIDADES)],
+            'porcentaje_sena' => ['required_if:modalidad_pago,sena_saldo', 'nullable', 'integer', 'between:1,99'],
+            'instrucciones_transferencia' => 'nullable|string|max:1000',
             'send' => 'required|boolean']);
+        abort_if(!empty($data['modalidad_pago']) && !$request->user()->puedeGestionarSynaux(), 403);
 
         return DB::transaction(function () use ($request, $data, $direct) {
             $record = $direct ? null : DB::table('project_requests')->where('id', $data['request_id'])->lockForUpdate()->firstOrFail();
@@ -86,6 +90,16 @@ class GestionPresupuestos
                 throw ValidationException::withMessages(['budget_id' => 'Este presupuesto ya fue aceptado. Consultá el proyecto para continuar.']);
             }
             $draft = DB::table('budget_versions')->where('budget_id', $budgetId)->where('status', 'draft')->first();
+            // Un guardado de un borrador existente conserva su modalidad y recalcula el importe con los conceptos actuales.
+            $planAnterior = json_decode($draft?->plan_pago ?? 'null', true);
+            $datosPago = $data + [
+                'modalidad_pago' => $planAnterior['modalidad'] ?? null,
+                'porcentaje_sena' => $planAnterior['porcentaje_sena'] ?? null,
+                'instrucciones_transferencia' => $planAnterior['instrucciones'] ?? '',
+            ];
+            [, $total] = ConsultasPresupuestos::importes($data['items'], (float)$data['tax_rate']);
+            $plan = PlanPago::preparar($datosPago, $total);
+
             // El documento conserva las partes de esta versión aunque después cambien los perfiles.
             $client = $data['client'] ?? null;
             if ($record) {
@@ -96,6 +110,7 @@ class GestionPresupuestos
             $attributes = ['title' => $data['title'], 'currency_code' => $data['currency_code'], 'tax_rate' => $data['tax_rate'],
                 'valid_until' => $data['valid_until'], 'terms' => $data['terms'], 'estimated_delivery_days' => $data['estimated_delivery_days'],
                 'client_snapshot' => json_encode($client), 'issuer_snapshot' => json_encode($issuer),
+                'plan_pago' => $plan === null ? null : json_encode($plan, JSON_THROW_ON_ERROR),
                 'status' => $data['send'] ? 'sent' : 'draft', 'sent_at' => $data['send'] ? now() : null, 'updated_at' => now()];
             if ($draft) {
                 $versionId = $draft->id;
@@ -159,6 +174,13 @@ class GestionPresupuestos
 
             $projectId = DB::table('projects')->insertGetId(['accepted_budget_version_id' => $version->id, 'title' => $version->title,
                 'status' => 'pending', 'progress' => 0, 'created_at' => now(), 'updated_at' => now()]);
+            // Las cuotas nacen de la versión aceptada y se guardan dentro de la misma transacción.
+            $plan = json_decode($version->plan_pago ?? 'null', true);
+            foreach ($plan['cuotas'] ?? [] as $cuota) {
+                DB::table('proyecto_pagos')->insert([
+                    'project_id' => $projectId, 'concepto' => $cuota['concepto'], 'importe_centavos' => $cuota['importe_centavos'],
+                ]);
+            }
             // El proyecto creado avisa a sus partes y a gestión dentro de la misma transacción.
             $center = $this->notifications;
             $center->send('proyecto', $projectId, 'proyecto-creado:' . $projectId, 'Nuevo proyecto', $version->title,

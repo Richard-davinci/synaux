@@ -129,6 +129,17 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
                 <p class="preserve-lines">
                     {{ budget.terms || 'Las condiciones se completarán antes de emitir el presupuesto.' }}</p></div>
         </section>
+        <!-- Las cuotas pertenecen a la versión que consulta el cliente. -->
+        <section v-if="!compact && !estimacion && budget.plan_pago?.cuotas?.length" class="document-conditions">
+            <h3 class="document-section-title"><I name="receipt"/>Plan de pago</h3>
+            <div>
+                <p v-for="cuota in budget.plan_pago.cuotas" :key="cuota.titulo">
+                    <strong>{{ cuota.titulo }} · {{ money(cuota.importe_centavos / 100, budget.currency_code) }}</strong>
+                    · {{ cuota.momento }}
+                </p>
+                <p v-if="budget.plan_pago.instrucciones" class="preserve-lines">{{ budget.plan_pago.instrucciones }}</p>
+            </div>
+        </section>
         <footer v-if="!compact" class="document-footer">{{ issuer?.name || 'synaux' }}
             <template v-if="issuer?.email"> · {{ issuer.email }}</template>
             <template v-if="issuer?.phone"> · {{ issuer.phone }}</template>

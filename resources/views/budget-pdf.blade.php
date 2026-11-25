@@ -221,6 +221,14 @@
 <h2>Plazos y condiciones</h2>
 <p>Entrega estimada: {{ $budget['estimated_delivery_days'] }} días desde el inicio acordado.</p>
 <p class="terms">{{ $budget['terms'] }}</p>
+{{-- El PDF conserva las cuotas y las instrucciones de la versión emitida. --}}
+@if(!empty($budget['plan_pago']['cuotas']))
+    <h2>Plan de pago</h2>
+    @foreach($budget['plan_pago']['cuotas'] as $cuota)
+        <p><strong>{{ $cuota['titulo'] }} · {{ $money($cuota['importe_centavos'] / 100) }}</strong> · {{ $cuota['momento'] }}</p>
+    @endforeach
+    <p class="terms">{{ $budget['plan_pago']['instrucciones'] }}</p>
+@endif
 <p class="footer">synaux · Creciendo juntos</p>
 </body>
 </html>

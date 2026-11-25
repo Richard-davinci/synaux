@@ -18,14 +18,28 @@ class ProjectController extends Controller
     {
         $user = $request->user();
         $versionId = DB::table('projects')->where('id', $id)->value('accepted_budget_version_id') ?? abort(404);
-        $quotes = $budgetQueries->quotes($user->id, $user->puedeGestionarSynaux(), id: $versionId);
+        $gestion = $user->puedeGestionarSynaux();
+        $quotes = $budgetQueries->quotes($user->id, $gestion, id: $versionId);
         $selected = $projectQueries->projects($quotes, id: $id)[0] ?? abort(404);
+        // La vista informa si hay un archivo y conserva su ubicación privada en el servidor.
+        $presupuesto = $quotes[0];
+        $esTitular = (int)($presupuesto['request_owner'] ?? $presupuesto['client_user_id']) === (int)$user->id;
+        $pagos = $gestion || $esTitular ? DB::table('proyecto_pagos')->where('project_id', $id)->orderBy('id')
+            ->get(['id', 'concepto', 'importe_centavos', 'estado', 'intento', 'observacion', 'comprobante', 'revisado_at'])
+            ->map(fn($pago) => [
+                'id' => $pago->id, 'concepto' => $pago->concepto, 'importe_centavos' => $pago->importe_centavos,
+                'estado' => $pago->estado, 'intento' => $pago->intento, 'observacion' => $pago->observacion,
+                'tiene_comprobante' => filled($pago->comprobante), 'revisado_at' => $pago->revisado_at,
+            ]) : [];
         $notifications->readEntity($user, 'proyecto', $id);
 
         return Inertia::render('EspacioTrabajo', [
             'screen' => 'proyecto',
-            'area' => $user->puedeGestionarSynaux() ? 'gestion' : 'cliente',
+            'area' => $gestion ? 'gestion' : 'cliente',
             'selected' => $selected,
+            'pagos' => $pagos,
+            'puedePresentarComprobante' => $esTitular,
+            'puedeRevisarComprobante' => $gestion,
             'quotes' => $quotes,
         ]);
     }

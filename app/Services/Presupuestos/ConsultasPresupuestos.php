@@ -6,6 +6,17 @@ use Illuminate\Support\Facades\DB;
 
 class ConsultasPresupuestos
 {
+    // La vista, el PDF y el plan de pago comparten el mismo total en centavos.
+    public static function importes(iterable $items, float $iva): array
+    {
+        $subtotal = 0;
+        foreach ($items as $item) {
+            $subtotal += (int)round(data_get($item, 'quantity') * data_get($item, 'unit_price') * 100);
+        }
+
+        return [$subtotal, (int)round($subtotal * (1 + $iva / 100))];
+    }
+
     // Resuelve los dos orígenes del presupuesto y filtra versiones según cliente, emisor y estado.
     public function quotes(?int $userId, bool $management = false, ?int $id = null, ?int $budgetId = null): array
     {
@@ -21,14 +32,13 @@ class ConsultasPresupuestos
             ->orderByDesc('v.id')->get()->filter(fn($v) => $management || $v->issuer_id === $userId || $v->status !== 'draft')
             ->map(function ($v) {
                 $items = DB::table('budget_items')->where('budget_version_id', $v->id)->get();
-                $subtotal = $items->sum(fn($i) => (int)round($i->quantity * $i->unit_price * 100));
-                $total = (int)round($subtotal * (1 + $v->tax_rate / 100));
+                [$subtotal, $total] = self::importes($items, (float)$v->tax_rate);
                 $latestSent = DB::table('budget_versions')->where('budget_id', $v->budget_id)->whereNotNull('sent_at')->max('version_number');
 
                 // Los documentos emitidos para contactos externos se comparten como PDF.
                 $external = $v->request_id === null && $v->client_user_id === null;
 
-                return [...((array)$v), 'external' => $external, 'client' => json_decode($v->client_snapshot ?? 'null', true), 'issuer' => json_decode($v->issuer_snapshot ?? 'null', true), 'items' => $items, 'subtotal' => $subtotal / 100, 'total' => $total / 100,
+                return [...((array)$v), 'external' => $external, 'plan_pago' => json_decode($v->plan_pago ?? 'null', true), 'client' => json_decode($v->client_snapshot ?? 'null', true), 'issuer' => json_decode($v->issuer_snapshot ?? 'null', true), 'items' => $items, 'subtotal' => $subtotal / 100, 'total' => $total / 100,
                     'current' => (int)$latestSent === (int)$v->version_number,
                     'display_status' => $v->status === 'sent' && $v->valid_until < today()->toDateString() ? 'expired' : ($external && $v->status === 'sent' ? 'issued' : $v->status)];
             })->values()->all();
