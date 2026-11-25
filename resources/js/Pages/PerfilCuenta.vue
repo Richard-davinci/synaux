@@ -165,7 +165,6 @@ function saveIssuer() {
                                 <h2 id="titulo-facturacion">Domicilio de facturación</h2>
                                 <span class="account-optional">Opcional</span>
                             </div>
-                            <p class="account-description">Guardalo una vez para usarlo en pedidos con uno o varios servicios.</p>
                             <B v-if="Object.values(form.details.location).some(Boolean)" type="button"
                                variant="secondary" compact class="account-copy-location" @click="copiarUbicacion">
                                 Usar mi ubicación
@@ -189,7 +188,6 @@ function saveIssuer() {
                                    hint="Se usa cuando todavía no guardaste un domicilio de facturación."
                                    maxlength="500" :error="form.errors.address"/>
                             </div>
-                            <p class="account-note"><I name="info"/> Los cambios se aplican a las nuevas solicitudes. Las guardadas conservan sus datos de contacto.</p>
                         </v-card>
                         <div class="form-actions account-profile-actions">
                             <B type="submit" :disabled="form.processing || !form.isDirty">{{
@@ -411,10 +409,6 @@ function saveIssuer() {
 
 .account-personal-form .account-fields > :last-child {
     margin-bottom: 0;
-}
-
-.account-personal-form .account-note {
-    margin-top: 16px;
 }
 
 .account-copy-location {
