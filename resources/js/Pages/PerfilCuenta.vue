@@ -6,6 +6,7 @@ import B from '../Components/UI/AppButton.vue';
 import F from '../Components/UI/FormField.vue';
 import I from '../Components/UI/AppIcon.vue';
 import PageTitle from '../Components/UI/PageTitle.vue';
+import CamposUbicacion from '../Components/Cuenta/CamposUbicacion.vue';
 import {date, initials} from '../support/formatters';
 import {demoNotice} from '../support/prototype';
 import '../../css/panel.css';
@@ -13,7 +14,16 @@ import '../../css/ajustes-panel.css';
 
 // Cada sección guarda sus propios datos y errores; el tipo de cuenta es informativo y no editable.
 const props = defineProps({profile: Object, issuer: Object, preview: Boolean});
-const personalValues = () => Object.fromEntries(['name', 'email', 'phone', 'company', 'address'].map(key => [key, props.profile[key] ?? '']));
+const valoresCampos = (datos, claves) => Object.fromEntries(claves.map(clave => [clave, datos?.[clave] ?? '']));
+const clavesUbicacion = ['country', 'region', 'city'];
+const personalValues = () => ({
+    ...valoresCampos(props.profile, ['name', 'email', 'phone', 'company', 'address']),
+    details: {
+        ...valoresCampos(props.profile.details, ['position', 'website']),
+        location: valoresCampos(props.profile.details?.location, clavesUbicacion),
+        billing_address: valoresCampos(props.profile.details?.billing_address, [...clavesUbicacion, 'street', 'number', 'unit', 'postal_code']),
+    },
+});
 const form = useForm({...personalValues(), current_password: ''});
 const passwordForm = useForm({current_password: '', password: '', password_confirmation: ''});
 const issuerValues = () => Object.fromEntries(['name', 'email', 'phone', 'address'].map(key => [key, props.issuer?.[key] ?? '']));
@@ -23,6 +33,11 @@ const accountHref = computed(() => props.profile.is_admin ? '/gestion' : '/clien
 const accountDescription = computed(() => props.profile.is_admin
     ? 'Actualizá tus datos de contacto, tu contraseña y los datos de emisión de los presupuestos.'
     : 'Actualizá tus datos de contacto y tu contraseña.');
+
+// Al copiar la ubicación, los dos grupos siguen siendo editables por separado.
+function copiarUbicacion() {
+    Object.assign(form.details.billing_address, form.details.location);
+}
 
 function isPreview() {
     if (!props.preview) return false;
@@ -84,6 +99,7 @@ function saveIssuer() {
                         <p v-if="profile.created_at" class="account-help">Cuenta creada el {{ date(profile.created_at) }}</p>
                         <nav aria-label="Secciones de Mi perfil">
                             <a href="#datos-personales">Datos personales</a>
+                            <a href="#facturacion">Domicilio de facturación</a>
                             <a href="#seguridad">Seguridad</a>
                             <a v-if="profile.is_admin" href="#emision">Datos de emisión</a>
                         </nav>
@@ -95,7 +111,7 @@ function saveIssuer() {
                             <I name="user"/>
                             <h2 id="titulo-datos-personales">Datos personales y contacto</h2>
                         </div>
-                        <p class="account-description">Estos datos se completan automáticamente en tus nuevas solicitudes. Podés revisarlos antes de enviarlas.</p>
+                        <p class="account-description">Tu contacto y domicilio se completan automáticamente en las próximas solicitudes.</p>
                         <form @submit.prevent="savePersonal">
                             <!-- Los datos principales se leen en una fila y los campos largos ocupan todo el ancho. -->
                             <div class="account-fields">
@@ -108,16 +124,61 @@ function saveIssuer() {
                                    autocomplete="current-password"
                                    hint="Confirmá tu identidad para cambiar el correo con el que ingresás." required
                                    :error="form.errors.current_password"/>
-                                <F v-model="form.phone" label="Teléfono (opcional)" type="tel" autocomplete="tel"
+                                <F v-model="form.phone" label="Teléfono o WhatsApp (opcional)" type="tel"
+                                   autocomplete="tel" placeholder="Ej.: +54 9 221 555 0123"
                                    maxlength="50" :error="form.errors.phone"/>
-                                <F v-model="form.company" label="Empresa u organización (opcional)"
-                                   autocomplete="organization" maxlength="255" :error="form.errors.company"/>
-                                <F v-model="form.address" class="account-field-wide" label="Dirección (opcional)"
-                                   autocomplete="street-address" maxlength="500" :error="form.errors.address"/>
                             </div>
-                            <p class="account-note"><I name="info"/> Las solicitudes guardadas conservan sus datos de contacto.</p>
+
+                            <!-- Los datos opcionales se agrupan por su uso dentro del mismo perfil. -->
+                            <fieldset class="account-fieldset">
+                                <legend>Organización <small>Opcional</small></legend>
+                                <div class="account-fields">
+                                    <F v-model="form.company" label="Empresa u organización"
+                                       autocomplete="organization" maxlength="255" :error="form.errors.company"/>
+                                    <F v-model="form.details.position" label="Cargo" autocomplete="organization-title"
+                                       maxlength="120" :error="form.errors['details.position']"/>
+                                    <F v-model="form.details.website" class="account-field-wide" label="Sitio web"
+                                       type="url" autocomplete="url" placeholder="https://ejemplo.com" maxlength="255"
+                                       :error="form.errors['details.website']"/>
+                                </div>
+                            </fieldset>
+                            <fieldset class="account-fieldset">
+                                <legend>Ubicación <small>Opcional</small></legend>
+                                <div class="account-fields">
+                                    <CamposUbicacion v-model="form.details.location" :errores="form.errors"
+                                                     prefijo="details.location"/>
+                                </div>
+                            </fieldset>
+                            <fieldset id="facturacion" class="account-fieldset">
+                                <legend>Domicilio de facturación <small>Opcional</small></legend>
+                                <p>Guardalo una vez para usarlo en pedidos con uno o varios servicios.</p>
+                                <B v-if="Object.values(form.details.location).some(Boolean)" type="button"
+                                   variant="secondary" compact class="account-copy-location" @click="copiarUbicacion">
+                                    Usar mi ubicación
+                                </B>
+                                <div class="account-fields">
+                                    <CamposUbicacion v-model="form.details.billing_address" :errores="form.errors"
+                                                     prefijo="details.billing_address" facturacion/>
+                                    <F v-model="form.details.billing_address.postal_code" label="Código postal"
+                                       autocomplete="section-facturacion billing postal-code" maxlength="16"
+                                       :error="form.errors['details.billing_address.postal_code']"/>
+                                    <F v-model="form.details.billing_address.street" label="Calle" maxlength="150"
+                                       autocomplete="section-facturacion billing address-line1"
+                                       :error="form.errors['details.billing_address.street']"/>
+                                    <F v-model="form.details.billing_address.number" label="Número" maxlength="20"
+                                       :error="form.errors['details.billing_address.number']"/>
+                                    <F v-model="form.details.billing_address.unit" label="Piso y departamento"
+                                       autocomplete="section-facturacion billing address-line2" maxlength="40"
+                                       :error="form.errors['details.billing_address.unit']"/>
+                                    <F v-if="profile.address || form.address" v-model="form.address"
+                                       class="account-field-wide" label="Dirección de contacto anterior"
+                                       hint="Se usa cuando todavía no guardaste un domicilio de facturación."
+                                       maxlength="500" :error="form.errors.address"/>
+                                </div>
+                            </fieldset>
+                            <p class="account-note"><I name="info"/> Los cambios se aplican a las nuevas solicitudes. Las guardadas conservan sus datos de contacto.</p>
                             <div class="form-actions"><B type="submit" :disabled="form.processing || !form.isDirty">{{
-                                    form.processing ? 'Guardando…' : 'Guardar datos'
+                                    form.processing ? 'Guardando…' : 'Guardar datos del perfil'
                                 }}</B></div>
                         </form>
                     </v-card>
@@ -317,6 +378,37 @@ function saveIssuer() {
 
 .account-field-wide {
     grid-column: 1 / -1;
+}
+
+
+/* Las secciones se distinguen sin separar el formulario ni su acción de guardado. */
+.account-fieldset {
+    min-width: 0;
+    margin: 8px 0 16px;
+    padding: 12px 0 0;
+    border: 0;
+    border-top: 1px solid #1f6f7f26;
+    scroll-margin-top: var(--account-offset);
+}
+
+.account-fieldset legend {
+    padding-right: 10px;
+    color: #153b64;
+    font: 700 1.05rem/1.3 'Space Grotesk', sans-serif;
+}
+
+.account-fieldset legend small {
+    margin-left: 4px;
+    color: #446075;
+    font: 600 .8rem/1.5 'Nunito', sans-serif;
+}
+
+.account-fieldset p {
+    margin: 0 0 12px;
+}
+
+.account-copy-location {
+    margin-bottom: 14px;
 }
 
 .account-note {

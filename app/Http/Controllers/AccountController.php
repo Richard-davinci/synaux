@@ -17,7 +17,8 @@ class AccountController extends Controller
         $user = $request->user();
         $brand = DB::table('professional_profiles')->where('user_id', $user->id)->value('brand_name');
         return Inertia::render('PerfilCuenta', [
-            'profile' => [...$user->contactDetails(), 'is_admin' => (bool)$user->is_admin, 'created_at' => $user->created_at?->toDateString()],
+            'profile' => [...$user->only('name', 'email', 'phone', 'company', 'address'), 'details' => $user->profile_details,
+                'is_admin' => (bool)$user->is_admin, 'created_at' => $user->created_at?->toDateString()],
             'issuer' => $user->is_admin ? $user->issuerDetails($brand) : null,
             'area' => $user->is_admin ? 'gestion' : 'cliente',
         ]);
@@ -35,10 +36,29 @@ class AccountController extends Controller
             'phone' => 'sometimes|nullable|string|max:50',
             'company' => 'sometimes|nullable|string|max:255',
             'address' => 'sometimes|nullable|string|max:500',
+            'details' => 'sometimes|array:position,website,location,billing_address',
+            'details.position' => 'nullable|string|max:120',
+            'details.website' => 'nullable|url:http,https|max:255',
+            'details.location' => 'sometimes|array:country,region,city',
+            'details.location.country' => 'nullable|string|max:80',
+            'details.location.region' => 'nullable|string|max:80',
+            'details.location.city' => 'nullable|string|max:80',
+            'details.billing_address' => 'sometimes|array:street,number,unit,postal_code,country,region,city',
+            'details.billing_address.street' => 'nullable|string|max:150',
+            'details.billing_address.number' => 'nullable|string|max:20',
+            'details.billing_address.unit' => 'nullable|string|max:40',
+            'details.billing_address.postal_code' => 'nullable|string|max:16',
+            'details.billing_address.country' => 'nullable|string|max:80',
+            'details.billing_address.region' => 'nullable|string|max:80',
+            'details.billing_address.city' => 'nullable|string|max:80',
             'current_password' => $emailChanged ? ['required', 'current_password:web'] : ['nullable'],
         ]);
         foreach (['name', 'email', 'phone', 'company', 'address'] as $field) {
             if (array_key_exists($field, $data)) $user->$field = $data[$field];
+        }
+        // Los formularios anteriores pueden seguir actualizando el contacto sin tocar los datos ampliados.
+        if (array_key_exists('details', $data)) {
+            $user->profile_details = array_replace_recursive($user->profile_details ?? [], $data['details']);
         }
         if ($emailChanged) $user->email_verified_at = null;
         $user->save();

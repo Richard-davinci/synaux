@@ -32,12 +32,24 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'profile_details',
     ];
 
     // El contacto propio se reutiliza al iniciar un pedido, sin modificar pedidos ya guardados.
     public function contactDetails(): array
     {
-        return $this->only('name', 'email', 'phone', 'company', 'address');
+        $contact = $this->only('name', 'email', 'phone', 'company', 'address');
+        $address = $this->profile_details['billing_address'] ?? [];
+        $join = fn(array $parts, string $separator) => implode($separator, array_filter($parts, fn($part) => filled($part)));
+        $formatted = $join([
+            $join([$address['street'] ?? null, $address['number'] ?? null], ' '),
+            $address['unit'] ?? null,
+            $join([$address['postal_code'] ?? null, $address['city'] ?? null], ' '),
+            $address['region'] ?? null,
+            $address['country'] ?? null,
+        ], ', ');
+
+        return [...$contact, 'address' => $formatted !== '' ? $formatted : ($contact['address'] ?? null)];
     }
 
     // La identidad de emisión administrativa se separa del correo usado para ingresar.
@@ -62,6 +74,7 @@ class User extends Authenticatable
         return [
             // El rol administrativo se interpreta como booleano y no forma parte de fillable.
             'is_admin' => 'boolean',
+            'profile_details' => 'array',
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];

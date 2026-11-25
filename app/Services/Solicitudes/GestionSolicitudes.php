@@ -2,6 +2,7 @@
 
 namespace App\Services\Solicitudes;
 
+use App\Models\User;
 use App\Services\Notifications\NotificationCenter;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -52,9 +53,9 @@ class GestionSolicitudes
                     [...$additional, ...($samePreparedService ? ($pending['additional_services'] ?? []) : [])], allowIncomplete: !$d['publish'],
                 );
             }
-            $owner = DB::table('users')->where('id', $userId)->firstOrFail();
+            // Todos los servicios comparten un contacto, copiado del perfil si el pedido todavía no tiene uno.
             $contact = $d['contact'] ?? json_decode($existing?->contact_snapshot ?? 'null', true)
-                ?? ['name' => $owner->name, 'email' => $owner->email, 'phone' => $owner->phone, 'company' => $owner->company, 'address' => $owner->address];
+                ?? User::findOrFail($userId)->contactDetails();
             $values = ['user_id' => $userId, 'service_id' => $d['service_id'], 'estimate_id' => $estimate?->id ?? $existing?->estimate_id,
                 'title' => $d['title'], 'description' => $d['description'], 'visibility' => $d['visibility'], 'category' => $d['category'] ?? null,
                 'contact_snapshot' => json_encode($contact), 'requested_services' => json_encode($additional),

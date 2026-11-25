@@ -67,6 +67,59 @@ class AccountProfileTest extends TestCase
         $this->patch('/mi-perfil/emision', ['name' => 'No autorizado', 'email' => 'otro@example.test'])->assertForbidden();
     }
 
+    // Un domicilio del perfil se reutiliza en pedidos nuevos con varios servicios y se conserva al actualizar la cuenta.
+    public function test_billing_address_is_reused_without_replacing_saved_contact(): void
+    {
+        $this->seed(SynauxCatalogSeeder::class);
+        $user = User::factory()->create(['address' => 'Dirección de contacto anterior']);
+        $details = [
+            'position' => 'Coordinación',
+            'website' => 'https://estudio.example.test',
+            'location' => ['country' => 'Argentina', 'region' => 'Buenos Aires', 'city' => 'La Plata'],
+            'billing_address' => [
+                'country' => 'Argentina', 'region' => 'Buenos Aires', 'city' => 'La Plata',
+                'street' => 'Calle 12', 'number' => '340', 'unit' => 'Piso 2', 'postal_code' => 'B1900',
+            ],
+        ];
+        $expected = 'Calle 12 340, Piso 2, B1900 La Plata, Buenos Aires, Argentina';
+        $profile = ['name' => $user->name, 'email' => $user->email];
+        $this->actingAs($user)->get('/solicitudes/nueva')->assertInertia(fn(Assert $page) => $page
+            ->where('accountContact.address', 'Dirección de contacto anterior'));
+        $this->patch('/mi-perfil', [...$profile, 'details' => $details])->assertSessionHasNoErrors();
+        $this->get('/mi-perfil')->assertInertia(fn(Assert $page) => $page
+            ->where('profile.details', $details)->where('profile.address', 'Dirección de contacto anterior'));
+        $this->get('/solicitudes/nueva')->assertInertia(fn(Assert $page) => $page
+            ->where('accountContact.address', $expected)->missing('accountContact.details'));
+        $this->patch('/mi-perfil', [...$profile, 'details' => ['website' => 'ftp://estudio.example.test']])
+            ->assertSessionHasErrors('details.website');
+        $this->assertSame($details, $user->fresh()->profile_details);
+
+        $main = DB::table('services')->where('slug', 'sitio-institucional')->value('id');
+        $extra = DB::table('services')->where('slug', 'identidad-visual')->value('id');
+        $request = [
+            'service_id' => $main, 'title' => 'Proyecto con dos servicios',
+            'description' => 'Necesitamos presentar nuestros servicios y renovar la identidad.',
+            'visibility' => 'private', 'publish' => false,
+            'additional_services' => [['service_id' => $extra, 'quantity' => 2]],
+        ];
+        $this->post('/acciones/solicitud', $request)->assertSessionHasNoErrors();
+        $saved = DB::table('project_requests')->first();
+        $this->assertSame($expected, json_decode($saved->contact_snapshot, true)['address']);
+        $this->assertCount(1, json_decode($saved->requested_services, true));
+        $this->patch('/mi-perfil', [...$profile, 'details' => ['billing_address' => ['number' => '800']]])
+            ->assertSessionHasNoErrors();
+        $this->get('/solicitudes/nueva')->assertInertia(fn(Assert $page) => $page
+            ->where('accountContact.address', str_replace('340', '800', $expected)));
+        $this->get('/solicitudes/' . $saved->id)->assertInertia(fn(Assert $page) => $page
+            ->where('selected.contact.address', $expected));
+        $this->post('/acciones/solicitud', [...$request, 'contact' => [...$profile, 'address' => 'Domicilio de este pedido']])
+            ->assertSessionHasNoErrors();
+        $last = DB::table('project_requests')->orderByDesc('id')->first();
+        $this->assertSame('Domicilio de este pedido', json_decode($last->contact_snapshot, true)['address']);
+        $this->assertSame('800', $user->fresh()->profile_details['billing_address']['number']);
+    }
+
+
     // El cambio de contraseña exige identidad, confirmación y una clave diferente; no altera otra cuenta.
     public function test_password_change_requires_current_password_and_confirmation(): void
     {

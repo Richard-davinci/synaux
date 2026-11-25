@@ -47,7 +47,7 @@ const emit = defineEmits(['go', 'publish']);
             <dd>{{ form.contact.phone }}</dd>
         </div>
         <div v-if="form.contact.address">
-            <dt>Dirección</dt>
+            <dt>Domicilio</dt>
             <dd>{{ form.contact.address }}</dd>
         </div>
         <div v-if="form.skills">

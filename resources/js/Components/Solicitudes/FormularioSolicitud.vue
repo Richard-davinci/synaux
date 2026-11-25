@@ -257,7 +257,8 @@ function save(publish) {
                            autocomplete="organization" maxlength="255" :error="form.errors['contact.company']"/>
                         <F v-model="form.contact.phone" label="Teléfono (opcional)" type="tel" autocomplete="tel"
                            maxlength="50" :error="form.errors['contact.phone']"/>
-                        <F v-model="form.contact.address" label="Dirección (opcional)" autocomplete="street-address"
+                        <F v-model="form.contact.address" label="Domicilio para este pedido (opcional)" autocomplete="street-address"
+                           hint="Se completa con el domicilio guardado en Mi perfil. Podés editarlo para este pedido."
                            maxlength="500" :error="form.errors['contact.address']"/>
                         <p>Estos datos acompañan el pedido para que synaux pueda preparar tu presupuesto.</p>
                     </template>
