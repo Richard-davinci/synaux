@@ -65,7 +65,6 @@ watch(() => page.url, () => {
                 <AppButton compact href="/crear-cuenta">Crear cuenta</AppButton>
             </template>
             <template v-else-if="accountName">
-                <slot name="acceso-panel"/>
                 <div class="header-session-actions">
                     <NotificationCenter v-if="!page.props.preview"/>
                     <MenuCuenta :nombre="accountName" :rol="accountRole" :show-area-switch="showAreaSwitch"

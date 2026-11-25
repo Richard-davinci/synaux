@@ -5,7 +5,7 @@ import I from '../UI/AppIcon.vue';
 import {referenceHref} from '../../support/prototype';
 
 // Este panel organiza enlaces ya autorizados; mostrar un enlace no concede permisos de acceso.
-const props = defineProps({items: Array, area: String, current: String, accountName: String, accountRole: String, title: String});
+const props = defineProps({items: Array, area: String, current: String, title: String});
 const emit = defineEmits(['navigate']);
 const page = usePage();
 
@@ -57,13 +57,6 @@ function isActive(href) {
     <div class="workspace-navigation" :data-role="isAdminView ? 'admin' : area">
         <!-- Las secciones recibidas ocupan el área desplazable del panel. -->
         <div class="workspace-sections">
-            <div v-if="accountName" class="workspace-identity">
-                <I name="user"/>
-                <div>
-                    <p class="workspace-user">{{ accountName }}</p>
-                    <p v-if="accountRole" class="workspace-role">{{ accountRole }}</p>
-                </div>
-            </div>
             <h2>{{ title }}</h2>
             <nav v-if="!isAdminView" :aria-label="'Secciones de ' + title.toLowerCase()">
                 <a v-for="[label, href] in items.filter(([label]) => label !== 'Mi perfil')" :key="href"
@@ -130,34 +123,6 @@ function isActive(href) {
     overflow-y: auto;
     padding: 2px 4px 12px;
     margin-inline: -4px;
-}
-
-/* La ficha reúne nombre y rol con el acento del área actual. */
-.workspace-identity {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    margin-bottom: 20px;
-    padding: 12px;
-    border-left: 3px solid var(--role-accent);
-    border-radius: 8px;
-    background: var(--role-tint);
-}
-
-.workspace-user, .workspace-role {
-    margin: 0;
-    overflow-wrap: anywhere;
-}
-
-.workspace-user {
-    font-size: .95rem;
-    font-weight: 700;
-}
-
-.workspace-role {
-    margin-top: 2px;
-    color: #446075;
-    font-size: .8rem;
 }
 
 .workspace-navigation h2 {

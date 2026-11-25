@@ -4,7 +4,6 @@ import {usePage} from '@inertiajs/vue3';
 import FlashMessages from '../Components/Notifications/FlashMessages.vue';
 import SiteHeader from '../Components/Navigation/SiteHeader.vue';
 import SiteFooter from '../Components/Navigation/SiteFooter.vue';
-import AppButton from '../Components/UI/AppButton.vue';
 import {useNavigationContext} from '../support/useNavigationContext';
 import WorkspaceNavigation from '../Components/Navigation/WorkspaceNavigation.vue';
 import MigasNavegacion from '../Components/Navigation/MigasNavegacion.vue';
@@ -72,9 +71,8 @@ const {
     showAreaSwitch
 } = useNavigationContext();
 
-// La landing de campaña conserva su composición independiente del panel de la cuenta.
-const mostrarPanel = computed(() => !props.landing && hasWorkspace.value);
-const panelFijo = computed(() => mostrarPanel.value && paginaDePanel.value);
+// El panel lateral pertenece a las páginas privadas. El menú de cuenta también se ofrece en el sitio público.
+const mostrarPanel = computed(() => !props.landing && hasWorkspace.value && paginaDePanel.value);
 watch(() => page.url, () => {
     workspaceOpen.value = false;
 });
@@ -88,15 +86,7 @@ watch(() => page.url, () => {
             <div ref="fixedHeader" class="fixed-header">
                 <SiteHeader :gestion-active="paginaDePanel && area === 'gestion' && !adminView"
                             :admin-view="adminView" :show-area-switch="showAreaSwitch"
-                            :account-name="mostrarPanel ? accountName : ''" :account-role="accountRole">
-                    <template v-if="mostrarPanel && !panelFijo" #acceso-panel>
-                        <AppButton compact variant="secondary" class="navbar-panel-access"
-                                   aria-label="Mi panel" :aria-expanded="workspaceOpen" aria-haspopup="dialog"
-                                   aria-controls="workspace-mobile-panel" @click="abrirPanel">
-                            <I name="layout"/><span class="navbar-panel-label">Mi panel</span>
-                        </AppButton>
-                    </template>
-                </SiteHeader>
+                            :account-name="hasWorkspace ? accountName : ''" :account-role="accountRole"/>
             </div>
             <div class="navbar-space" aria-hidden="true"></div>
         </template>
@@ -105,22 +95,22 @@ watch(() => page.url, () => {
         <FlashMessages :message="demoNotice || $page.props.notice" :errors="$page.props.errors" :page-key="$page.url"
                        @close-message="demoNotice = ''"/>
         <!-- El panel reserva espacio únicamente dentro del área privada. -->
-        <div v-if="panelFijo" ref="workspaceBar" class="workspace-mobile-bar"><span>{{ workspaceTitle }}</span>
+        <div v-if="mostrarPanel" ref="workspaceBar" class="workspace-mobile-bar"><span>{{ workspaceTitle }}</span>
             <button type="button" :aria-expanded="workspaceOpen" aria-haspopup="dialog"
                     aria-controls="workspace-mobile-panel" @click="abrirPanel"><I name="menu"/>Menú del panel
             </button>
         </div>
-        <div :class="['workspace-layout', { 'with-workspace': panelFijo }]">
-            <aside v-if="panelFijo" class="workspace-sidebar workspace-panel-surface">
-                <WorkspaceNavigation :items="nav" :area="area" :current="currentSection" :account-name="accountName"
-                                     :account-role="accountRole" :title="workspaceTitle"/>
+        <div :class="['workspace-layout', { 'with-workspace': mostrarPanel }]">
+            <aside v-if="mostrarPanel" class="workspace-sidebar workspace-panel-surface">
+                <WorkspaceNavigation :items="nav" :area="area" :current="currentSection"
+                                     :title="workspaceTitle"/>
             </aside>
             <v-main id="contenido" class="workspace-content" tabindex="-1">
-                <MigasNavegacion v-if="panelFijo && migasCliente.length" :niveles="migasCliente"/>
+                <MigasNavegacion v-if="mostrarPanel && migasCliente.length" :niveles="migasCliente"/>
                 <slot/>
             </v-main>
         </div>
-        <!-- El mismo panel se abre sobre las páginas públicas y en pantallas privadas angostas. -->
+        <!-- En pantallas privadas angostas, el mismo panel se abre desde el menú de la sección. -->
         <v-dialog v-if="mostrarPanel" v-model="workspaceOpen" class="workspace-mobile-dialog" :max-width="anchoPanel"
                   :style="{ '--navbar-height': headerHeight + 'px', '--workspace-panel-width': anchoPanel + 'px' }"
                   @after-leave="restoreWorkspaceFocus" aria-labelledby="workspace-mobile-title">
@@ -129,8 +119,8 @@ watch(() => page.url, () => {
                     <button type="button" aria-label="Cerrar menú del panel" @click="workspaceOpen = false"><I
                         name="close"/></button>
                 </div>
-                <WorkspaceNavigation :items="nav" :area="area" :current="currentSection" :account-name="accountName"
-                                     :account-role="accountRole" :title="workspaceTitle" @navigate="workspaceOpen = false"/>
+                <WorkspaceNavigation :items="nav" :area="area" :current="currentSection"
+                                     :title="workspaceTitle" @navigate="workspaceOpen = false"/>
             </div>
         </v-dialog>
         <SiteFooter :year="year" :landing="landing"/>
@@ -278,15 +268,6 @@ watch(() => page.url, () => {
 }
 
 @media (max-width: 600px) {
-    /* El acceso compacto reserva espacio para la marca y la cuenta. */
-    .navbar-panel-access {
-        min-height: 44px;
-    }
-
-    .navbar-panel-label {
-        display: none;
-    }
-
     .workspace-mobile-bar {
         padding-inline: 16px;
         font-size: .9rem;
