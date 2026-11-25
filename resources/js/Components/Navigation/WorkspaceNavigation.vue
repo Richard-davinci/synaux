@@ -106,13 +106,12 @@ function logout() {
 
 <style scoped>
 /* El panel conserva la paleta de synaux y ofrece objetivos de al menos 44 px para teclado y tacto. */
-/* El contenedor aporta la altura; solo las secciones se desplazan cuando falta espacio. */
+/* El encabezado dibuja la línea superior; solo las secciones del panel se desplazan cuando falta espacio. */
 /* Cada área usa su acento y un color de texto con contraste en el enlace activo. */
 .workspace-navigation {
     --role-accent: #153b64;
     --role-on-accent: #fff;
     --role-tint: #153b640a;
-    border-top: 3px solid var(--role-accent);
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
