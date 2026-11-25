@@ -65,7 +65,7 @@ const filas = computed(() => {
     const texto = busqueda.value.trim().toLowerCase();
     return registros.value.filter(registro => {
         // Un título o código anterior también permite encontrar la entrada que contiene el historial.
-        const versiones = registro.versiones ?? [registro];
+        const versiones = [registro, ...(registro.historial ?? [])];
         const contenido = versiones.flatMap(version => [version.title ?? version.summary, identificador(version), version.id,
             version.request_id && 'SOL-' + version.request_id]).filter(Boolean).join(' ').toLowerCase();
         return contenido.includes(texto) && (!estado.value || (registro.display_status ?? registro.status) === estado.value);
@@ -125,10 +125,10 @@ function limpiarFiltros() {
                     </AppButton>
                     <DeleteEstimateButton v-if="seccion === 'estimaciones'" :estimate="registro" compact/>
                 </div>
-                <details v-if="registro.versiones?.length > 1" class="historial-presupuestos">
-                    <summary>Historial · {{ registro.versiones.length }} versiones</summary>
+                <details v-if="registro.historial?.length" class="historial-presupuestos">
+                    <summary>Historial · {{ registro.historial.length }} {{ registro.historial.length === 1 ? 'versión' : 'versiones' }}</summary>
                     <ol>
-                        <li v-for="version in registro.versiones" :key="version.id">
+                        <li v-for="version in registro.historial" :key="version.id">
                             <div class="version-identidad">
                                 <strong>{{ identificador(version) }} · Versión {{ version.version_number }}</strong>
                                 <small>{{ date(version.sent_at ?? version.created_at) }} · {{ money(version.total, version.currency_code) }}</small>

@@ -16,6 +16,7 @@ export function agruparPresupuestos(presupuestos) {
         versiones.sort(porFecha);
         // El acuerdo aceptado identifica al proyecto aunque existan otras propuestas en el historial.
         const principal = versiones.find(version => version.status === 'accepted') ?? versiones[0];
-        return {...principal, claveGrupo, versiones};
+        // La fila muestra la versión principal. El historial conserva las demás.
+        return {...principal, claveGrupo, historial: versiones.filter(version => version !== principal)};
     }).sort(porFecha);
 }
