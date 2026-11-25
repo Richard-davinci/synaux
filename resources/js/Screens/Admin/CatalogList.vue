@@ -25,6 +25,8 @@ const categoryFilter = ref('');
 const stateFilter = ref('');
 const pagina = ref(1);
 const porPagina = 10;
+const columnaOrden = ref('nombre');
+const descendente = ref(false);
 const entidad = computed(() => categoriesView.value ? 'categoría' : 'servicio');
 const categoryOptions = computed(() => catalog.value.categories.map(category => ({
     value: category.id,
@@ -36,12 +38,42 @@ const rows = computed(() => (categoriesView.value ? catalog.value.categories : c
     && (!categoryFilter.value || categoriesView.value || Number(row.service_category_id) === Number(categoryFilter.value))
     && (stateFilter.value === '' || Boolean(row.active) === (stateFilter.value === 'active'))));
 
-// Pagina el resultado filtrado y ajusta el número de página si desaparece la última fila.
+// Ordena el resultado completo con los mismos valores que aparecen en cada columna.
+const comparador = new Intl.Collator('es-AR', {sensitivity: 'base', numeric: true});
+const cantidadServicios = row => conteos.value.get(Number(row.id)) ?? 0;
+const modalidad = row => row.estimation_mode === 'automatic' ? 'Automático' : 'Profesional';
+const columnas = computed(() => [
+    {clave: 'nombre', titulo: categoriesView.value ? 'Categoría' : 'Servicio', valor: row => row.name},
+    categoriesView.value
+        ? {clave: 'cantidad', titulo: 'Servicios', valor: cantidadServicios}
+        : {clave: 'categoria', titulo: 'Categoría', valor: row => categoryName(row.service_category_id)},
+    ...(!categoriesView.value ? [{clave: 'modalidad', titulo: 'Modalidad', valor: modalidad}] : []),
+    {clave: 'estado', titulo: 'Estado', valor: row => row.active ? 'Activo' : 'Inactivo'},
+]);
+const filasOrdenadas = computed(() => {
+    const columna = columnas.value.find(item => item.clave === columnaOrden.value) ?? columnas.value[0];
+    const sentido = descendente.value ? -1 : 1;
+    return [...rows.value].sort((a, b) => sentido * comparador.compare(columna.valor(a), columna.valor(b))
+        || comparador.compare(a.name, b.name) || a.id - b.id);
+});
+
+function ordenarPor(clave) {
+    descendente.value = columnaOrden.value === clave && !descendente.value;
+    columnaOrden.value = clave;
+    pagina.value = 1;
+}
+
+// Pagina después de ordenar y ajusta el número de página si desaparece la última fila.
 const totalPaginas = computed(() => Math.max(1, Math.ceil(rows.value.length / porPagina)));
 const inicio = computed(() => (pagina.value - 1) * porPagina);
-const filasVisibles = computed(() => rows.value.slice(inicio.value, inicio.value + porPagina));
+const filasVisibles = computed(() => filasOrdenadas.value.slice(inicio.value, inicio.value + porPagina));
 watch([search, categoryFilter, stateFilter], () => { pagina.value = 1; });
 watch(totalPaginas, total => { pagina.value = Math.min(pagina.value, total); });
+watch(categoriesView, () => {
+    columnaOrden.value = 'nombre';
+    descendente.value = false;
+    pagina.value = 1;
+});
 
 const conteos = computed(() => {
     const totales = new Map();
@@ -141,26 +173,26 @@ function saveCategory() {
             <table>
                 <thead>
                 <tr>
-                    <th>{{ categoriesView ? 'Categoría' : 'Servicio' }}</th>
-                    <th>{{ categoriesView ? 'Servicios' : 'Categoría' }}</th>
-                    <th v-if="!categoriesView">Modalidad</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
+                    <th v-for="columna in columnas" :key="columna.clave" scope="col"
+                        :aria-sort="columnaOrden === columna.clave ? (descendente ? 'descending' : 'ascending') : undefined">
+                        <button type="button" class="orden-catalogo" @click="ordenarPor(columna.clave)">
+                            {{ columna.titulo }}
+                            <span aria-hidden="true">{{ columnaOrden === columna.clave ? (descendente ? '↓' : '↑') : '↕' }}</span>
+                        </button>
+                    </th>
+                    <th scope="col" class="celda-acciones-catalogo">Acciones</th>
                 </tr>
                 </thead>
                 <tbody>
                 <tr v-for="row in filasVisibles" :key="row.id">
                     <td>{{ row.name }}</td>
                     <td>{{
-                            categoriesView ? (conteos.get(Number(row.id)) ?? 0) : categoryName(row.service_category_id)
+                            categoriesView ? cantidadServicios(row) : categoryName(row.service_category_id)
                         }}
                     </td>
-                    <td v-if="!categoriesView">{{
-                            row.estimation_mode === 'automatic' ? 'Automático' : 'Profesional'
-                        }}
-                    </td>
+                    <td v-if="!categoriesView">{{ modalidad(row) }}</td>
                     <td><S :status="row.active ? 'enabled' : 'disabled'"/></td>
-                    <td>
+                    <td class="celda-acciones-catalogo">
                         <div class="acciones-catalogo">
                             <AccionIcono icono="eye" texto="Vista previa"
                                          :etiqueta="'Vista previa de ' + row.name" @click="vistaPrevia = row"/>
@@ -260,7 +292,30 @@ function saveCategory() {
 </template>
 
 <style scoped>
-/* Las acciones se alinean en la celda y la navegación queda debajo de la tabla. */
+/* Los encabezados ordenables conservan el aspecto de la tabla y muestran el sentido activo. */
+.orden-catalogo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.orden-catalogo:hover { text-decoration: underline; }
+.orden-catalogo:focus-visible { outline: 2px solid #1f6f7f; outline-offset: 3px; }
+.orden-catalogo span { color: #446075; }
+th[aria-sort] .orden-catalogo, th[aria-sort] .orden-catalogo span { color: #153b64; }
+
+/* La columna de acciones queda a la derecha aunque cambie el ancho de la tabla. */
+.workspace-table .celda-acciones-catalogo { text-align: right; }
+.acciones-catalogo { justify-content: flex-end; }
+
+/* La navegación queda debajo de la tabla. */
 .acciones-catalogo, .paginacion-catalogo, .paginacion-catalogo nav {
     display: flex;
     align-items: center;
