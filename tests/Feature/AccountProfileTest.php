@@ -64,7 +64,7 @@ class AccountProfileTest extends TestCase
         $this->get('/solicitudes/nueva')->assertInertia(fn(Assert $page) => $page->where('accountContact.company', 'Estudio Dos'));
         $this->get('/solicitudes/' . $request->id)->assertInertia(fn(Assert $page) => $page
             ->where('selected.contact.company', 'Estudio Uno')->where('selected.contact.phone', $data['phone']));
-        $this->patch('/mi-perfil/emision', ['name' => 'No autorizado', 'email' => 'otro@example.test'])->assertForbidden();
+        $this->patch('/mi-perfil/emision', ['name' => 'No autorizado', 'email' => 'otro@example.test', 'cuit' => '20123456786'])->assertForbidden();
     }
 
     // Un domicilio del perfil se reutiliza en pedidos nuevos con varios servicios y se conserva al actualizar la cuenta.
@@ -154,12 +154,14 @@ class AccountProfileTest extends TestCase
         $manager = User::factory()->create();
         $manager->forceFill(['is_admin' => true])->save();
         $client = User::factory()->create();
-        $issuer = ['name' => 'Synaux Estudio', 'email' => 'presupuestos@example.test', 'phone' => '1100000000', 'address' => 'Dirección del estudio'];
-        $this->actingAs($manager)->patch('/mi-perfil/emision', $issuer)->assertSessionHasNoErrors();
+        $issuer = ['name' => 'Synaux Estudio', 'email' => 'presupuestos@example.test', 'phone' => '1100000000', 'address' => 'Dirección del estudio', 'cuit' => '20123456786'];
+        // El perfil rechaza un formato inválido y normaliza los valores válidos al guardar.
+        $this->actingAs($manager)->patch('/mi-perfil/emision', [...$issuer, 'cuit' => '123'])->assertSessionHasErrors('cuit');
+        $this->patch('/mi-perfil/emision', $issuer)->assertSessionHasNoErrors();
         $this->assertSame($manager->email, $manager->fresh()->email);
         $this->assertDatabaseHas('professional_profiles', ['user_id' => $manager->id, 'brand_name' => $issuer['name'], 'active' => 0]);
         $this->get('/mi-perfil')->assertInertia(fn(Assert $page) => $page
-            ->where('profile.is_admin', true)->where('issuer.email', $issuer['email']));
+            ->where('profile.is_admin', true)->where('issuer.email', $issuer['email'])->where('issuer.cuit', '20-12345678-6'));
         $requestId = DB::table('project_requests')->insertGetId([
             'user_id' => $client->id, 'service_id' => DB::table('services')->value('id'),
             'title' => 'Proyecto de prueba', 'description' => 'Un proyecto para verificar la emisión.',
@@ -171,12 +173,17 @@ class AccountProfileTest extends TestCase
         $this->post('/acciones/presupuesto', $quote)->assertSessionHasNoErrors();
         $first = DB::table('budget_versions')->first();
         $this->assertSame($issuer['phone'], json_decode($first->issuer_snapshot, true)['phone']);
-        $this->patch('/mi-perfil/emision', [...$issuer, 'name' => 'Synaux Nuevo', 'phone' => '1199999999'])->assertSessionHasNoErrors();
+        $this->assertSame('20-12345678-6', json_decode($first->issuer_snapshot, true)['cuit']);
+        $this->patch('/mi-perfil/emision', [...$issuer, 'name' => 'Synaux Nuevo', 'phone' => '1199999999', 'cuit' => '27-12345678-0'])->assertSessionHasNoErrors();
         $this->post('/acciones/presupuesto', [...$quote, 'budget_id' => $first->budget_id])->assertSessionHasNoErrors();
         $second = DB::table('budget_versions')->orderByDesc('id')->first();
         $this->assertSame('Synaux Nuevo', json_decode($second->issuer_snapshot, true)['name']);
+        $this->assertSame('27-12345678-0', json_decode($second->issuer_snapshot, true)['cuit']);
+        $this->patch('/mi-perfil/emision', [...$issuer, 'cuit' => ''])->assertSessionHasNoErrors();
+        $this->assertNull($manager->fresh()->issuer_cuit);
         $this->actingAs($client)->get('/presupuestos/' . $first->id)->assertInertia(fn(Assert $page) => $page
-            ->where('selected.issuer.name', $issuer['name'])->where('selected.issuer.phone', $issuer['phone']));
+            ->where('selected.issuer.name', $issuer['name'])->where('selected.issuer.phone', $issuer['phone'])
+            ->where('selected.issuer.cuit', '20-12345678-6'));
         $this->get('/presupuestos/' . $first->id . '/pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
     }
 

@@ -26,7 +26,7 @@ const valores = {
         details: {billing_address: valoresCampos(props.profile.details?.billing_address, [...clavesUbicacion, 'street', 'number', 'unit', 'postal_code'])},
     }),
     clave: () => ({current_password: '', password: '', password_confirmation: ''}),
-    emision: () => valoresCampos(props.issuer, ['name', 'email', 'phone', 'address']),
+    emision: () => valoresCampos(props.issuer, ['name', 'cuit', 'email', 'phone', 'address']),
 };
 const formularios = Object.fromEntries(Object.entries(valores).map(([seccion, crear]) => [seccion, useForm(crear())]));
 const {
@@ -63,7 +63,8 @@ const datosDomicilio = computed(() => {
     return filas.length ? filas : conDatos([['Dirección de contacto anterior', props.profile.address]]);
 });
 const datosEmision = computed(() => conDatos([
-    ['Nombre del emisor o razón social', props.issuer?.name], ['Correo de emisión', props.issuer?.email],
+    ['Nombre del emisor o razón social', props.issuer?.name], ['CUIT del emisor', props.issuer?.cuit],
+    ['Correo de emisión', props.issuer?.email],
     ['Teléfono', props.issuer?.phone], ['Dirección', props.issuer?.address],
 ]));
 
@@ -222,6 +223,9 @@ function guardar(seccion) {
                                    @guardar="guardar('emision')">
                         <F v-model="issuerForm.name" label="Nombre del emisor o razón social"
                            autocomplete="organization" maxlength="255" required :error="issuerForm.errors.name"/>
+                        <!-- El CUIT es opcional para que las cuentas existentes puedan completar la ficha a su ritmo. -->
+                        <F v-model="issuerForm.cuit" label="CUIT del emisor (opcional)" maxlength="13"
+                           hint="11 dígitos, con o sin guiones." :error="issuerForm.errors.cuit"/>
                         <F v-model="issuerForm.email" label="Correo de emisión" type="email" maxlength="254"
                            required :error="issuerForm.errors.email"/>
                         <F v-model="issuerForm.phone" label="Teléfono del emisor (opcional)" type="tel"

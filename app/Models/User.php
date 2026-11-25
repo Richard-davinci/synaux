@@ -33,6 +33,7 @@ class User extends Authenticatable
         'password',
         'remember_token',
         'profile_details',
+        'issuer_cuit',
     ];
 
     // El contacto propio se reutiliza al iniciar un pedido, sin modificar pedidos ya guardados.
@@ -61,6 +62,7 @@ class User extends Authenticatable
             'email' => ($this->is_admin ? $this->issuer_email : null) ?: $this->email,
             'phone' => $this->is_admin ? $this->issuer_phone : null,
             'address' => $this->is_admin ? $this->issuer_address : null,
+            'cuit' => $this->is_admin ? $this->issuer_cuit : null,
         ];
     }
 

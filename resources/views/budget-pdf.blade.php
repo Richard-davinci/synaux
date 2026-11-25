@@ -169,6 +169,10 @@
             @endforeach</td>
         <td><h3>Emisor</h3>
             <p>{{ $issuer['name'] ?? 'synaux' }}</p>
+            {{-- El CUIT se imprime con los datos de la versión guardada del presupuesto. --}}
+            @if(!empty($issuer['cuit']))
+                <p>CUIT {{ $issuer['cuit'] }}</p>
+            @endif
             <p>{{ $issuer['contact'] ?? '' }}</p>
             <p>{{ $issuer['email'] ?? '' }}</p>
             {{-- La identidad de emisión corresponde a la instantánea guardada con esta versión. --}}

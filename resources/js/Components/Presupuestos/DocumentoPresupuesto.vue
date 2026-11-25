@@ -44,6 +44,8 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
                 </section>
                 <section><h3><I name="folder"/>Proveedor</h3>
                     <div class="party-content"><strong>{{ issuer?.name || 'synaux' }}</strong>
+                        <!-- El CUIT pertenece a la identidad guardada en el presupuesto formal. -->
+                        <p v-if="!estimacion && issuer?.cuit">CUIT {{ issuer.cuit }}</p>
                         <p>{{ issuer?.contact }}</p>
                         <p>{{ issuer?.email }}</p>
                         <p v-if="issuer?.phone">{{ issuer.phone }}</p>

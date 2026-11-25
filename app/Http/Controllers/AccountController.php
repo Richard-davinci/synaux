@@ -106,10 +106,16 @@ class AccountController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:255', 'email' => 'required|email|max:254',
             'phone' => 'nullable|string|max:50', 'address' => 'nullable|string|max:500',
-        ]);
+            'cuit' => ['sometimes', 'nullable', 'string', 'regex:/\A(?:[0-9]{11}|[0-9]{2}-[0-9]{8}-[0-9])\z/'],
+        ], ['cuit.regex' => 'Ingresá un CUIT de 11 dígitos, con o sin guiones.']);
         DB::transaction(function () use ($request, $data) {
             $user = $request->user();
             foreach (['name', 'email', 'phone', 'address'] as $field) $user->{'issuer_' . $field} = $data[$field] ?? null;
+            // Si un formulario anterior omite el CUIT se conserva; si lo envía, se guarda con un formato único.
+            if (array_key_exists('cuit', $data)) {
+                $digits = str_replace('-', '', $data['cuit'] ?? '');
+                $user->issuer_cuit = $digits === '' ? null : substr($digits, 0, 2) . '-' . substr($digits, 2, 8) . '-' . substr($digits, 10);
+            }
             $user->save();
             // La relación de emisión del modelo usa este registro interno, sin publicar un perfil profesional.
             $profile = DB::table('professional_profiles')->where('user_id', $user->id)->first();
