@@ -1,5 +1,5 @@
 // En el área cliente, las versiones de un mismo pedido forman una entrada, incluso si tienen distintos números de presupuesto.
-export function agruparPresupuestos(presupuestos) {
+export function presupuestosSinProyecto(presupuestos) {
     const grupos = new Map();
     for (const version of presupuestos) {
         const clave = version.request_id == null
@@ -14,9 +14,11 @@ export function agruparPresupuestos(presupuestos) {
 
     return Array.from(grupos, ([claveGrupo, versiones]) => {
         versiones.sort(porFecha);
-        // El acuerdo aceptado identifica al proyecto aunque existan otras propuestas en el historial.
-        const principal = versiones.find(version => version.status === 'accepted') ?? versiones[0];
+        const [principal, ...historial] = versiones;
         // La fila muestra la versión principal. El historial conserva las demás.
-        return {...principal, claveGrupo, historial: versiones.filter(version => version !== principal)};
+        return {...principal, claveGrupo, historial};
+    }).filter(grupo => {
+        // El proyecto conserva toda la historia de una solicitud con una versión aceptada.
+        return grupo.status !== 'accepted' && !grupo.historial.some(version => version.status === 'accepted');
     }).sort(porFecha);
 }

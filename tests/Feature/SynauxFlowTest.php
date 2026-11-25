@@ -389,6 +389,11 @@ class SynauxFlowTest extends TestCase
         $this->post('/acciones/decidir-presupuesto', ['id' => $v2->id, 'decision' => 'accepted', 'confirmed' => true])->assertRedirect();
         $this->assertDatabaseHas('projects', ['accepted_budget_version_id' => $v2->id]);
         $this->assertDatabaseHas('project_requests', ['id' => $id, 'status' => 'closed']);
+        $proyecto = DB::table('projects')->where('accepted_budget_version_id', $v2->id)->value('id');
+        $this->get('/proyectos/' . $proyecto)->assertInertia(fn(Assert $page) => $page
+            ->where('quotes.0.id', $v2->id)
+            ->has('historialPresupuestos', 1)->where('historialPresupuestos.0.id', $v1->id)
+            ->missing('historialPresupuestos.0.issuer_snapshot'));
         $this->post('/acciones/decidir-presupuesto', ['id' => $v2->id, 'decision' => 'accepted', 'confirmed' => true])->assertSessionHasErrors('decision');
         $this->assertDatabaseCount('projects', 1);
     }

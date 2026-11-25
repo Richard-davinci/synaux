@@ -18,7 +18,7 @@ class ConsultasPresupuestos
     }
 
     // Resuelve los dos orígenes del presupuesto y filtra versiones según cliente, emisor y estado.
-    public function quotes(?int $userId, bool $management = false, ?int $id = null, ?int $budgetId = null): array
+    public function quotes(?int $userId, bool $management = false, ?int $id = null, ?int $budgetId = null, ?int $requestId = null): array
     {
         // Los dos orígenes del DER (solicitud directa o propuesta elegida) se resuelven antes de autorizar.
         return DB::table('budget_versions as v')->join('budgets as b', 'b.id', '=', 'v.budget_id')
@@ -28,6 +28,7 @@ class ConsultasPresupuestos
             ->when(!$management, fn($q) => $q->where(fn($w) => $w->where('r.user_id', $userId)->orWhere('pro.user_id', $userId)->orWhere('b.client_user_id', $userId)))
             ->when($id !== null, fn($q) => $q->where('v.id', $id))
             ->when($budgetId !== null, fn($q) => $q->where('v.budget_id', $budgetId))
+            ->when($requestId !== null, fn($q) => $q->where('r.id', $requestId))
             ->select('v.*', 'r.id as request_id', 'r.title as request_title', 'r.user_id as request_owner', 'pro.user_id as issuer_id', 'b.client_user_id')
             ->orderByDesc('v.id')->get()->filter(fn($v) => $management || $v->issuer_id === $userId || $v->status !== 'draft')
             ->map(function ($v) {

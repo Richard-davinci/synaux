@@ -6,6 +6,7 @@ import S from '../UI/StatusBadge.vue';
 import I from '../UI/AppIcon.vue';
 import ProjectUpdate from './ProjectUpdate.vue';
 import PagoProyecto from './PagoProyecto.vue';
+import HistorialPresupuesto from '../Presupuestos/HistorialPresupuesto.vue';
 import {date, money} from '../../support/formatters';
 
 // El presupuesto y el historial llegan filtrados por la cuenta; el cliente consulta el seguimiento.
@@ -123,6 +124,8 @@ const guidance = computed(() => ({
                                                                             :href="'/presupuestos/' + project.accepted_budget_version_id + '/pdf'"
                                                                             variant="secondary">Descargar presupuesto
                             PDF</B></div>
+                        <HistorialPresupuesto v-if="data.historialPresupuestos?.length" class="historial-del-proyecto"
+                                              :versiones="data.historialPresupuestos" titulo="Historial del presupuesto"/>
                     </v-card>
                 </aside>
             </div>
@@ -133,6 +136,7 @@ const guidance = computed(() => ({
 
 <style scoped>
 /* El seguimiento y las condiciones se leen en columnas amplias y se apilan en móvil. */
+.historial-del-proyecto { margin-top: 16px; }
 .pagos-proyecto { display: grid; gap: 12px; }
 .pagos-proyecto h3 { font-size: .95rem; }
 .project-grid {
@@ -255,7 +259,8 @@ const guidance = computed(() => ({
 }
 
 @media (max-width: 900px) {
-    .pagos-proyecto { display: grid; gap: 12px; }
+    .historial-del-proyecto { margin-top: 16px; }
+.pagos-proyecto { display: grid; gap: 12px; }
 .pagos-proyecto h3 { font-size: .95rem; }
 .project-grid {
         grid-template-columns: 1fr;

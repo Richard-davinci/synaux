@@ -5,10 +5,11 @@ import FormField from '../../Components/UI/FormField.vue';
 import PageTitle from '../../Components/UI/PageTitle.vue';
 import StatusBadge from '../../Components/UI/StatusBadge.vue';
 import EmptyState from '../../Components/UI/EmptyState.vue';
+import HistorialPresupuesto from '../../Components/Presupuestos/HistorialPresupuesto.vue';
 import DeleteEstimateButton from '../../Components/Estimates/DeleteEstimateButton.vue';
 import NewBadge from '../../Components/Notifications/NewBadge.vue';
 import {date, money} from '../../support/formatters';
-import {agruparPresupuestos} from '../../support/agrupacionPresupuestos';
+import {presupuestosSinProyecto} from '../../support/agrupacionPresupuestos';
 
 const props = defineProps({data: {type: Object, required: true}});
 const seccion = computed(() => props.data.section);
@@ -31,7 +32,7 @@ const listados = {
     },
     presupuestos: {
         coleccion: 'quotes', titulo: 'Mis presupuestos', prefijo: 'PRE', aviso: 'presupuesto',
-        descripcion: 'Revisá las propuestas, sus importes y sus versiones.',
+        descripcion: 'Revisá las propuestas y sus versiones. Los presupuestos aceptados se consultan desde Mis proyectos.',
         vacio: 'Tus presupuestos aparecerán acá cuando estén disponibles.',
         estados: [['draft', 'Borrador'], ['sent', 'Enviado'], ['accepted', 'Aceptado'], ['rejected', 'Rechazado'], ['expired', 'Vencido']],
     },
@@ -49,11 +50,14 @@ const filtrosActivos = computed(() => Boolean(busqueda.value.trim() || estado.va
 const agrupaPresupuestos = computed(() => props.data.area === 'cliente' && seccion.value === 'presupuestos');
 const registros = computed(() => {
     const disponibles = props.data[listado.value.coleccion] ?? [];
-    return agrupaPresupuestos.value ? agruparPresupuestos(disponibles) : disponibles;
+    return agrupaPresupuestos.value ? presupuestosSinProyecto(disponibles) : disponibles;
 });
+const tienePresupuestosEnProyectos = computed(() => agrupaPresupuestos.value
+    && (props.data.quotes ?? []).some(version => version.status === 'accepted'));
 const opcionesEstado = computed(() => [
     {value: '', label: 'Todos'},
-    ...listado.value.estados.map(([value, label]) => ({value, label})),
+    ...listado.value.estados.filter(([value]) => !agrupaPresupuestos.value || value !== 'accepted')
+        .map(([value, label]) => ({value, label})),
 ]);
 
 function identificador(registro) {
@@ -125,27 +129,14 @@ function limpiarFiltros() {
                     </AppButton>
                     <DeleteEstimateButton v-if="seccion === 'estimaciones'" :estimate="registro" compact/>
                 </div>
-                <details v-if="registro.historial?.length" class="historial-presupuestos">
-                    <summary>Historial · {{ registro.historial.length }} {{ registro.historial.length === 1 ? 'versión' : 'versiones' }}</summary>
-                    <ol>
-                        <li v-for="version in registro.historial" :key="version.id">
-                            <div class="version-identidad">
-                                <strong>{{ identificador(version) }} · Versión {{ version.version_number }}</strong>
-                                <small>{{ date(version.sent_at ?? version.created_at) }} · {{ money(version.total, version.currency_code) }}</small>
-                            </div>
-                            <div class="record-heading">
-                                <StatusBadge :status="version.display_status ?? version.status"/>
-                                <NewBadge type="presupuesto" :id="version.id"/>
-                            </div>
-                            <AppButton :href="'/presupuestos/' + version.id" variant="ghost" compact
-                                       :aria-label="'Ver ' + identificador(version) + ', versión ' + version.version_number">Ver versión</AppButton>
-                        </li>
-                    </ol>
-                </details>
+                <HistorialPresupuesto v-if="registro.historial?.length" :versiones="registro.historial" class="historial-en-lista"/>
             </li>
         </ul>
 
         <EmptyState v-else-if="filtrosActivos" title="Sin resultados" text="Probá con otro título, identificador o estado."/>
+        <EmptyState v-else-if="tienePresupuestosEnProyectos" title="No hay presupuestos para revisar"
+                    text="Consultá los presupuestos aceptados y sus versiones en Mis proyectos."
+                    href="/cliente/proyectos" action="Ir a Mis proyectos"/>
         <EmptyState v-else :title="'Todavía no tenés ' + seccion" :text="listado.vacio"/>
     </section>
 </template>
@@ -219,44 +210,10 @@ function limpiarFiltros() {
     gap: 4px 8px;
 }
 
-/* El historial se despliega dentro de la misma fila y separa la versión, el importe y su estado. */
-.historial-presupuestos {
-    grid-column: 1 / -1;
-    padding: 8px 12px;
-    border: 1px solid #1f6f7f26;
-    border-radius: 8px;
-    background: #f5f9fa;
-}
-
-.historial-presupuestos summary {
-    color: #153b64;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.historial-presupuestos ol {
-    list-style: none;
-    margin: 8px 0 0;
-    padding: 0;
-}
-
-.historial-presupuestos li {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    align-items: center;
-    gap: 8px 12px;
-    padding: 10px 0;
-    border-top: 1px solid #1f6f7f26;
-}
-
-.version-identidad small {
-    display: block;
-    color: #446075;
-}
+/* El historial ocupa el ancho completo debajo del resumen de la fila. */
+.historial-en-lista { grid-column: 1 / -1; }
 
 @media (max-width: 700px) {
-    .historial-presupuestos li { grid-template-columns: minmax(0, 1fr) auto; }
-    .version-identidad { grid-column: 1 / -1; }
 
     .listado-cliente .filtros-registros {
         grid-template-columns: minmax(0, 1fr);

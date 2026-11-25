@@ -7,6 +7,7 @@ use App\Services\Notifications\NotificationCenter;
 use App\Services\Presupuestos\ConsultasPresupuestos;
 use App\Services\Projects\ProjectQueries;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -31,6 +32,20 @@ class ProjectController extends Controller
                 'estado' => $pago->estado, 'intento' => $pago->intento, 'observacion' => $pago->observacion,
                 'tiene_comprobante' => filled($pago->comprobante), 'revisado_at' => $pago->revisado_at,
             ]) : [];
+        $historialPresupuestos = [];
+        if (!$gestion && $esTitular) {
+            // El cliente consulta en el proyecto las versiones enviadas de su solicitud o de su presupuesto directo.
+            $versiones = $presupuesto['request_id'] !== null
+                ? $budgetQueries->quotes($user->id, requestId: (int)$presupuesto['request_id'])
+                : $budgetQueries->quotes($user->id, budgetId: (int)$presupuesto['budget_id']);
+            foreach ($versiones as $version) {
+                if ((int)$version['id'] === (int)$versionId || $version['status'] === 'draft') continue;
+
+                $historialPresupuestos[] = Arr::only($version, [
+                    'id', 'budget_id', 'version_number', 'status', 'display_status', 'sent_at', 'created_at', 'total', 'currency_code',
+                ]);
+            }
+        }
         $notifications->readEntity($user, 'proyecto', $id);
 
         return Inertia::render('EspacioTrabajo', [
@@ -41,6 +56,7 @@ class ProjectController extends Controller
             'puedePresentarComprobante' => $esTitular,
             'puedeRevisarComprobante' => $gestion,
             'quotes' => $quotes,
+            'historialPresupuestos' => $historialPresupuestos,
         ]);
     }
 
