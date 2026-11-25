@@ -6,6 +6,7 @@ import F from '../../Components/UI/FormField.vue';
 import T from '../../Components/UI/PageTitle.vue';
 import S from '../../Components/UI/StatusBadge.vue';
 import SidePanel from '../../Components/UI/SidePanel.vue';
+import AccionIcono from '../../Components/UI/AccionIcono.vue';
 import {useSubmit} from '../../support/useSubmit';
 
 // La galería conserva las pantallas históricas sin exponerlas en Administración.
@@ -104,7 +105,12 @@ function saveConfiguration() {
                             }}
                         </td>
                         <td><S :status="row.active ? 'enabled' : 'disabled'"/></td>
-                        <td><B variant="ghost" @click="configure(row)">Editar</B></td>
+                        <td>
+                            <!-- La etiqueta identifica el registro al recorrer los iconos con el teclado. -->
+                            <AccionIcono icono="edit" texto="Editar"
+                                         :etiqueta="'Editar ' + (row.name ?? row.question ?? row.label ?? 'registro ' + row.id)"
+                                         @click="configure(row)"/>
+                        </td>
                     </tr>
                     <tr v-if="!rows.length">
                         <td colspan="4">Todavía no hay registros. Agregá el primero.</td>

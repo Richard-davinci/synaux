@@ -7,6 +7,7 @@ import I from '../../Components/UI/AppIcon.vue';
 import S from '../../Components/UI/StatusBadge.vue';
 import T from '../../Components/UI/PageTitle.vue';
 import SidePanel from '../../Components/UI/SidePanel.vue';
+import AccionIcono from '../../Components/UI/AccionIcono.vue';
 import {date, money} from '../../support/formatters';
 import {useSubmit} from '../../support/useSubmit';
 
@@ -86,7 +87,12 @@ function saveTariff() {
                         <td>{{ version.name }}</td>
                         <td>{{ version.currency_code }}</td>
                         <td><S :status="version.active ? 'enabled' : 'disabled'"/></td>
-                        <td><B variant="ghost" @click="prepareVersion(version)">Crear desde esta versión</B></td>
+                        <td>
+                            <!-- Copiar toma los importes como punto de partida para una versión nueva. -->
+                            <AccionIcono icono="copy" texto="Crear desde esta versión"
+                                         :etiqueta="'Crear versión a partir de ' + version.name"
+                                         @click="prepareVersion(version)"/>
+                        </td>
                     </tr>
                     <tr v-if="!tariffs.length">
                         <td colspan="4">Todavía no hay registros. Agregá el primero.</td>

@@ -1,9 +1,12 @@
 <script setup>
+import {computed} from 'vue';
+import {usePage} from '@inertiajs/vue3';
 import {VTooltip} from 'vuetify/components';
 import AppIcon from './AppIcon.vue';
+import {referenceHref} from '../../support/prototype';
 
 // La acción mantiene un nombre accesible y un área de clic de 44 píxeles.
-defineProps({
+const props = defineProps({
     icono: {type: String, required: true},
     texto: {type: String, required: true},
     etiqueta: String,
@@ -11,13 +14,16 @@ defineProps({
     deshabilitada: Boolean,
 });
 const emit = defineEmits(['click']);
+// Los enlaces de la galería resuelven los mismos destinos que los botones de texto.
+const page = usePage();
+const destino = computed(() => referenceHref(props.href, page.props));
 </script>
 
 <template>
     <VTooltip :text="texto" location="top" open-on-focus>
         <template #activator="{props: activador}">
             <component :is="href ? 'a' : 'button'" v-bind="activador" class="accion-icono"
-                       :href="href" :type="href ? undefined : 'button'" :disabled="!href && deshabilitada ? true : undefined"
+                       :href="destino" :type="href ? undefined : 'button'" :disabled="!href && deshabilitada ? true : undefined"
                        :aria-label="etiqueta || texto" @click="emit('click', $event)">
                 <AppIcon :name="icono"/>
             </component>

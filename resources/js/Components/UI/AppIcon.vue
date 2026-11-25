@@ -49,6 +49,11 @@ defineProps({name: {type: String, default: 'arrow'}});
             <circle cx="5" cy="12" r="3"/><circle cx="19" cy="5" r="3"/><circle cx="19" cy="19" r="3"/>
             <path d="m7.7 10.7 8.6-4.4m-8.6 7 8.6 4.4"/>
         </g>
+        <!-- Las dos hojas indican que la nueva versión toma los datos de una versión existente. -->
+        <g v-else-if="name === 'copy'">
+            <rect x="8" y="8" width="12" height="12" rx="2"/>
+            <path d="M4 16V6a2 2 0 0 1 2-2h10"/>
+        </g>
         <!-- Iconos de servicios con el mismo trazo que los controles existentes. -->
         <g v-else-if="name === 'web'">
             <rect x="3" y="4" width="18" height="16" rx="2"/>

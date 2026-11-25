@@ -6,6 +6,7 @@ import F from '../../Components/UI/FormField.vue';
 import T from '../../Components/UI/PageTitle.vue';
 import S from '../../Components/UI/StatusBadge.vue';
 import SidePanel from '../../Components/UI/SidePanel.vue';
+import AccionIcono from '../../Components/UI/AccionIcono.vue';
 import ServiciosDestacados from '../../Components/Admin/ServiciosDestacados.vue';
 import {useSubmit} from '../../support/useSubmit';
 import {slugify} from './catalogSlug';
@@ -112,9 +113,11 @@ function saveCategory() {
                     </td>
                     <td><S :status="row.active ? 'enabled' : 'disabled'"/></td>
                     <td>
-                        <B v-if="categoriesView" compact variant="secondary" @click="editCategory(row)">Editar</B>
-                        <B v-else compact variant="secondary"
-                           :href="'/admin/servicios/' + row.id + '/editar'">Editar</B>
+                        <!-- La categoría se edita en el panel y el servicio conserva su editor propio. -->
+                        <AccionIcono v-if="categoriesView" icono="edit" texto="Editar categoría"
+                                     :etiqueta="'Editar categoría ' + row.name" @click="editCategory(row)"/>
+                        <AccionIcono v-else icono="edit" texto="Editar servicio" :etiqueta="'Editar servicio ' + row.name"
+                                     :href="'/admin/servicios/' + row.id + '/editar'"/>
                     </td>
                 </tr>
                 <tr v-if="!rows.length">

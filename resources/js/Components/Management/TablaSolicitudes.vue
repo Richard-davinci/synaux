@@ -1,11 +1,14 @@
 <script setup>
-import B from '../UI/AppButton.vue';
+import AccionIcono from '../UI/AccionIcono.vue';
 import S from '../UI/StatusBadge.vue';
 import NewBadge from '../Notifications/NewBadge.vue';
 import {date} from '../../support/formatters';
 
 // El resumen y el listado usan las mismas columnas para comparar solicitudes.
 const props = defineProps({rows: Array, label: String, preview: Boolean});
+
+// Las filas por revisar y las ya revisadas abren el mismo detalle con acciones diferenciadas.
+const porRevisar = item => item.status === 'open' && !item.reviewed_at;
 
 function detailHref(item) {
     return props.preview ? '/prototipo/gestion-solicitud' : '/solicitudes/' + item.id;
@@ -47,10 +50,11 @@ function detailHref(item) {
                     <small v-if="item.reviewed_at">Revisada</small>
                     <small v-else-if="item.status === 'open'">Por revisar</small>
                 </td>
-                <td class="request-table-secondary"><B compact variant="secondary" :href="detailHref(item)"
-                                                       :aria-label="item.status === 'open' && !item.reviewed_at ? 'Revisar solicitud ' + item.title : 'Ver detalle de ' + item.title">
-                    {{ item.status === 'open' && !item.reviewed_at ? 'Revisar' : 'Ver detalle' }}
-                </B></td>
+                <td class="request-table-secondary">
+                    <AccionIcono :href="detailHref(item)" :icono="porRevisar(item) ? 'file' : 'eye'"
+                                 :texto="porRevisar(item) ? 'Revisar solicitud' : 'Ver detalle'"
+                                 :etiqueta="(porRevisar(item) ? 'Revisar solicitud ' : 'Ver detalle de ') + item.title"/>
+                </td>
             </tr>
             </tbody>
         </table>
