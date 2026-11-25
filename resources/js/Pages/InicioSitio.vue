@@ -6,6 +6,7 @@ import AppIcon from '../Components/UI/AppIcon.vue';
 import SidePanel from '../Components/UI/SidePanel.vue';
 import TarjetaServicio from '../Components/Catalog/TarjetaServicio.vue';
 import EjemploPresupuesto from '../Components/Presupuestos/EjemploPresupuesto.vue';
+import GrillaProyectos from '../Components/Portfolio/GrillaProyectos.vue';
 import PublicLayout from '../Layouts/PublicLayout.vue';
 import '../../css/panel.css';
 import '../../css/ajustes-panel.css';
@@ -89,18 +90,7 @@ const budgetOpen = ref(false);
                 <h2 id="site-home-works-title">Proyectos seleccionados</h2>
                 <AppButton href="/portfolio" compact variant="secondary" arrow>Ver portfolio completo</AppButton>
             </div>
-            <ul class="site-home-works-list">
-                <li v-for="work in featuredWorks" :key="work.id">
-                    <a class="site-home-work" :href="'/trabajos/' + work.id" :aria-labelledby="'proyecto-inicio-' + work.id">
-                        <img v-if="work.cover_path" class="site-home-work-image" :src="work.cover_path" alt="" loading="lazy">
-                        <div class="site-home-work-copy">
-                            <h3 :id="'proyecto-inicio-' + work.id">{{ work.title }}</h3>
-                            <p v-if="work.description">{{ work.description }}</p>
-                            <span class="site-home-details" aria-hidden="true">Ver proyecto <AppIcon name="arrow"/></span>
-                        </div>
-                    </a>
-                </li>
-            </ul>
+            <GrillaProyectos class="site-home-project-grid" :trabajos="featuredWorks" nivel-titulo="h3"/>
         </section>
 
         <!-- Estas entradas orientan a quien todavía está definiendo qué necesita. -->
@@ -212,79 +202,13 @@ h1 em {
     margin-top: 24px;
 }
 
-.site-home-details {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: auto;
-    color: #153b64;
-    font-weight: 700;
+.site-home-project-grid {
+    margin-top: 24px;
 }
 
-.site-home-work:hover .site-home-details,
-.site-home-work:focus-visible .site-home-details {
-    text-decoration: underline;
-}
-
-/* La portada da espacio a un caso solo y mantiene una grilla de dos cuando hay más publicaciones. */
-.site-home-works-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
-    gap: 20px;
-    margin: 24px 0 0;
-    padding: 0;
-    list-style: none;
-}
-
-.site-home-works-list > :only-child {
-    max-width: 720px;
-}
-
-.site-home-work {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    overflow: hidden;
-    border: 1px solid #1f6f7f33;
-    border-radius: 14px;
-    background: #fff;
-    text-decoration: none;
-}
-
-.site-home-work:hover {
-    border-color: #1f6f7f;
-}
-
-.site-home-work:focus-visible, .site-home-budget-trigger:focus-visible {
+.site-home-budget-trigger:focus-visible {
     outline: 2px solid #1f6f7f;
     outline-offset: 3px;
-}
-
-.site-home-work-image {
-    display: block;
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    object-fit: cover;
-}
-
-.site-home-work-copy {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    padding: 20px;
-    overflow-wrap: anywhere;
-}
-
-.site-home-work-copy h3 {
-    margin: 0 0 8px;
-}
-
-.site-home-work-copy p {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    overflow: hidden;
-    margin-bottom: 16px;
 }
 
 /* El acceso al ejemplo acompaña la explicación y abre el panel sin mover la página. */

@@ -85,7 +85,7 @@ class HomeTest extends TestCase
         $inactive = DB::table('professional_profiles')->insertGetId([...$profile, 'user_id' => $inactiveOwner->id, 'active' => 0]);
         $work = [
             'professional_profile_id' => $active,
-            'service_id' => DB::table('services')->value('id'),
+            'service_id' => DB::table('services')->where('slug', 'tienda-online')->value('id'),
             'description' => 'Trabajo de prueba',
             'is_public' => 1,
         ];
@@ -99,6 +99,7 @@ class HomeTest extends TestCase
             ->component('InicioSitio')
             ->has('featuredWorks', 2)
             ->where('featuredWorks.0.id', $first)
+            ->where('featuredWorks.0.category', 'Desarrollo web')
             ->where('featuredWorks.1.id', $second)
             ->missing('featuredWorks.0.professional_profile_id')
         );

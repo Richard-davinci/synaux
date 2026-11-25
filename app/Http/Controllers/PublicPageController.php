@@ -31,7 +31,7 @@ class PublicPageController extends Controller
 
         // La portada recibe solo los campos visibles de los últimos trabajos publicados.
         $featuredWorks = array_map(
-            fn(array $work) => Arr::only($work, ['id', 'title', 'description', 'cover_path']),
+            fn(array $work) => Arr::only($work, ['id', 'title', 'category', 'description', 'cover_path']),
             $this->portfolioQueries->works(limit: 2),
         );
 

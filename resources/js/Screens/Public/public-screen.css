@@ -22,7 +22,7 @@
 }
 
 .public-typography[data-public-screen] .public-page-heading p:not(.eyebrow),
-.public-typography[data-public-screen] :is(.service-description, .project-description, .editorial-panel p, .case-story p) {
+.public-typography[data-public-screen] :is(.service-description, .editorial-panel p, .case-story p) {
     color: #446075;
     font-size: 1rem;
     line-height: 1.55;
@@ -41,7 +41,7 @@
     margin: 0 0 12px;
 }
 
-.public-typography[data-public-screen] :is(.service-card h2, .project-card h2, .principles-grid h3) {
+.public-typography[data-public-screen] :is(.service-card h2, .principles-grid h3) {
     font-size: 1.25rem;
     margin: 0 0 8px;
 }
