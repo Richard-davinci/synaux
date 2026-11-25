@@ -188,8 +188,7 @@ watch(() => page.url, () => {
 
 .with-workspace {
     display: grid;
-    grid-template-columns: calc(var(--workspace-panel-width) + 16px) minmax(0, 1fr);
-    column-gap: 12px;
+    grid-template-columns: var(--workspace-panel-width) minmax(0, 1fr);
     align-items: start;
 }
 
@@ -198,14 +197,13 @@ watch(() => page.url, () => {
     width: 100%;
 }
 
-/* La tarjeta anclada acompaña el contenido y se desplaza dentro de su propia columna. */
+/* El panel queda al ras del navbar y da inicio a la columna de navegación. */
 .workspace-sidebar {
     position: sticky;
-    top: calc(var(--navbar-height) + 16px);
+    top: var(--navbar-height);
     align-self: start;
     min-width: 0;
     width: var(--workspace-panel-width);
-    margin: 16px 0 24px 16px;
 }
 
 .with-workspace :deep(.page) {
@@ -275,24 +273,23 @@ watch(() => page.url, () => {
 }
 </style>
 <style>
-/* Ambas entradas usan el mismo ancho y alto. El panel flotante se abre debajo del navbar. */
+/* Las dos vistas se acoplan al borde izquierdo y comparten el ancho y la altura máxima. */
 .workspace-panel-surface {
     display: flex;
     flex-direction: column;
     height: min(680px, calc(100dvh - var(--navbar-height) - 48px));
     overflow: hidden;
-    border: 1px solid #1f6f7f26;
-    border-radius: 12px;
+    border-inline-end: 1px solid #1f6f7f26;
+    border-block-end: 1px solid #1f6f7f26;
     background: #f5f9fa;
-    box-shadow: 0 4px 14px #153b6417;
     color: #153b64;
     font-family: 'Nunito', sans-serif;
 }
 
 .workspace-mobile-dialog .v-overlay__content {
     position: fixed;
-    top: calc(var(--navbar-height) + 16px);
-    left: 12px;
+    top: var(--navbar-height);
+    left: 0;
     margin: 0 !important;
     width: min(var(--workspace-panel-width), calc(100vw - 24px)) !important;
     max-height: calc(100dvh - var(--navbar-height) - 32px) !important;
