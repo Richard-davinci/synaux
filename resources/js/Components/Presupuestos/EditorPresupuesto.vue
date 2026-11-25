@@ -65,7 +65,9 @@ const issuer = computed(() => props.data.issuerDetails ?? ({
     email: props.data.auth?.email ?? selected.issuer?.email,
 }));
 const canPrepare = computed(() => direct ? Boolean(quote.client.name?.trim()) : source.value?.status === 'open');
-const needsIssuer = computed(() => !props.data.profile && !props.data.preview);
+// La disponibilidad del emisor la determina el servidor, también para el primer presupuesto de un integrante.
+const needsIssuer = computed(() => !props.data.preview && !(props.data.emisorConfigurado ?? Boolean(props.data.profile)));
+const emiteOrganizacion = computed(() => props.data.area === 'gestion');
 
 // Cada concepto se redondea a centavos, igual que el documento calculado por el servidor.
 const lineCents = item => Math.round(Number(item.quantity || 0) * Number(item.unit_price || 0) * 100);
@@ -183,8 +185,16 @@ function save(send) {
                 </ul>
             </div>
         </div>
-        <div v-if="needsIssuer" class="editor-note" role="status"><p>Completá los datos del emisor antes de guardar o
-            enviar el presupuesto.</p><B href="/mi-perfil#emision" variant="secondary">Completar datos del emisor</B>
+        <div v-if="needsIssuer" class="editor-note" role="status">
+            <template v-if="emiteOrganizacion">
+                <p>Faltan los datos de emisión de synaux. Se administran en Datos de la organización.</p>
+                <B v-if="data.auth?.puede_administrar" href="/admin/organizacion#emision" variant="secondary">Completar datos de la organización</B>
+                <p v-else>Pedile a un administrador que los complete.</p>
+            </template>
+            <template v-else>
+                <p>Completá tu perfil profesional antes de guardar o enviar el presupuesto.</p>
+                <B v-if="data.stageTwo" href="/profesional/perfil" variant="secondary">Completar perfil profesional</B>
+            </template>
         </div>
 
         <!-- El formulario valida el paso visible y conserva los datos al volver a editar. -->

@@ -44,7 +44,7 @@ class GestionPresupuestos
             // La emisión de la empresa conserva la relación interna de cada gestor que genera presupuestos.
             if (!$profile && $request->user()->puedeGestionarSynaux()) {
                 $organizacion = Organizacion::principal();
-                if ($organizacion->razon_social) {
+                if ($organizacion->tieneDatosDeEmision()) {
                     DB::table('users')->where('id', $request->user()->id)->lockForUpdate()->firstOrFail();
                     $profile = DB::table('professional_profiles')->where('user_id', $request->user()->id)->first();
                     if (!$profile) {
@@ -64,7 +64,10 @@ class GestionPresupuestos
                 throw ValidationException::withMessages(['request_id' => 'No podés preparar un presupuesto para tu propia solicitud.']);
             }
             if (!$profile) {
-                throw ValidationException::withMessages(['request_id' => 'Completá los datos de emisión en Administración → Organización.']);
+                $mensaje = $request->user()->puedeGestionarSynaux()
+                    ? 'Faltan los datos de emisión de synaux en Administración → Datos de la organización.'
+                    : 'Completá tu perfil profesional antes de guardar el presupuesto.';
+                throw ValidationException::withMessages(['emisor' => $mensaje]);
             }
             if (!empty($data['budget_id'])) {
                 $budget = DB::table('budgets')->where('id', $data['budget_id'])->lockForUpdate()->firstOrFail();

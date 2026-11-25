@@ -174,8 +174,14 @@ class AccountProfileTest extends TestCase
         $this->assertDatabaseHas('professional_profiles', ['user_id' => $manager->id, 'brand_name' => 'synaux', 'active' => 0]);
         $first = DB::table('budget_versions')->first();
         // Otro administrador emite con el mismo CUIT sin copiar los datos a su cuenta.
-        $otroGestor = User::factory()->create(['is_admin' => true]);
-        $this->actingAs($otroGestor)->post('/acciones/presupuesto', $quote)->assertSessionHasNoErrors();
+        $otroGestor = User::factory()->create();
+        \App\Models\Organizacion::principal()->miembros()->attach($otroGestor->id, ['rol' => 'administrador']);
+        $this->actingAs($otroGestor)->get('/editor/presupuesto?solicitud=' . $requestId)
+            ->assertInertia(fn(Assert $page) => $page->where('area', 'gestion')->where('profile', null)
+                ->where('emisorConfigurado', true)->where('issuerDetails.email', $issuer['email'])
+                ->where('issuerDetails.cuit', '20-12345678-6'));
+        $this->assertDatabaseMissing('professional_profiles', ['user_id' => $otroGestor->id]);
+        $this->post('/acciones/presupuesto', $quote)->assertSessionHasNoErrors();
         $otroPresupuesto = DB::table('budget_versions')->orderByDesc('id')->firstOrFail();
         $this->assertSame('20-12345678-6', json_decode($otroPresupuesto->issuer_snapshot, true)['cuit']);
         $this->actingAs($manager);

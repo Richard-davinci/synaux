@@ -16,6 +16,12 @@ class Organizacion extends Model
         return self::query()->where('slug', 'synaux')->firstOrFail();
     }
 
+    // El nombre legal permite preparar presupuestos de Gestión aunque quien los emite sea un integrante nuevo.
+    public function tieneDatosDeEmision(): bool
+    {
+        return filled($this->razon_social);
+    }
+
     // La cartera relaciona las cuentas atendidas por este espacio, independientemente del equipo.
     public function clientes(): BelongsToMany
     {

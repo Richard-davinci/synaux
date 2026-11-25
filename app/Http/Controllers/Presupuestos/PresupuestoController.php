@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Presupuestos;
 
 use App\Http\Controllers\Controller;
+use App\Models\Organizacion;
 use App\Services\Catalog\ServiceCatalog;
 use App\Services\Marketplace\MarketplaceQueries;
 use App\Services\Notifications\NotificationCenter;
@@ -93,6 +94,8 @@ class PresupuestoController extends Controller
             'budgetRequests' => $budgetRequests,
             'profile' => $profile ? $this->marketplaceQueries->profile($profile) : null,
             'issuerDetails' => $user->issuerDetails($profile?->brand_name),
+            // Coincide con el guardado, que puede crear la referencia interna al emitir por primera vez.
+            'emisorConfigurado' => $profile !== null || ($management && Organizacion::principal()->tieneDatosDeEmision()),
             'quotes' => $selected ? $this->budgetQueries->quotes($user->id, $management, budgetId: $selected['budget_id']) : [],
         ]);
     }
