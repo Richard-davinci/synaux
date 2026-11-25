@@ -159,7 +159,6 @@ function saveFeatured() {
     min-height: 0;
     margin: 0;
     padding: 0;
-    accent-color: #1f6f7f;
 }
 
 .featured-position {

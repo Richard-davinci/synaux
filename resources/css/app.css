@@ -40,6 +40,11 @@ a:focus-visible, button:focus-visible {
     outline-offset: 4px;
 }
 
+/* Los checkboxes nativos usan el color secundario, también dentro de paneles y diálogos. */
+input[type='checkbox'] {
+    accent-color: rgb(var(--v-theme-secondary, 31, 111, 127));
+}
+
 /* Fuente de lectura y ancho máximo compartidos por las pantallas de la plataforma. */
 .v-application {
     font-family: 'Nunito', Arial, sans-serif;

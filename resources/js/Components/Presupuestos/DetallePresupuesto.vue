@@ -342,7 +342,6 @@ function decide() {
     min-height: 22px;
     flex: 0 0 22px;
     margin-top: 2px;
-    accent-color: #153b64;
 }
 
 .decision-check input:focus-visible {
