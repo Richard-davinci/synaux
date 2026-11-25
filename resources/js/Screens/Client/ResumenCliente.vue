@@ -7,6 +7,7 @@ import StatusBadge from '../../Components/UI/StatusBadge.vue';
 import IndicadoresPanel from '../../Components/Navigation/IndicadoresPanel.vue';
 import NewBadge from '../../Components/Notifications/NewBadge.vue';
 import {date} from '../../support/formatters';
+import {agruparPresupuestos} from '../../support/agrupacionPresupuestos';
 
 // El resumen muestra las colecciones propias que Laravel reunió para esta cuenta.
 const props = defineProps({data: {type: Object, required: true}});
@@ -15,7 +16,7 @@ const nombre = computed(() => page.props.auth?.name?.trim().split(/\s+/)[0] || (
 const indicadores = computed(() => [
     ['Estimaciones', 'estimaciones', 'edit', props.data.estimates?.length ?? 0],
     ['Solicitudes', 'solicitudes', 'file', props.data.requests?.length ?? 0],
-    ['Presupuestos', 'presupuestos', 'receipt', props.data.quotes?.length ?? 0],
+    ['Presupuestos', 'presupuestos', 'receipt', agruparPresupuestos(props.data.quotes ?? []).length],
     ['Proyectos', 'proyectos', 'folder', props.data.projects?.length ?? 0],
 ]);
 const recientes = computed(() => (props.data.requests ?? []).slice(0, 3));

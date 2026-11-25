@@ -8,6 +8,7 @@ import EmptyState from '../../Components/UI/EmptyState.vue';
 import DeleteEstimateButton from '../../Components/Estimates/DeleteEstimateButton.vue';
 import NewBadge from '../../Components/Notifications/NewBadge.vue';
 import {date, money} from '../../support/formatters';
+import {agruparPresupuestos} from '../../support/agrupacionPresupuestos';
 
 const props = defineProps({data: {type: Object, required: true}});
 const seccion = computed(() => props.data.section);
@@ -45,7 +46,11 @@ const listado = computed(() => listados[seccion.value]);
 const busqueda = ref('');
 const estado = ref('');
 const filtrosActivos = computed(() => Boolean(busqueda.value.trim() || estado.value));
-const registros = computed(() => props.data[listado.value.coleccion] ?? []);
+const agrupaPresupuestos = computed(() => props.data.area === 'cliente' && seccion.value === 'presupuestos');
+const registros = computed(() => {
+    const disponibles = props.data[listado.value.coleccion] ?? [];
+    return agrupaPresupuestos.value ? agruparPresupuestos(disponibles) : disponibles;
+});
 const opcionesEstado = computed(() => [
     {value: '', label: 'Todos'},
     ...listado.value.estados.map(([value, label]) => ({value, label})),
@@ -59,7 +64,10 @@ function identificador(registro) {
 const filas = computed(() => {
     const texto = busqueda.value.trim().toLowerCase();
     return registros.value.filter(registro => {
-        const contenido = [registro.title ?? registro.summary, identificador(registro), registro.id].join(' ').toLowerCase();
+        // Un título o código anterior también permite encontrar la entrada que contiene el historial.
+        const versiones = registro.versiones ?? [registro];
+        const contenido = versiones.flatMap(version => [version.title ?? version.summary, identificador(version), version.id,
+            version.request_id && 'SOL-' + version.request_id]).filter(Boolean).join(' ').toLowerCase();
         return contenido.includes(texto) && (!estado.value || (registro.display_status ?? registro.status) === estado.value);
     });
 });
@@ -91,14 +99,14 @@ function limpiarFiltros() {
         </PageTitle>
         <div v-if="registros.length || filtrosActivos" class="card filters workspace-filters filtros-registros">
             <FormField v-model="busqueda" label="Buscar" placeholder="Título o identificador"/>
-            <FormField v-model="estado" label="Estado" type="select" :options="opcionesEstado"/>
+            <FormField v-model="estado" :label="agrupaPresupuestos ? 'Estado actual' : 'Estado'" type="select" :options="opcionesEstado"/>
             <AppButton variant="secondary" :disabled="!filtrosActivos" @click="limpiarFiltros">Limpiar filtros</AppButton>
         </div>
 
         <ul v-if="filas.length" class="card filas-registros" :aria-label="listado.titulo">
-            <li v-for="registro in filas" :key="registro.id" class="fila-registro">
+            <li v-for="registro in filas" :key="registro.claveGrupo ?? registro.id" class="fila-registro">
                 <div class="fila-identidad">
-                    <small>{{ identificador(registro) }} · {{ date(registro.created_at) }}</small>
+                    <small>{{ identificador(registro) }} · {{ date(registro.sent_at ?? registro.created_at) }}</small>
                     <div class="record-heading">
                         <h2>{{ registro.title ?? registro.summary }}</h2>
                         <NewBadge :type="listado.aviso" :id="registro.id"/>
@@ -113,10 +121,27 @@ function limpiarFiltros() {
                 <StatusBadge :status="registro.display_status ?? registro.status" :request="seccion === 'solicitudes'"/>
                 <div class="fila-acciones">
                     <AppButton :href="'/' + seccion + '/' + registro.id" variant="ghost" compact>
-                        {{ registro.status === 'draft' && seccion === 'solicitudes' ? 'Continuar borrador' : 'Ver detalle' }}
+                        {{ registro.status === 'draft' && seccion === 'solicitudes' ? 'Continuar borrador' : agrupaPresupuestos ? 'Ver presupuesto' : 'Ver detalle' }}
                     </AppButton>
                     <DeleteEstimateButton v-if="seccion === 'estimaciones'" :estimate="registro" compact/>
                 </div>
+                <details v-if="registro.versiones?.length > 1" class="historial-presupuestos">
+                    <summary>Historial · {{ registro.versiones.length }} versiones</summary>
+                    <ol>
+                        <li v-for="version in registro.versiones" :key="version.id">
+                            <div class="version-identidad">
+                                <strong>{{ identificador(version) }} · Versión {{ version.version_number }}</strong>
+                                <small>{{ date(version.sent_at ?? version.created_at) }} · {{ money(version.total, version.currency_code) }}</small>
+                            </div>
+                            <div class="record-heading">
+                                <StatusBadge :status="version.display_status ?? version.status"/>
+                                <NewBadge type="presupuesto" :id="version.id"/>
+                            </div>
+                            <AppButton :href="'/presupuestos/' + version.id" variant="ghost" compact
+                                       :aria-label="'Ver ' + identificador(version) + ', versión ' + version.version_number">Ver versión</AppButton>
+                        </li>
+                    </ol>
+                </details>
             </li>
         </ul>
 
@@ -194,7 +219,45 @@ function limpiarFiltros() {
     gap: 4px 8px;
 }
 
+/* El historial se despliega dentro de la misma fila y separa la versión, el importe y su estado. */
+.historial-presupuestos {
+    grid-column: 1 / -1;
+    padding: 8px 12px;
+    border: 1px solid #1f6f7f26;
+    border-radius: 8px;
+    background: #f5f9fa;
+}
+
+.historial-presupuestos summary {
+    color: #153b64;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.historial-presupuestos ol {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+}
+
+.historial-presupuestos li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 10px 0;
+    border-top: 1px solid #1f6f7f26;
+}
+
+.version-identidad small {
+    display: block;
+    color: #446075;
+}
+
 @media (max-width: 700px) {
+    .historial-presupuestos li { grid-template-columns: minmax(0, 1fr) auto; }
+    .version-identidad { grid-column: 1 / -1; }
+
     .listado-cliente .filtros-registros {
         grid-template-columns: minmax(0, 1fr);
     }
