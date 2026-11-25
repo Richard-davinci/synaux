@@ -19,6 +19,13 @@ const props = defineProps({
 });
 const expandedExtra = defineModel('expanded', {type: Object});
 const extrasId = useId();
+// Cada fila conserva su selector al quitar otro adicional, incluso si aún no eligió un servicio.
+const claves = new WeakMap();
+let ultimaClave = 0;
+function claveFila(item) {
+    if (!claves.has(item)) claves.set(item, ++ultimaClave);
+    return claves.get(item);
+}
 
 // Si un campo plegado falla la validación nativa, se abre y recibe el foco para poder corregirlo.
 async function revealExtra(event, item) {
@@ -42,25 +49,17 @@ function changeExtra(item, serviceId) {
     item.answers = props.initialExtraAnswers(serviceId);
 }
 
+// Las filas nuevas esperan la elección del usuario antes de cargar un servicio y sus preguntas.
 function addService() {
-    const used = props.form.additional_services.map(item => Number(item.service_id));
-    const next = props.extras.find(item => !used.includes(item.database_id));
-    if (next) {
-        props.form.additional_services.push({
-            service_id: next.database_id,
-            quantity: 1,
-            notes: '',
-            answers: props.initialExtraAnswers(next.database_id)
-        });
-        expandedExtra.value = props.form.additional_services.at(-1);
-    }
+    props.form.additional_services.push({service_id: null, quantity: 1, notes: '', answers: {}});
+    expandedExtra.value = props.form.additional_services.at(-1);
 }
 </script>
 
 <template>
     <section class="request-additional" :aria-labelledby="extrasId + '-titulo'">
         <h3 :id="extrasId + '-titulo'">Servicios adicionales</h3>
-        <div v-for="(item, index) in form.additional_services" :key="index" class="request-extra"
+        <div v-for="(item, index) in form.additional_services" :key="claveFila(item)" class="request-extra"
              :class="{ 'is-expanded': expandedExtra === item }">
             <!-- El encabezado permite editar o quitar sin desplegar todos los campos de la lista. -->
             <div class="request-extra-heading">
@@ -69,8 +68,11 @@ function addService() {
                         @click="expandedExtra = expandedExtra === item ? null : item">
                     <I name="arrow"/>
                     <span>
-                        <strong>{{ extraName(item.service_id) }} × {{ item.quantity }}</strong>
-                        <small>
+                        <!-- Una fila sin servicio muestra su estado de selección, sin cantidad ni cotización. -->
+                        <strong v-if="item.service_id">{{ extraName(item.service_id) }} × {{ item.quantity }}</strong>
+                        <strong v-else>Servicio adicional {{ index + 1 }}</strong>
+                        <small v-if="!item.service_id">Elegí una categoría y un servicio</small>
+                        <small v-else>
                             {{ expandedExtra === item ? 'Ocultar datos' : 'Editar datos' }} ·
                             <template v-if="additionalPrices[index].priced">
                                 <template v-if="additionalPrices[index].preliminar">Referencia · </template>
@@ -89,7 +91,7 @@ function addService() {
             <div v-show="expandedExtra === item" :id="extrasId + '-' + index" class="request-extra-body"
                  @invalid.capture="revealExtra($event, item)">
                 <ServicePicker :model-value="item.service_id" :services="extraOptions(index)"
-                               :label="'Servicio adicional ' + (index + 1)"
+                               :label="'Servicio adicional ' + (index + 1)" category-placeholder="Seleccione una opción"
                                :error="form.errors['additional_services.' + index + '.service_id']"
                                @update:model-value="changeExtra(item, $event)"/>
                 <F class="request-extra-quantity" v-model="item.quantity" label="Cantidad" type="number"

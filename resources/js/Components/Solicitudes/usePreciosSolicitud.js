@@ -76,8 +76,10 @@ export function useRequestPricing(data, form, {estimate, old, selectedService, q
         return {...linea, preliminar: linea.priced && preguntas.length > 0};
     }));
     const pendingExtraCalculation = computed(() => additionalPrices.value.some(linea => linea.preliminar));
+    // Una fila vacía no cuenta como servicio pendiente ni altera el total.
     const summaryPrice = computed(() => summarizePrices([
-        referenceLine(reference.value, 1, null, summaryCurrency.value), ...additionalPrices.value,
+        referenceLine(reference.value, 1, null, summaryCurrency.value),
+        ...additionalPrices.value.filter((_, indice) => form.additional_services[indice].service_id),
     ], summaryCurrency.value));
 
     return {reference, preliminaryReference, summaryCurrency, pendingExtraCalculation, additionalPrices, summaryPrice};

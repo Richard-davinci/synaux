@@ -45,6 +45,8 @@ const documento = computed(() => {
     }
 
     form.additional_services.forEach((servicio, indice) => {
+        // Solo los servicios elegidos tienen un renglón en el documento.
+        if (!servicio.service_id) return;
         const linea = pricing.additionalPrices[indice];
         const cantidad = Number(servicio.quantity);
         const valida = Number.isInteger(cantidad) && cantidad >= 1 && cantidad <= 1000;

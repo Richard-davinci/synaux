@@ -9,6 +9,8 @@ const props = defineProps({
     services: {type: Array, required: true},
     label: {type: String, default: 'Servicio principal'},
     valueKey: {type: String, default: 'database_id'},
+    // Permite personalizar la opción inicial de categoría en los servicios adicionales.
+    categoryPlaceholder: String,
     error: String,
     disabled: Boolean,
 });
@@ -50,7 +52,8 @@ function invalidSelection() {
 <template>
     <div class="service-picker">
         <!-- Categoría y servicio comparten una fila; en móvil se apilan para conservar espacio de escritura. -->
-        <F :model-value="category" label="Categoría" type="select" :options="categories" :disabled="disabled" required
+        <F :model-value="category" label="Categoría" type="select" :options="categories" :placeholder="categoryPlaceholder"
+           :disabled="disabled" required
            @update:model-value="changeCategory"/>
         <div class="service-picker-main"><label :for="serviceInputId">{{ label }} <span aria-hidden="true">*</span></label>
             <VAutocomplete ref="serviceControl" :id="serviceInputId" :model-value="modelValue" v-model:search="search" :items="available"
