@@ -62,6 +62,12 @@ class User extends Authenticatable
         return $this->is_admin || in_array($this->rolEnSynaux(), ['administrador', 'supervisor'], true);
     }
 
+    // El panel de asignaciones requiere una cuenta activada del equipo de synaux.
+    public function esProfesionalInterno(): bool
+    {
+        return !$this->activacion_pendiente && $this->rolEnSynaux() === 'profesional';
+    }
+
     // La cuenta interna usa su área habilitada y queda fuera del recorrido de cliente.
     public function esCuentaInterna(): bool
     {
@@ -73,8 +79,7 @@ class User extends Authenticatable
         if ($this->puedeGestionarSynaux()) return '/gestion';
         if (!$this->esCuentaInterna()) return '/cliente';
 
-        return $this->rolEnSynaux() === 'profesional' && config('synaux.stage_two_enabled')
-            ? '/profesional' : '/mi-perfil';
+        return $this->esProfesionalInterno() ? '/profesional/proyectos' : '/mi-perfil';
     }
 
     // El contacto propio se reutiliza al iniciar un pedido, sin modificar pedidos ya guardados.

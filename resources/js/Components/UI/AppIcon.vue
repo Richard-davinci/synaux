@@ -7,6 +7,11 @@ defineProps({name: {type: String, default: 'arrow'}});
         <path v-if="name === 'arrow'" d="M5 12h14M13 6l6 6-6 6"/>
         <path v-else-if="name === 'chevron-down'" d="m6 9 6 6 6-6"/>
         <path v-else-if="name === 'check'" d="m5 12 4 4L19 6"/>
+        <!-- Calendario para seleccionar fechas del proyecto. -->
+        <g v-else-if="name === 'calendar'">
+            <rect x="3" y="5" width="18" height="16" rx="2"/>
+            <path d="M7 3v4m10-4v4M3 10h18"/>
+        </g>
         <g v-else-if="name === 'clock'">
             <circle cx="12" cy="12" r="9"/>
             <path d="M12 7v5l3 2"/>

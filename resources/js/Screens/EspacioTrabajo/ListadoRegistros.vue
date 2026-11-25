@@ -43,7 +43,14 @@ const listados = {
         estados: [['pending', 'Pendiente de inicio'], ['in_progress', 'En desarrollo'], ['completed', 'Completado'], ['cancelled', 'Cancelado']],
     },
 };
-const listado = computed(() => listados[seccion.value]);
+const listado = computed(() => {
+    const configuracion = listados[seccion.value];
+    if (props.data.area === 'profesional' && props.data.auth?.rol_organizacion === 'profesional' && seccion.value === 'proyectos') {
+        return {...configuracion, descripcion: 'Consultá los proyectos que te asignó Gestión.',
+            vacio: 'Los proyectos que te asigne Gestión aparecerán acá.'};
+    }
+    return configuracion;
+});
 const busqueda = ref('');
 const estado = ref('');
 const filtrosActivos = computed(() => Boolean(busqueda.value.trim() || estado.value));

@@ -4,6 +4,7 @@ import {useForm} from '@inertiajs/vue3';
 import {watch} from 'vue';
 import B from '../UI/AppButton.vue';
 import F from '../UI/FormField.vue';
+import CampoFecha from '../UI/CampoFecha.vue';
 import {useSubmit} from '../../support/useSubmit';
 
 // El formulario parte del proyecto elegido y conserva sus campos ante errores de validación.
@@ -54,9 +55,9 @@ function save() {
                     <p class="tracking-help">Pendiente corresponde a 0% y completado a 100%. El porcentaje representa el
                         avance informado por Gestión.</p>
                     <div class="form-grid">
-                        <F v-model="form.start_date" label="Fecha de inicio (opcional)" type="date"
+                        <CampoFecha v-model="form.start_date" label="Fecha de inicio (opcional)"
                            :error="form.errors.start_date"/>
-                        <F v-model="form.end_date" label="Fecha de cierre (opcional)" type="date"
+                        <CampoFecha v-model="form.end_date" label="Fecha de cierre (opcional)"
                            :min="form.start_date || undefined" :error="form.errors.end_date"/>
                     </div>
                     <F v-model="form.notes" label="Qué se avanzó" type="textarea" maxlength="10000"

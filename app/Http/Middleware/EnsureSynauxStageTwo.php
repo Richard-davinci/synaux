@@ -17,6 +17,10 @@ class EnsureSynauxStageTwo
             'acciones/perfil', 'acciones/propuesta', 'acciones/seleccionar-propuesta',
             'acciones/retirar-propuesta', 'acciones/invitacion', 'acciones/responder-invitacion'
         );
+        // El equipo puede consultar sus asignaciones aunque el marketplace siga cerrado.
+        if ($request->is('profesional/proyectos') && $request->user()?->esProfesionalInterno()) {
+            return $next($request);
+        }
         if ($restricted) {
             abort_unless(config('synaux.stage_two_enabled') || $request->user()?->is_admin, 404);
         }

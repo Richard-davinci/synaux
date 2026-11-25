@@ -3,6 +3,7 @@
 namespace App\Services\Presupuestos;
 
 use App\Services\Notifications\NotificationCenter;
+use App\Services\Projects\AsignacionesProyecto;
 use App\Models\Organizacion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,7 +13,7 @@ use Illuminate\Validation\ValidationException;
 // Las operaciones formales se ejecutan en transacciones y siempre verifican el dueño de la solicitud.
 class GestionPresupuestos
 {
-    public function __construct(private NotificationCenter $notifications)
+    public function __construct(private NotificationCenter $notifications, private AsignacionesProyecto $asignaciones)
     {
     }
 
@@ -190,6 +191,7 @@ class GestionPresupuestos
             }
 
             $projectId = DB::table('projects')->insertGetId(['accepted_budget_version_id' => $version->id, 'title' => $version->title,
+                'supervisor_id' => $this->asignaciones->supervisor($origin ? null : $budget),
                 'status' => 'pending', 'progress' => 0, 'created_at' => now(), 'updated_at' => now()]);
             // Las cuotas nacen de la versión aceptada y se guardan dentro de la misma transacción.
             $plan = json_decode($version->plan_pago ?? 'null', true);

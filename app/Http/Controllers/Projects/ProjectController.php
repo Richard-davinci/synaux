@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Notifications\NotificationCenter;
 use App\Services\Presupuestos\ConsultasPresupuestos;
 use App\Services\Projects\ProjectQueries;
+use App\Services\Projects\AsignacionesProyecto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -15,11 +16,28 @@ use Inertia\Inertia;
 class ProjectController extends Controller
 {
     // Comprueba el presupuesto del proyecto antes de cargar su historial y marcar sus avisos.
-    public function show(Request $request, ConsultasPresupuestos $budgetQueries, ProjectQueries $projectQueries, NotificationCenter $notifications, int $id)
+    public function show(Request $request, ConsultasPresupuestos $budgetQueries, ProjectQueries $projectQueries, NotificationCenter $notifications, AsignacionesProyecto $asignaciones, int $id)
     {
         $user = $request->user();
-        $versionId = DB::table('projects')->where('id', $id)->value('accepted_budget_version_id') ?? abort(404);
         $gestion = $user->puedeGestionarSynaux();
+        if (!$gestion && $user->esProfesionalInterno()) {
+            // Un responsable interno recibe el alcance, sin cargar importes, pagos ni datos del cliente.
+            $proyecto = $projectQueries->asignados($user->id, $id)[0] ?? abort(404);
+            $version = $proyecto['accepted_budget_version_id'];
+            $notifications->readEntity($user, 'proyecto', $id);
+
+            return Inertia::render('EspacioTrabajo', [
+                'screen' => 'proyecto', 'area' => 'profesional', 'selected' => $proyecto,
+                'alcanceAsignado' => [
+                    'entrega' => DB::table('budget_versions')->where('id', $version)->value('estimated_delivery_days'),
+                    'entregables' => DB::table('budget_items')->where('budget_version_id', $version)
+                        ->get(['description', 'quantity']),
+                ],
+            ]);
+        }
+
+        $proyecto = DB::table('projects')->where('id', $id)->firstOrFail();
+        $versionId = $proyecto->accepted_budget_version_id;
         $quotes = $budgetQueries->quotes($user->id, $gestion, id: $versionId);
         $selected = $projectQueries->projects($quotes, id: $id)[0] ?? abort(404);
         // La vista informa si hay un archivo y conserva su ubicación privada en el servidor.
@@ -46,6 +64,20 @@ class ProjectController extends Controller
                 ]);
             }
         }
+        $asignacion = null;
+        if ($gestion && ($interno = $asignaciones->presupuestoInterno($versionId))) {
+            // El seguimiento conserva a quien emitió el presupuesto, incluso en proyectos anteriores.
+            $supervisor = $proyecto->supervisor_id ?? $asignaciones->supervisor($interno);
+            $editable = in_array($proyecto->status, ['pending', 'in_progress'], true);
+            $asignacion = [
+                'editable' => $editable,
+                'supervisor' => $supervisor ? DB::table('users')->where('id', $supervisor)->value('name') : null,
+                'responsable' => $proyecto->responsable_id
+                    ? DB::table('users')->where('id', $proyecto->responsable_id)->first(['id', 'name']) : null,
+                'profesionales' => $editable ? $asignaciones->profesionales()->orderBy('users.name')
+                    ->get(['users.id', 'users.name'])->map(fn($persona) => $persona->only('id', 'name')) : [],
+            ];
+        }
         $notifications->readEntity($user, 'proyecto', $id);
 
         return Inertia::render('EspacioTrabajo', [
@@ -57,12 +89,24 @@ class ProjectController extends Controller
             'puedeRevisarComprobante' => $gestion,
             'quotes' => $quotes,
             'historialPresupuestos' => $historialPresupuestos,
+            'asignacion' => $asignacion,
         ]);
+    }
+
+    // Solo Gestión puede elegir al responsable de ejecución.
+    public function asignar(Request $request, AsignacionesProyecto $asignaciones, int $id)
+    {
+        abort_unless($request->user()->puedeGestionarSynaux(), 403);
+        $datos = $request->validate(['responsable_id' => 'required|integer|min:1']);
+        $asignaciones->guardar($request->user(), $id, (int)$datos['responsable_id']);
+
+        return back()->with('notice', 'Responsable del proyecto actualizado.');
     }
 
     // Cada avance se valida y conserva en una transacción; el cliente solo puede consultarlo.
     public function update(Request $request, ConsultasPresupuestos $budgetQueries, NotificationCenter $notifications)
     {
+        abort_if($request->user()->esProfesionalInterno() && !$request->user()->puedeGestionarSynaux(), 403);
         $d = $request->validate([
             'id' => 'required|integer', 'status' => ['required', Rule::in(['pending', 'in_progress', 'completed', 'cancelled'])],
             'progress' => 'required|integer|min:0|max:100',

@@ -90,6 +90,44 @@ class PagosProyectoTest extends TestCase
         $this->assertDatabaseHas('proyecto_pagos', ['concepto' => 'saldo', 'importe_centavos' => 1211, 'estado' => 'pendiente']);
     }
 
+    // El responsable interno puede consultar el alcance acordado mientras conserva la asignación.
+    public function test_gestion_asigna_proyectos_y_limita_el_acceso_interno_al_alcance(): void
+    {
+        [$cliente, $supervisor, $datos] = $this->prepararPedido();
+        $profesional = User::factory()->create();
+        $pendiente = User::factory()->create(['activacion_pendiente' => true]);
+        $organizacion = Organizacion::principal();
+        $organizacion->miembros()->attach([$profesional->id, $pendiente->id], ['rol' => 'profesional']);
+
+        $this->actingAs($supervisor);
+        $version = $this->emitir($datos);
+        $proyecto = $this->actingAs($cliente)->aceptar($version);
+        $ruta = "/proyectos/$proyecto";
+        $this->assertDatabaseHas('projects', ['id' => $proyecto, 'supervisor_id' => $supervisor->id, 'responsable_id' => null]);
+        $this->patch("$ruta/responsable", ['responsable_id' => $cliente->id])->assertForbidden();
+        $this->actingAs($profesional)->get($ruta)->assertNotFound();
+
+        $this->actingAs($supervisor)->patch("$ruta/responsable", ['responsable_id' => $pendiente->id])
+            ->assertSessionHasErrors('responsable_id');
+        $this->patch("$ruta/responsable", ['responsable_id' => $supervisor->id])->assertSessionHasNoErrors();
+        $this->patch("$ruta/responsable", ['responsable_id' => $profesional->id])->assertSessionHasNoErrors();
+        $this->patch("$ruta/responsable", ['responsable_id' => $profesional->id])->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('proyecto_asignaciones', 2);
+        $this->assertDatabaseHas('projects', ['id' => $proyecto, 'supervisor_id' => $supervisor->id, 'responsable_id' => $profesional->id]);
+        $this->assertDatabaseHas('synaux_notifications', ['user_id' => $profesional->id, 'title' => 'Proyecto asignado', 'entity_id' => $proyecto]);
+
+        $this->actingAs($profesional)->get('/profesional/proyectos')->assertInertia(fn(Assert $pagina) => $pagina
+            ->has('projects', 1)->where('projects.0.id', $proyecto));
+        $this->get($ruta)->assertInertia(fn(Assert $pagina) => $pagina->where('area', 'profesional')
+            ->where('alcanceAsignado.entrega', 30)->where('alcanceAsignado.entregables.0.description', 'Servicio digital')
+            ->missing('alcanceAsignado.entregables.0.unit_price')->missing('quotes')->missing('pagos')->missing('asignacion'));
+        $this->post('/acciones/proyecto')->assertForbidden();
+
+        $this->actingAs($supervisor)->patch("$ruta/responsable", ['responsable_id' => $supervisor->id])->assertSessionHasNoErrors();
+        $this->actingAs($profesional)->get($ruta)->assertNotFound();
+        $this->get('/profesional/proyectos')->assertInertia(fn(Assert $pagina) => $pagina->has('projects', 0));
+    }
+
     // Los datos de prueba representan una organización, un supervisor y una solicitud enviada.
     private function prepararPedido(): array
     {

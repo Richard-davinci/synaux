@@ -111,7 +111,7 @@ class DirectorioUsuariosTest extends TestCase
         $this->post($vigente, ['password' => $clave, 'password_confirmation' => 'distinta'])->assertSessionHasErrors('password');
         $this->post($vigente, ['password' => $clave, 'password_confirmation' => $clave])->assertRedirect('/ingresar');
         $this->get($vigente)->assertInertia(fn (Assert $page) => $page->where('vigente', false));
-        $this->post('/ingresar', ['email' => $usuario->email, 'password' => $clave])->assertRedirect('/mi-perfil');
+        $this->post('/ingresar', ['email' => $usuario->email, 'password' => $clave])->assertRedirect('/profesional/proyectos');
         $this->get('/admin/usuarios')->assertForbidden();
         $this->patch('/mi-perfil', ['email' => 'otro@example.test', 'current_password' => $clave])->assertSessionHasErrors('email');
         $this->assertSame($alta['email'], $usuario->fresh()->email);
@@ -167,9 +167,9 @@ class DirectorioUsuariosTest extends TestCase
         $this->get('/gestion')->assertForbidden();
         $this->get('/cliente')->assertForbidden();
         $this->get("/solicitudes/$solicitud")->assertNotFound();
-        $this->get('/mi-perfil')->assertInertia(fn(Assert $page) => $page->where('auth.panel_principal', '/mi-perfil'));
+        $this->get('/mi-perfil')->assertInertia(fn(Assert $page) => $page->where('auth.panel_principal', '/profesional/proyectos'));
         config(['synaux.stage_two_enabled' => true]);
-        $this->get('/mi-perfil')->assertInertia(fn(Assert $page) => $page->where('auth.panel_principal', '/profesional'));
+        $this->get('/mi-perfil')->assertInertia(fn(Assert $page) => $page->where('auth.panel_principal', '/profesional/proyectos'));
         $this->get('/profesional')->assertOk();
 
         $organizacion->miembros()->detach($gestora->id);

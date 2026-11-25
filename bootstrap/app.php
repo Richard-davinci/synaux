@@ -43,7 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 'status' => $status,
                 'accountArea' => match ($user?->panelPrincipal()) {
                     '/gestion' => 'management', '/cliente' => 'client',
-                    '/profesional' => 'professional', '/mi-perfil' => 'profile', default => null,
+                    '/profesional', '/profesional/proyectos' => 'professional', '/mi-perfil' => 'profile', default => null,
                 },
             ])->toResponse($request)->setStatusCode($status);
 

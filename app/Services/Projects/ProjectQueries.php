@@ -4,6 +4,7 @@ namespace App\Services\Projects;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Arr;
 
 class ProjectQueries
 {
@@ -16,8 +17,18 @@ class ProjectQueries
         $updates = DB::table('project_updates')->whereIn('project_id', $projects->pluck('id'))
             ->orderByDesc('id')->get(['id', 'project_id', 'status', 'progress', 'start_date', 'end_date', 'notes', 'next_steps', 'created_at'])->groupBy('project_id');
         return $projects->map(fn($project) => [
-            ...((array)$project), 'updates' => ($updates[$project->id] ?? collect())->map(fn($update) => (array)$update)->all(),
+            ...Arr::except((array)$project, ['supervisor_id', 'responsable_id']), 'updates' => ($updates[$project->id] ?? collect())->map(fn($update) => (array)$update)->all(),
         ])->all();
+    }
+
+    // Una asignación concede la lectura del proyecto, con una selección acotada de sus campos operativos.
+    public function asignados(int $usuario, ?int $proyecto = null): array
+    {
+        return DB::table('projects')->where('responsable_id', $usuario)
+            ->when($proyecto !== null, fn($consulta) => $consulta->where('id', $proyecto))
+            ->orderByDesc('id')->get(['id', 'title', 'status', 'progress', 'start_date', 'end_date',
+                'next_steps', 'notes', 'created_at', 'accepted_budget_version_id'])
+            ->map(fn($registro) => (array)$registro)->all();
     }
 
     // Relaciona al cliente registrado con proyectos de solicitudes, propuestas o presupuestos directos.

@@ -19,6 +19,9 @@ const areas = computed(() => {
             {nombre: 'Administración', ruta: '/admin/servicios', icono: 'grid', activa: props.adminView},
         ] : [gestion];
     }
+    if (props.panelCuenta === '/profesional/proyectos') return [
+        {nombre: 'Mis proyectos', ruta: props.panelCuenta, icono: 'folder', activa: page.url.split('?')[0] === props.panelCuenta},
+    ];
     if (props.panelCuenta === '/cliente' || props.panelCuenta === '/profesional') return [
         {nombre: props.panelCuenta === '/cliente' ? 'Mi espacio' : 'Área profesional', ruta: props.panelCuenta, icono: 'layout',
             activa: page.url.split('?')[0] === props.panelCuenta},

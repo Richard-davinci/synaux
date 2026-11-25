@@ -19,7 +19,9 @@ class AccountController extends Controller
         return Inertia::render('PerfilCuenta', [
             'profile' => [...$user->only('name', 'email', 'phone', 'company', 'address'), 'details' => $user->profile_details,
                 'correo_fijo' => $user->perteneceAEquipo(), 'is_admin' => (bool)$user->is_admin, 'created_at' => $user->created_at?->toDateString()],
-            'area' => $panel === '/mi-perfil' ? 'public' : trim($panel, '/'),
+            'area' => match ($panel) {
+                '/mi-perfil' => 'public', '/profesional/proyectos' => 'profesional', default => trim($panel, '/'),
+            },
         ]);
     }
 

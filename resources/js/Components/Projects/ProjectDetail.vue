@@ -6,6 +6,7 @@ import S from '../UI/StatusBadge.vue';
 import I from '../UI/AppIcon.vue';
 import ProjectUpdate from './ProjectUpdate.vue';
 import PagoProyecto from './PagoProyecto.vue';
+import AsignacionProyecto from './AsignacionProyecto.vue';
 import HistorialPresupuesto from '../Presupuestos/HistorialPresupuesto.vue';
 import {date, money} from '../../support/formatters';
 
@@ -15,7 +16,7 @@ const project = computed(() => props.data.selected ?? {});
 const budget = computed(() => props.data.quotes?.find(item => item.id === project.value.accepted_budget_version_id));
 // La cuota usa el título y el momento acordados en el presupuesto aceptado.
 const cuotasPorConcepto = computed(() => Object.fromEntries((budget.value?.plan_pago?.cuotas ?? []).map(cuota => [cuota.concepto, cuota])));
-const management = computed(() => props.data.area === 'gestion' || props.data.area === 'profesional');
+const listadoProyectos = computed(() => props.data.area === 'profesional' ? '/profesional/proyectos' : '/gestion/proyectos');
 // Gestión reutiliza el formulario de seguimiento desde el detalle del proyecto.
 const updating = ref(false);
 const guidance = computed(() => ({
@@ -29,7 +30,7 @@ const guidance = computed(() => ({
 <template>
     <section class="page shell" :class="{ 'workspace-view': data.area === 'cliente' }">
         <div class="project-detail">
-            <B v-if="data.area !== 'cliente'" :href="management ? '/gestion/proyectos' : '/cliente/proyectos'"
+            <B v-if="data.area !== 'cliente'" :href="listadoProyectos"
                variant="ghost">← Volver a proyectos</B>
             <T :eyebrow="data.area === 'cliente' ? undefined : 'PRY-' + project.id + ' · Proyecto'" :title="project.title">
                 <div class="button-row">
@@ -44,6 +45,8 @@ const guidance = computed(() => ({
             </div>
             <div class="project-grid">
                 <div class="project-main">
+                    <AsignacionProyecto v-if="data.asignacion" :proyecto-id="project.id" :asignacion="data.asignacion"
+                                        :usuario-id="data.auth?.id"/>
                     <v-card class="card">
                         <h2>Avance del proyecto</h2>
                         <div class="section-head"><span>Progreso informado</span><strong
@@ -84,7 +87,7 @@ const guidance = computed(() => ({
                         <p class="preserve-lines">{{
                                 project.next_steps || (project.status === 'completed' ? 'El proyecto está completado. Consultá la última actualización para conocer el cierre.' : project.status === 'cancelled' ? 'No hay próximas tareas registradas para este proyecto.' : 'synaux registrará acá las próximas tareas y lo que necesite de tu parte.')
                             }}</p></v-card>
-                    <v-card class="card">
+                    <v-card v-if="!data.alcanceAsignado" class="card">
                         <h2>Historial de avances</h2>
                         <p class="project-help">Cada actualización conserva el estado y el avance informado en ese
                             momento.</p>
@@ -106,7 +109,17 @@ const guidance = computed(() => ({
                     </v-card>
                 </div>
                 <aside>
-                    <v-card class="card project-budget"><p class="eyebrow">Condiciones acordadas</p>
+                    <v-card v-if="data.alcanceAsignado" class="card project-budget">
+                        <h2>Alcance acordado</h2>
+                        <p>Entrega estimada: {{ data.alcanceAsignado.entrega }} días desde el inicio acordado.</p>
+                        <h3>Entregables</h3>
+                        <ul>
+                            <li v-for="(item, indice) in data.alcanceAsignado.entregables" :key="indice">
+                                {{ item.description }} <strong>× {{ item.quantity }}</strong>
+                            </li>
+                        </ul>
+                    </v-card>
+                    <v-card v-else class="card project-budget"><p class="eyebrow">Condiciones acordadas</p>
                         <h2>Presupuesto aceptado</h2>
                         <template v-if="budget"><p>PRE-{{ budget.budget_id }} · Versión {{ budget.version_number }}</p>
                             <strong class="project-total">{{ money(budget.total, budget.currency_code) }}</strong>

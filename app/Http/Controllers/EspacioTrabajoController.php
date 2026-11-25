@@ -54,6 +54,14 @@ class EspacioTrabajoController extends Controller
             $serviceId = DB::table('services')->when($request->integer('servicio'), fn($q) => $q->where('id', $request->integer('servicio')))->orderBy('id')->value('id');
             return redirect($serviceId ? "/admin/servicios/$serviceId/editar?config=" . ($section === 'preguntas' ? 'preguntas' : 'estimacion') : '/admin/servicios');
         }
+        // El panel interno consulta solo los proyectos asignados al profesional de la sesión.
+        if ($area === 'profesional' && $section === 'proyectos' && $usuario->esProfesionalInterno()) {
+            return Inertia::render('EspacioTrabajo', [
+                'screen' => 'profesional', 'area' => 'profesional', 'section' => 'proyectos',
+                'projects' => $this->projectQueries->asignados($usuario->id),
+            ]);
+        }
+
         $data = $area === 'admin'
             ? ['administration' => $this->configuration->data()]
             : $this->privateData($request, $admin);

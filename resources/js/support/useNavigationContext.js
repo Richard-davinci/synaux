@@ -75,11 +75,14 @@ export function useNavigationContext() {
     // Una página pública conserva la navegación de la cuenta sin marcar una sección privada.
     const area = computed(() => {
         if (paginaDePanel.value || page.props.preview || !page.props.auth) return areaDePagina.value;
-        return panelCuenta.value === '/mi-perfil' ? 'public' : panelCuenta.value.slice(1);
+        return panelCuenta.value === '/mi-perfil' ? 'public' : panelCuenta.value.split('/')[1];
     });
 
     // Las secciones de la segunda etapa aparecen al entrar expresamente en el área correspondiente.
     const nav = computed(() => {
+        if (panelCuenta.value === '/profesional/proyectos' && !page.props.stageTwo) {
+            return [['Mis proyectos', '/profesional/proyectos']];
+        }
         return (workspaceNav[area.value] ?? publicNav).filter(([, href]) =>
             !stageTwoPaths.includes(href) || (page.props.stageTwo && stageTwoPaths.includes(path.value))
         );
