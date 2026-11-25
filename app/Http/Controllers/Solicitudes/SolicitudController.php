@@ -26,7 +26,7 @@ class SolicitudController extends Controller
     public function store(Request $request): RedirectResponse
     {
         // La cuenta de Gestión puede responder pedidos de clientes, pero no emitir pedidos propios.
-        abort_if($request->user()->is_admin, 403);
+        abort_if($request->user()->esCuentaInterna(), 403);
 
         $data = $request->validate([
             'id' => 'nullable|integer',
@@ -86,7 +86,7 @@ class SolicitudController extends Controller
     public function create(Request $request, ServiceCatalog $catalog, EstimateStore $estimates, RecorridoSolicitud $journey)
     {
         // El formulario público acepta visitantes y clientes; la cuenta administrativa usa Gestión.
-        abort_if($request->user()?->is_admin, 403);
+        abort_if($request->user()?->esCuentaInterna(), 403);
 
         $id = (int)$request->query('estimacion', 0);
         if ($id && !$request->user()) {
@@ -104,7 +104,7 @@ class SolicitudController extends Controller
     public function show(Request $request, ConsultasSolicitudes $requestQueries, ServiceCatalog $catalog, EstimateStore $estimates, RecorridoSolicitud $journey, NotificationCenter $notifications, int $id)
     {
         $user = $request->user();
-        $management = (bool)$user->is_admin;
+        $management = $user->puedeGestionarSynaux();
         $selected = $requestQueries->requests($user->id, $management, only: [$id])[0] ?? abort(404);
         $data = ['screen' => 'solicitud', 'area' => $management ? 'gestion' : 'cliente', 'selected' => $selected];
 
@@ -128,7 +128,7 @@ class SolicitudController extends Controller
     // Conserva el proyecto en la sesión antes del ingreso y vuelve después al paso de contacto.
     public function prepare(Request $request, RecorridoSolicitud $journey)
     {
-        abort_if($request->user()?->is_admin, 403);
+        abort_if($request->user()?->esCuentaInterna(), 403);
 
         return redirect($journey->prepare($request));
     }
@@ -138,9 +138,9 @@ class SolicitudController extends Controller
     {
         $d = $request->validate(['id' => 'required|integer', 'status' => ['required', Rule::in(['review', 'closed', 'cancelled'])]]);
         $r = DB::table('project_requests')->where('id', $d['id'])->firstOrFail();
-        abort_unless($r->user_id === $request->user()->id || $request->user()->is_admin, 403);
+        abort_unless($r->user_id === $request->user()->id || $request->user()->puedeGestionarSynaux(), 403);
         if ($d['status'] === 'review') {
-            abort_unless($request->user()->is_admin && $r->status === 'open', 403);
+            abort_unless($request->user()->puedeGestionarSynaux() && $r->status === 'open', 403);
             DB::table('project_requests')->where('id', $r->id)->update(['reviewed_at' => now(), 'updated_at' => now()]);
         } else {
             DB::table('project_requests')->where('id', $r->id)->update(['status' => $d['status'], 'updated_at' => now()]);

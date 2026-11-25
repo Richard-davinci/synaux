@@ -15,7 +15,7 @@ defineProps({
 </script>
 
 <template>
-    <B v-if="!selected.budget_id && data.auth?.is_admin && !data.preview"
+    <B v-if="!selected.budget_id && (data.auth?.puede_gestionar ?? data.auth?.is_admin) && !data.preview"
        :href="direct ? '/editor/presupuesto' : '/editor/presupuesto?directo=1'"
        variant="ghost">{{ direct ? 'Crear desde una solicitud' : 'Crear presupuesto directo' }}</B>
     <template v-if="direct">

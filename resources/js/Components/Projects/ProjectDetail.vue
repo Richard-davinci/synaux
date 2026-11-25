@@ -30,7 +30,7 @@ const guidance = computed(() => ({
             <T :eyebrow="data.area === 'cliente' ? undefined : 'PRY-' + project.id + ' · Proyecto'" :title="project.title">
                 <div class="button-row">
                     <S :status="project.status"/>
-                    <B v-if="data.area === 'gestion' && data.auth?.is_admin && !data.preview"
+                    <B v-if="data.area === 'gestion' && (data.auth?.puede_gestionar ?? data.auth?.is_admin) && !data.preview"
                        @click="updating = true">Actualizar avance</B>
                 </div>
             </T>

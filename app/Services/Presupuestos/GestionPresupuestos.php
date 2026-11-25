@@ -21,7 +21,7 @@ class GestionPresupuestos
     {
         // La emisión directa es exclusiva de Gestión y usa un contacto externo guardado en la versión.
         $direct = $request->boolean('direct');
-        abort_if($direct && !$request->user()->is_admin, 403);
+        abort_if($direct && !$request->user()->puedeGestionarSynaux(), 403);
         $data = $request->validate(['direct' => 'sometimes|boolean', 'budget_id' => 'nullable|integer',
             'request_id' => ['nullable', Rule::requiredIf(!$direct), Rule::prohibitedIf($direct), 'integer', 'exists:project_requests,id'],
             'client' => [Rule::excludeIf(!$direct), Rule::requiredIf($direct), 'array:name,email,company,phone,address'],
@@ -42,7 +42,7 @@ class GestionPresupuestos
             }
             $profile = DB::table('professional_profiles')->where('user_id', $request->user()->id)->first();
             // La emisión de la empresa conserva la relación interna de cada gestor que genera presupuestos.
-            if (!$profile && $request->user()->is_admin) {
+            if (!$profile && $request->user()->puedeGestionarSynaux()) {
                 $organizacion = Organizacion::principal();
                 if ($organizacion->razon_social) {
                     DB::table('users')->where('id', $request->user()->id)->lockForUpdate()->firstOrFail();
@@ -59,7 +59,7 @@ class GestionPresupuestos
                 }
             }
             $proposal = $profile && $record ? DB::table('proposals')->where('project_request_id', $record->id)->where('professional_profile_id', $profile->id)->where('status', 'accepted')->first() : null;
-            abort_unless($request->user()->is_admin || $proposal !== null, 403);
+            abort_unless($request->user()->puedeGestionarSynaux() || $proposal !== null, 403);
             if ($record?->user_id === $request->user()->id) {
                 throw ValidationException::withMessages(['request_id' => 'No podés preparar un presupuesto para tu propia solicitud.']);
             }
@@ -111,7 +111,7 @@ class GestionPresupuestos
             // El cliente recibe el aviso únicamente cuando se envía la versión, nunca por borradores.
             if ($data['send'] && $record) {
                 // Emitir en Gestión también incorpora clientes de solicitudes históricas.
-                if ($request->user()->is_admin) {
+                if ($request->user()->puedeGestionarSynaux()) {
                     DB::table('organizacion_clientes')->insertOrIgnore([
                         'organizacion_id' => Organizacion::principal()->id, 'user_id' => $record->user_id,
                     ]);

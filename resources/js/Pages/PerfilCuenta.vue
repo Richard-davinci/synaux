@@ -35,10 +35,9 @@ const {
 } = formularios;
 const editando = reactive({});
 const emailChanged = computed(() => contactoForm.email.trim().toLowerCase() !== props.profile.email);
-const accountHref = computed(() => props.profile.is_admin ? '/gestion' : '/cliente');
+const {accountRole, panelCuenta} = useNavigationContext();
 // Los integrantes del equipo administran aquí su cuenta personal. La ficha de la empresa tiene su propia sección.
 const esCuentaEquipo = computed(() => Boolean(props.profile.is_admin || props.profile.correo_fijo));
-const {accountRole} = useNavigationContext();
 const accountDescription = 'Actualizá tus datos de contacto y tu contraseña.';
 
 const conDatos = filas => filas.filter(([, dato]) => dato);
@@ -97,7 +96,7 @@ function guardar(seccion) {
     <PublicLayout>
         <section class="page shell workspace-view account-profile">
             <PageTitle eyebrow="Mi cuenta" title="Mi perfil" :description="accountDescription">
-                <B :href="accountHref" variant="secondary" compact>← Volver al panel</B>
+                <B v-if="panelCuenta !== '/mi-perfil'" :href="panelCuenta" variant="secondary" compact>← Volver al panel</B>
             </PageTitle>
             <div class="account-grid">
                 <!-- La ficha identifica la cuenta y da acceso directo a cada formulario. -->

@@ -26,7 +26,7 @@ class OrganizacionController extends Controller
     // Guarda los datos compartidos. Las versiones emitidas siguen leyendo su propia instantánea.
     public function update(Request $request)
     {
-        abort_unless($request->user()->is_admin, 403);
+        abort_unless($request->user()->puedeAdministrarSynaux(), 403);
         $data = $request->validate([
             'name' => 'required|string|max:255', 'email' => 'required|email|max:254',
             'phone' => 'nullable|string|max:50', 'address' => 'nullable|string|max:500',

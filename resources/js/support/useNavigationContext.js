@@ -67,11 +67,15 @@ export function useNavigationContext() {
         return page.url.startsWith('/cliente') ? 'cliente' : 'public';
     });
     const path = computed(() => page.url.split(/[?#]/)[0]);
+    // El destino efectivo llega del servidor y es independiente de la sección que se está viendo.
+    const panelCuenta = computed(() => page.props.auth?.panel_principal
+        ?? (page.props.auth?.is_admin || (page.props.preview && areaDePagina.value === 'gestion') ? '/gestion'
+            : areaDePagina.value === 'profesional' ? '/profesional' : '/cliente'));
     const paginaDePanel = computed(() => areaDePagina.value !== 'public');
     // Una página pública conserva la navegación de la cuenta sin marcar una sección privada.
     const area = computed(() => {
         if (paginaDePanel.value || page.props.preview || !page.props.auth) return areaDePagina.value;
-        return page.props.auth.is_admin ? 'gestion' : 'cliente';
+        return panelCuenta.value === '/mi-perfil' ? 'public' : panelCuenta.value.slice(1);
     });
 
     // Las secciones de la segunda etapa aparecen al entrar expresamente en el área correspondiente.
@@ -127,7 +131,7 @@ export function useNavigationContext() {
         if (area.value === 'gestion') return 'Gestión';
         return area.value === 'profesional' ? 'Área profesional' : 'Mi espacio';
     });
-    const showAreaSwitch = computed(() => page.props.preview ? area.value === 'gestion' : Boolean(page.props.auth?.is_admin));
+    const showAreaSwitch = computed(() => page.props.preview ? area.value === 'gestion' : Boolean(page.props.auth?.puede_administrar ?? page.props.auth?.is_admin));
 
     return {
         area,
@@ -141,6 +145,7 @@ export function useNavigationContext() {
         migasCliente,
         adminView,
         workspaceTitle,
-        showAreaSwitch
+        showAreaSwitch,
+        panelCuenta
     };
 }

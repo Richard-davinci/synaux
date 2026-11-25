@@ -15,10 +15,11 @@ class AccountController extends Controller
     public function edit(Request $request)
     {
         $user = $request->user();
+        $panel = $user->panelPrincipal();
         return Inertia::render('PerfilCuenta', [
             'profile' => [...$user->only('name', 'email', 'phone', 'company', 'address'), 'details' => $user->profile_details,
                 'correo_fijo' => $user->perteneceAEquipo(), 'is_admin' => (bool)$user->is_admin, 'created_at' => $user->created_at?->toDateString()],
-            'area' => $user->is_admin ? 'gestion' : 'cliente',
+            'area' => $panel === '/mi-perfil' ? 'public' : trim($panel, '/'),
         ]);
     }
 

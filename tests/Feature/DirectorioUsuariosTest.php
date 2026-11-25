@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Organizacion;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -110,7 +111,7 @@ class DirectorioUsuariosTest extends TestCase
         $this->post($vigente, ['password' => $clave, 'password_confirmation' => 'distinta'])->assertSessionHasErrors('password');
         $this->post($vigente, ['password' => $clave, 'password_confirmation' => $clave])->assertRedirect('/ingresar');
         $this->get($vigente)->assertInertia(fn (Assert $page) => $page->where('vigente', false));
-        $this->post('/ingresar', ['email' => $usuario->email, 'password' => $clave])->assertRedirect('/cliente');
+        $this->post('/ingresar', ['email' => $usuario->email, 'password' => $clave])->assertRedirect('/mi-perfil');
         $this->get('/admin/usuarios')->assertForbidden();
         $this->patch('/mi-perfil', ['email' => 'otro@example.test', 'current_password' => $clave])->assertSessionHasErrors('email');
         $this->assertSame($alta['email'], $usuario->fresh()->email);
@@ -118,4 +119,65 @@ class DirectorioUsuariosTest extends TestCase
         $this->assertDatabaseMissing('organizacion_miembros', ['user_id' => $usuario->id]);
         $this->assertDatabaseHas('users', ['id' => $usuario->id, 'email' => $alta['email']]);
     }
+
+    // Una membresía usa el espacio que la emitió y nunca habilita borradores privados de otros usuarios.
+    public function test_synaux_team_role_controls_the_login_and_workspace_permissions(): void
+    {
+        config(['synaux.stage_two_enabled' => false]);
+        $this->seed(\Database\Seeders\SynauxCatalogSeeder::class);
+        $organizacion = \App\Models\Organizacion::principal();
+        $gestora = User::factory()->create();
+        $cliente = User::factory()->create();
+        $organizacion->miembros()->attach($gestora->id, ['rol' => 'administrador']);
+        $organizacion->clientes()->attach($cliente->id);
+        $solicitud = DB::table('project_requests')->insertGetId([
+            'user_id' => $cliente->id, 'service_id' => DB::table('services')->value('id'),
+            'title' => 'Solicitud enviada a synaux', 'description' => 'Pedido que debe compartir el equipo.', 'status' => 'open',
+        ]);
+        $borrador = DB::table('project_requests')->insertGetId([
+            'user_id' => $cliente->id, 'title' => 'Borrador privado', 'description' => 'Sigue siendo privado.',
+        ]);
+
+        $this->withSession(['url.intended' => '/cliente/solicitudes'])
+            ->post('/ingresar', ['email' => $gestora->email, 'password' => 'password'])->assertRedirect('/gestion');
+        $this->get('/gestion/solicitudes')->assertInertia(fn(Assert $page) => $page
+            ->where('auth.is_admin', false)->where('auth.puede_gestionar', true)->where('auth.puede_administrar', true)
+            ->where('auth.panel_principal', '/gestion')->has('requests', 1)->where('requests.0.id', $solicitud));
+        $this->get("/solicitudes/$solicitud")->assertInertia(fn(Assert $page) => $page
+            ->where('area', 'gestion')->where('selected.id', $solicitud));
+        $this->get("/solicitudes/$borrador")->assertNotFound();
+        $this->get('/admin/servicios')->assertOk();
+        $this->get('/admin/usuarios')->assertOk();
+        $this->get('/gestion/clientes')->assertOk();
+        $this->post('/admin/guardar/categorias', [
+            'name' => 'Prueba de permisos', 'slug' => 'prueba-permisos',
+            'description' => 'Categoría creada por una administradora del equipo.', 'active' => false,
+        ])->assertSessionHasNoErrors();
+        $this->get('/cliente')->assertForbidden();
+
+        $organizacion->miembros()->updateExistingPivot($gestora->id, ['rol' => 'supervisor']);
+        $this->get('/gestion/solicitudes')->assertInertia(fn(Assert $page) => $page
+            ->where('auth.rol_organizacion', 'supervisor')->where('auth.puede_administrar', false)
+            ->has('requests', 1)->where('requests.0.id', $solicitud));
+        $this->get('/gestion/clientes')->assertOk();
+        $this->get('/admin/servicios')->assertForbidden();
+        $this->patch('/admin/organizacion/dominio-equipo', ['dominio_correo_equipo' => 'example.com'])->assertForbidden();
+
+        $organizacion->miembros()->updateExistingPivot($gestora->id, ['rol' => 'profesional']);
+        $this->get('/gestion')->assertForbidden();
+        $this->get('/cliente')->assertForbidden();
+        $this->get("/solicitudes/$solicitud")->assertNotFound();
+        $this->get('/mi-perfil')->assertInertia(fn(Assert $page) => $page->where('auth.panel_principal', '/mi-perfil'));
+        config(['synaux.stage_two_enabled' => true]);
+        $this->get('/mi-perfil')->assertInertia(fn(Assert $page) => $page->where('auth.panel_principal', '/profesional'));
+        $this->get('/profesional')->assertOk();
+
+        $organizacion->miembros()->detach($gestora->id);
+        $otra = DB::table('organizaciones')->insertGetId(['slug' => 'otra', 'nombre' => 'Otra organización', 'tipo' => 'empresa']);
+        DB::table('organizacion_miembros')->insert(['organizacion_id' => $otra, 'user_id' => $gestora->id, 'rol' => 'administrador']);
+        $this->get('/gestion')->assertForbidden();
+        $this->get('/admin/servicios')->assertForbidden();
+        $this->assertDatabaseHas('users', ['id' => $gestora->id, 'is_admin' => false]);
+    }
+
 }

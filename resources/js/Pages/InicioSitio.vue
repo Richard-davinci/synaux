@@ -33,8 +33,8 @@ const budgetOpen = ref(false);
                 <h1 id="site-home-title">Sitios web, marcas y <em>campañas digitales</em></h1>
                 <p>Elegí los servicios que necesitás para tu organización. Podés preparar tu solicitud sin crear una cuenta.</p>
                 <div class="site-home-actions">
-                    <AppButton v-if="!$page.props.auth?.is_admin" href="/solicitudes/nueva" arrow>Preparar presupuesto</AppButton>
-                    <AppButton href="/plataforma" :variant="$page.props.auth?.is_admin ? 'primary' : 'secondary'">Explorar servicios</AppButton>
+                    <AppButton v-if="!$page.props.auth?.es_cuenta_interna" href="/solicitudes/nueva" arrow>Preparar presupuesto</AppButton>
+                    <AppButton href="/plataforma" :variant="$page.props.auth?.es_cuenta_interna ? 'primary' : 'secondary'">Explorar servicios</AppButton>
                 </div>
             </div>
             <img class="site-home-photo" src="/images/inicio/diseno-web-synaux.webp"
@@ -63,7 +63,7 @@ const budgetOpen = ref(false);
                     <div class="site-home-budget-document">
                         <EjemploPresupuesto/>
                     </div>
-                    <template v-if="!$page.props.auth?.is_admin" #footer>
+                    <template v-if="!$page.props.auth?.es_cuenta_interna" #footer>
                         <AppButton href="/solicitudes/nueva" arrow>Preparar presupuesto</AppButton>
                     </template>
                 </SidePanel>

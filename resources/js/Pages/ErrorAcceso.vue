@@ -24,6 +24,8 @@ const messages = {
 const accountActions = {
     management: ['Ir a Gestión', '/gestion'],
     client: ['Ir a mi cuenta', '/cliente'],
+    professional: ['Ir a mi área profesional', '/profesional'],
+    profile: ['Ir a mi perfil', '/mi-perfil'],
 };
 const current = computed(() => messages[props.status]);
 const action = computed(() => current.value.action ?? accountActions[props.accountArea] ?? ['Ir al Inicio', '/inicio']);

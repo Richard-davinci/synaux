@@ -35,7 +35,9 @@ class EspacioTrabajoController extends Controller
     public function show(Request $request, string $area, string $section = '')
     {
         $admin = in_array($area, ['gestion', 'admin'], true);
-        abort_if($admin && !$request->user()->is_admin, 403);
+        $usuario = $request->user();
+        abort_if($area === 'admin' && !$usuario->puedeAdministrarSynaux(), 403);
+        abort_if($area === 'gestion' && !$usuario->puedeGestionarSynaux(), 403);
         $allowed = [
             'cliente' => ['', 'estimaciones', 'solicitudes', 'presupuestos', 'proyectos', 'publicaciones', 'propuestas', 'invitaciones'],
             'profesional' => ['', 'perfil', 'propuestas', 'invitaciones', 'presupuestos', 'proyectos', 'portfolio'],
@@ -45,8 +47,8 @@ class EspacioTrabajoController extends Controller
         ];
         abort_unless(isset($allowed[$area]) && in_array($section, $allowed[$area], true), 404);
         // Las vistas de etapa 2 siguen disponibles para revisión; el área de cliente exige una cuenta de cliente.
-        abort_if($area === 'cliente' && $request->user()->is_admin
-            && !in_array($section, ['publicaciones', 'propuestas', 'invitaciones'], true), 403);
+        abort_if($area === 'cliente' && $usuario->esCuentaInterna()
+            && (!$usuario->is_admin || !in_array($section, ['publicaciones', 'propuestas', 'invitaciones'], true)), 403);
         // Los accesos anteriores llevan a la configuración del servicio, sin duplicar administraciones.
         if ($area === 'admin' && in_array($section, ['preguntas', 'componentes', 'reglas'], true)) {
             $serviceId = DB::table('services')->when($request->integer('servicio'), fn($q) => $q->where('id', $request->integer('servicio')))->orderBy('id')->value('id');

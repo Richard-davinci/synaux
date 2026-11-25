@@ -68,7 +68,8 @@ const {
     migasCliente,
     adminView,
     workspaceTitle,
-    showAreaSwitch
+    showAreaSwitch,
+    panelCuenta
 } = useNavigationContext();
 
 // El panel lateral pertenece a las páginas privadas. El menú de cuenta también se ofrece en el sitio público.
@@ -87,7 +88,7 @@ watch(() => page.url, () => {
                 <SiteHeader :gestion-active="paginaDePanel && area === 'gestion' && !adminView"
                             :admin-view="adminView" :show-area-switch="showAreaSwitch"
                             :account-name="hasWorkspace ? accountName : ''" :account-role="accountRole"
-                            :acceso-cliente="area === 'cliente'"/>
+                            :panel-cuenta="panelCuenta"/>
             </div>
             <div class="navbar-space" aria-hidden="true"></div>
         </template>

@@ -13,7 +13,7 @@ class PdfPresupuestoController extends Controller
     // La descarga aplica los mismos filtros de propiedad, emisor y estado que la vista del presupuesto.
     public function show(Request $request, ConsultasPresupuestos $budgetQueries, int $id)
     {
-        $budget = $budgetQueries->quotes($request->user()->id, (bool)$request->user()->is_admin, id: $id)[0] ?? null;
+        $budget = $budgetQueries->quotes($request->user()->id, $request->user()->puedeGestionarSynaux(), id: $id)[0] ?? null;
         abort_unless($budget, 404);
 
         // Solo se cargan los recursos propios del proyecto y todos los datos del cliente se escapan en Blade.

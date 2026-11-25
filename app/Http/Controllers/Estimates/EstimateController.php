@@ -19,7 +19,7 @@ class EstimateController extends Controller
     public function store(Request $request): RedirectResponse
     {
         // Guardar una estimación personal forma parte del recorrido de cliente.
-        abort_if($request->user()->is_admin, 403);
+        abort_if($request->user()->esCuentaInterna(), 403);
 
         $pending = $request->session()->get('pending_estimate');
         abort_unless($pending, 422, 'Primero completá el estimador.');
@@ -44,7 +44,7 @@ class EstimateController extends Controller
     // Reinicia la estimación en curso, sin modificar los registros de la cuenta.
     public function restart(Request $request): RedirectResponse
     {
-        abort_if($request->user()?->is_admin, 403);
+        abort_if($request->user()?->esCuentaInterna(), 403);
         $request->validate(['confirmed' => 'required|accepted']);
 
         $session = $request->session();
@@ -60,7 +60,7 @@ class EstimateController extends Controller
     // Valida las respuestas, calcula en el servidor y conserva el resultado en la sesión para continuar.
     public function calculate(Request $request, ServiceCatalog $catalog)
     {
-        abort_if($request->user()?->is_admin, 403);
+        abort_if($request->user()?->esCuentaInterna(), 403);
 
         $data = $request->validate(['service' => 'required|string', 'answers' => 'required|array|max:100']);
         $result = $catalog->calculate($data['service'], $data['answers']);
@@ -76,9 +76,9 @@ class EstimateController extends Controller
 
         return Inertia::render('EspacioTrabajo', [
             'screen' => 'estimacion',
-            'area' => $request->user()->is_admin ? 'gestion' : 'cliente',
+            'area' => $request->user()->puedeGestionarSynaux() ? 'gestion' : 'cliente',
             'selected' => $selected,
-            'services' => $catalog->services((bool)$request->user()->is_admin),
+            'services' => $catalog->services((bool)$request->user()->puedeGestionarSynaux()),
         ]);
     }
 }

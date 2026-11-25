@@ -19,15 +19,18 @@ class HandleInertiaRequests extends Middleware
         $professional = $user && Schema::hasTable('professional_profiles')
             ? DB::table('professional_profiles')->where('user_id', $user->id)->exists() : false;
 
-        // El panel muestra el rol asignado en synaux sin usarlo para conceder permisos.
-        $rolOrganizacion = $user && Schema::hasTable('organizacion_miembros')
-            ? DB::table('organizacion_miembros as miembro')->join('organizaciones as organizacion', 'organizacion.id', '=', 'miembro.organizacion_id')
-                ->where('miembro.user_id', $user->id)->where('organizacion.slug', 'synaux')->value('miembro.rol')
-            : null;
+        // La navegación usa los mismos permisos efectivos que protegen las rutas de synaux.
+        $conEquipo = $user && Schema::hasTable('organizacion_miembros');
+        $rolOrganizacion = $conEquipo ? $user->rolEnSynaux() : null;
 
         return [...parent::share($request), 'appName' => 'synaux',
             'stageTwo' => (bool)(config('synaux.stage_two_enabled') || $user?->is_admin), 'homeUrl' => '/', 'platformUrl' => '/plataforma', 'year' => (int)date('Y'),
-            'auth' => $user ? ['id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'is_admin' => (bool)$user->is_admin, 'professional' => $professional, 'rol_organizacion' => $rolOrganizacion] : null,
+            'auth' => $user ? ['id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'is_admin' => (bool)$user->is_admin, 'professional' => $professional, 'rol_organizacion' => $rolOrganizacion,
+                'es_cuenta_interna' => $conEquipo ? $user->esCuentaInterna() : (bool)$user->is_admin,
+                'puede_gestionar' => $conEquipo ? $user->puedeGestionarSynaux() : (bool)$user->is_admin,
+                'puede_administrar' => $conEquipo ? $user->puedeAdministrarSynaux() : (bool)$user->is_admin,
+                'panel_principal' => $conEquipo ? $user->panelPrincipal() : ($user->is_admin ? '/gestion' : '/cliente'),
+            ] : null,
             'notice' => fn() => $request->session()->get('notice'),
             // Los avisos y badges se calculan para la sesión propia, también en las recargas parciales.
             'notifications' => fn() => app(\App\Services\Notifications\NotificationCenter::class)->data($user),

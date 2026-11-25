@@ -6,12 +6,16 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-// Autoriza el acceso general a Gestión y Administración con el permiso persistido de la cuenta.
+// Administración cambia la configuración; Gestión también admite supervisores del mismo espacio.
 class EnsureSynauxManagement
 {
     public function handle(Request $request, Closure $next): Response
     {
-        abort_unless($request->user()?->is_admin, 403);
+        $usuario = $request->user();
+        $autorizado = $request->is('admin', 'admin/*')
+            ? $usuario?->puedeAdministrarSynaux()
+            : $usuario?->puedeGestionarSynaux();
+        abort_unless($autorizado, 403);
 
         return $next($request);
     }

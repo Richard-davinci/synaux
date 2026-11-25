@@ -16,7 +16,7 @@ class CatalogConfigurationController extends Controller
     // Solo Administración puede sustituir la selección completa que se muestra en Inicio.
     public function saveFeatured(Request $request, ServiceCatalog $catalog)
     {
-        abort_unless($request->user()->is_admin, 403);
+        abort_unless($request->user()->puedeAdministrarSynaux(), 403);
 
         $data = $request->validate([
             'service_ids' => ['present', 'array', 'list', 'max:' . ServiceCatalog::FEATURED_LIMIT],
@@ -34,7 +34,7 @@ class CatalogConfigurationController extends Controller
     // Los vínculos históricos y de configuración impiden el borrado, incluso si están inactivos.
     public function eliminar(Request $request, string $resource, int $id)
     {
-        abort_unless($request->user()->is_admin, 403);
+        abort_unless($request->user()->puedeAdministrarSynaux(), 403);
 
         $esServicio = $resource === 'servicios';
         $tabla = $esServicio ? 'services' : 'service_categories';
@@ -98,7 +98,7 @@ class CatalogConfigurationController extends Controller
     // Valida el recurso permitido y guarda sus cambios solo para una cuenta administrativa.
     public function save(Request $request, string $resource)
     {
-        abort_unless($request->user()->is_admin, 403);
+        abort_unless($request->user()->puedeAdministrarSynaux(), 403);
         $table = match ($resource) {
             'servicios' => 'services',
             'preguntas' => 'estimator_questions',

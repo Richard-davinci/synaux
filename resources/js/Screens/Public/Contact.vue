@@ -53,7 +53,7 @@ const sent = computed(() => page.url.includes('enviado=1') || props.data.referen
                 <I name="file" class="editorial-icon"/>
                 <h2>¿Ya sabés qué servicio necesitás?</h2>
                 <p>Elegí un servicio y prepará una solicitud para que podamos cotizar tu proyecto.</p>
-                <B v-if="!$page.props.auth?.is_admin || data.preview" href="/solicitudes/nueva" variant="secondary"
+                <B v-if="!$page.props.auth?.es_cuenta_interna || data.preview" href="/solicitudes/nueva" variant="secondary"
                    arrow>Preparar mi solicitud</B>
             </aside>
         </div>

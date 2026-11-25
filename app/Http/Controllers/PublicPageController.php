@@ -49,7 +49,7 @@ class PublicPageController extends Controller
     public function show(Request $request, string $screen = 'servicios', ?string $id = null)
     {
         // Una cuenta administrativa recibe la salida hacia Gestión al abrir el estimador de cliente.
-        abort_if($screen === 'estimador' && $request->user()?->is_admin, 403);
+        abort_if($screen === 'estimador' && $request->user()?->esCuentaInterna(), 403);
         $data = ['screen' => $screen, 'services' => $this->catalog->services()];
         // El catálogo y el estimador comparten la referencia de la versión vigente.
         if (in_array($screen, ['servicios', 'servicio', 'estimador'], true)) {

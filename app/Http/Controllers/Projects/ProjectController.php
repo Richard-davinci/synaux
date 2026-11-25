@@ -18,13 +18,13 @@ class ProjectController extends Controller
     {
         $user = $request->user();
         $versionId = DB::table('projects')->where('id', $id)->value('accepted_budget_version_id') ?? abort(404);
-        $quotes = $budgetQueries->quotes($user->id, (bool)$user->is_admin, id: $versionId);
+        $quotes = $budgetQueries->quotes($user->id, $user->puedeGestionarSynaux(), id: $versionId);
         $selected = $projectQueries->projects($quotes, id: $id)[0] ?? abort(404);
         $notifications->readEntity($user, 'proyecto', $id);
 
         return Inertia::render('EspacioTrabajo', [
             'screen' => 'proyecto',
-            'area' => $user->is_admin ? 'gestion' : 'cliente',
+            'area' => $user->puedeGestionarSynaux() ? 'gestion' : 'cliente',
             'selected' => $selected,
             'quotes' => $quotes,
         ]);
@@ -42,8 +42,8 @@ class ProjectController extends Controller
         ]);
         DB::transaction(function () use ($request, $d, $budgetQueries, $notifications) {
             $project = DB::table('projects')->where('id', $d['id'])->lockForUpdate()->firstOrFail();
-            $version = $budgetQueries->quotes($request->user()->id, (bool)$request->user()->is_admin, id: $project->accepted_budget_version_id)[0] ?? null;
-            abort_unless($version && ($request->user()->is_admin || $version['issuer_id'] === $request->user()->id), 403);
+            $version = $budgetQueries->quotes($request->user()->id, $request->user()->puedeGestionarSynaux(), id: $project->accepted_budget_version_id)[0] ?? null;
+            abort_unless($version && ($request->user()->puedeGestionarSynaux() || $version['issuer_id'] === $request->user()->id), 403);
             // Estado y porcentaje deben comunicar el mismo avance.
             if (($d['status'] === 'completed' && (int)$d['progress'] !== 100)
                 || ($d['status'] === 'pending' && (int)$d['progress'] !== 0)) {

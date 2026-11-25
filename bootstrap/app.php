@@ -41,7 +41,10 @@ return Application::configure(basePath: dirname(__DIR__))
             $user = $status === 403 ? $request->user() : null;
             $page = Inertia::render('ErrorAcceso', [
                 'status' => $status,
-                'accountArea' => $user ? ($user->is_admin ? 'management' : 'client') : null,
+                'accountArea' => match ($user?->panelPrincipal()) {
+                    '/gestion' => 'management', '/cliente' => 'client',
+                    '/profesional' => 'professional', '/mi-perfil' => 'profile', default => null,
+                },
             ])->toResponse($request)->setStatusCode($status);
 
             $page->headers->set('Vary', 'X-Inertia');

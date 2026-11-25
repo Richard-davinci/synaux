@@ -19,7 +19,11 @@ class NotificationCenter
             'consulta' => '/gestion/contactos?consulta=' . $id . '#consulta-' . $id,
         };
         $direct = collect($recipients)->filter()->map(fn($user) => (int)$user)->unique();
-        $admins = $management ? DB::table('users')->where('is_admin', true)->pluck('id') : collect();
+        // Los avisos internos llegan al equipo que tiene acceso a Gestión en synaux.
+        $admins = $management ? DB::table('users')->where('is_admin', true)->orWhereIn('id',
+            DB::table('organizacion_miembros as miembro')->join('organizaciones as organizacion', 'organizacion.id', '=', 'miembro.organizacion_id')
+                ->where('organizacion.slug', 'synaux')->whereIn('miembro.rol', ['administrador', 'supervisor'])
+                ->select('miembro.user_id'))->pluck('id') : collect();
         foreach ($direct->merge($admins)->unique() as $userId) {
             // Normaliza los ids para que la exclusión del autor funcione también con otros controladores PDO.
             $userId = (int)$userId;
@@ -36,7 +40,7 @@ class NotificationCenter
     public function query(User $user): Builder
     {
         return DB::table('synaux_notifications')->where('user_id', $user->id)
-            ->when(!$user->is_admin, fn($query) => $query->where('requires_admin', false));
+            ->when(!$user->puedeGestionarSynaux(), fn($query) => $query->where('requires_admin', false));
     }
 
     // La lista reciente está acotada; los contadores e identificadores incluyen todos los avisos sin leer.

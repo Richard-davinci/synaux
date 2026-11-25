@@ -169,7 +169,7 @@ function saveCategory() {
                 <B v-else compact href="/admin/servicios/nuevo">Nuevo servicio</B>
             </div>
         </T>
-        <ServiciosDestacados v-if="!categoriesView && $page.props.auth?.is_admin && !$page.props.preview"
+        <ServiciosDestacados v-if="!categoriesView && ($page.props.auth?.puede_administrar ?? $page.props.auth?.is_admin) && !$page.props.preview"
                           :catalog="catalog"/>
         <div class="filters workspace-filters catalog-filters" :class="{ 'catalog-category-filters': categoriesView }">
             <F v-model="search" type="search" label="Buscar por nombre"/>

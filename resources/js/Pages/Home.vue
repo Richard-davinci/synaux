@@ -68,10 +68,10 @@ const steps = [
                 <h1 id="landing-title">Pedí un presupuesto para tu <em>proyecto digital</em></h1>
                 <p class="landing-lead">Elegí los servicios que necesitás y contanos qué querés hacer. Después de enviar tu solicitud, synaux te prepara una propuesta con el alcance, el precio y los plazos.</p>
                 <div class="landing-actions">
-                    <B v-if="!$page.props.auth?.is_admin" href="/solicitudes/nueva" arrow>Preparar mi solicitud</B>
+                    <B v-if="!$page.props.auth?.es_cuenta_interna" href="/solicitudes/nueva" arrow>Preparar mi solicitud</B>
                     <B v-else href="/plataforma" arrow>Explorar servicios</B>
                     <a href="#presupuesto-de-ejemplo" class="landing-action-link">Ver presupuesto de ejemplo</a>
-                    <a v-if="!$page.props.auth?.is_admin" :href="referenceHref('/plataforma', $page.props)"
+                    <a v-if="!$page.props.auth?.es_cuenta_interna" :href="referenceHref('/plataforma', $page.props)"
                        class="landing-action-link">Ver catálogo</a>
                 </div>
                 <p v-if="!$page.props.auth" class="landing-support">Podés explorar y preparar tu solicitud sin cuenta. Para enviarla, iniciá sesión o creá una cuenta.</p>
@@ -121,7 +121,7 @@ const steps = [
                         <li><I name="clock" /><span><strong>Plazos y condiciones</strong>Fecha de vigencia, plazo estimado de entrega y ajustes incluidos.</span></li>
                         <li><I name="user" /><span><strong>Disponible en tu cuenta</strong>Podés consultarlo y descargarlo.</span></li>
                     </ul>
-                    <B v-if="!$page.props.auth?.is_admin" compact href="/solicitudes/nueva" arrow>Preparar mi solicitud</B>
+                    <B v-if="!$page.props.auth?.es_cuenta_interna" compact href="/solicitudes/nueva" arrow>Preparar mi solicitud</B>
                 </div>
                 <EjemploPresupuesto/>
             </div>
@@ -131,11 +131,11 @@ const steps = [
             <div class="landing-close">
                 <div>
                     <h2 id="landing-close-title">Contanos qué necesitás</h2>
-                    <p v-if="$page.props.auth?.is_admin">Si tenés dudas sobre qué servicio elegir, consultanos.</p>
+                    <p v-if="$page.props.auth?.es_cuenta_interna">Si tenés dudas sobre qué servicio elegir, consultanos.</p>
                     <p v-else>Si ya sabés qué necesitás, prepará tu solicitud. Si tenés dudas sobre qué servicio elegir, consultanos.</p>
                 </div>
                 <div class="landing-close-actions">
-                    <B v-if="!$page.props.auth?.is_admin" href="/solicitudes/nueva" arrow>Preparar mi solicitud</B>
+                    <B v-if="!$page.props.auth?.es_cuenta_interna" href="/solicitudes/nueva" arrow>Preparar mi solicitud</B>
                     <B href="/contacto" variant="secondary">Hacer una consulta</B>
                 </div>
             </div>

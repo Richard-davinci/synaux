@@ -7,6 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 
 class User extends Authenticatable
 {
@@ -40,7 +41,40 @@ class User extends Authenticatable
     // Cualquier membresía de equipo mantiene fijo el correo de esa cuenta.
     public function perteneceAEquipo(): bool
     {
-        return \Illuminate\Support\Facades\DB::table('organizacion_miembros')->where('user_id', $this->id)->exists();
+        return DB::table('organizacion_miembros')->where('user_id', $this->id)->exists();
+    }
+
+    // Solo la membresía del espacio inicial concede acceso a sus datos compartidos.
+    public function rolEnSynaux(): ?string
+    {
+        return DB::table('organizacion_miembros as miembro')
+            ->join('organizaciones as organizacion', 'organizacion.id', '=', 'miembro.organizacion_id')
+            ->where('miembro.user_id', $this->id)->where('organizacion.slug', 'synaux')->value('miembro.rol');
+    }
+
+    public function puedeAdministrarSynaux(): bool
+    {
+        return $this->is_admin || $this->rolEnSynaux() === 'administrador';
+    }
+
+    public function puedeGestionarSynaux(): bool
+    {
+        return $this->is_admin || in_array($this->rolEnSynaux(), ['administrador', 'supervisor'], true);
+    }
+
+    // La cuenta interna usa su área habilitada y queda fuera del recorrido de cliente.
+    public function esCuentaInterna(): bool
+    {
+        return $this->is_admin || $this->perteneceAEquipo();
+    }
+
+    public function panelPrincipal(): string
+    {
+        if ($this->puedeGestionarSynaux()) return '/gestion';
+        if (!$this->esCuentaInterna()) return '/cliente';
+
+        return $this->rolEnSynaux() === 'profesional' && config('synaux.stage_two_enabled')
+            ? '/profesional' : '/mi-perfil';
     }
 
     // El contacto propio se reutiliza al iniciar un pedido, sin modificar pedidos ya guardados.
@@ -63,7 +97,7 @@ class User extends Authenticatable
     // Los presupuestos de Gestión toman el emisor del espacio de synaux. Cada versión guarda sus propios datos.
     public function issuerDetails(?string $brand = null): array
     {
-        $organizacion = $this->is_admin ? Organizacion::principal() : null;
+        $organizacion = $this->puedeGestionarSynaux() ? Organizacion::principal() : null;
 
         return [
             'name' => $organizacion?->razon_social ?: ($brand ?: 'synaux'),

@@ -30,7 +30,7 @@ class PresupuestoController extends Controller
     public function show(Request $request, int $id)
     {
         $user = $request->user();
-        $management = (bool)$user->is_admin;
+        $management = $user->puedeGestionarSynaux();
         $selected = $this->budgetQueries->quotes($user->id, $management, id: $id)[0] ?? abort(404);
         $this->notifications->readEntity($user, 'presupuesto', $id);
 
@@ -48,7 +48,7 @@ class PresupuestoController extends Controller
     public function edit(Request $request, ServiceCatalog $catalog, int $id = 0)
     {
         $user = $request->user();
-        $management = (bool)$user->is_admin;
+        $management = $user->puedeGestionarSynaux();
         $selected = $id ? ($this->budgetQueries->quotes($user->id, $management, id: $id)[0] ?? abort(404)) : null;
         abort_if($selected && $selected['issuer_id'] !== $user->id, 403);
         $direct = $selected ? $selected['external'] : ($request->boolean('directo') && !$request->integer('solicitud'));
