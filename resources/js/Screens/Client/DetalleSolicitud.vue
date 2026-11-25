@@ -21,14 +21,13 @@ function closeRequest() {
 
 <template>
     <section class="page shell workspace-view detalle-solicitud">
-        <B variant="ghost" compact class="workspace-back" href="/cliente/solicitudes">← Volver a solicitudes</B>
         <template v-if="record.status === 'draft'">
             <T eyebrow="Solicitud en borrador" :title="record.title"
                description="Podés completar y revisar la información antes de enviarla."/>
             <RequestForm :data="data"/>
         </template>
         <template v-else>
-            <T :eyebrow="'SOL-' + record.id + ' · Solicitud'" :title="record.title">
+            <T :title="record.title">
                 <S :status="record.status" request/>
             </T>
             <div class="detail-layout">

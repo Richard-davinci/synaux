@@ -93,9 +93,9 @@ function decide() {
 <template>
     <section class="page shell" :class="{ 'workspace-view': data.area === 'cliente' }">
         <div class="client-budget">
-            <B :href="data.area === 'gestion' ? '/gestion/presupuestos' : '/cliente/presupuestos'" variant="ghost" :compact="data.area === 'cliente'" class="workspace-back">←
-                Volver a presupuestos</B>
-            <T :eyebrow="'PRE-' + record.budget_id + ' · Presupuesto formal'" :title="record.title"
+            <B v-if="data.area !== 'cliente'" :href="data.area === 'gestion' ? '/gestion/presupuestos' : '/cliente/presupuestos'"
+               variant="ghost">← Volver a presupuestos</B>
+            <T :eyebrow="data.area === 'cliente' ? undefined : 'PRE-' + record.budget_id + ' · Presupuesto formal'" :title="record.title"
                :description="'Versión ' + record.version_number + ' · Emitida el ' + date(record.sent_at ?? record.created_at)">
                 <S :status="record.display_status ?? record.status"/></T>
             <div class="budget-state" role="status"><I :name="state.icon"/>

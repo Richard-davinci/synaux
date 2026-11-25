@@ -38,6 +38,13 @@ const workspaceNav = {
     ],
 };
 
+const identificadoresCliente = {
+    estimacion: ['EST', 'id'],
+    solicitud: ['SOL', 'id'],
+    presupuesto: ['PRE', 'budget_id'],
+    proyecto: ['PRY', 'id'],
+};
+
 const stageTwoPaths = ['/cliente/publicaciones', '/cliente/propuestas', '/cliente/invitaciones'];
 const sectionsByScreen = {
     solicitud: 'solicitudes',
@@ -89,6 +96,27 @@ export function useNavigationContext() {
         if (page.props.screen === 'admin' || page.url.startsWith('/admin')) return 'administracion';
         return sectionsByScreen[page.props.screen] ?? (page.props.section || 'resumen');
     });
+    // Las migas del cliente reutilizan el nombre y destino de la sección del menú lateral.
+    const migasCliente = computed(() => {
+        if (areaDePagina.value !== 'cliente' || !hasWorkspace.value) return [];
+
+        const inicio = ['Mi espacio', '/cliente'];
+        if (currentSection.value === 'mi-perfil') return [inicio, ['Mi perfil']];
+
+        const seccion = nav.value.find(([, href]) => href === '/cliente/' + currentSection.value);
+        if (!seccion) return [];
+
+        const {screen, selected} = page.props;
+        if (screen === 'publicar') return [inicio, seccion, ['Nueva solicitud']];
+        const identificador = identificadoresCliente[screen];
+        if (identificador) {
+            const [prefijo, campo] = identificador;
+            const id = selected?.[campo] ?? selected?.id;
+            if (id != null) return [inicio, seccion, [prefijo + '-' + id]];
+        }
+        return [inicio, [seccion[0]]];
+    });
+
     const adminView = computed(() => area.value === 'gestion' && currentSection.value === 'administracion');
     const workspaceTitle = computed(() => {
         if (adminView.value) return 'Administración';
@@ -105,6 +133,7 @@ export function useNavigationContext() {
         navbarRole,
         accountName,
         currentSection,
+        migasCliente,
         adminView,
         workspaceTitle,
         showAreaSwitch

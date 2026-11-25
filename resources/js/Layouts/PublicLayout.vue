@@ -7,6 +7,7 @@ import SiteFooter from '../Components/Navigation/SiteFooter.vue';
 import AppButton from '../Components/UI/AppButton.vue';
 import {useNavigationContext} from '../support/useNavigationContext';
 import WorkspaceNavigation from '../Components/Navigation/WorkspaceNavigation.vue';
+import MigasNavegacion from '../Components/Navigation/MigasNavegacion.vue';
 import I from '../Components/UI/AppIcon.vue';
 import {demoNotice} from '../support/prototype';
 // El navbar mantiene los enlaces públicos; el panel lateral organiza el área privada de la sesión.
@@ -63,6 +64,7 @@ const {
     navbarRole,
     accountName,
     currentSection,
+    migasCliente,
     adminView,
     workspaceTitle,
     showAreaSwitch
@@ -110,6 +112,7 @@ watch(() => page.url, () => {
                 </div>
             </aside>
             <v-main id="contenido" class="workspace-content" tabindex="-1">
+                <MigasNavegacion v-if="panelFijo && migasCliente.length" :niveles="migasCliente"/>
                 <slot/>
             </v-main>
         </div>
@@ -211,6 +214,10 @@ watch(() => page.url, () => {
 
 .with-workspace :deep(.page) {
     padding-block: 40px 72px;
+}
+
+.with-workspace :deep(.migas-navegacion + .page) {
+    padding-top: 12px;
 }
 
 .with-workspace :deep(.admin-layout) {

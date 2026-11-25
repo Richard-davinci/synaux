@@ -32,7 +32,8 @@ const newEstimateHref = computed(() => result.value.service
 
 <template>
     <section class="page shell estimator workspace-view">
-        <B href="/cliente/estimaciones" compact variant="ghost" class="workspace-back">← Volver a estimaciones</B>
+        <B v-if="data.area !== 'cliente'" href="/cliente/estimaciones" compact variant="ghost"
+           class="workspace-back">← Volver a estimaciones</B>
         <T eyebrow="Estimación orientativa" title="Tu estimación guardada"/>
 
         <EstimateResult :result="result" :preview="Boolean(data.preview)">

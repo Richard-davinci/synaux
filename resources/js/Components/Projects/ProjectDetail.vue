@@ -25,9 +25,9 @@ const guidance = computed(() => ({
 <template>
     <section class="page shell" :class="{ 'workspace-view': data.area === 'cliente' }">
         <div class="project-detail">
-            <B :href="management ? '/gestion/proyectos' : '/cliente/proyectos'" variant="ghost" :compact="data.area === 'cliente'"
-               class="workspace-back">← Volver a proyectos</B>
-            <T :eyebrow="'PRY-' + project.id + ' · Proyecto'" :title="project.title">
+            <B v-if="data.area !== 'cliente'" :href="management ? '/gestion/proyectos' : '/cliente/proyectos'"
+               variant="ghost">← Volver a proyectos</B>
+            <T :eyebrow="data.area === 'cliente' ? undefined : 'PRY-' + project.id + ' · Proyecto'" :title="project.title">
                 <div class="button-row">
                     <S :status="project.status"/>
                     <B v-if="data.area === 'gestion' && data.auth?.is_admin && !data.preview"
