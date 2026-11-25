@@ -560,6 +560,55 @@ class SynauxFlowTest extends TestCase
         $this->actingAs($owner)->get($work->cover_path)->assertOk();
     }
 
+    // La galería acepta reordenar, reemplazar y quitar archivos del trabajo propio en un solo envío.
+    public function test_portfolio_gallery_can_be_edited_without_overwriting_a_stale_selection(): void
+    {
+        Storage::fake('public');
+        $owner = $this->account(true);
+        $this->profile($owner);
+        $data = [
+            'service_id' => DB::table('services')->value('id'),
+            'title' => 'Galería editable', 'description' => 'Trabajo de prueba', 'category' => 'Desarrollo web',
+            'is_public' => true,
+        ];
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l1sAAAAASUVORK5CYII=');
+        $image = fn(string $name) => UploadedFile::fake()->createWithContent($name . '.png', $png);
+        $this->actingAs($owner)->post('/acciones/trabajo', [...$data, 'gallery' => [
+            $image('primera'), $image('segunda'), $image('tercera'),
+        ]])->assertSessionHasNoErrors();
+        $work = DB::table('portfolio_projects')->first();
+        $images = DB::table('portfolio_project_images')->orderBy('sort_order')->get();
+        $revision = app(\App\Services\Portfolio\PortfolioGallery::class)->revision($images);
+        $this->get('/editor/trabajo/' . $work->id)->assertInertia(fn(Assert $page) => $page
+            ->where('galleryRevision', $revision)->has('selected.images', 3));
+
+        $selection = [
+            'id' => $work->id, 'gallery_revision' => $revision,
+            'gallery_items' => json_encode([
+                ['id' => $images[2]->id, 'alt_text' => 'Página de inicio'],
+                ['id' => $images[0]->id, 'alt_text' => 'Catálogo'],
+            ]),
+        ];
+        $this->post('/acciones/trabajo', [...$data, ...$selection,
+            'gallery_replacements' => [$images[0]->id => $image('nuevo-catalogo')],
+            'gallery' => [$image('cuarta')],
+        ])->assertSessionHasNoErrors();
+        $updated = DB::table('portfolio_project_images')->orderBy('sort_order')->get();
+        $this->assertSame([$images[2]->id, $images[0]->id], $updated->take(2)->pluck('id')->all());
+        $this->assertSame('Página de inicio', $updated[0]->alt_text);
+        $this->assertSame('Catálogo', $updated[1]->alt_text);
+        $this->assertNotSame($images[0]->image_path, $updated[1]->image_path);
+        $this->assertCount(3, $updated);
+        $this->get($images[1]->image_path)->assertNotFound();
+
+        $this->post('/acciones/trabajo', [...$data, ...$selection])->assertSessionHasErrors('gallery_items');
+        $this->assertDatabaseCount('portfolio_project_images', 3);
+        $this->post('/acciones/trabajo', [...$data, ...$selection, 'gallery_items' => '[]',
+            'gallery_revision' => app(\App\Services\Portfolio\PortfolioGallery::class)->revision($updated),
+        ])->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('portfolio_project_images', 0);
+    }
+
     public function test_project_progress_can_be_updated_only_by_issuer_or_management(): void
     {
         $client = $this->account();

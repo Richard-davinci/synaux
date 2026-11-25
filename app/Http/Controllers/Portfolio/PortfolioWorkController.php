@@ -4,16 +4,22 @@ namespace App\Http\Controllers\Portfolio;
 
 use App\Http\Controllers\Controller;
 use App\Services\Catalog\ServiceCatalog;
+use App\Services\Portfolio\PortfolioGallery;
 use App\Services\Portfolio\PortfolioQueries;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use RuntimeException;
+use Throwable;
 
 class PortfolioWorkController extends Controller
 {
     // Protege el editor por propiedad y carga el trabajo elegido junto a los servicios disponibles.
-    public function edit(Request $request, PortfolioQueries $portfolioQueries, ServiceCatalog $catalog, int $id = 0)
+    public function edit(Request $request, PortfolioQueries $portfolioQueries, PortfolioGallery $gallery, ServiceCatalog $catalog, int $id = 0)
     {
         $user = $request->user();
         $selected = $id ? ($portfolioQueries->works($user->id, id: $id)[0] ?? abort(404)) : null;
@@ -24,40 +30,93 @@ class PortfolioWorkController extends Controller
             'screen' => 'editor-trabajo',
             'area' => $user->is_admin ? 'gestion' : 'cliente',
             'selected' => $selected,
+            'galleryRevision' => $selected ? $gallery->revision($selected['images']) : null,
             'services' => $catalog->services((bool)$user->is_admin),
         ]);
     }
 
-    // Guarda un trabajo del perfil propio y controla formato y tamaño de sus imágenes.
-    public function store(Request $request)
+    // Guarda el trabajo y la edición de su galería en una sola transacción de base de datos.
+    public function store(Request $request, PortfolioGallery $gallery)
     {
-        $d = $request->validate(['id' => 'nullable|integer', 'service_id' => 'required|integer|exists:services,id', 'title' => 'required|string|max:255',
-            'description' => 'required|string|max:10000', 'category' => 'required|string|max:255', 'challenge' => 'nullable|string|max:10000', 'result' => 'nullable|string|max:10000',
-            'year' => 'nullable|integer|min:1990|max:2100', 'is_public' => 'required|boolean', 'live_url' => 'nullable|url:http,https|max:2048',
-            'cover' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120', 'gallery' => 'nullable|array|max:8', 'gallery.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120']);
-        $profile = DB::table('professional_profiles')->where('user_id', $request->user()->id)->firstOrFail();
-        $old = !empty($d['id']) ? DB::table('portfolio_projects')->where('id', $d['id'])->where('professional_profile_id', $profile->id)->firstOrFail() : null;
-        // Los archivos se limitan a imágenes raster; se guardan con nombres generados por Laravel.
-        $values = collect($d)->except(['id', 'cover', 'gallery'])->all();
-        if ($request->hasFile('cover')) {
-            $values['cover_path'] = '/media/' . $request->file('cover')->store('portfolio', 'public');
+        $imageRules = 'image|mimes:jpg,jpeg,png,webp|max:5120';
+        $d = $request->validate([
+            'id' => 'nullable|integer', 'service_id' => 'required|integer|exists:services,id', 'title' => 'required|string|max:255',
+            'description' => 'required|string|max:10000', 'category' => 'required|string|max:255', 'challenge' => 'nullable|string|max:10000',
+            'result' => 'nullable|string|max:10000', 'year' => 'nullable|integer|min:1990|max:2100', 'is_public' => 'required|boolean',
+            'live_url' => 'nullable|url:http,https|max:2048', 'cover' => 'nullable|' . $imageRules,
+            'gallery' => 'nullable|array|max:8', 'gallery.*' => $imageRules,
+            'gallery_items' => 'nullable|json|max:250000', 'gallery_revision' => 'required_with:gallery_items|nullable|string|size:64',
+            'gallery_replacements' => 'nullable|array|max:8', 'gallery_replacements.*' => $imageRules,
+        ]);
+        $items = isset($d['gallery_items']) ? Validator::make(
+            ['gallery_items' => json_decode($d['gallery_items'], true)],
+            ['gallery_items' => 'present|array|list', 'gallery_items.*.id' => 'required|integer|distinct',
+                'gallery_items.*.alt_text' => 'nullable|string|max:255'],
+        )->validate()['gallery_items'] : null;
+        if (($items !== null && empty($d['id'])) || ($items === null && !empty($d['gallery_replacements']))) {
+            throw ValidationException::withMessages(['gallery_items' => 'La edición de galería requiere un trabajo existente.']);
         }
-        $id = DB::transaction(function () use ($request, $profile, $old, $values) {
-            if ($old) {
-                DB::table('portfolio_projects')->where('id', $old->id)->update([...$values, 'updated_at' => now()]);
-                $id = $old->id;
-            } else {
-                $id = DB::table('portfolio_projects')->insertGetId([...$values, 'professional_profile_id' => $profile->id, 'created_at' => now(), 'updated_at' => now()]);
-            }
-            $order = (DB::table('portfolio_project_images')->where('portfolio_project_id', $id)->max('sort_order') ?? -1) + 1;
-            foreach ($request->file('gallery', []) as $image) {
-                DB::table('portfolio_project_images')->insert(['portfolio_project_id' => $id, 'image_path' => '/media/' . $image->store('portfolio', 'public'), 'alt_text' => $values['title'], 'sort_order' => $order++]);
-            }
 
-            return $id;
-        });
+        $profile = DB::table('professional_profiles')->where('user_id', $request->user()->id)->firstOrFail();
+        $values = collect($d)->except(['id', 'cover', 'gallery', 'gallery_items', 'gallery_revision', 'gallery_replacements'])->all();
+        $uploaded = [];
+
+        try {
+            $id = DB::transaction(function () use ($d, $request, $gallery, $items, $profile, $values, &$uploaded) {
+                // El bloqueo evita pisar cambios de otra pestaña y la revisión protege la selección cargada por el editor.
+                $work = !empty($d['id']) ? DB::table('portfolio_projects')->where('id', $d['id'])
+                    ->where('professional_profile_id', $profile->id)->lockForUpdate()->firstOrFail() : null;
+                $replacementFiles = $request->file('gallery_replacements', []);
+                if ($items !== null) {
+                    $current = $gallery->check($work->id, $items, $d['gallery_revision'], $replacementFiles);
+                    $replacements = [];
+                    foreach ($replacementFiles as $imageId => $file) {
+                        $replacements[$imageId] = $this->saveImage($file, $uploaded);
+                    }
+                    $gallery->apply($work->id, $items, $current, $replacements);
+                }
+
+                if ($request->hasFile('cover')) {
+                    $values['cover_path'] = $this->saveImage($request->file('cover'), $uploaded);
+                }
+
+                if ($work) {
+                    DB::table('portfolio_projects')->where('id', $work->id)->update([...$values, 'updated_at' => now()]);
+                    $id = $work->id;
+                } else {
+                    $id = DB::table('portfolio_projects')->insertGetId([...$values, 'professional_profile_id' => $profile->id,
+                        'created_at' => now(), 'updated_at' => now()]);
+                }
+
+                $order = (DB::table('portfolio_project_images')->where('portfolio_project_id', $id)->max('sort_order') ?? -1) + 1;
+                foreach ($request->file('gallery', []) as $image) {
+                    DB::table('portfolio_project_images')->insert([
+                        'portfolio_project_id' => $id, 'image_path' => $this->saveImage($image, $uploaded),
+                        'alt_text' => $values['title'], 'sort_order' => $order++,
+                    ]);
+                }
+
+                return $id;
+            });
+        } catch (Throwable $error) {
+            Storage::disk('public')->delete($uploaded);
+            throw $error;
+        }
 
         return redirect('/editor/trabajo/' . $id)->with('notice', 'Trabajo guardado.');
+    }
+
+    // Registra los archivos nuevos para retirarlos si la transacción no se completa.
+    private function saveImage(UploadedFile $image, array &$uploaded): string
+    {
+        $path = $image->store('portfolio', 'public');
+        if (!$path) {
+            throw new RuntimeException('No se pudo guardar una imagen del portfolio.');
+        }
+
+        $uploaded[] = $path;
+
+        return '/media/' . $path;
     }
 
     // Entrega una imagen solo si el trabajo es público o pertenece a la cuenta que la solicita.
