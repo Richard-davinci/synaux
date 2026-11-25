@@ -106,8 +106,10 @@ class AccountProfileTest extends TestCase
         $saved = DB::table('project_requests')->first();
         $this->assertSame($expected, json_decode($saved->contact_snapshot, true)['address']);
         $this->assertCount(1, json_decode($saved->requested_services, true));
-        $this->patch('/mi-perfil', [...$profile, 'details' => ['billing_address' => ['number' => '800']]])
-            ->assertSessionHasNoErrors();
+        $this->patch('/mi-perfil', ['details' => ['billing_address' => ['number' => '800']]])
+            ->assertSessionHasNoErrors()->assertSessionHas('notice', 'Tu domicilio de facturación se actualizó.');
+        $this->assertSame($profile['email'], $user->fresh()->email);
+        $this->assertSame($details['position'], $user->fresh()->profile_details['position']);
         $this->get('/solicitudes/nueva')->assertInertia(fn(Assert $page) => $page
             ->where('accountContact.address', str_replace('340', '800', $expected)));
         $this->get('/solicitudes/' . $saved->id)->assertInertia(fn(Assert $page) => $page

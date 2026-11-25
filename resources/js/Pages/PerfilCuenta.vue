@@ -1,5 +1,5 @@
 <script setup>
-import {computed} from 'vue';
+import {computed, reactive} from 'vue';
 import {Head, useForm} from '@inertiajs/vue3';
 import PublicLayout from '../Layouts/PublicLayout.vue';
 import B from '../Components/UI/AppButton.vue';
@@ -7,76 +7,94 @@ import F from '../Components/UI/FormField.vue';
 import I from '../Components/UI/AppIcon.vue';
 import PageTitle from '../Components/UI/PageTitle.vue';
 import CamposUbicacion from '../Components/Cuenta/CamposUbicacion.vue';
+import TarjetaPerfil from '../Components/Cuenta/TarjetaPerfil.vue';
 import {date, initials} from '../support/formatters';
 import {demoNotice} from '../support/prototype';
 import '../../css/panel.css';
 import '../../css/ajustes-panel.css';
 
-// Cada sección guarda sus propios datos y errores; el tipo de cuenta es informativo y no editable.
+// Cada tarjeta edita solo sus datos. Los valores de consulta provienen del perfil guardado.
 const props = defineProps({profile: Object, issuer: Object, preview: Boolean});
 const valoresCampos = (datos, claves) => Object.fromEntries(claves.map(clave => [clave, datos?.[clave] ?? '']));
 const clavesUbicacion = ['country', 'region', 'city'];
-const personalValues = () => ({
-    ...valoresCampos(props.profile, ['name', 'email', 'phone', 'company', 'address']),
-    details: {
-        ...valoresCampos(props.profile.details, ['position', 'website']),
-        location: valoresCampos(props.profile.details?.location, clavesUbicacion),
-        billing_address: valoresCampos(props.profile.details?.billing_address, [...clavesUbicacion, 'street', 'number', 'unit', 'postal_code']),
-    },
-});
-const form = useForm({...personalValues(), current_password: ''});
-const passwordForm = useForm({current_password: '', password: '', password_confirmation: ''});
-const issuerValues = () => Object.fromEntries(['name', 'email', 'phone', 'address'].map(key => [key, props.issuer?.[key] ?? '']));
-const issuerForm = useForm(issuerValues());
-const emailChanged = computed(() => form.email.trim().toLowerCase() !== props.profile.email);
+const valores = {
+    contacto: () => ({...valoresCampos(props.profile, ['name', 'email', 'phone']), current_password: ''}),
+    organizacion: () => ({company: props.profile.company ?? '', details: valoresCampos(props.profile.details, ['position', 'website'])}),
+    ubicacion: () => ({details: {location: valoresCampos(props.profile.details?.location, clavesUbicacion)}}),
+    domicilio: () => ({
+        address: props.profile.address ?? '',
+        details: {billing_address: valoresCampos(props.profile.details?.billing_address, [...clavesUbicacion, 'street', 'number', 'unit', 'postal_code'])},
+    }),
+    clave: () => ({current_password: '', password: '', password_confirmation: ''}),
+    emision: () => valoresCampos(props.issuer, ['name', 'email', 'phone', 'address']),
+};
+const formularios = Object.fromEntries(Object.entries(valores).map(([seccion, crear]) => [seccion, useForm(crear())]));
+const {
+    contacto: contactoForm, organizacion: organizacionForm, ubicacion: ubicacionForm,
+    domicilio: domicilioForm, clave: passwordForm, emision: issuerForm,
+} = formularios;
+const editando = reactive({});
+const emailChanged = computed(() => contactoForm.email.trim().toLowerCase() !== props.profile.email);
 const accountHref = computed(() => props.profile.is_admin ? '/gestion' : '/cliente');
 const accountDescription = computed(() => props.profile.is_admin
     ? 'Actualizá tus datos de contacto, tu contraseña y los datos de emisión de los presupuestos.'
     : 'Actualizá tus datos de contacto y tu contraseña.');
 
-// Al copiar la ubicación, los dos grupos siguen siendo editables por separado.
+const conDatos = filas => filas.filter(([, dato]) => dato);
+const filasUbicacion = ubicacion => [
+    ['País', ubicacion?.country], ['Provincia, estado o región', ubicacion?.region], ['Localidad o ciudad', ubicacion?.city],
+];
+const datosContacto = computed(() => conDatos([
+    ['Nombre y apellido', props.profile.name], ['Correo de ingreso y contacto', props.profile.email],
+    ['Teléfono o WhatsApp', props.profile.phone],
+]));
+const datosOrganizacion = computed(() => conDatos([
+    ['Empresa u organización', props.profile.company], ['Cargo', props.profile.details?.position],
+    ['Sitio web', props.profile.details?.website],
+]));
+const datosUbicacion = computed(() => conDatos(filasUbicacion(props.profile.details?.location)));
+const datosDomicilio = computed(() => {
+    const domicilio = props.profile.details?.billing_address;
+    const filas = conDatos([
+        ['Calle y número', [domicilio?.street, domicilio?.number].filter(Boolean).join(' ')],
+        ['Piso y departamento', domicilio?.unit], ['Código postal', domicilio?.postal_code],
+        ...filasUbicacion(domicilio),
+    ]);
+    return filas.length ? filas : conDatos([['Dirección de contacto anterior', props.profile.address]]);
+});
+const datosEmision = computed(() => conDatos([
+    ['Nombre del emisor o razón social', props.issuer?.name], ['Correo de emisión', props.issuer?.email],
+    ['Teléfono', props.issuer?.phone], ['Dirección', props.issuer?.address],
+]));
+
 function copiarUbicacion() {
-    Object.assign(form.details.billing_address, form.details.location);
+    Object.assign(domicilioForm.details.billing_address, valoresCampos(props.profile.details?.location, clavesUbicacion));
 }
 
-function isPreview() {
-    if (!props.preview) return false;
-    demoNotice.value = 'Vista de referencia: los cambios no se guardan en cuentas reales.';
-    return true;
+// Al abrir o cancelar se parte de los datos guardados y se descarta solo el borrador de esa tarjeta.
+function cambiarEdicion(seccion, estado) {
+    formularios[seccion].defaults(valores[seccion]());
+    formularios[seccion].resetAndClearErrors();
+    editando[seccion] = estado;
 }
 
-function savePersonal() {
-    if (isPreview()) return;
-    form.patch('/mi-perfil', {
-        preserveScroll: true,
-        onSuccess: () => {
-            form.defaults({...personalValues(), current_password: ''});
-            form.reset();
-        },
-        onFinish: () => form.reset('current_password'),
-    });
+function guardar(seccion) {
+    if (props.preview) {
+        demoNotice.value = 'Vista de referencia: los cambios no se guardan en cuentas reales.';
+        return;
+    }
+    const opciones = {preserveScroll: true, onSuccess: () => cambiarEdicion(seccion, false)};
+    if (seccion === 'clave') {
+        passwordForm.put('/mi-perfil/clave', {...opciones, onFinish: () => passwordForm.reset()});
+    } else if (seccion === 'emision') {
+        issuerForm.patch('/mi-perfil/emision', opciones);
+    } else {
+        formularios[seccion].patch('/mi-perfil', {
+            ...opciones,
+            onFinish: seccion === 'contacto' ? () => contactoForm.reset('current_password') : undefined,
+        });
+    }
 }
-
-// Las claves se limpian al terminar el intento y nunca forman parte de los datos que devuelve Laravel.
-function savePassword() {
-    if (isPreview()) return;
-    passwordForm.put('/mi-perfil/clave', {
-        preserveScroll: true,
-        onFinish: () => passwordForm.reset(),
-    });
-}
-
-function saveIssuer() {
-    if (isPreview()) return;
-    issuerForm.patch('/mi-perfil/emision', {
-        preserveScroll: true,
-        onSuccess: () => {
-            issuerForm.defaults(issuerValues());
-            issuerForm.reset();
-        },
-    });
-}
-
 </script>
 
 <template>
@@ -108,137 +126,111 @@ function saveIssuer() {
                     </v-card>
                 </aside>
                 <div class="account-panels">
-                    <!-- Las tarjetas de contacto comparten un solo guardado para conservar los cambios entre secciones. -->
-                    <form class="account-personal-form" @submit.prevent="savePersonal">
-                        <v-card id="datos-personales" tag="section" class="card" aria-labelledby="titulo-datos-personales">
-                            <div class="account-section-title">
-                                <I name="user"/>
-                                <h2 id="titulo-datos-personales">Datos personales y contacto</h2>
-                            </div>
-                            <p class="account-description">Tu contacto se completa automáticamente en las próximas solicitudes.</p>
-                            <!-- Los datos principales se leen en una fila y los campos largos ocupan todo el ancho. -->
-                            <div class="account-fields">
-                                <F v-model="form.name" label="Nombre y apellido" autocomplete="name" maxlength="255"
-                                   required :error="form.errors.name"/>
-                                <F v-model="form.email" label="Correo de ingreso y contacto" type="email"
-                                   autocomplete="email" maxlength="254" required :error="form.errors.email"/>
-                                <F v-if="emailChanged" v-model="form.current_password" class="account-field-wide"
-                                   label="Contraseña actual para cambiar el correo" type="password"
-                                   autocomplete="current-password"
-                                   hint="Confirmá tu identidad para cambiar el correo con el que ingresás." required
-                                   :error="form.errors.current_password"/>
-                                <F v-model="form.phone" label="Teléfono o WhatsApp (opcional)" type="tel"
-                                   autocomplete="tel" placeholder="Ej.: +54 9 221 555 0123"
-                                   maxlength="50" :error="form.errors.phone"/>
-                            </div>
-                        </v-card>
-                        <v-card id="organizacion" tag="section" class="card" aria-labelledby="titulo-organizacion">
-                            <div class="account-section-title">
-                                <I name="folder"/>
-                                <h2 id="titulo-organizacion">Organización</h2>
-                                <span class="account-optional">Opcional</span>
-                            </div>
-                            <div class="account-fields">
-                                <F v-model="form.company" label="Empresa u organización"
-                                   autocomplete="organization" maxlength="255" :error="form.errors.company"/>
-                                <F v-model="form.details.position" label="Cargo" autocomplete="organization-title"
-                                   maxlength="120" :error="form.errors['details.position']"/>
-                                <F v-model="form.details.website" class="account-field-wide" label="Sitio web"
-                                   type="url" autocomplete="url" placeholder="https://ejemplo.com" maxlength="255"
-                                   :error="form.errors['details.website']"/>
-                            </div>
-                        </v-card>
-                        <v-card id="ubicacion" tag="section" class="card" aria-labelledby="titulo-ubicacion">
-                            <div class="account-section-title">
-                                <I name="location"/>
-                                <h2 id="titulo-ubicacion">Ubicación</h2>
-                                <span class="account-optional">Opcional</span>
-                            </div>
-                            <div class="account-fields">
-                                <CamposUbicacion v-model="form.details.location" :errores="form.errors"
-                                                 prefijo="details.location"/>
-                            </div>
-                        </v-card>
-                        <v-card id="facturacion" tag="section" class="card" aria-labelledby="titulo-facturacion">
-                            <div class="account-section-title">
-                                <I name="receipt"/>
-                                <h2 id="titulo-facturacion">Domicilio de facturación</h2>
-                                <span class="account-optional">Opcional</span>
-                            </div>
-                            <B v-if="Object.values(form.details.location).some(Boolean)" type="button"
-                               variant="secondary" compact class="account-copy-location" @click="copiarUbicacion">
-                                Usar mi ubicación
-                            </B>
-                            <div class="account-fields">
-                                <CamposUbicacion v-model="form.details.billing_address" :errores="form.errors"
-                                                 prefijo="details.billing_address" facturacion/>
-                                <F v-model="form.details.billing_address.postal_code" label="Código postal"
-                                   autocomplete="section-facturacion billing postal-code" maxlength="16"
-                                   :error="form.errors['details.billing_address.postal_code']"/>
-                                <F v-model="form.details.billing_address.street" label="Calle" maxlength="150"
-                                   autocomplete="section-facturacion billing address-line1"
-                                   :error="form.errors['details.billing_address.street']"/>
-                                <F v-model="form.details.billing_address.number" label="Número" maxlength="20"
-                                   :error="form.errors['details.billing_address.number']"/>
-                                <F v-model="form.details.billing_address.unit" label="Piso y departamento"
-                                   autocomplete="section-facturacion billing address-line2" maxlength="40"
-                                   :error="form.errors['details.billing_address.unit']"/>
-                                <F v-if="profile.address || form.address" v-model="form.address"
-                                   class="account-field-wide" label="Dirección de contacto anterior"
-                                   hint="Se usa cuando todavía no guardaste un domicilio de facturación."
-                                   maxlength="500" :error="form.errors.address"/>
-                            </div>
-                        </v-card>
-                        <div class="form-actions account-profile-actions">
-                            <B type="submit" :disabled="form.processing || !form.isDirty">{{
-                                form.processing ? 'Guardando…' : 'Guardar datos del perfil'
-                            }}</B>
+                    <TarjetaPerfil id="datos-personales" titulo="Datos personales y contacto" icono="user"
+                                   :datos="datosContacto" accion-guardar="Guardar contacto"
+                                   :editando="editando.contacto" :guardando="contactoForm.processing" :modificado="contactoForm.isDirty"
+                                   @editar="cambiarEdicion('contacto', true)" @cancelar="cambiarEdicion('contacto', false)"
+                                   @guardar="guardar('contacto')">
+                        <div class="account-fields">
+                            <F v-model="contactoForm.name" label="Nombre y apellido" autocomplete="name" maxlength="255"
+                               required :error="contactoForm.errors.name"/>
+                            <F v-model="contactoForm.email" label="Correo de ingreso y contacto" type="email"
+                               autocomplete="email" maxlength="254" required :error="contactoForm.errors.email"/>
+                            <F v-if="emailChanged" v-model="contactoForm.current_password" class="account-field-wide"
+                               label="Contraseña actual para cambiar el correo" type="password"
+                               autocomplete="current-password"
+                               hint="Confirmá tu identidad para cambiar el correo con el que ingresás." required
+                               :error="contactoForm.errors.current_password"/>
+                            <F v-model="contactoForm.phone" label="Teléfono o WhatsApp (opcional)" type="tel"
+                               autocomplete="tel" placeholder="Ej.: +54 9 221 555 0123"
+                               maxlength="50" :error="contactoForm.errors.phone"/>
                         </div>
-                    </form>
-                    <v-card id="seguridad" tag="section" class="card" aria-labelledby="titulo-seguridad">
-                        <div class="account-section-title"><I name="check"/>
-                            <h2 id="titulo-seguridad">Seguridad</h2></div>
-                        <p class="account-description">Para cambiar tu contraseña necesitás ingresar la actual y confirmar la nueva.</p>
-                        <p v-if="preview" class="account-note">El cambio de contraseña está deshabilitado en esta
-                            demostración.</p>
-                        <form @submit.prevent="savePassword">
-                            <F v-model="passwordForm.current_password" label="Contraseña actual" type="password"
-                               autocomplete="current-password" :disabled="preview" required
-                               :error="passwordForm.errors.current_password"/>
-                            <F v-model="passwordForm.password" label="Nueva contraseña" type="password"
-                               autocomplete="new-password" minlength="8" :disabled="preview"
-                               hint="Usá al menos 8 caracteres y una contraseña diferente de la actual." required
-                               :error="passwordForm.errors.password"/>
-                            <F v-model="passwordForm.password_confirmation" label="Repetí la nueva contraseña"
-                               type="password" autocomplete="new-password" minlength="8" :disabled="preview" required
-                               :error="passwordForm.errors.password_confirmation"/>
-                            <div class="form-actions"><B type="submit"
-                                                         :disabled="preview || passwordForm.processing || !passwordForm.isDirty">{{
-                                    passwordForm.processing ? 'Actualizando…' : 'Cambiar contraseña'
-                                }}</B></div>
-                        </form>
-                    </v-card>
-                    <v-card v-if="profile.is_admin" id="emision" tag="section" class="card" aria-labelledby="titulo-emision">
-                        <div class="account-section-title"><I name="file"/>
-                            <h2 id="titulo-emision">Datos de emisión</h2></div>
-                        <p class="account-description">Estos datos identifican a synaux en los nuevos presupuestos y su PDF. El correo de emisión
-                            puede ser diferente del correo de ingreso.</p>
-                        <form @submit.prevent="saveIssuer">
-                            <F v-model="issuerForm.name" label="Nombre del emisor o razón social"
-                               autocomplete="organization" maxlength="255" required :error="issuerForm.errors.name"/>
-                            <F v-model="issuerForm.email" label="Correo de emisión" type="email" maxlength="254"
-                               required :error="issuerForm.errors.email"/>
-                            <F v-model="issuerForm.phone" label="Teléfono del emisor (opcional)" type="tel"
-                               maxlength="50" :error="issuerForm.errors.phone"/>
-                            <F v-model="issuerForm.address" label="Dirección del emisor (opcional)" maxlength="500"
-                               :error="issuerForm.errors.address"/>
-                            <p class="account-note"><I name="info"/> Los presupuestos ya enviados conservan la identidad
-                                de su versión original.</p>
-                            <div class="form-actions"><B type="submit" :disabled="issuerForm.processing">{{
-                                    issuerForm.processing ? 'Guardando…' : 'Guardar datos de emisión'
-                                }}</B></div>
-                        </form>
-                    </v-card>
+                    </TarjetaPerfil>
+                    <TarjetaPerfil id="organizacion" titulo="Organización" icono="folder"
+                                   :datos="datosOrganizacion" vacio="Sin datos de organización." accion-guardar="Guardar organización"
+                                   :editando="editando.organizacion" :guardando="organizacionForm.processing" :modificado="organizacionForm.isDirty"
+                                   @editar="cambiarEdicion('organizacion', true)" @cancelar="cambiarEdicion('organizacion', false)"
+                                   @guardar="guardar('organizacion')">
+                        <div class="account-fields">
+                            <F v-model="organizacionForm.company" label="Empresa u organización"
+                               autocomplete="organization" maxlength="255" :error="organizacionForm.errors.company"/>
+                            <F v-model="organizacionForm.details.position" label="Cargo" autocomplete="organization-title"
+                               maxlength="120" :error="organizacionForm.errors['details.position']"/>
+                            <F v-model="organizacionForm.details.website" class="account-field-wide" label="Sitio web"
+                               type="url" autocomplete="url" placeholder="https://ejemplo.com" maxlength="255"
+                               :error="organizacionForm.errors['details.website']"/>
+                        </div>
+                    </TarjetaPerfil>
+                    <TarjetaPerfil id="ubicacion" titulo="Ubicación" icono="location"
+                                   :datos="datosUbicacion" vacio="Sin ubicación guardada." accion-guardar="Guardar ubicación"
+                                   :editando="editando.ubicacion" :guardando="ubicacionForm.processing" :modificado="ubicacionForm.isDirty"
+                                   @editar="cambiarEdicion('ubicacion', true)" @cancelar="cambiarEdicion('ubicacion', false)"
+                                   @guardar="guardar('ubicacion')">
+                        <div class="account-fields">
+                            <CamposUbicacion v-model="ubicacionForm.details.location" :errores="ubicacionForm.errors"
+                                             prefijo="details.location"/>
+                        </div>
+                    </TarjetaPerfil>
+                    <TarjetaPerfil id="facturacion" titulo="Domicilio de facturación" icono="receipt"
+                                   :datos="datosDomicilio" vacio="Sin domicilio de facturación guardado." accion-guardar="Guardar domicilio"
+                                   :editando="editando.domicilio" :guardando="domicilioForm.processing" :modificado="domicilioForm.isDirty"
+                                   @editar="cambiarEdicion('domicilio', true)" @cancelar="cambiarEdicion('domicilio', false)"
+                                   @guardar="guardar('domicilio')">
+                        <B v-if="datosUbicacion.length" type="button" variant="secondary" compact
+                           class="account-copy-location" @click="copiarUbicacion">Usar mi ubicación</B>
+                        <div class="account-fields">
+                            <CamposUbicacion v-model="domicilioForm.details.billing_address" :errores="domicilioForm.errors"
+                                             prefijo="details.billing_address" facturacion/>
+                            <F v-model="domicilioForm.details.billing_address.postal_code" label="Código postal"
+                               autocomplete="section-facturacion billing postal-code" maxlength="16"
+                               :error="domicilioForm.errors['details.billing_address.postal_code']"/>
+                            <F v-model="domicilioForm.details.billing_address.street" label="Calle" maxlength="150"
+                               autocomplete="section-facturacion billing address-line1"
+                               :error="domicilioForm.errors['details.billing_address.street']"/>
+                            <F v-model="domicilioForm.details.billing_address.number" label="Número" maxlength="20"
+                               :error="domicilioForm.errors['details.billing_address.number']"/>
+                            <F v-model="domicilioForm.details.billing_address.unit" label="Piso y departamento"
+                               autocomplete="section-facturacion billing address-line2" maxlength="40"
+                               :error="domicilioForm.errors['details.billing_address.unit']"/>
+                            <F v-if="profile.address || domicilioForm.address" v-model="domicilioForm.address"
+                               class="account-field-wide" label="Dirección de contacto anterior"
+                               hint="Se usa cuando todavía no guardaste un domicilio de facturación."
+                               maxlength="500" :error="domicilioForm.errors.address"/>
+                        </div>
+                    </TarjetaPerfil>
+                    <TarjetaPerfil id="seguridad" titulo="Seguridad" icono="check"
+                                   accion-editar="Cambiar contraseña" accion-guardar="Cambiar contraseña" :guardado-deshabilitado="preview"
+                                   :editando="editando.clave" :guardando="passwordForm.processing" :modificado="passwordForm.isDirty"
+                                   @editar="cambiarEdicion('clave', true)" @cancelar="cambiarEdicion('clave', false)"
+                                   @guardar="guardar('clave')">
+                        <p v-if="preview" class="account-note">El cambio de contraseña no está disponible en esta vista.</p>
+                        <F v-model="passwordForm.current_password" label="Contraseña actual" type="password"
+                           autocomplete="current-password" :disabled="preview" required
+                           :error="passwordForm.errors.current_password"/>
+                        <F v-model="passwordForm.password" label="Nueva contraseña" type="password"
+                           autocomplete="new-password" minlength="8" :disabled="preview"
+                           hint="Usá al menos 8 caracteres y una contraseña diferente de la actual." required
+                           :error="passwordForm.errors.password"/>
+                        <F v-model="passwordForm.password_confirmation" label="Repetí la nueva contraseña"
+                           type="password" autocomplete="new-password" minlength="8" :disabled="preview" required
+                           :error="passwordForm.errors.password_confirmation"/>
+                    </TarjetaPerfil>
+                    <TarjetaPerfil v-if="profile.is_admin" id="emision" titulo="Datos de emisión" icono="file"
+                                   :datos="datosEmision" vacio="Sin datos de emisión." accion-guardar="Guardar datos de emisión"
+                                   :editando="editando.emision" :guardando="issuerForm.processing" :modificado="issuerForm.isDirty"
+                                   @editar="cambiarEdicion('emision', true)" @cancelar="cambiarEdicion('emision', false)"
+                                   @guardar="guardar('emision')">
+                        <F v-model="issuerForm.name" label="Nombre del emisor o razón social"
+                           autocomplete="organization" maxlength="255" required :error="issuerForm.errors.name"/>
+                        <F v-model="issuerForm.email" label="Correo de emisión" type="email" maxlength="254"
+                           required :error="issuerForm.errors.email"/>
+                        <F v-model="issuerForm.phone" label="Teléfono del emisor (opcional)" type="tel"
+                           maxlength="50" :error="issuerForm.errors.phone"/>
+                        <F v-model="issuerForm.address" label="Dirección del emisor (opcional)" maxlength="500"
+                           :error="issuerForm.errors.address"/>
+                        <p class="account-note"><I name="info"/> Los presupuestos ya enviados conservan la identidad
+                            de su versión original.</p>
+                    </TarjetaPerfil>
                 </div>
             </div>
         </section>
@@ -347,42 +339,15 @@ function saveIssuer() {
 }
 
 /* Las tarjetas y los campos comparten alineación, y los enlaces dejan la sección debajo del encabezado fijo. */
-.account-panels,
-.account-personal-form {
+.account-panels {
     display: grid;
     gap: 20px;
     min-width: 0;
 }
 
-.account-panels > .card,
-.account-personal-form > .card {
+.account-panels > .card {
     padding: clamp(18px, 2vw, 28px);
     scroll-margin-top: var(--account-offset);
-}
-
-.account-section-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
-}
-
-.account-profile .account-section-title h2 {
-    margin: 0;
-    line-height: 1.25;
-    overflow-wrap: anywhere;
-}
-
-.account-section-title > .icon {
-    width: 20px;
-    height: 20px;
-    color: #1f6f7f;
-    flex: 0 0 20px;
-}
-
-.account-panels .account-description {
-    max-width: 66ch;
-    margin-bottom: 16px;
 }
 
 .account-fields {
@@ -393,22 +358,6 @@ function saveIssuer() {
 
 .account-field-wide {
     grid-column: 1 / -1;
-}
-
-/* El rótulo indica los grupos que pueden quedar vacíos. */
-.account-optional {
-    flex-shrink: 0;
-    margin-left: auto;
-    color: #446075;
-    font-size: .8rem;
-}
-
-.account-personal-form .account-section-title {
-    margin-bottom: 12px;
-}
-
-.account-personal-form .account-fields > :last-child {
-    margin-bottom: 0;
 }
 
 .account-copy-location {
@@ -431,14 +380,6 @@ function saveIssuer() {
     flex: 0 0 18px;
 }
 
-.account-panels .form-actions {
-    margin-top: 16px;
-}
-
-.account-panels .account-profile-actions {
-    margin-top: 0;
-}
-
 @media (max-width: 900px) {
     .account-grid {
         grid-template-columns: minmax(0, 1fr);
@@ -458,10 +399,6 @@ function saveIssuer() {
 @media (max-width: 600px) {
     .account-fields {
         grid-template-columns: minmax(0, 1fr);
-    }
-
-    .form-actions .btn {
-        width: 100%;
     }
 }
 </style>

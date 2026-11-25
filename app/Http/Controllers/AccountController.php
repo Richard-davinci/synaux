@@ -27,43 +27,59 @@ class AccountController extends Controller
     // Cambiar el correo exige la contraseña actual. El contacto se usa solamente en pedidos nuevos.
     public function update(Request $request)
     {
-        $user = $request->user();
-        $request->merge(['email' => Str::lower(trim((string)$request->input('email')))]);
-        $emailChanged = $request->input('email') !== $user->email;
-        $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => ['required', 'email', 'max:254', Rule::unique('users', 'email')->ignore($user->id)],
-            'phone' => 'sometimes|nullable|string|max:50',
-            'company' => 'sometimes|nullable|string|max:255',
-            'address' => 'sometimes|nullable|string|max:500',
-            'details' => 'sometimes|array:position,website,location,billing_address',
-            'details.position' => 'nullable|string|max:120',
-            'details.website' => 'nullable|url:http,https|max:255',
-            'details.location' => 'sometimes|array:country,region,city',
-            'details.location.country' => 'nullable|string|max:80',
-            'details.location.region' => 'nullable|string|max:80',
-            'details.location.city' => 'nullable|string|max:80',
-            'details.billing_address' => 'sometimes|array:street,number,unit,postal_code,country,region,city',
-            'details.billing_address.street' => 'nullable|string|max:150',
-            'details.billing_address.number' => 'nullable|string|max:20',
-            'details.billing_address.unit' => 'nullable|string|max:40',
-            'details.billing_address.postal_code' => 'nullable|string|max:16',
-            'details.billing_address.country' => 'nullable|string|max:80',
-            'details.billing_address.region' => 'nullable|string|max:80',
-            'details.billing_address.city' => 'nullable|string|max:80',
-            'current_password' => $emailChanged ? ['required', 'current_password:web'] : ['nullable'],
-        ]);
-        foreach (['name', 'email', 'phone', 'company', 'address'] as $field) {
-            if (array_key_exists($field, $data)) $user->$field = $data[$field];
-        }
-        // Los formularios anteriores pueden seguir actualizando el contacto sin tocar los datos ampliados.
-        if (array_key_exists('details', $data)) {
-            $user->profile_details = array_replace_recursive($user->profile_details ?? [], $data['details']);
-        }
-        if ($emailChanged) $user->email_verified_at = null;
-        $user->save();
+        // Una tarjeta actualiza únicamente sus campos, bajo bloqueo para conservar el resto del perfil.
+        $notice = DB::transaction(function () use ($request) {
+            $account = $request->user();
+            $user = $account->newQuery()->lockForUpdate()->findOrFail($account->id);
+            if (is_string($request->input('email'))) {
+                $request->merge(['email' => Str::lower(trim($request->input('email')))]);
+            }
+            $emailChanged = $request->has('email') && $request->input('email') !== $user->email;
+            $data = $request->validate([
+                'name' => 'sometimes|required|string|max:255',
+                'email' => ['sometimes', 'required', 'email', 'max:254', Rule::unique('users', 'email')->ignore($user->id)],
+                'phone' => 'sometimes|nullable|string|max:50',
+                'company' => 'sometimes|nullable|string|max:255',
+                'address' => 'sometimes|nullable|string|max:500',
+                'details' => 'sometimes|array:position,website,location,billing_address',
+                'details.position' => 'nullable|string|max:120',
+                'details.website' => 'nullable|url:http,https|max:255',
+                'details.location' => 'sometimes|array:country,region,city',
+                'details.location.country' => 'nullable|string|max:80',
+                'details.location.region' => 'nullable|string|max:80',
+                'details.location.city' => 'nullable|string|max:80',
+                'details.billing_address' => 'sometimes|array:street,number,unit,postal_code,country,region,city',
+                'details.billing_address.street' => 'nullable|string|max:150',
+                'details.billing_address.number' => 'nullable|string|max:20',
+                'details.billing_address.unit' => 'nullable|string|max:40',
+                'details.billing_address.postal_code' => 'nullable|string|max:16',
+                'details.billing_address.country' => 'nullable|string|max:80',
+                'details.billing_address.region' => 'nullable|string|max:80',
+                'details.billing_address.city' => 'nullable|string|max:80',
+                'current_password' => $emailChanged ? ['required', 'current_password:web'] : ['nullable'],
+            ]);
+            foreach (['name', 'email', 'phone', 'company', 'address'] as $field) {
+                if (array_key_exists($field, $data)) $user->$field = $data[$field];
+            }
+            // Los formularios anteriores pueden seguir actualizando el contacto sin tocar los datos ampliados.
+            if (array_key_exists('details', $data)) {
+                $user->profile_details = array_replace_recursive($user->profile_details ?? [], $data['details']);
+            }
+            if ($emailChanged) $user->email_verified_at = null;
+            $user->save();
 
-        return back()->with('notice', 'Tus datos personales y de contacto se actualizaron.');
+            return match (true) {
+                isset($data['details']['billing_address']) => 'Tu domicilio de facturación se actualizó.',
+                isset($data['details']['location']) => 'Tu ubicación se actualizó.',
+                array_key_exists('company', $data) => 'Tus datos de organización se actualizaron.',
+                default => 'Tus datos personales y de contacto se actualizaron.',
+            };
+        });
+
+        // La cuenta de la sesión conserva la misma versión que se guardó.
+        $request->user()->refresh();
+
+        return back()->with('notice', $notice);
     }
 
     // El cambio de clave requiere la clave actual y confirmación; nunca devuelve contraseñas al navegador.
