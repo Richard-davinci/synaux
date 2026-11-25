@@ -22,7 +22,7 @@ const messages = {
     },
     404: {
         title: 'Página no encontrada',
-        description: 'Revisá la dirección o volvé al Inicio para seguir navegando.',
+        description: 'Revisá si la dirección está bien escrita.',
         action: ['Ir al Inicio', '/inicio'],
     },
 };
@@ -91,7 +91,7 @@ onMounted(() => heading.value?.focus({preventScroll: true}));
 .access-error-status {
     margin-bottom: 8px;
     color: #1f6f7f;
-    font-size: .875rem;
+    font-size: 1rem;
     font-weight: 700;
 }
 
