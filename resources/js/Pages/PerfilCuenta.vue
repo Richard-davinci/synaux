@@ -14,7 +14,7 @@ import '../../css/panel.css';
 import '../../css/ajustes-panel.css';
 
 // Cada tarjeta edita solo sus datos. Los valores de consulta provienen del perfil guardado.
-const props = defineProps({profile: Object, issuer: Object, preview: Boolean});
+const props = defineProps({profile: Object, preview: Boolean});
 const valoresCampos = (datos, claves) => Object.fromEntries(claves.map(clave => [clave, datos?.[clave] ?? '']));
 const clavesUbicacion = ['country', 'region', 'city'];
 const valores = {
@@ -26,19 +26,16 @@ const valores = {
         details: {billing_address: valoresCampos(props.profile.details?.billing_address, [...clavesUbicacion, 'street', 'number', 'unit', 'postal_code'])},
     }),
     clave: () => ({current_password: '', password: '', password_confirmation: ''}),
-    emision: () => valoresCampos(props.issuer, ['name', 'cuit', 'email', 'phone', 'address']),
 };
 const formularios = Object.fromEntries(Object.entries(valores).map(([seccion, crear]) => [seccion, useForm(crear())]));
 const {
     contacto: contactoForm, organizacion: organizacionForm, ubicacion: ubicacionForm,
-    domicilio: domicilioForm, clave: passwordForm, emision: issuerForm,
+    domicilio: domicilioForm, clave: passwordForm,
 } = formularios;
 const editando = reactive({});
 const emailChanged = computed(() => contactoForm.email.trim().toLowerCase() !== props.profile.email);
 const accountHref = computed(() => props.profile.is_admin ? '/gestion' : '/cliente');
-const accountDescription = computed(() => props.profile.is_admin
-    ? 'Actualizá tus datos de contacto, tu contraseña y los datos de emisión de los presupuestos.'
-    : 'Actualizá tus datos de contacto y tu contraseña.');
+const accountDescription = 'Actualizá tus datos de contacto y tu contraseña.';
 
 const conDatos = filas => filas.filter(([, dato]) => dato);
 const filasUbicacion = ubicacion => [
@@ -62,11 +59,6 @@ const datosDomicilio = computed(() => {
     ]);
     return filas.length ? filas : conDatos([['Dirección de contacto anterior', props.profile.address]]);
 });
-const datosEmision = computed(() => conDatos([
-    ['Nombre del emisor o razón social', props.issuer?.name], ['CUIT del emisor', props.issuer?.cuit],
-    ['Correo de emisión', props.issuer?.email],
-    ['Teléfono', props.issuer?.phone], ['Dirección', props.issuer?.address],
-]));
 
 function copiarUbicacion() {
     Object.assign(domicilioForm.details.billing_address, valoresCampos(props.profile.details?.location, clavesUbicacion));
@@ -87,8 +79,6 @@ function guardar(seccion) {
     const opciones = {preserveScroll: true, onSuccess: () => cambiarEdicion(seccion, false)};
     if (seccion === 'clave') {
         passwordForm.put('/mi-perfil/clave', {...opciones, onFinish: () => passwordForm.reset()});
-    } else if (seccion === 'emision') {
-        issuerForm.patch('/mi-perfil/emision', opciones);
     } else {
         formularios[seccion].patch('/mi-perfil', {
             ...opciones,
@@ -122,7 +112,7 @@ function guardar(seccion) {
                             <a href="#ubicacion">Ubicación</a>
                             <a href="#facturacion">Domicilio de facturación</a>
                             <a href="#seguridad">Seguridad</a>
-                            <a v-if="profile.is_admin" href="#emision">Datos de emisión</a>
+                            <a v-if="profile.is_admin && !preview" href="/admin/organizacion">Datos de la organización</a>
                         </nav>
                     </v-card>
                 </aside>
@@ -215,25 +205,6 @@ function guardar(seccion) {
                         <F v-model="passwordForm.password_confirmation" label="Repetí la nueva contraseña"
                            type="password" autocomplete="new-password" minlength="8" :disabled="preview" required
                            :error="passwordForm.errors.password_confirmation"/>
-                    </TarjetaPerfil>
-                    <TarjetaPerfil v-if="profile.is_admin" id="emision" titulo="Datos de emisión" icono="file"
-                                   :datos="datosEmision" vacio="Sin datos de emisión." accion-guardar="Guardar datos de emisión"
-                                   :editando="editando.emision" :guardando="issuerForm.processing" :modificado="issuerForm.isDirty"
-                                   @editar="cambiarEdicion('emision', true)" @cancelar="cambiarEdicion('emision', false)"
-                                   @guardar="guardar('emision')">
-                        <F v-model="issuerForm.name" label="Nombre del emisor o razón social"
-                           autocomplete="organization" maxlength="255" required :error="issuerForm.errors.name"/>
-                        <!-- El CUIT es opcional para que las cuentas existentes puedan completar la ficha a su ritmo. -->
-                        <F v-model="issuerForm.cuit" label="CUIT del emisor (opcional)" maxlength="13"
-                           hint="11 dígitos, con o sin guiones." :error="issuerForm.errors.cuit"/>
-                        <F v-model="issuerForm.email" label="Correo de emisión" type="email" maxlength="254"
-                           required :error="issuerForm.errors.email"/>
-                        <F v-model="issuerForm.phone" label="Teléfono del emisor (opcional)" type="tel"
-                           maxlength="50" :error="issuerForm.errors.phone"/>
-                        <F v-model="issuerForm.address" label="Dirección del emisor (opcional)" maxlength="500"
-                           :error="issuerForm.errors.address"/>
-                        <p class="account-note"><I name="info"/> Los presupuestos ya enviados conservan la identidad
-                            de su versión original.</p>
                     </TarjetaPerfil>
                 </div>
             </div>

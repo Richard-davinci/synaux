@@ -41,7 +41,7 @@ const icons = {
 const administration = computed(() => [
     {title: 'Catálogo', items: [['Servicios', 'servicios', 'grid'], ['Categorías', 'categorias', 'tag']]},
     {title: 'Precios', items: [['Tarifarios', 'tarifario', 'calculator']]},
-    ...(page.props.preview ? [] : [{title: 'Cuentas', items: [['Usuarios', 'usuarios', 'user']]}]),
+    ...(page.props.preview ? [] : [{title: 'Organización', items: [['Datos de la organización', 'organizacion', 'file'], ['Usuarios', 'usuarios', 'user']]}]),
 ]);
 const sectionFor = href => href.split('/').filter(Boolean).slice(1).join('/') || 'resumen';
 

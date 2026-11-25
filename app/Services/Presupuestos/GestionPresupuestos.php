@@ -3,6 +3,7 @@
 namespace App\Services\Presupuestos;
 
 use App\Services\Notifications\NotificationCenter;
+use App\Models\Organizacion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -40,14 +41,30 @@ class GestionPresupuestos
                 throw ValidationException::withMessages(['request_id' => 'La solicitud ya no está abierta. Revisá su estado antes de preparar el presupuesto.']);
             }
             $profile = DB::table('professional_profiles')->where('user_id', $request->user()->id)->first();
+            // La emisión de la empresa conserva la relación interna de cada gestor que genera presupuestos.
+            if (!$profile && $request->user()->is_admin) {
+                $organizacion = Organizacion::principal();
+                if ($organizacion->razon_social) {
+                    DB::table('users')->where('id', $request->user()->id)->lockForUpdate()->firstOrFail();
+                    $profile = DB::table('professional_profiles')->where('user_id', $request->user()->id)->first();
+                    if (!$profile) {
+                        $perfilId = DB::table('professional_profiles')->insertGetId([
+                            'user_id' => $request->user()->id, 'brand_name' => $organizacion->nombre,
+                            'headline' => 'Gestión de proyectos digitales', 'bio' => 'Perfil interno de emisión de presupuestos.',
+                            'availability_status' => 'unavailable', 'active' => false,
+                            'created_at' => now(), 'updated_at' => now(),
+                        ]);
+                        $profile = DB::table('professional_profiles')->find($perfilId);
+                    }
+                }
+            }
             $proposal = $profile && $record ? DB::table('proposals')->where('project_request_id', $record->id)->where('professional_profile_id', $profile->id)->where('status', 'accepted')->first() : null;
             abort_unless($request->user()->is_admin || $proposal !== null, 403);
             if ($record?->user_id === $request->user()->id) {
                 throw ValidationException::withMessages(['request_id' => 'No podés preparar un presupuesto para tu propia solicitud.']);
             }
             if (!$profile) {
-                // El gestor de synaux puede completar su perfil de emisión desde el área profesional.
-                throw ValidationException::withMessages(['request_id' => 'Completá los datos de emisión en Mi perfil para identificar al emisor.']);
+                throw ValidationException::withMessages(['request_id' => 'Completá los datos de emisión en Administración → Organización.']);
             }
             if (!empty($data['budget_id'])) {
                 $budget = DB::table('budgets')->where('id', $data['budget_id'])->lockForUpdate()->firstOrFail();

@@ -15,11 +15,9 @@ class AccountController extends Controller
     public function edit(Request $request)
     {
         $user = $request->user();
-        $brand = DB::table('professional_profiles')->where('user_id', $user->id)->value('brand_name');
         return Inertia::render('PerfilCuenta', [
             'profile' => [...$user->only('name', 'email', 'phone', 'company', 'address'), 'details' => $user->profile_details,
                 'is_admin' => (bool)$user->is_admin, 'created_at' => $user->created_at?->toDateString()],
-            'issuer' => $user->is_admin ? $user->issuerDetails($brand) : null,
             'area' => $user->is_admin ? 'gestion' : 'cliente',
         ]);
     }
@@ -98,38 +96,4 @@ class AccountController extends Controller
         return back()->with('notice', 'Tu contraseña se actualizó.');
     }
 
-    // Administración guarda la identidad del emisor sin pasar por el perfil público de la segunda etapa.
-    public function updateIssuer(Request $request)
-    {
-        abort_unless($request->user()->is_admin, 403);
-        $request->merge(['email' => Str::lower(trim((string)$request->input('email')))]);
-        $data = $request->validate([
-            'name' => 'required|string|max:255', 'email' => 'required|email|max:254',
-            'phone' => 'nullable|string|max:50', 'address' => 'nullable|string|max:500',
-            'cuit' => ['sometimes', 'nullable', 'string', 'regex:/\A(?:[0-9]{11}|[0-9]{2}-[0-9]{8}-[0-9])\z/'],
-        ], ['cuit.regex' => 'Ingresá un CUIT de 11 dígitos, con o sin guiones.']);
-        DB::transaction(function () use ($request, $data) {
-            $user = $request->user();
-            foreach (['name', 'email', 'phone', 'address'] as $field) $user->{'issuer_' . $field} = $data[$field] ?? null;
-            // Si un formulario anterior omite el CUIT se conserva; si lo envía, se guarda con un formato único.
-            if (array_key_exists('cuit', $data)) {
-                $digits = str_replace('-', '', $data['cuit'] ?? '');
-                $user->issuer_cuit = $digits === '' ? null : substr($digits, 0, 2) . '-' . substr($digits, 2, 8) . '-' . substr($digits, 10);
-            }
-            $user->save();
-            // La relación de emisión del modelo usa este registro interno, sin publicar un perfil profesional.
-            $profile = DB::table('professional_profiles')->where('user_id', $user->id)->first();
-            if ($profile) {
-                DB::table('professional_profiles')->where('id', $profile->id)->update(['brand_name' => $data['name'], 'updated_at' => now()]);
-            } else {
-                DB::table('professional_profiles')->insert([
-                    'user_id' => $user->id, 'brand_name' => $data['name'], 'headline' => 'Gestión de proyectos digitales',
-                    'bio' => 'Perfil interno de emisión de presupuestos.', 'availability_status' => 'unavailable', 'active' => 0,
-                    'created_at' => now(), 'updated_at' => now(),
-                ]);
-            }
-        });
-
-        return back()->with('notice', 'Los datos de emisión se actualizaron. Se usarán en los próximos presupuestos.');
-    }
 }

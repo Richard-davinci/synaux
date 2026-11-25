@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\CatalogConfigurationController;
 use App\Http\Controllers\Admin\TariffController;
 use App\Http\Controllers\Admin\TariffImportController;
 use App\Http\Controllers\Admin\DirectorioUsuariosController;
+use App\Http\Controllers\Admin\OrganizacionController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\EspacioTrabajoController;
@@ -67,7 +68,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/mi-perfil', [AccountController::class, 'edit']);
     Route::patch('/mi-perfil', [AccountController::class, 'update'])->middleware('throttle:10,1');
     Route::put('/mi-perfil/clave', [AccountController::class, 'updatePassword'])->middleware('throttle:6,1');
-    Route::patch('/mi-perfil/emision', [AccountController::class, 'updateIssuer'])->middleware('throttle:10,1');
+    Route::patch('/mi-perfil/emision', [OrganizacionController::class, 'update'])->middleware('throttle:10,1');
     Route::post('/salir', [AuthController::class, 'logout']);
     foreach (['cliente', 'profesional'] as $area) {
         Route::get('/' . $area . '/{section?}', fn(Request $r, EspacioTrabajoController $c, string $section = '') => $c->show($r, $area, $section));
@@ -102,6 +103,9 @@ Route::middleware('auth')->group(function () {
     });
     // Gestión y Administración comparten autorización de área, además de la autenticación del grupo exterior.
     Route::middleware('synaux.management')->group(function () {
+        // La ficha de synaux queda en Administración y requiere el permiso de Gestión.
+        Route::get('/admin/organizacion', [OrganizacionController::class, 'edit']);
+        Route::patch('/admin/organizacion', [OrganizacionController::class, 'update'])->middleware('throttle:10,1');
         // El listado de cuentas usa el mismo permiso administrativo que el catálogo.
         Route::get('/admin/usuarios', DirectorioUsuariosController::class)->name('admin.users.index');
         Route::get('/admin/usuarios/{user}', [DirectorioUsuariosController::class, 'show'])->whereNumber('user')->name('admin.users.show');

@@ -53,16 +53,18 @@ class User extends Authenticatable
         return [...$contact, 'address' => $formatted !== '' ? $formatted : ($contact['address'] ?? null)];
     }
 
-    // La identidad de emisión administrativa se separa del correo usado para ingresar.
+    // Los presupuestos de Gestión toman el emisor del espacio de synaux. Cada versión guarda sus propios datos.
     public function issuerDetails(?string $brand = null): array
     {
+        $organizacion = $this->is_admin ? Organizacion::principal() : null;
+
         return [
-            'name' => ($this->is_admin ? $this->issuer_name : null) ?: ($brand ?: 'synaux'),
+            'name' => $organizacion?->razon_social ?: ($brand ?: 'synaux'),
             'contact' => $this->name,
-            'email' => ($this->is_admin ? $this->issuer_email : null) ?: $this->email,
-            'phone' => $this->is_admin ? $this->issuer_phone : null,
-            'address' => $this->is_admin ? $this->issuer_address : null,
-            'cuit' => $this->is_admin ? $this->issuer_cuit : null,
+            'email' => $organizacion?->correo ?: $this->email,
+            'phone' => $organizacion?->telefono,
+            'address' => $organizacion?->domicilio,
+            'cuit' => $organizacion?->cuit,
         ];
     }
 
