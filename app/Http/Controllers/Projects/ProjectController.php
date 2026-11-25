@@ -33,13 +33,13 @@ class ProjectController extends Controller
                 'tiene_comprobante' => filled($pago->comprobante), 'revisado_at' => $pago->revisado_at,
             ]) : [];
         $historialPresupuestos = [];
-        if (!$gestion && $esTitular) {
-            // El cliente consulta en el proyecto las versiones enviadas de su solicitud o de su presupuesto directo.
+        if ($gestion || $esTitular) {
+            // Gestión conserva también los borradores previos. El titular consulta las versiones enviadas.
             $versiones = $presupuesto['request_id'] !== null
-                ? $budgetQueries->quotes($user->id, requestId: (int)$presupuesto['request_id'])
-                : $budgetQueries->quotes($user->id, budgetId: (int)$presupuesto['budget_id']);
+                ? $budgetQueries->quotes($user->id, $gestion, requestId: (int)$presupuesto['request_id'])
+                : $budgetQueries->quotes($user->id, $gestion, budgetId: (int)$presupuesto['budget_id']);
             foreach ($versiones as $version) {
-                if ((int)$version['id'] === (int)$versionId || $version['status'] === 'draft') continue;
+                if ((int)$version['id'] === (int)$versionId || (!$gestion && $version['status'] === 'draft')) continue;
 
                 $historialPresupuestos[] = Arr::only($version, [
                     'id', 'budget_id', 'version_number', 'status', 'display_status', 'sent_at', 'created_at', 'total', 'currency_code',

@@ -1,4 +1,4 @@
-// En el área cliente, las versiones de un mismo pedido forman una entrada, incluso si tienen distintos números de presupuesto.
+// En los listados de presupuestos, las versiones de un mismo pedido forman una entrada, incluso si tienen distintos números de presupuesto.
 export function presupuestosSinProyecto(presupuestos) {
     const grupos = new Map();
     for (const version of presupuestos) {

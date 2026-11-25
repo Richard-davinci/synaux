@@ -3,6 +3,8 @@ import {computed, ref} from 'vue';
 import RecordCard from '../../Components/Management/RecordCard.vue';
 import RequestsTable from '../../Components/Management/TablaSolicitudes.vue';
 import ProjectUpdate from '../../Components/Projects/ProjectUpdate.vue';
+import HistorialPresupuesto from '../../Components/Presupuestos/HistorialPresupuesto.vue';
+import {presupuestosSinProyecto} from '../../support/agrupacionPresupuestos';
 import B from '../../Components/UI/AppButton.vue';
 import E from '../../Components/UI/EmptyState.vue';
 import F from '../../Components/UI/FormField.vue';
@@ -23,10 +25,10 @@ const sections = {
         key: 'quotes',
         icon: 'receipt',
         title: 'Presupuestos',
-        description: 'Consultá borradores y versiones emitidas o enviadas.',
+        description: 'Consultá borradores y versiones emitidas o enviadas. Encontrá los presupuestos aceptados en Proyectos.',
         search: 'Título, cliente o número',
         empty: 'Los presupuestos que prepares desde una solicitud o en forma directa aparecerán acá.',
-        statuses: [['draft', 'Borrador'], ['sent', 'Enviado'], ['issued', 'Emitido'], ['accepted', 'Aceptado'], ['rejected', 'Rechazado'], ['expired', 'Vencido']],
+        statuses: [['draft', 'Borrador'], ['sent', 'Enviado'], ['issued', 'Emitido'], ['rejected', 'Rechazado'], ['expired', 'Vencido']],
     },
     proyectos: {
         key: 'projects', icon: 'folder', title: 'Seguimiento de proyectos',
@@ -55,12 +57,21 @@ const status = ref('');
 const project = ref(null);
 
 const hasFilters = computed(() => Boolean(query.value || status.value));
+// El listado interno agrupa las versiones y conserva la búsqueda por sus números anteriores.
+const tienePresupuestosEnProyectos = computed(() => section.value === 'presupuestos'
+    && (props.data.quotes ?? []).some(version => version.status === 'accepted'));
+const registros = computed(() => {
+    const disponibles = props.data[listing.value.key] ?? [];
+    return section.value === 'presupuestos' ? presupuestosSinProyecto(disponibles) : disponibles;
+});
 const rows = computed(() => {
     const needle = query.value.trim().toLocaleLowerCase('es');
-    return (props.data[listing.value.key] ?? []).filter(row => {
-        const searchText = [row.title, row.topic, row.name, row.email, row.category, row.service_name,
-            row.contact?.name, row.contact?.company, row.client?.name, row.client?.company, row.budget_id, row.id, section.value === 'solicitudes' ? 'SOL-' + row.id : '',
-        ].join(' ').toLocaleLowerCase('es');
+    return registros.value.filter(row => {
+        const searchText = [row, ...(row.historial ?? [])].flatMap(item => [item.title, item.topic, item.name, item.email,
+            item.category, item.service_name, item.contact?.name, item.contact?.company, item.client?.name, item.client?.company,
+            item.budget_id && 'PRE-' + item.budget_id, item.budget_id, item.id,
+            section.value === 'solicitudes' ? 'SOL-' + item.id : item.request_id && 'SOL-' + item.request_id,
+        ]).filter(Boolean).join(' ').toLocaleLowerCase('es');
         return searchText.includes(needle) && (!status.value || (row.display_status ?? row.status) === status.value);
     });
 });
@@ -88,17 +99,36 @@ function canRevise(budget) {
 
         <div class="filters workspace-filters" :class="{ 'workspace-filters-single': statusOptions.length === 1 }">
             <F v-model="query" label="Buscar" type="search" :placeholder="listing.search"/>
-            <F v-if="statusOptions.length > 1" v-model="status" label="Estado" type="select" :options="statusOptions"/>
+            <F v-if="statusOptions.length > 1" v-model="status" :label="section === 'presupuestos' ? 'Estado actual' : 'Estado'" type="select" :options="statusOptions"/>
             <B compact variant="secondary" :disabled="!hasFilters" @click="clearFilters">Limpiar filtros</B>
         </div>
         <RequestsTable v-if="section === 'solicitudes' && rows.length" :rows="rows"
                        label="Solicitudes recibidas" :preview="Boolean(data.preview)"/>
         <div v-else-if="rows.length" class="stack management-records">
-            <RecordCard v-for="item in rows" :key="item.id" :item="item" :section="section" :icon="listing.icon"
-                        :can-revise="section === 'presupuestos' && canRevise(item)" @update-project="project = $event"/>
+            <RecordCard v-for="item in rows" :key="item.claveGrupo ?? item.id" :item="item" :section="section" :icon="listing.icon"
+                        :can-revise="section === 'presupuestos' && canRevise(item)" @update-project="project = $event">
+                <HistorialPresupuesto v-if="item.historial?.length" class="historial-en-gestion" :versiones="item.historial">
+                    <template #acciones="{version}">
+                        <B v-if="canRevise(version)" compact :href="'/editor/presupuesto/' + version.id">
+                            {{ version.status === 'draft' ? 'Continuar borrador' : 'Preparar nueva versión' }}
+                        </B>
+                    </template>
+                </HistorialPresupuesto>
+            </RecordCard>
         </div>
+        <E v-else-if="!hasFilters && tienePresupuestosEnProyectos" title="No hay presupuestos para revisar"
+           text="Los presupuestos aceptados y sus versiones están disponibles en Proyectos."
+           href="/gestion/proyectos" action="Ir a Proyectos"/>
         <E v-else :title="hasFilters ? 'No encontramos resultados' : 'Todavía no hay registros'"
            :text="hasFilters ? 'Probá con otro texto o limpiá los filtros.' : listing.empty"/>
         <ProjectUpdate v-if="project" :project="project" @close="project = null"/>
     </section>
 </template>
+
+<style scoped>
+/* El historial comparte el ancho de la ficha y mantiene visibles las acciones de cada versión. */
+.historial-en-gestion {
+    grid-column: 1 / -1;
+    min-width: 0;
+}
+</style>

@@ -54,5 +54,6 @@ const emit = defineEmits(['update-project']);
             <B v-else-if="section === 'portfolio'" compact :href="'/editor/trabajo/' + item.id" variant="secondary">Editar
                 trabajo</B>
         </div>
+        <slot/>
     </v-card>
 </template>

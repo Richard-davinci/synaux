@@ -24,8 +24,11 @@ defineProps({
                     <S :status="version.display_status ?? version.status"/>
                     <NewBadge type="presupuesto" :id="version.id"/>
                 </div>
-                <B :href="'/presupuestos/' + version.id" variant="ghost" compact
-                   :aria-label="'Ver PRE-' + version.budget_id + ', versión ' + version.version_number">Ver versión</B>
+                <div class="version-acciones">
+                    <B :href="'/presupuestos/' + version.id" variant="ghost" compact
+                       :aria-label="'Ver PRE-' + version.budget_id + ', versión ' + version.version_number">Ver versión</B>
+                    <slot name="acciones" :version="version"/>
+                </div>
             </li>
         </ol>
     </details>
@@ -63,6 +66,13 @@ defineProps({
 
 .version-identidad {
     grid-column: 1 / -1;
+}
+
+.version-acciones {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .version-identidad small {

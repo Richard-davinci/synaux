@@ -4,6 +4,7 @@ import RequestsTable from '../../Components/Management/TablaSolicitudes.vue';
 import B from '../../Components/UI/AppButton.vue';
 import IndicadoresPanel from '../../Components/Navigation/IndicadoresPanel.vue';
 import T from '../../Components/UI/PageTitle.vue';
+import {presupuestosSinProyecto} from '../../support/agrupacionPresupuestos';
 
 const props = defineProps({data: {type: Object, required: true}});
 
@@ -12,7 +13,7 @@ const openRequests = computed(() => (props.data.requests ?? []).filter(item => i
 const pendingRequests = computed(() => openRequests.value.filter(item => !item.reviewed_at));
 const summary = computed(() => [
     ['Solicitudes abiertas', 'solicitudes', 'file', openRequests.value.length],
-    ['Presupuestos', 'presupuestos', 'receipt', props.data.quotes?.length ?? 0],
+    ['Presupuestos', 'presupuestos', 'receipt', presupuestosSinProyecto(props.data.quotes ?? []).length],
     ['Proyectos activos', 'proyectos', 'folder', (props.data.projects ?? []).filter(item => ['pending', 'in_progress'].includes(item.status)).length],
     ['Consultas', 'contactos', 'message', props.data.inquiryCount ?? props.data.inquiries?.length ?? 0],
 ]);
