@@ -8,9 +8,8 @@ import {referenceHref} from '../../support/prototype';
 import {publicNav} from '../../support/useNavigationContext';
 
 defineProps({
-    area: String,
+    gestionActive: Boolean,
     adminView: Boolean,
-    hasWorkspace: Boolean,
     showAreaSwitch: Boolean,
 });
 
@@ -55,7 +54,7 @@ watch(() => page.url, () => {
             </div>
             <div v-if="showAreaSwitch" class="mobile-area-links">
                 <a :href="referenceHref('/gestion', page.props)"
-                   :aria-current="area === 'gestion' && !adminView ? 'page' : undefined">Ir a Gestión</a>
+                   :aria-current="gestionActive ? 'page' : undefined">Ir a Gestión</a>
                 <a :href="referenceHref('/admin/servicios', page.props)" :aria-current="adminView ? 'page' : undefined">Ir
                     a administración</a>
             </div>
@@ -66,7 +65,7 @@ watch(() => page.url, () => {
              :class="{ 'guest-account': !page.props.auth && !page.props.preview }">
             <nav v-if="showAreaSwitch" class="header-area-links" aria-label="Áreas de la cuenta">
                 <a :href="referenceHref('/gestion', page.props)"
-                   :aria-current="area === 'gestion' && !adminView ? 'page' : undefined">Gestión</a>
+                   :aria-current="gestionActive ? 'page' : undefined">Gestión</a>
                 <a :href="referenceHref('/admin/servicios', page.props)" :aria-current="adminView ? 'page' : undefined">Administración</a>
             </nav>
             <template v-if="!page.props.preview && !page.props.auth">
@@ -74,9 +73,6 @@ watch(() => page.url, () => {
                 <AppButton compact href="/crear-cuenta">Crear cuenta</AppButton>
             </template>
             <template v-else-if="!page.props.preview">
-                <AppButton v-if="!hasWorkspace && !page.props.auth.is_admin" compact class="panel-access"
-                           href="/cliente">Ir a mi panel
-                </AppButton>
                 <NotificationCenter/>
             </template>
         </div>
@@ -109,10 +105,6 @@ watch(() => page.url, () => {
     display: flex;
     align-items: center;
     gap: 12px;
-}
-
-.header-account :deep(.panel-access) {
-    box-shadow: none;
 }
 
 /* Los accesos de la cuenta administradora usan la misma línea turquesa para señalar el área abierta. */

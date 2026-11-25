@@ -52,19 +52,25 @@ const sectionsByScreen = {
 // El estado de cada área sale de Inertia. Mostrar un enlace no concede permisos.
 export function useNavigationContext() {
     const page = usePage();
-    const area = computed(() => {
+    const areaDePagina = computed(() => {
         if (page.props.area != null) return page.props.area;
         if (page.url.startsWith('/gestion') || page.url.startsWith('/admin')) return 'gestion';
         if (page.url.startsWith('/profesional')) return 'profesional';
         return page.url.startsWith('/cliente') ? 'cliente' : 'public';
     });
-    const path = computed(() => page.url.split('?')[0]);
+    const path = computed(() => page.url.split(/[?#]/)[0]);
+    const paginaDePanel = computed(() => areaDePagina.value !== 'public');
+    // Una página pública conserva la navegación de la cuenta sin marcar una sección privada.
+    const area = computed(() => {
+        if (paginaDePanel.value || page.props.preview || !page.props.auth) return areaDePagina.value;
+        return page.props.auth.is_admin ? 'gestion' : 'cliente';
+    });
 
     // Las secciones de la segunda etapa aparecen al entrar expresamente en el área correspondiente.
     const nav = computed(() => (workspaceNav[area.value] ?? publicNav).filter(([, href]) =>
         !stageTwoPaths.includes(href) || (page.props.stageTwo && stageTwoPaths.includes(path.value))
     ));
-    const hasWorkspace = computed(() => area.value !== 'public' && Boolean(page.props.auth || page.props.preview));
+    const hasWorkspace = computed(() => page.props.preview ? paginaDePanel.value : Boolean(page.props.auth));
     const navbarRole = computed(() => {
         if (page.props.preview) return hasWorkspace.value ? (area.value === 'gestion' ? 'admin' : area.value) : null;
         if (page.props.auth?.is_admin) return 'admin';
@@ -72,7 +78,8 @@ export function useNavigationContext() {
     });
     const accountName = computed(() => page.props.auth?.name ?? (page.props.preview ? 'Cuenta de ejemplo' : ''));
     const currentSection = computed(() => {
-        if (path.value.split('#')[0] === '/mi-perfil' || ['cuenta-admin', 'cuenta-cliente'].includes(page.props.referenceKey)) return 'mi-perfil';
+        if (!paginaDePanel.value) return null;
+        if (path.value === '/mi-perfil' || ['cuenta-admin', 'cuenta-cliente'].includes(page.props.referenceKey)) return 'mi-perfil';
         if (page.props.screen === 'admin' || page.url.startsWith('/admin')) return 'administracion';
         return sectionsByScreen[page.props.screen] ?? (page.props.section || 'resumen');
     });
@@ -88,6 +95,7 @@ export function useNavigationContext() {
         area,
         nav,
         hasWorkspace,
+        paginaDePanel,
         navbarRole,
         accountName,
         currentSection,

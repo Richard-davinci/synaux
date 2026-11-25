@@ -53,6 +53,7 @@ const {
     area,
     nav,
     hasWorkspace,
+    paginaDePanel,
     navbarRole,
     accountName,
     currentSection,
@@ -60,19 +61,22 @@ const {
     workspaceTitle,
     showAreaSwitch
 } = useNavigationContext();
+
+// La landing de campaña conserva su composición independiente del panel de la cuenta.
+const mostrarPanel = computed(() => !props.landing && hasWorkspace.value);
 watch(() => page.url, () => {
     workspaceOpen.value = false;
 });
 </script>
 <template>
-    <v-app class="synaux-app" :data-workspace-role="hasWorkspace ? area : undefined"
+    <v-app class="synaux-app" :data-workspace-role="mostrarPanel ? area : undefined"
            :data-navbar-role="navbarRole || undefined"
            :style="{ '--navbar-height': (showSiteHeader ? headerHeight : 0) + 'px', '--workspace-bar-height': workspaceBarHeight + 'px' }">
         <!-- Las páginas con encabezado reservan su altura; la landing conserva el salto por teclado. -->
         <template v-if="showSiteHeader">
             <div ref="fixedHeader" class="fixed-header">
-                <SiteHeader :area="area" :admin-view="adminView" :has-workspace="hasWorkspace"
-                            :show-area-switch="showAreaSwitch"/>
+                <SiteHeader :gestion-active="paginaDePanel && area === 'gestion' && !adminView"
+                            :admin-view="adminView" :show-area-switch="showAreaSwitch"/>
             </div>
             <div class="navbar-space" aria-hidden="true"></div>
         </template>
@@ -81,13 +85,13 @@ watch(() => page.url, () => {
         <FlashMessages :message="demoNotice || $page.props.notice" :errors="$page.props.errors" :page-key="$page.url"
                        @close-message="demoNotice = ''"/>
         <!-- El panel es adicional al sitio y solo acompaña las pantallas privadas. -->
-        <div v-if="hasWorkspace" ref="workspaceBar" class="workspace-mobile-bar"><span>{{ workspaceTitle }}</span>
+        <div v-if="mostrarPanel" ref="workspaceBar" class="workspace-mobile-bar"><span>{{ workspaceTitle }}</span>
             <button ref="workspaceToggle" type="button" :aria-expanded="workspaceOpen"
                     aria-controls="workspace-mobile-panel" @click="workspaceOpen = true"><I name="menu"/>Menú del panel
             </button>
         </div>
-        <div :class="['workspace-layout', { 'with-workspace': hasWorkspace }]">
-            <aside v-if="hasWorkspace" class="workspace-sidebar">
+        <div :class="['workspace-layout', { 'with-workspace': mostrarPanel, 'private-workspace': mostrarPanel && paginaDePanel }]">
+            <aside v-if="mostrarPanel" class="workspace-sidebar">
                 <div class="workspace-sidebar-sticky">
                     <WorkspaceNavigation :items="nav" :area="area" :current="currentSection" :account-name="accountName"
                                          :title="workspaceTitle"/>
@@ -98,7 +102,7 @@ watch(() => page.url, () => {
             </v-main>
         </div>
         <!-- Vuetify mantiene el foco en el panel móvil y permite cerrarlo con Escape o fuera de él. -->
-        <v-dialog v-if="hasWorkspace" v-model="workspaceOpen" class="workspace-mobile-dialog" max-width="340"
+        <v-dialog v-if="mostrarPanel" v-model="workspaceOpen" class="workspace-mobile-dialog" max-width="340"
                   @after-leave="restoreWorkspaceFocus" aria-labelledby="workspace-mobile-title">
             <div id="workspace-mobile-panel" class="synaux-app workspace-mobile-panel">
                 <div class="workspace-mobile-heading"><strong id="workspace-mobile-title">Menú del panel</strong>
@@ -109,7 +113,7 @@ watch(() => page.url, () => {
                                      :title="workspaceTitle" @navigate="workspaceOpen = false"/>
             </div>
         </v-dialog>
-        <SiteFooter :year="year" :landing="landing" :has-workspace="hasWorkspace"/>
+        <SiteFooter :year="year" :landing="landing" :has-workspace="mostrarPanel"/>
     </v-app>
 </template>
 
@@ -157,7 +161,7 @@ watch(() => page.url, () => {
     scroll-margin-top: calc(var(--navbar-height) + 24px);
 }
 
-/* El contenido usa el ancho restante del panel; la landing y el catálogo conservan su composición pública. */
+/* El panel ocupa su columna bajo el encabezado y el contenido se adapta al ancho restante. */
 .workspace-layout {
     flex: 1 1 auto;
     min-width: 0;
@@ -193,11 +197,11 @@ watch(() => page.url, () => {
     z-index: 40;
 }
 
-.with-workspace :deep(.page) {
+.private-workspace :deep(.page) {
     padding-block: 40px 72px;
 }
 
-.with-workspace :deep(.admin-layout) {
+.private-workspace :deep(.admin-layout) {
     grid-template-columns: minmax(0, 1fr);
 }
 
