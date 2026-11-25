@@ -35,7 +35,7 @@ class PublicPageController extends Controller
             $this->portfolioQueries->works(limit: 2),
         );
 
-        return Inertia::render('SiteHome', [
+        return Inertia::render('InicioSitio', [
             'featuredServices' => array_map(
                 fn(array $service) => Arr::only($service, ['id', 'name', 'category', 'summary', 'includes']),
                 $featuredServices,

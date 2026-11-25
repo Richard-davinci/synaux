@@ -583,7 +583,7 @@ class SynauxFlowTest extends TestCase
         $work = DB::table('portfolio_projects')->first();
         $images = DB::table('portfolio_project_images')->orderBy('sort_order')->get();
         $this->assertSame($images[1]->image_path, $work->cover_path);
-        $revision = app(\App\Services\Portfolio\PortfolioGallery::class)->revision($images);
+        $revision = app(\App\Services\Portfolio\GaleriaTrabajos::class)->revision($images);
         $this->get('/editor/trabajo/' . $work->id)->assertInertia(fn(Assert $page) => $page
             ->where('galleryRevision', $revision)->has('selected.images', 3));
 
@@ -613,7 +613,7 @@ class SynauxFlowTest extends TestCase
         $this->post('/acciones/trabajo', [...$data, ...$selection])->assertSessionHasErrors('gallery_items');
         $this->assertDatabaseCount('portfolio_project_images', 3);
         $this->post('/acciones/trabajo', [...$data, ...$selection, 'gallery_items' => '[]',
-            'gallery_revision' => app(\App\Services\Portfolio\PortfolioGallery::class)->revision($updated),
+            'gallery_revision' => app(\App\Services\Portfolio\GaleriaTrabajos::class)->revision($updated),
             'cover_choice' => 'none',
         ])->assertSessionHasNoErrors();
         $this->assertDatabaseCount('portfolio_project_images', 0);

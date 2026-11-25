@@ -7,7 +7,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
-class AccessErrorTest extends TestCase
+class ErrorAccesoTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -36,11 +36,11 @@ class AccessErrorTest extends TestCase
         $admin = User::factory()->create(['is_admin' => true]);
 
         $this->actingAs($client)->get('/admin/servicios')->assertForbidden()
-            ->assertInertia(fn(Assert $page) => $page->component('AccessError')
+            ->assertInertia(fn(Assert $page) => $page->component('ErrorAcceso')
                 ->where('status', 403)->where('accountArea', 'client')->missing('administration'));
 
         $this->actingAs($admin)->get('/cliente/presupuestos')->assertForbidden()
-            ->assertInertia(fn(Assert $page) => $page->component('AccessError')
+            ->assertInertia(fn(Assert $page) => $page->component('ErrorAcceso')
                 ->where('status', 403)->where('accountArea', 'management')->missing('quotes'));
     }
 
@@ -49,7 +49,7 @@ class AccessErrorTest extends TestCase
     {
         $this->get('/ruta-inexistente', ['X-Inertia' => 'true'])->assertNotFound()
             ->assertHeader('X-Inertia', 'true')
-            ->assertJsonPath('component', 'AccessError')->assertJsonPath('props.status', 404);
+            ->assertJsonPath('component', 'ErrorAcceso')->assertJsonPath('props.status', 404);
 
         $this->getJson('/admin/servicios')->assertUnauthorized()
             ->assertJsonStructure(['message'])->assertJsonMissingPath('component');

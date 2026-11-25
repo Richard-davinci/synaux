@@ -6,7 +6,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
-class PortfolioGallery
+class GaleriaTrabajos
 {
     // La revisión identifica los registros que el editor abrió, incluidos su orden y archivos.
     public function revision(Collection $images): string

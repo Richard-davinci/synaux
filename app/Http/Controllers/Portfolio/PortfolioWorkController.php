@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Portfolio;
 
 use App\Http\Controllers\Controller;
 use App\Services\Catalog\ServiceCatalog;
-use App\Services\Portfolio\PortfolioGallery;
+use App\Services\Portfolio\GaleriaTrabajos;
 use App\Services\Portfolio\PortfolioQueries;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -19,7 +19,7 @@ use Throwable;
 class PortfolioWorkController extends Controller
 {
     // Protege el editor por propiedad y carga el trabajo elegido junto a los servicios disponibles.
-    public function edit(Request $request, PortfolioQueries $portfolioQueries, PortfolioGallery $gallery, ServiceCatalog $catalog, int $id = 0)
+    public function edit(Request $request, PortfolioQueries $portfolioQueries, GaleriaTrabajos $gallery, ServiceCatalog $catalog, int $id = 0)
     {
         $user = $request->user();
         $selected = $id ? ($portfolioQueries->works($user->id, id: $id)[0] ?? abort(404)) : null;
@@ -43,7 +43,7 @@ class PortfolioWorkController extends Controller
     }
 
     // Guarda el trabajo y la edición de su galería en una sola transacción de base de datos.
-    public function store(Request $request, PortfolioGallery $gallery)
+    public function store(Request $request, GaleriaTrabajos $gallery)
     {
         $imageRules = 'image|mimes:jpg,jpeg,png,webp|max:5120';
         $d = $request->validate([

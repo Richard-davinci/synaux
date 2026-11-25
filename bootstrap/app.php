@@ -39,7 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
             // La pantalla recibe el rol para el enlace de salida; nunca recibe detalles de la excepción.
             $user = $status === 403 ? $request->user() : null;
-            $page = Inertia::render('AccessError', [
+            $page = Inertia::render('ErrorAcceso', [
                 'status' => $status,
                 'accountArea' => $user ? ($user->is_admin ? 'management' : 'client') : null,
             ])->toResponse($request)->setStatusCode($status);

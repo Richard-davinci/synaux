@@ -4,7 +4,7 @@ import {ref} from 'vue';
 import AppButton from '../Components/UI/AppButton.vue';
 import AppIcon from '../Components/UI/AppIcon.vue';
 import SidePanel from '../Components/UI/SidePanel.vue';
-import CatalogServiceCard from '../Components/Catalog/CatalogServiceCard.vue';
+import TarjetaServicio from '../Components/Catalog/TarjetaServicio.vue';
 import EjemploPresupuesto from '../Components/Presupuestos/EjemploPresupuesto.vue';
 import PublicLayout from '../Layouts/PublicLayout.vue';
 import '../../css/panel.css';
@@ -77,7 +77,7 @@ const budgetOpen = ref(false);
                     <AppButton href="/plataforma" compact variant="secondary" arrow>Ver catálogo completo</AppButton>
                 </div>
                 <div class="service-grid site-home-service-grid">
-                    <CatalogServiceCard v-for="service in featuredServices" :key="service.id" :service="service"
+                    <TarjetaServicio v-for="service in featuredServices" :key="service.id" :service="service"
                                         :reference="featuredReferences[service.id]" heading-tag="h3"/>
                 </div>
             </div>

@@ -7,7 +7,7 @@ import F from '../../Components/UI/FormField.vue';
 import T from '../../Components/UI/PageTitle.vue';
 import I from '../../Components/UI/AppIcon.vue';
 import Empty from '../../Components/UI/EmptyState.vue';
-import CatalogServiceCard from '../../Components/Catalog/CatalogServiceCard.vue';
+import TarjetaServicio from '../../Components/Catalog/TarjetaServicio.vue';
 
 // El catálogo filtra los servicios publicados y conserva el segmento seleccionado en cada tarjeta.
 const props = defineProps({data: Object});
@@ -67,7 +67,7 @@ const clear = () => {
             </div>
         </div>
         <div v-if="services.length && data.referenceKey !== 'catalogo-vacio'" class="service-grid">
-            <CatalogServiceCard v-for="service in services" :key="service.id" v-model="catalogSegments[service.id]"
+            <TarjetaServicio v-for="service in services" :key="service.id" v-model="catalogSegments[service.id]"
                                 :service="service" :reference="data.references?.[service.id]"/>
         </div>
         <Empty v-else title="No encontramos servicios con esos filtros."

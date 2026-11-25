@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
-class UserDirectoryController extends Controller
+class DirectorioUsuariosController extends Controller
 {
     // La ruta administrativa consulta solo los datos que muestra el listado y pagina en el servidor.
     public function __invoke(Request $request)

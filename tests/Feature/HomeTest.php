@@ -64,7 +64,7 @@ class HomeTest extends TestCase
         $service = $catalog['services'][0];
 
         $this->get('/inicio')->assertOk()->assertInertia(fn(Assert $page) => $page
-            ->component('SiteHome')
+            ->component('InicioSitio')
             ->has('featuredServices', 3)
             ->where('featuredServices.0.id', $service['id'])
             ->where('featuredServices.0.includes', $service['includes'])
@@ -76,7 +76,7 @@ class HomeTest extends TestCase
     // La portada limita la selección y nunca comparte trabajos privados ni perfiles inactivos.
     public function test_site_home_shows_two_recent_public_works_only(): void
     {
-        $this->get('/inicio')->assertInertia(fn(Assert $page) => $page->component('SiteHome')->has('featuredWorks', 0));
+        $this->get('/inicio')->assertInertia(fn(Assert $page) => $page->component('InicioSitio')->has('featuredWorks', 0));
 
         $owner = User::factory()->create();
         $inactiveOwner = User::factory()->create();
@@ -96,7 +96,7 @@ class HomeTest extends TestCase
         DB::table('portfolio_projects')->insert([...$work, 'title' => 'Proyecto inactivo', 'professional_profile_id' => $inactive]);
 
         $this->get('/inicio')->assertOk()->assertInertia(fn(Assert $page) => $page
-            ->component('SiteHome')
+            ->component('InicioSitio')
             ->has('featuredWorks', 2)
             ->where('featuredWorks.0.id', $first)
             ->where('featuredWorks.1.id', $second)
