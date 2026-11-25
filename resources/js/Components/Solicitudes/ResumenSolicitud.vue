@@ -117,17 +117,15 @@ const datosDocumento = computed(() => ({
     min-width: 0;
     max-height: calc(100dvh - var(--tope-vista-previa) - 16px);
     border-radius: 12px;
+    box-shadow: var(--card-shadow);
     overflow: auto;
     overscroll-behavior: contain;
 }
 
-.acceso-vista-previa {
-    margin-bottom: -8px;
-}
-
 .boton-vista-previa {
-    display: inline-flex;
+    display: flex;
     align-items: center;
+    width: 100%;
     min-height: 44px;
     gap: 8px;
     padding: 8px 14px;
@@ -151,6 +149,10 @@ const datosDocumento = computed(() => ({
 .boton-vista-previa .icon {
     width: 18px;
     height: 18px;
+}
+
+.boton-vista-previa .icon:last-child {
+    margin-left: auto;
 }
 
 .documento-en-panel {

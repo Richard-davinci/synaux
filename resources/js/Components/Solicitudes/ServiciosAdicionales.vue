@@ -58,51 +58,64 @@ function addService() {
 </script>
 
 <template>
-    <h3>Servicios adicionales</h3>
-    <p>Agregá otros servicios que quieras incluir en la consulta.</p>
-    <div v-for="(item, index) in form.additional_services" :key="index" class="request-extra"
-         :class="{ 'is-expanded': expandedExtra === item }">
-        <!-- El encabezado permite editar o quitar sin desplegar todos los campos de la lista. -->
-        <div class="request-extra-heading">
-            <button type="button" class="request-extra-toggle" :aria-expanded="expandedExtra === item"
-                    :aria-controls="extrasId + '-' + index"
-                    @click="expandedExtra = expandedExtra === item ? null : item">
-                <I name="arrow"/><span><strong>{{ extraName(item.service_id) }} × {{
-                    item.quantity
-                }}</strong><small>{{ expandedExtra === item ? 'Ocultar datos' : 'Editar datos' }} · <template
-                v-if="additionalPrices[index].priced">{{ money(additionalPrices[index].min, summaryCurrency) }}<template
-                v-if="additionalPrices[index].max !== additionalPrices[index].min"> – {{
-                    money(additionalPrices[index].max, summaryCurrency)
-                }}</template></template><template v-else>Pendiente de cotización</template></small></span>
-            </button>
-            <B variant="ghost" class="remove-extra" :aria-label="'Quitar servicio adicional ' + (index + 1)"
-               @click="form.additional_services.splice(index, 1)"><I name="close"/>Quitar</B>
+    <section class="request-additional" :aria-labelledby="extrasId + '-titulo'">
+        <h3 :id="extrasId + '-titulo'">Servicios adicionales</h3>
+        <div v-for="(item, index) in form.additional_services" :key="index" class="request-extra"
+             :class="{ 'is-expanded': expandedExtra === item }">
+            <!-- El encabezado permite editar o quitar sin desplegar todos los campos de la lista. -->
+            <div class="request-extra-heading">
+                <button type="button" class="request-extra-toggle" :aria-expanded="expandedExtra === item"
+                        :aria-controls="extrasId + '-' + index"
+                        @click="expandedExtra = expandedExtra === item ? null : item">
+                    <I name="arrow"/><span><strong>{{ extraName(item.service_id) }} × {{
+                        item.quantity
+                    }}</strong><small>{{ expandedExtra === item ? 'Ocultar datos' : 'Editar datos' }} · <template
+                    v-if="additionalPrices[index].priced">{{ money(additionalPrices[index].min, summaryCurrency) }}<template
+                    v-if="additionalPrices[index].max !== additionalPrices[index].min"> – {{
+                        money(additionalPrices[index].max, summaryCurrency)
+                    }}</template></template><template v-else>Pendiente de cotización</template></small></span>
+                </button>
+                <B variant="ghost" class="remove-extra" :aria-label="'Quitar servicio adicional ' + (index + 1)"
+                   @click="form.additional_services.splice(index, 1)"><I name="close"/>Quitar</B>
+            </div>
+            <div v-show="expandedExtra === item" :id="extrasId + '-' + index" class="request-extra-body"
+                 @invalid.capture="revealExtra($event, item)">
+                <ServicePicker :model-value="item.service_id" :services="extraOptions(index)"
+                               :label="'Servicio adicional ' + (index + 1)"
+                               :error="form.errors['additional_services.' + index + '.service_id']"
+                               @update:model-value="changeExtra(item, $event)"/>
+                <F class="request-extra-quantity" v-model="item.quantity" label="Cantidad" type="number"
+                   min="1" max="1000" step="1" required :error="form.errors['additional_services.' + index + '.quantity']"/>
+                <fieldset v-if="extraQuestions(item.service_id).length" class="request-extra-questions">
+                    <legend>Preguntas de {{ extraName(item.service_id) }}</legend>
+                    <RequestQuestions v-model="item.answers" :questions="extraQuestions(item.service_id)"
+                                      :errors="form.errors" :prefix="'additional_services.' + index + '.answers.'"/>
+                </fieldset>
+                <F v-model="item.notes" label="Qué necesitás de este servicio (opcional)" type="textarea" maxlength="2000"
+                   :error="form.errors['additional_services.' + index + '.notes']"/>
+            </div>
         </div>
-        <div v-show="expandedExtra === item" :id="extrasId + '-' + index" class="request-extra-body"
-             @invalid.capture="revealExtra($event, item)">
-            <ServicePicker :model-value="item.service_id" :services="extraOptions(index)"
-                           :label="'Servicio adicional ' + (index + 1)"
-                           :error="form.errors['additional_services.' + index + '.service_id']"
-                           @update:model-value="changeExtra(item, $event)"/>
-            <F class="request-extra-quantity" v-model="item.quantity" label="Cantidad" type="number"
-               min="1" max="1000" step="1" required :error="form.errors['additional_services.' + index + '.quantity']"/>
-            <fieldset v-if="extraQuestions(item.service_id).length" class="request-extra-questions">
-                <legend>Preguntas de {{ extraName(item.service_id) }}</legend>
-                <RequestQuestions v-model="item.answers" :questions="extraQuestions(item.service_id)"
-                                  :errors="form.errors" :prefix="'additional_services.' + index + '.answers.'"/>
-            </fieldset>
-            <F v-model="item.notes" label="Qué necesitás de este servicio (opcional)" type="textarea" maxlength="2000"
-               :error="form.errors['additional_services.' + index + '.notes']"/>
-        </div>
-    </div>
-    <!-- Agregar es una acción de la lista; queda separada del avance al siguiente paso. -->
-    <div class="request-add-row"><B variant="secondary"
-                                    :disabled="form.additional_services.length >= Math.min(extras.length, 20)"
-                                    @click="addService"><I name="plus"/>Agregar servicio</B></div>
+        <!-- Agregar es una acción de la lista; queda separada del avance al siguiente paso. -->
+        <div class="request-add-row"><B variant="secondary" compact
+                                        :disabled="form.additional_services.length >= Math.min(extras.length, 20)"
+                                        @click="addService"><I name="plus"/>Agregar servicio</B></div>
+    </section>
 </template>
 
 <style scoped>
 /* El adicional agrupa sus campos y su acción local; agregar ocupa una fila independiente antes de continuar. */
+.request-additional {
+    border-top: 1px solid #1f6f7f22;
+    margin-top: 14px;
+    padding-top: 16px;
+}
+
+.request-additional h3 {
+    margin: 0 0 10px;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
 .request-extra {
     padding: 12px 16px;
     margin-top: 12px;
@@ -187,13 +200,7 @@ function addService() {
 }
 
 .request-add-row {
-    margin: 20px 0 28px;
-}
-
-.request-add-row :deep(.btn) {
-    width: 100%;
-    border-style: dashed;
-    box-shadow: none;
+    margin-top: 12px;
 }
 
 .request-extra :deep(.field:last-child) {

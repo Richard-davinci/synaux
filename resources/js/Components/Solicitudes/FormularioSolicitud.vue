@@ -30,7 +30,7 @@ watch(step, async () => {
 // El adicional abierto se conserva al volver al paso de servicios o recibir errores.
 const expandedExtra = ref(null);
 
-const labels = ['Servicio', 'Tu proyecto', 'Contacto', 'Revisión'];
+const labels = ['Servicios', 'Proyecto', 'Contacto', 'Revisión'];
 const submit = useSubmit();
 // Un borrador conserva su instantánea, incluso si luego cambia el contacto de la cuenta.
 const contact = old?.contact ?? props.data.accountContact ?? page.props.auth ?? {};
@@ -167,24 +167,23 @@ function save(publish) {
 
 <template>
     <div ref="wizard" class="request-wizard">
-        <!-- La navegación ocupa su propia fila y se fija debajo de las barras reales del sitio. -->
+        <!-- Los cuatro pasos quedan en una fila y se fijan debajo de las barras del sitio. -->
         <ol class="request-steps" aria-label="Pasos para solicitar presupuesto">
             <li v-for="(label, index) in labels" :key="label">
                 <button type="button" :disabled="index + 1 > step || form.processing || handoff.processing"
-                        :aria-current="step === index + 1 ? 'step' : undefined" @click="step = index + 1">{{
-                        index + 1
-                    }}. {{ label }}
+                        :aria-current="step === index + 1 ? 'step' : undefined" @click="step = index + 1">
+                    <span class="request-step-number">{{ index + 1 }}</span>
+                    <span>{{ label }}</span>
                 </button>
             </li>
         </ol>
         <RequestSummary :form="form" :pricing="pricing" :selected-service="selectedService"
                         :estimacion-guardada="estimate" :extra-name="extraName"/>
         <div class="request-main">
-            <v-card class="card">
-                <p class="eyebrow">Paso {{ step }} de 4</p>
-                <h2>{{
-                        ['Elegí el servicio', 'Contanos qué necesitás', 'Revisá tus datos de contacto', 'Revisá tu solicitud'][step - 1]
-                    }}</h2>
+            <v-card class="card request-card">
+                <h2 class="request-step-title">{{
+                    ['Elegí los servicios', 'Contanos qué necesitás', 'Datos de contacto', 'Revisá tu solicitud'][step - 1]
+                }}</h2>
                 <div v-if="Object.keys(form.errors).length" class="notice" role="alert">
                     <ul>
                         <li v-for="(error, field) in form.errors" :key="field">{{ error }}</li>
@@ -194,12 +193,15 @@ function save(publish) {
                 <!-- Solo se valida el paso visible al avanzar; Laravel comprueba el pedido completo al guardarlo. -->
                 <form v-if="step < 4" @submit.prevent="advance">
                     <template v-if="step === 1">
-                        <ServicePicker v-model="form.service_id" :services="data.services"
+                        <!-- El servicio heredado aparece como dato guardado, con los adicionales aún editables. -->
+                        <div v-if="form.estimate_id && selectedService" class="request-saved-service">
+                            <small>Servicio de tu estimación</small>
+                            <strong>{{ selectedService.name }}</strong>
+                        </div>
+                        <ServicePicker v-else v-model="form.service_id" :services="data.services"
                                        :disabled="!!form.estimate_id" :error="form.errors.service_id"/>
                         <RequestQuestions v-if="!estimate" v-model="form.answers" :questions="questions"
                                           :errors="form.errors" prefix="answers."/>
-                        <p v-if="estimate" class="request-origin"><I name="check"/> Servicio y respuestas recuperados de
-                            tu estimación. Podés agregar otros servicios a la consulta.</p>
                         <section v-if="estimateAnswers.length" class="request-answers"><h3>Respuestas de tu
                             estimación</h3>
                             <dl>
@@ -224,14 +226,16 @@ function save(publish) {
                            minlength="10" maxlength="10000" required :error="form.errors.description"/>
                         <F v-model="form.skills" label="Habilidades deseadas (opcional, separadas por comas)"
                            maxlength="1000" :error="form.errors.skills"/>
-                        <F v-model="form.budget_reference" label="Presupuesto disponible (opcional)" maxlength="255"
-                           :error="form.errors.budget_reference"/>
-                        <F v-model="form.desired_deadline" label="Plazo deseado (opcional)" maxlength="255"
-                           :error="form.errors.desired_deadline"/>
+                        <div class="request-fields">
+                            <F v-model="form.budget_reference" label="Presupuesto disponible (opcional)" maxlength="255"
+                               :error="form.errors.budget_reference"/>
+                            <F v-model="form.desired_deadline" label="Plazo deseado (opcional)" maxlength="255"
+                               :error="form.errors.desired_deadline"/>
+                        </div>
                         <F v-if="data.allowPublicRequest || old?.visibility === 'public'" v-model="form.visibility"
                            label="Visibilidad" type="select"
                            :options="[{ value:'private', label:'Privada · revisión de synaux' }, { value:'public', label:'Pública · visible en el muro' }]"/>
-                        <p v-else>Tu solicitud se enviará de forma privada a synaux.</p>
+                        <p v-else class="request-note">Tu solicitud se enviará de forma privada a synaux.</p>
                     </template>
                     <template v-else-if="step === 3 && !authenticated">
                         <div class="request-auth-gate"><I name="user"/>
@@ -249,24 +253,26 @@ function save(publish) {
                         </div>
                     </template>
                     <template v-else-if="step === 3">
-                        <F v-model="form.contact.name" label="Nombre de contacto" autocomplete="name" maxlength="255"
-                           required :error="form.errors['contact.name']"/>
-                        <F v-model="form.contact.email" label="Correo de contacto" type="email" autocomplete="email"
-                           maxlength="254" required :error="form.errors['contact.email']"/>
-                        <F v-model="form.contact.company" label="Empresa u organización (opcional)"
-                           autocomplete="organization" maxlength="255" :error="form.errors['contact.company']"/>
-                        <F v-model="form.contact.phone" label="Teléfono (opcional)" type="tel" autocomplete="tel"
-                           maxlength="50" :error="form.errors['contact.phone']"/>
+                        <div class="request-fields">
+                            <F v-model="form.contact.name" label="Nombre de contacto" autocomplete="name" maxlength="255"
+                               required :error="form.errors['contact.name']"/>
+                            <F v-model="form.contact.email" label="Correo de contacto" type="email" autocomplete="email"
+                               maxlength="254" required :error="form.errors['contact.email']"/>
+                            <F v-model="form.contact.company" label="Empresa u organización (opcional)"
+                               autocomplete="organization" maxlength="255" :error="form.errors['contact.company']"/>
+                            <F v-model="form.contact.phone" label="Teléfono (opcional)" type="tel" autocomplete="tel"
+                               maxlength="50" :error="form.errors['contact.phone']"/>
+                        </div>
                         <F v-model="form.contact.address" label="Domicilio para este pedido (opcional)" autocomplete="street-address"
                            hint="Se completa con el domicilio guardado en Mi perfil. Podés editarlo para este pedido."
                            maxlength="500" :error="form.errors['contact.address']"/>
-                        <p>Estos datos acompañan el pedido para que synaux pueda preparar tu presupuesto.</p>
                     </template>
-                    <div v-if="step !== 3 || authenticated" class="form-actions"><B v-if="step > 1" variant="secondary"
-                                                                                    @click="step -= 1">Anterior</B><span
-                        v-else/><B type="submit" arrow :disabled="!selectedService || handoff.processing">{{
-                            step === 3 ? 'Revisar solicitud' : 'Continuar'
-                        }}</B></div>
+                    <div v-if="step !== 3 || authenticated" class="form-actions">
+                        <B v-if="step > 1" variant="secondary" @click="step -= 1">Anterior</B>
+                        <B type="submit" arrow :disabled="!selectedService || handoff.processing">
+                            {{ step === 3 ? 'Revisar solicitud' : 'Continuar' }}
+                        </B>
+                    </div>
                 </form>
 
                 <RequestReview v-else :form="form" :selected-service="selectedService"
@@ -284,12 +290,13 @@ function save(publish) {
 </template>
 
 <style scoped>
-/* La grilla mantiene el resumen a la vista sin cubrir los campos ni el pie de página. */
+
+/* El progreso y la vista previa se mantienen visibles sin cubrir los campos. */
 .request-wizard {
-    --steps-height: 72px;
+    --steps-height: 61px;
     display: grid;
     grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-    gap: 20px 2rem;
+    gap: 16px clamp(16px, 2.5vw, 28px);
     align-items: start;
     scroll-margin-top: calc(var(--navbar-height, 108px) + var(--workspace-bar-height, 0px));
 }
@@ -299,6 +306,17 @@ function save(publish) {
     min-width: 0;
 }
 
+.request-main .request-card {
+    padding: clamp(16px, 2.2vw, 26px);
+}
+
+.request-main .request-step-title {
+    margin: 0 0 18px;
+    font-size: clamp(1.25rem, 2vw, 1.5rem);
+    font-weight: 700;
+    line-height: 1.2;
+}
+
 .request-steps {
     grid-column: 1 / -1;
     position: sticky;
@@ -306,8 +324,8 @@ function save(publish) {
     z-index: 45;
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: .5rem;
-    padding: 12px 0;
+    gap: 8px;
+    padding: 8px 0;
     margin: 0;
     list-style: none;
     background: #fff;
@@ -315,80 +333,125 @@ function save(publish) {
 }
 
 .request-steps button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     width: 100%;
-    min-height: 48px;
-    font-weight: 700;
-    padding: .6rem .75rem;
-    border: 1px solid rgb(31 111 127 / 20%);
-    border-radius: .5rem;
-    font: inherit;
+    min-height: 44px;
+    padding: 4px 6px;
+    border: 1px solid #1f6f7f26;
+    border-radius: 8px;
+    font: 700 .875rem/1.2 'Nunito', sans-serif;
     color: #153b64;
     background: #fff;
     cursor: pointer;
 }
 
+.request-step-number {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    color: #153b64;
+    background: #e8f3f4;
+}
+
 .request-steps button[aria-current='step'] {
+    border-color: #153b64;
     background: #153b64;
     color: #fff;
 }
 
+.request-steps button[aria-current='step'] .request-step-number {
+    background: #fff;
+}
+
 .request-steps button:disabled {
     color: #446075;
+    background: #f5f9fa;
+    opacity: 1;
     cursor: default;
 }
 
+.request-steps button:focus-visible {
+    outline: 2px solid #1f6f7f;
+    outline-offset: 2px;
+}
+
+/* Los campos relacionados comparten fila y las acciones se alinean al pie de la tarjeta. */
+.request-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 16px;
+}
+
+.request-note {
+    margin: 0;
+    color: #446075;
+    font-size: .9rem;
+}
+
+.request-main :deep(.form-actions) {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid #1f6f7f22;
+}
+
+.request-main :deep(.form-actions > .btn) {
+    flex: 0 1 auto;
+}
+
+.request-main :deep(.form-actions > .btn:first-child:not(:last-child)) {
+    margin-right: auto;
+}
+
+.request-main :deep(h3) {
+    font-weight: 700;
+}
+
 .draft-action {
-    margin-top: 1rem;
+    margin-top: 8px;
 }
 
 @media (max-width: 900px) {
     .request-wizard {
         grid-template-columns: minmax(0, 1fr);
+        row-gap: 12px;
     }
 }
 
-/* La revisión y los importes comparten la jerarquía del estimador y admiten textos largos. */
-.request-wizard :deep(h2) {
-    font-size: clamp(1.5rem, 2.3vw, 2rem);
-    font-weight: 700;
-    line-height: 1.2;
-}
-
-.request-wizard :deep(h3) {
-    font-weight: 700;
-}
-
-.request-steps button:focus-visible {
-    outline: 3px solid #1f6f7f;
-    outline-offset: 3px;
-}
-
-.request-steps button:disabled {
+.request-saved-service {
+    display: grid;
+    gap: 3px;
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    border: 1px solid #1f6f7f26;
+    border-radius: 8px;
     background: #f5f9fa;
-    opacity: .65;
+    overflow-wrap: anywhere;
 }
 
-.request-origin {
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-    padding: 14px;
-    background: #f5f9fa;
-    border-radius: 10px;
-}
-
-.request-origin .icon {
-    flex: 0 0 22px;
-    color: #1f6f7f;
+.request-saved-service small {
+    color: #446075;
 }
 
 .request-answers dl {
-    margin: 0 0 20px;
+    margin: 0;
 }
 
 .request-answers dl > div {
     padding: 12px 0;
     border-bottom: 1px solid #1f6f7f22;
+}
+
+.request-answers dl > div:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
 }
 
 .request-answers dd {
@@ -424,20 +487,22 @@ function save(publish) {
 
 @media (max-width: 600px) {
     .request-wizard {
-        --steps-height: 128px;
+        --steps-height: 69px;
     }
 
     .request-steps {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 4px;
     }
 
-    .request-wizard :deep(.form-actions) {
-        flex-wrap: wrap;
-        gap: 12px;
+    .request-steps button {
+        flex-direction: column;
+        gap: 3px;
+        min-height: 52px;
+        font-size: .75rem;
     }
 
-    .request-wizard :deep(.form-actions .btn) {
-        flex: 1 1 100%;
+    .request-fields {
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 </style>

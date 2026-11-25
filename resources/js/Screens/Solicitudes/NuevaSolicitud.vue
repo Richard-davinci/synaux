@@ -7,9 +7,17 @@ defineProps({data: {type: Object, required: true}});
 </script>
 
 <template>
-    <section class="page shell" :class="{ 'workspace-view': data.area === 'cliente' }">
-        <T eyebrow="Estimación y solicitud" title="Prepará tu proyecto"
-           description="Elegí los servicios, revisá la referencia de precio y completá tu pedido. Podés comenzar sin registrarte."/>
+    <section class="page shell workspace-view nueva-solicitud">
+        <T title="Nueva solicitud"
+           :description="data.area === 'cliente' ? 'Elegí los servicios y revisá tu estimación antes de enviar la solicitud.'
+               : 'Elegí los servicios y revisá tu estimación. Podés empezar sin cuenta.'"/>
         <RequestForm :data="data"/>
     </section>
 </template>
+
+<style scoped>
+/* El encabezado deja el progreso y el formulario visibles desde el primer vistazo. */
+.nueva-solicitud :deep(.page-title) {
+    margin-bottom: 14px;
+}
+</style>
