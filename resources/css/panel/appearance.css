@@ -137,8 +137,12 @@
     .card.modal-card {
         box-shadow: var(--dialog-shadow);
     }
-    .catalog-tools, .budget-summary {
+    .budget-summary {
         box-shadow: var(--card-shadow);
+    }
+    .catalog-tools {
+        background: #fff;
+        box-shadow: var(--card-shadow-raised);
     }
     @media (hover: hover) {
         .service-card {
@@ -155,7 +159,7 @@
         }
     }
     @media print {
-        .card, .card.v-card, .catalog-tools, .budget-summary {
+        .card, .card.v-card, .catalog-tools, .filters, .budget-summary {
             box-shadow: none;
         }
     }

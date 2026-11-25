@@ -1,8 +1,8 @@
 <script setup>
 import {computed} from 'vue';
-import {useForm, usePage} from '@inertiajs/vue3';
+import {usePage} from '@inertiajs/vue3';
 import I from '../UI/AppIcon.vue';
-import {demoNotice, referenceHref} from '../../support/prototype';
+import {referenceHref} from '../../support/prototype';
 
 // Este panel organiza enlaces ya autorizados; mostrar un enlace no concede permisos de acceso.
 const props = defineProps({items: Array, area: String, current: String, accountName: String, title: String});
@@ -22,6 +22,15 @@ function unreadFor(label) {
 
 // Administración reemplaza las secciones de gestión dentro del mismo panel para evitar una lista desplegada que obligue a desplazarse.
 const isAdminView = computed(() => props.area === 'gestion' && props.current === 'administracion');
+const activeAdminSection = computed(() => page.props.section || page.url.split(/[?#]/)[0].split('/')[2] || 'servicios');
+
+// El nombre de rol refleja la cuenta y su membresía, independientemente de la sección abierta.
+const roles = {administrador: 'Administrador de la organización', supervisor: 'Supervisor', profesional: 'Profesional'};
+const rolCuenta = computed(() => {
+    const auth = page.props.auth;
+    if (auth?.is_admin || (page.props.preview && props.area === 'gestion')) return 'Administrador';
+    return roles[auth?.rol_organizacion] ?? (props.area === 'profesional' ? 'Profesional' : 'Cliente');
+});
 const icons = {
     Resumen: 'layout',
     Administración: 'grid',
@@ -50,30 +59,20 @@ function isActive(href) {
     return props.current === sectionFor(href) || props.current === 'clientes' && href === '/gestion/clientes';
 }
 
-// El cierre real invalida la sesión en Laravel; la galería solo muestra un aviso de demostración.
-const logoutForm = useForm({});
-
-function logout() {
-    if (page.props.preview) {
-        demoNotice.value = 'Vista de referencia: no se cierra ninguna sesión real.';
-        emit('navigate');
-        return;
-    }
-    if (page.props.auth && !logoutForm.processing) {
-        logoutForm.post('/salir', {onSuccess: () => emit('navigate')});
-    }
-}
 </script>
 
 <template>
-    <div class="workspace-navigation" :data-role="area">
+    <div class="workspace-navigation" :data-role="isAdminView ? 'admin' : area">
         <!-- Las secciones recibidas ocupan el área desplazable y dejan la cuenta al pie del panel. -->
         <div class="workspace-sections">
-            <p class="workspace-eyebrow">{{
-                    area === 'gestion' ? 'Gestión y administración' : area === 'profesional' ? 'Área profesional' : 'Área cliente'
-                }}</p>
+            <div v-if="accountName" class="workspace-identity">
+                <I name="user"/>
+                <div>
+                    <p class="workspace-user">{{ accountName }}</p>
+                    <p class="workspace-role">{{ rolCuenta }}</p>
+                </div>
+            </div>
             <h2>{{ title }}</h2>
-            <p v-if="accountName" class="workspace-user">{{ accountName }}</p>
             <nav v-if="!isAdminView" :aria-label="'Secciones de ' + title.toLowerCase()">
                 <a v-for="[label, href] in items.filter(([label]) => label !== 'Mi perfil')" :key="href"
                    :href="referenceHref(href, page.props)" :aria-current="isActive(href) ? 'page' : undefined"
@@ -89,19 +88,17 @@ function logout() {
                     <h3 class="workspace-group-title">{{ group.title }}</h3>
                     <a v-for="[label, section, icon] in group.items" :key="section"
                        :href="referenceHref('/admin/' + section, page.props)"
-                       :aria-current="page.props.screen === 'admin' && (page.props.section || 'servicios') === section ? 'page' : undefined"
+                       :aria-current="activeAdminSection === section ? 'page' : undefined"
                        @click="emit('navigate')">
                         <I :name="icon"/><span>{{ label }}</span>
                     </a>
                 </nav>
             </div>
         </div>
-        <!-- Los accesos de cuenta permanecen al pie sin cambiar sus rutas ni el cierre de sesión. -->
+        <!-- El enlace al perfil se mantiene al pie del panel. -->
         <nav class="workspace-account" aria-label="Opciones de la cuenta"><a
             :href="referenceHref('/mi-perfil', page.props)" :aria-current="current === 'mi-perfil' ? 'page' : undefined"
             @click="emit('navigate')"><I name="user"/><span>Mi perfil</span></a>
-            <button type="button" class="workspace-logout" :disabled="logoutForm.processing" @click="logout"><I
-                name="arrow"/><span>{{ logoutForm.processing ? 'Cerrando sesión…' : 'Cerrar sesión' }}</span></button>
         </nav>
     </div>
 </template>
@@ -112,7 +109,7 @@ function logout() {
 /* Cada área usa su acento y un color de texto con contraste en el enlace activo. */
 .workspace-navigation {
     --role-accent: #153b64;
-    --role-on-accent: #fff;
+    --role-selection: #153b64;
     --role-tint: #153b640a;
     display: flex;
     flex-direction: column;
@@ -125,14 +122,19 @@ function logout() {
 
 .workspace-navigation[data-role='profesional'] {
     --role-accent: #2db3a3;
-    --role-on-accent: #153b64;
+    --role-selection: #153b64;
     --role-tint: #2db3a31a;
 }
 
-/* Gestión comparte el turquesa del navbar con texto oscuro en los enlaces activos. */
+/* Gestión usa turquesa azulado. Administración conserva el turquesa claro como acento. */
 .workspace-navigation[data-role='gestion'] {
+    --role-accent: #1f6f7f;
+    --role-selection: #1f6f7f;
+    --role-tint: #1f6f7f12;
+}
+
+.workspace-navigation[data-role='admin'] {
     --role-accent: #2db3a3;
-    --role-on-accent: #153b64;
     --role-tint: #2db3a31a;
 }
 
@@ -140,25 +142,36 @@ function logout() {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
+    padding: 2px 4px 12px;
+    margin-inline: -4px;
 }
 
-.workspace-eyebrow {
+/* La ficha reúne nombre y rol con el acento del área actual. */
+.workspace-identity {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 12px;
     border-left: 3px solid var(--role-accent);
-    padding-left: 8px;
-    text-wrap: balance;
-    margin: 0 0 8px;
-    color: #446075;
-    font-size: .75rem;
-    letter-spacing: .12em;
-    font-weight: 700;
-    text-transform: uppercase;
+    border-radius: 8px;
+    background: var(--role-tint);
+}
+
+.workspace-user, .workspace-role {
+    margin: 0;
+    overflow-wrap: anywhere;
 }
 
 .workspace-user {
-    margin: -12px 0 22px;
-    color: #446075;
     font-size: .95rem;
-    overflow-wrap: anywhere;
+    font-weight: 700;
+}
+
+.workspace-role {
+    margin-top: 2px;
+    color: #446075;
+    font-size: .8rem;
 }
 
 .workspace-navigation h2 {
@@ -166,7 +179,7 @@ function logout() {
     font-size: 1.3rem;
     font-weight: 700;
     line-height: 1.25;
-    margin: 0 10px 24px 0;
+    margin: 0 0 14px;
 }
 
 .workspace-navigation nav {
@@ -174,7 +187,7 @@ function logout() {
     gap: 5px;
 }
 
-.workspace-navigation a, .workspace-logout {
+.workspace-navigation a {
     display: flex;
     gap: 11px;
     align-items: center;
@@ -188,31 +201,19 @@ function logout() {
     cursor: pointer;
 }
 
-.workspace-navigation a:hover, .workspace-logout:hover {
+.workspace-navigation a:hover {
     background: var(--role-tint);
 }
 
 .workspace-navigation a[aria-current='page'] {
-    color: var(--role-on-accent);
-    background: var(--role-accent);
+    color: #fff;
+    background: var(--role-selection);
+    box-shadow: inset 3px 0 0 var(--role-accent), var(--button-shadow);
 }
 
-.workspace-navigation a:focus-visible, .workspace-logout:focus-visible {
+.workspace-navigation a:focus-visible {
     outline: 3px solid var(--role-accent);
     outline-offset: 2px;
-}
-
-.workspace-logout {
-    width: 100%;
-    border: 0;
-    background: transparent;
-    font: inherit;
-    text-align: left;
-}
-
-.workspace-logout:disabled {
-    opacity: .5;
-    cursor: wait;
 }
 
 .workspace-navigation .icon {
@@ -272,7 +273,7 @@ function logout() {
 }
 
 .workspace-navigation a[aria-current='page'] .workspace-unread {
-    color: var(--role-on-accent);
+    color: #fff;
     background: #ffffff33;
 }
 

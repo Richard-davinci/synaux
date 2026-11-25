@@ -1,8 +1,9 @@
 <script setup>
 import {ref, watch} from 'vue';
-import {usePage} from '@inertiajs/vue3';
+import {useForm, usePage} from '@inertiajs/vue3';
 import NotificationCenter from '../Notifications/NotificationCenter.vue';
 import AppButton from '../UI/AppButton.vue';
+import AccionIcono from '../UI/AccionIcono.vue';
 import navbarLogo from '../../../images/brand/synaux-horizontal-sin-slogan-color.svg';
 import {referenceHref} from '../../support/prototype';
 import {publicNav} from '../../support/useNavigationContext';
@@ -15,6 +16,8 @@ defineProps({
 
 const page = usePage();
 const mobileOpen = ref(false);
+// El botón del navbar usa la misma salida autenticada de Laravel.
+const salida = useForm({});
 watch(() => page.url, () => {
     mobileOpen.value = false;
 });
@@ -74,7 +77,11 @@ watch(() => page.url, () => {
             </template>
             <template v-else-if="!page.props.preview">
                 <slot name="acceso-panel"/>
-                <NotificationCenter/>
+                <div class="header-session-actions">
+                    <NotificationCenter/>
+                    <AccionIcono icono="logout" texto="Cerrar sesión" :deshabilitada="salida.processing"
+                                 @click="salida.post('/salir')"/>
+                </div>
             </template>
         </div>
     </header>
@@ -108,7 +115,13 @@ watch(() => page.url, () => {
     gap: 12px;
 }
 
-/* Los accesos de la cuenta administradora usan la misma línea turquesa para señalar el área abierta. */
+.header-session-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Los accesos de Gestión y Administración usan el acento de la sección actual. */
 .header-area-links {
     display: flex;
     align-items: center;
@@ -132,7 +145,7 @@ watch(() => page.url, () => {
 }
 
 .header-area-links a[aria-current='page'] {
-    box-shadow: inset 0 -3px 0 #2db3a3;
+    box-shadow: inset 0 -3px 0 var(--navbar-accent, #2db3a3);
 }
 
 /* El cambio de área conserva una referencia visible para navegación con teclado en escritorio y móvil. */
@@ -212,7 +225,7 @@ watch(() => page.url, () => {
     }
 
     .mobile-area-links a[aria-current='page'] {
-        box-shadow: inset 3px 0 0 #2db3a3;
+        box-shadow: inset 3px 0 0 var(--navbar-accent, #2db3a3);
         background: #2db3a31a;
     }
 }

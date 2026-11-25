@@ -43,6 +43,7 @@ const destino = computed(() => referenceHref(props.href, page.props));
     border-radius: 8px;
     background: #fff;
     color: #153b64;
+    box-shadow: var(--control-shadow);
     cursor: pointer;
 }
 
@@ -58,6 +59,7 @@ const destino = computed(() => referenceHref(props.href, page.props));
 
 .accion-icono:disabled {
     opacity: .5;
+    box-shadow: none;
     cursor: wait;
 }
 </style>

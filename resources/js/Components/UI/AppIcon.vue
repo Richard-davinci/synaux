@@ -26,6 +26,8 @@ defineProps({name: {type: String, default: 'arrow'}});
         </g>
         <path v-else-if="name === 'menu'" d="M4 7h16M4 12h16M4 17h16"/>
         <path v-else-if="name === 'close'" d="m6 6 12 12M18 6 6 18"/>
+        <!-- La puerta y la flecha identifican la salida de la cuenta. -->
+        <path v-else-if="name === 'logout'" d="M11 4H5v16h6m4-13 5 5-5 5m5-5H9"/>
         <!-- La campana identifica el centro de novedades sin alterar los recursos originales de marca. -->
         <g v-else-if="name === 'bell'">
             <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>

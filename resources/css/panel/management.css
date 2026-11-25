@@ -68,14 +68,6 @@
     .workspace-view .workspace-table td, .workspace-view .workspace-table th {
         padding: 12px 16px;
     }
-    .workspace-view .status-enabled, .workspace-view .status-published {
-        color: #1f6f7f;
-        background: #2db3a31a;
-    }
-    .workspace-view .status-disabled, .workspace-view .status-unpublished {
-        color: #446075;
-        background: #f5f9fa;
-    }
 
     /* Los indicadores del panel enlazan a sus listados y comparten escala y tratamiento visual. */
     .indicadores-panel {

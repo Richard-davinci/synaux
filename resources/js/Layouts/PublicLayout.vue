@@ -144,12 +144,20 @@ watch(() => page.url, () => {
 }
 
 .synaux-app[data-workspace-role='gestion'] {
+    --workspace-accent: #1f6f7f;
+}
+
+.synaux-app[data-navbar-role='admin'] {
     --workspace-accent: #2db3a3;
 }
 
-/* Azul para cliente y turquesa para administración o profesionales; el visitante mantiene el borde discreto del sitio. */
+/* El acento del navbar sigue el área abierta, con azul de marca para Cliente. */
 .synaux-app[data-navbar-role='cliente'] {
     --navbar-accent: #153b64;
+}
+
+.synaux-app[data-navbar-role='gestion'] {
+    --navbar-accent: #1f6f7f;
 }
 
 .synaux-app[data-navbar-role='admin'], .synaux-app[data-navbar-role='profesional'] {
@@ -165,6 +173,7 @@ watch(() => page.url, () => {
     inset: 0 0 auto;
     z-index: 100;
     background: #fff;
+    box-shadow: var(--navbar-shadow);
 }
 
 .navbar-space {

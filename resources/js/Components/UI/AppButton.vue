@@ -33,6 +33,11 @@ const destination = computed(() => referenceHref(props.href, page.props));
     background: #153b64;
 }
 
+/* Los botones conservan distintos niveles de profundidad según su jerarquía. */
+.btn-primary.v-btn {
+    box-shadow: var(--primary-button-shadow);
+}
+
 .btn-primary.v-btn:hover {
     background: #1f6f7f;
 }
@@ -41,6 +46,7 @@ const destination = computed(() => referenceHref(props.href, page.props));
     color: #153b64;
     background: #fff;
     border-color: #153b64;
+    box-shadow: var(--button-shadow);
 }
 
 .btn-secondary.v-btn:hover {
@@ -51,6 +57,7 @@ const destination = computed(() => referenceHref(props.href, page.props));
 .btn-ghost.v-btn {
     color: #153b64;
     background: transparent;
+    box-shadow: var(--control-shadow);
 }
 
 .btn-ghost.v-btn:hover {
@@ -65,10 +72,6 @@ const destination = computed(() => referenceHref(props.href, page.props));
     font-size: .875rem;
     line-height: 1.4;
     border-radius: 8px;
-}
-
-.btn-primary.v-btn.btn-compact {
-    box-shadow: 0 3px 8px #153b641f;
 }
 
 @media (pointer: coarse) {

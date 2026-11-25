@@ -16,6 +16,10 @@
         --danger: #a13b42;
         --danger-bg: #fcebed;
         /* Tres niveles de profundidad con el azul de marca, sin sombras negras. */
+        --control-shadow: 0 1px 3px #153b6414;
+        --button-shadow: 0 2px 4px #153b641f, 0 5px 10px #153b6414;
+        --primary-button-shadow: 0 4px 7px #153b6426, 0 8px 16px #153b641a;
+        --navbar-shadow: 0 1px 3px #153b640d, 0 4px 14px #153b6417;
         --card-shadow: 0 2px 6px rgba(21, 59, 100, .06), 0 10px 26px rgba(21, 59, 100, .09);
         --card-shadow-raised: 0 4px 10px rgba(21, 59, 100, .08), 0 16px 34px rgba(21, 59, 100, .13);
         --dialog-shadow: 0 12px 28px rgba(21, 59, 100, .14), 0 28px 70px rgba(21, 59, 100, .2);
@@ -208,7 +212,7 @@
     .btn-primary {
         color: white;
         background: var(--navy);
-        box-shadow: 0 8px 22px rgba(21, 59, 100, .18);
+        box-shadow: var(--primary-button-shadow);
     }
     .btn-primary:hover {
         background: #0e3155;

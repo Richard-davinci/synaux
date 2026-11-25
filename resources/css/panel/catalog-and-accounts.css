@@ -138,22 +138,6 @@
         white-space: pre-line;
         overflow-wrap: anywhere;
     }
-    .status-open, .status-sent, .status-issued, .status-in_progress, .status-review {
-        background: #edf9fa;
-        color: #1f6f7f;
-    }
-    .status-accepted, .status-completed {
-        color: #237a57;
-        background: #e9f6ef;
-    }
-    .status-expired, .status-rejected, .status-cancelled {
-        color: #a13b42;
-        background: #fcebed;
-    }
-    .status-draft, .status-pending {
-        color: #946213;
-        background: #fff5dd;
-    }
     .stats-four {
         grid-template-columns: repeat(4, 1fr);
     }

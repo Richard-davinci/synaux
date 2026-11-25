@@ -85,11 +85,6 @@ export function useNavigationContext() {
             : items;
     });
     const hasWorkspace = computed(() => page.props.preview ? paginaDePanel.value : Boolean(page.props.auth));
-    const navbarRole = computed(() => {
-        if (page.props.preview) return hasWorkspace.value ? (area.value === 'gestion' ? 'admin' : area.value) : null;
-        if (page.props.auth?.is_admin) return 'admin';
-        return page.props.auth ? (area.value === 'profesional' ? 'profesional' : 'cliente') : null;
-    });
     const accountName = computed(() => page.props.auth?.name ?? (page.props.preview ? 'Cuenta de ejemplo' : ''));
     const currentSection = computed(() => {
         if (!paginaDePanel.value) return null;
@@ -119,9 +114,14 @@ export function useNavigationContext() {
     });
 
     const adminView = computed(() => area.value === 'gestion' && currentSection.value === 'administracion');
+    // La línea del navbar identifica el área abierta, incluso al navegar con la misma cuenta administradora.
+    const navbarRole = computed(() => {
+        if (!hasWorkspace.value) return null;
+        return adminView.value ? 'admin' : area.value;
+    });
     const workspaceTitle = computed(() => {
         if (adminView.value) return 'Administración';
-        if (area.value === 'gestion') return 'Panel de gestión';
+        if (area.value === 'gestion') return 'Gestión';
         return area.value === 'profesional' ? 'Área profesional' : 'Mi espacio';
     });
     const showAreaSwitch = computed(() => page.props.preview ? area.value === 'gestion' : Boolean(page.props.auth?.is_admin));

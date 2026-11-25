@@ -270,7 +270,9 @@
         gap: 7px;
         align-items: center;
         padding: 5px 9px;
+        border: 1px solid color-mix(in srgb, currentColor 23%, transparent);
         border-radius: 20px;
+        box-shadow: var(--control-shadow);
         font-size: .72rem;
         font-weight: 700;
         background: #edf1f4;
@@ -283,19 +285,20 @@
         border-radius: 50%;
         background: currentColor;
     }
-    .status-enviado, .status-enviada, .status-en-revisión, .status-vigente, .status-en-desarrollo {
+    /* Los tonos indican el significado del estado y la etiqueta distingue cada caso. */
+    .status-open, .status-sent, .status-issued, .status-submitted, .status-in_progress, .status-review {
         background: #e7f4f7;
         color: #176d7c;
     }
-    .status-aceptado, .status-publicado, .status-completado {
+    .status-enabled, .status-published, .status-available, .status-accepted, .status-completed, .status-calculated {
         background: var(--success-bg);
         color: var(--success);
     }
-    .status-rechazado, .status-vencido {
+    .status-rejected, .status-expired, .status-cancelled, .status-declined {
         background: var(--danger-bg);
         color: var(--danger);
     }
-    .status-borrador, .status-anterior, .status-inicio-coordinado {
+    .status-draft, .status-pending, .status-manual, .status-busy {
         background: var(--warning-bg);
         color: var(--warning);
     }

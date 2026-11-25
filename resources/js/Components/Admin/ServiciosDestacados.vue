@@ -147,7 +147,18 @@ function saveFeatured() {
     color: #446075;
 }
 
-.featured-options input {
+/* El control conserva su tamaño y toda la etiqueta sigue siendo pulsable. */
+.featured-options label {
+    cursor: pointer;
+}
+
+.featured-options input[type='checkbox'] {
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
     accent-color: #1f6f7f;
 }
 
