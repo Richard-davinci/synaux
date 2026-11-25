@@ -7,7 +7,9 @@ const props = defineProps({
     modelValue: Boolean,
     persistent: Boolean,
     maxWidth: {type: [Number, String], default: 560},
-    title: {type: String, default: 'Detalles'}
+    title: {type: String, default: 'Detalles'},
+    bodyLabel: String,
+    closeLabel: {type: String, default: 'Cerrar panel lateral'},
 });
 const emit = defineEmits(['update:modelValue']);
 
@@ -23,13 +25,21 @@ function update(value) {
               :style="{ '--side-panel-width': typeof maxWidth === 'number' || /^\d+$/.test(String(maxWidth)) ? `${maxWidth}px` : maxWidth }"
               transition="slide-x-reverse-transition" :aria-label="$attrs['aria-labelledby'] ? undefined : title"
               @update:model-value="update">
+        <!-- Los accesos y acciones opcionales usan el mismo panel y conservan su recorrido por teclado. -->
+        <template v-if="$slots.activator" #activator="activator">
+            <slot name="activator" v-bind="activator"/>
+        </template>
         <div class="synaux-app side-panel-surface">
             <div class="side-panel-heading"><span>{{ title }}</span>
-                <button type="button" class="side-panel-close" :disabled="persistent" aria-label="Cerrar panel lateral"
+                <button type="button" class="side-panel-close" :disabled="persistent" :aria-label="closeLabel"
                         @click="update(false)"><I name="close"/></button>
             </div>
-            <div class="side-panel-body">
+            <div class="side-panel-body" :role="bodyLabel ? 'region' : undefined"
+                 :aria-label="bodyLabel" :tabindex="bodyLabel ? 0 : undefined">
                 <slot/>
+            </div>
+            <div v-if="$slots.footer" class="side-panel-footer">
+                <slot name="footer"/>
             </div>
         </div>
     </v-dialog>
@@ -116,6 +126,21 @@ function update(value) {
     overflow-y: auto;
     overscroll-behavior: contain;
     padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Las acciones visibles quedan al pie aunque el contenido central se desplace. */
+.synaux-side-panel .side-panel-footer {
+    display: flex;
+    justify-content: flex-end;
+    flex-shrink: 0;
+    gap: 12px;
+    padding: 12px clamp(14px, 3vw, 24px);
+    border-top: 1px solid #1f6f7f26;
+}
+
+.synaux-side-panel .side-panel-body[tabindex]:focus-visible {
+    outline: 2px solid #1f6f7f;
+    outline-offset: -3px;
 }
 
 /* Un solo contenedor desplaza el contenido; las tarjetas anteriores dejan de simular una ventana. */
