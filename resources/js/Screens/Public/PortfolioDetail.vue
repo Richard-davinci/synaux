@@ -11,7 +11,14 @@ const selected = computed(() => props.data.selected ?? {});
 const siteLabel = computed(() => selected.value.live_url?.startsWith('https://stitch.google.com/preview/')
     ? 'Ver sitio'
     : 'Visitar proyecto');
-const coverLabel = computed(() => 'Portada de ' + selected.value.title);
+
+// La portada solo aparece dentro de la galería de la ficha, aunque ya esté incluida entre las imágenes.
+const galleryImages = computed(() => {
+    const {cover_path, images = [], title} = selected.value;
+    if (!cover_path || images.some(image => image.image_path === cover_path)) return images;
+
+    return [{id: 'cover', image_path: cover_path, alt_text: 'Portada de ' + title}, ...images];
+});
 
 // El visor conserva la imagen completa y devuelve el foco al control que lo abrió.
 const imageOpen = ref(false);
@@ -41,18 +48,6 @@ function restoreImageFocus() {
             <span v-if="selected.year" class="case-year">Año {{ selected.year }}</span>
         </div>
 
-        <!-- El marco acompaña la proporción de la imagen; el botón abre el visor con la captura completa. -->
-        <figure v-if="selected.cover_path" class="case-cover">
-            <button type="button" class="case-image" :aria-label="'Ampliar ' + coverLabel.toLowerCase()"
-                    @click="showImage(selected.cover_path, coverLabel, $event)">
-                <img :src="selected.cover_path" :alt="coverLabel">
-            </button>
-            <figcaption>
-                <span>{{ coverLabel }}</span>
-                <span aria-hidden="true">Ampliar imagen</span>
-            </figcaption>
-        </figure>
-
         <div class="case-story">
             <section v-if="selected.challenge && selected.challenge !== selected.description">
                 <h2>El desafío</h2>
@@ -64,10 +59,10 @@ function restoreImageFocus() {
             </section>
         </div>
 
-        <section v-if="selected.images?.length" class="case-gallery" aria-labelledby="case-gallery-title">
+        <section v-if="galleryImages.length" class="case-gallery" aria-labelledby="case-gallery-title">
             <h2 id="case-gallery-title">Galería del trabajo</h2>
             <div class="case-gallery-grid">
-                <figure v-for="image in selected.images" :key="image.id">
+                <figure v-for="image in galleryImages" :key="image.id">
                     <button type="button" class="case-image" :aria-label="'Ampliar ' + (image.alt_text || 'imagen de la galería')"
                             @click="showImage(image.image_path, image.alt_text || 'Imagen de la galería', $event)">
                         <img :src="image.image_path" :alt="image.alt_text ?? ''" loading="lazy">
@@ -124,11 +119,7 @@ figcaption {
     font-size: .9rem;
 }
 
-/* Las imágenes conservan su proporción y llevan el borde sobre la captura. */
-.case-cover {
-    max-width: 1060px;
-    margin: 28px auto 0;
-}
+/* Las miniaturas abren el visor al seleccionar la captura. */
 
 .case-image {
     display: block;
@@ -148,9 +139,6 @@ figcaption {
     border-radius: inherit;
 }
 
-.case-cover img {
-    box-shadow: 0 6px 20px #153b6412;
-}
 
 figcaption {
     display: flex;
