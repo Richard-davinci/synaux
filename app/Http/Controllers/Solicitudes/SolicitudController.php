@@ -9,6 +9,7 @@ use App\Services\Notifications\NotificationCenter;
 use App\Services\Solicitudes\ConsultasSolicitudes;
 use App\Services\Solicitudes\GestionSolicitudes;
 use App\Services\Solicitudes\RecorridoSolicitud;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -84,13 +85,12 @@ class SolicitudController extends Controller
     // Abre el formulario público con la estimación elegida por su titular, si corresponde.
     public function create(Request $request, ServiceCatalog $catalog, EstimateStore $estimates, RecorridoSolicitud $journey)
     {
-        if ($request->user()?->is_admin) {
-            return redirect('/gestion');
-        }
+        // El formulario público acepta visitantes y clientes; la cuenta administrativa usa Gestión.
+        abort_if($request->user()?->is_admin, 403);
 
         $id = (int)$request->query('estimacion', 0);
         if ($id && !$request->user()) {
-            return redirect()->guest('/ingresar');
+            throw new AuthenticationException();
         }
 
         return Inertia::render('EspacioTrabajo', $journey->pageData($request, [

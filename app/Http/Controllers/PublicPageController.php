@@ -48,10 +48,8 @@ class PublicPageController extends Controller
     // Prepara una pantalla pública y agrega únicamente los datos que su recorrido necesita.
     public function show(Request $request, string $screen = 'servicios', ?string $id = null)
     {
-        // Una sesión administrativa usa Gestión como entrada, aun desde el estimador público.
-        if ($screen === 'estimador' && $request->user()?->is_admin) {
-            return redirect('/gestion');
-        }
+        // Una cuenta administrativa recibe la salida hacia Gestión al abrir el estimador de cliente.
+        abort_if($screen === 'estimador' && $request->user()?->is_admin, 403);
         $data = ['screen' => $screen, 'services' => $this->catalog->services()];
         // El catálogo y el estimador comparten la referencia de la versión vigente.
         if (in_array($screen, ['servicios', 'servicio', 'estimador'], true)) {

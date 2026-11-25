@@ -19,7 +19,7 @@ class CatalogAdministrationTest extends TestCase
     {
         $client = User::factory()->create();
         foreach (['/admin/categorias', '/admin/servicios/nuevo', '/admin/servicios/1/editar'] as $url) {
-            $this->get($url)->assertRedirect('/ingresar');
+            $this->get($url)->assertUnauthorized();
             $this->actingAs($client)->get($url)->assertForbidden();
             $this->app['auth']->forgetGuards();
         }

@@ -44,11 +44,9 @@ class EspacioTrabajoController extends Controller
             'admin' => ['', 'servicios', 'categorias', 'preguntas', 'componentes', 'reglas', 'tarifario'],
         ];
         abort_unless(isset($allowed[$area]) && in_array($section, $allowed[$area], true), 404);
-        // Las vistas de cliente de la etapa 2 siguen disponibles desde su entrada de revisión.
-        if ($area === 'cliente' && $request->user()->is_admin
-            && !in_array($section, ['publicaciones', 'propuestas', 'invitaciones'], true)) {
-            return redirect('/gestion');
-        }
+        // Las vistas de etapa 2 siguen disponibles para revisión; el área de cliente exige una cuenta de cliente.
+        abort_if($area === 'cliente' && $request->user()->is_admin
+            && !in_array($section, ['publicaciones', 'propuestas', 'invitaciones'], true), 403);
         // Los accesos anteriores llevan a la configuración del servicio, sin duplicar administraciones.
         if ($area === 'admin' && in_array($section, ['preguntas', 'componentes', 'reglas'], true)) {
             $serviceId = DB::table('services')->when($request->integer('servicio'), fn($q) => $q->where('id', $request->integer('servicio')))->orderBy('id')->value('id');

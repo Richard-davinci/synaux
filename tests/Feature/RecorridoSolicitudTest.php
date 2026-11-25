@@ -128,7 +128,7 @@ class RecorridoSolicitudTest extends TestCase
             ->assertRedirect('/solicitudes/nueva?continuar=1');
         $this->post('/ingresar', ['email' => $admin->email, 'password' => 'password'])->assertRedirect('/gestion');
         foreach (['/cliente', '/cliente/solicitudes', '/estimador', '/solicitudes/nueva'] as $path) {
-            $this->get($path)->assertRedirect('/gestion');
+            $this->get($path)->assertForbidden();
         }
         foreach (['/solicitudes/preparar', '/estimador/calcular', '/acciones/guardar-estimacion', '/acciones/solicitud'] as $path) {
             $this->post($path, [...$data, 'visibility' => 'private', 'publish' => true])->assertForbidden();
@@ -146,7 +146,8 @@ class RecorridoSolicitudTest extends TestCase
                 ->where('screen', 'publicar')->where('area', 'public')->where('auth', null)
                 ->has('requestQuestions')->missing('requests')->missing('estimates')->missing('quotes'));
         }
-        $this->get('/solicitudes/nueva?estimacion=5')->assertRedirect('/ingresar');
+        $this->get('/solicitudes/nueva?estimacion=5')->assertUnauthorized()
+            ->assertSessionHas('url.intended', url('/solicitudes/nueva?estimacion=5'));
         $this->post('/acciones/solicitud', $this->project())->assertRedirect('/ingresar');
         $this->assertDatabaseCount('project_requests', 0);
     }

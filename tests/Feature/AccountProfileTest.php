@@ -17,7 +17,7 @@ class AccountProfileTest extends TestCase
 
     public function test_profile_requires_authentication_and_displays_only_the_current_user(): void
     {
-        $this->get('/mi-perfil')->assertRedirect('/ingresar');
+        $this->get('/mi-perfil')->assertUnauthorized();
         $user = User::factory()->create();
         $this->actingAs($user)->get('/mi-perfil')->assertInertia(fn(Assert $page) => $page
             ->component('PerfilCuenta')->where('profile.email', $user->email)->missing('profile.password'));
