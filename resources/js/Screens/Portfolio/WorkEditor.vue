@@ -148,9 +148,10 @@ function saveWork() {
                         </li>
                     </ol>
                     <label class="field">
-                        Agregar imágenes a la galería (JPG, PNG o WebP · hasta 8 por envío, 5 MB por imagen)
+                        Agregar imágenes a la galería
                         <input type="file" multiple accept="image/jpeg,image/png,image/webp"
-                               @change="selectUploads($event.target.files)">
+                               aria-describedby="work-gallery-formats" @change="selectUploads($event.target.files)">
+                        <small id="work-gallery-formats">JPG, PNG o WebP. Hasta 8 archivos de 5 MB cada uno.</small>
                     </label>
                     <ol v-if="newImages.length" class="work-gallery-list" aria-label="Imágenes nuevas">
                         <li v-for="(image, index) in newImages" :key="image.preview" class="work-gallery-item">
@@ -187,7 +188,7 @@ function saveWork() {
 
 .work-gallery-list {
     display: grid;
-    gap: 10px;
+    gap: 12px;
     margin-block: 16px;
     list-style: none;
     padding: 0;
@@ -195,13 +196,17 @@ function saveWork() {
 
 .work-gallery-item {
     display: grid;
-    grid-template-columns: 136px minmax(0, 1fr);
+    grid-template-columns: 148px minmax(0, 1fr);
     gap: 16px;
     align-items: start;
-    padding: 12px;
+    padding: 16px;
     background: #f5f9fa;
     border: 1px solid #1f6f7f26;
     border-radius: 12px;
+}
+
+.work-gallery-item:has(.cover-option input:checked) {
+    border-color: #1f6f7f66;
 }
 
 .work-gallery-preview {
@@ -212,12 +217,38 @@ function saveWork() {
     border-radius: 8px;
 }
 
+/* Los campos usan su propio espaciado dentro de las tarjetas, y el archivo conserva el control nativo. */
 .work-gallery-fields {
+    display: grid;
+    gap: 12px;
     min-width: 0;
 }
 
-.work-gallery-fields input[type="file"] {
+.work-gallery .field {
+    margin-bottom: 0;
+}
+
+.work-gallery input[type="file"] {
     max-width: 100%;
+    padding: 4px 6px;
+    font-size: .875rem;
+}
+
+.work-gallery input[type="file"]::file-selector-button {
+    min-height: 34px;
+    margin-inline-end: 8px;
+    padding-inline: 10px;
+    color: #153b64;
+    background: #1f6f7f12;
+    border: 0;
+    border-radius: 6px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.work-gallery input[type="file"]::file-selector-button:hover {
+    background: #1f6f7f22;
 }
 
 .work-gallery-actions {
@@ -231,14 +262,34 @@ function saveWork() {
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    width: fit-content;
+    max-width: 100%;
     min-height: 44px;
+    padding: 6px 10px;
     cursor: pointer;
     color: #153b64;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-size: .9rem;
     font-weight: 700;
+    line-height: 1.3;
 }
 
-.cover-option input {
+.cover-option:has(input:checked) {
+    background: #2db3a31a;
+    border-color: #1f6f7f40;
+}
+
+.cover-option input[type="radio"] {
+    appearance: auto;
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
     accent-color: #1f6f7f;
+    cursor: pointer;
 }
 
 .upload-name {
