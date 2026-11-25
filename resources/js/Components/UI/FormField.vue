@@ -9,6 +9,7 @@ const props = defineProps({
     label: String,
     type: {type: String, default: 'text'},
     options: Array,
+    menuProps: Object,
     error: String,
     hint: String,
     required: Boolean,
@@ -74,7 +75,7 @@ function invalidSelection() {
             <VSelect ref="selectControl" class="synaux-field-control" v-bind="common" :model-value="modelValue"
                      :items="items" item-title="title" item-value="value"
                      :placeholder="placeholder || 'Seleccioná una opción'" :aria-required="required"
-                     :menu-props="{maxHeight:280}" @update:model-value="update"/>
+                     :menu-props="{maxHeight: 280, ...menuProps}" @update:model-value="update"/>
             <input v-if="required" class="select-validity-proxy" type="text" tabindex="-1" aria-hidden="true"
                    :value="hasSelection ? 'selected' : ''" :disabled="disabled" required
                    @invalid.prevent="invalidSelection">

@@ -50,8 +50,10 @@ const quantityQuestionsFor = id => questions.value.filter(question =>
     question.active && question.input_type === 'number' && question.quantity_component_id == id);
 // La reutilización copia la definición al servicio actual y deja los precios y las reglas en su origen.
 const reutilizar = ref(null);
+const categoriaOrigen = ref('');
+const servicioOrigen = ref('');
 const seleccionPlantilla = ref('');
-const nombreServicio = id => props.administration.services.find(s => s.id == id)?.name ?? 'Otro servicio';
+const menuPlantillas = {contentClass: 'menu-plantillas-servicio', maxWidth: 'min(512px, calc(100vw - 32px))'};
 const plantillas = computed(() => {
     const esPregunta = reutilizar.value === 'preguntas';
     const registros = esPregunta ? props.administration.questions : props.administration.components;
@@ -60,16 +62,37 @@ const plantillas = computed(() => {
             ? !questions.value.some(q => q.active && q.question === r.question)
             : !components.value.some(c => c.slug === r.slug)));
 });
-const opcionesPlantilla = computed(() => plantillas.value.map(r => ({
-    value: r.id,
-    label: (r.question ?? r.name) + ' · ' + nombreServicio(r.service_id),
-})));
-function abrirReutilizacion(tipo) {
+// Solo se ofrecen categorías y servicios con plantillas reutilizables. Cada cambio limpia la selección dependiente.
+const opcionesPorNombre = registros => registros.map(registro => ({value: registro.id, label: registro.name}))
+    .sort((a, b) => a.label.localeCompare(b.label, 'es'));
+const serviciosConPlantillas = computed(() => {
+    const ids = new Set(plantillas.value.map(r => Number(r.service_id)));
+    return props.administration.services.filter(s => ids.has(Number(s.id)));
+});
+const categoriasOrigen = computed(() => {
+    const ids = new Set(serviciosConPlantillas.value.map(s => Number(s.service_category_id)));
+    return opcionesPorNombre(props.administration.categories.filter(c => ids.has(Number(c.id))));
+});
+const serviciosOrigen = computed(() => opcionesPorNombre(serviciosConPlantillas.value.filter(s =>
+    s.service_category_id == categoriaOrigen.value)));
+const plantillasDelServicio = computed(() => plantillas.value.filter(r => r.service_id == servicioOrigen.value));
+const opcionesPlantilla = computed(() => opcionesPorNombre(plantillasDelServicio.value.map(r => ({id: r.id, name: r.question ?? r.name}))));
+const plantillaElegida = computed(() => plantillasDelServicio.value.find(r => r.id == seleccionPlantilla.value));
+
+function elegirServicioOrigen(valor) {
+    servicioOrigen.value = valor;
     seleccionPlantilla.value = '';
+}
+function elegirCategoriaOrigen(valor) {
+    categoriaOrigen.value = valor;
+    elegirServicioOrigen('');
+}
+function abrirReutilizacion(tipo) {
+    elegirCategoriaOrigen('');
     reutilizar.value = tipo;
 }
 function copiarPlantilla() {
-    const original = plantillas.value.find(r => r.id == seleccionPlantilla.value);
+    const original = plantillaElegida.value;
     if (!original) return;
     const tipo = reutilizar.value;
     reutilizar.value = null;
@@ -301,14 +324,20 @@ function publishPrices() {
                     <span>Servicio de destino</span>
                     <strong>{{ service.name }}</strong>
                 </div>
-                <F v-if="opcionesPlantilla.length" v-model="seleccionPlantilla" :label="reutilizar === 'preguntas' ? 'Elegí una pregunta' : 'Elegí un concepto'"
-                   type="select" :options="opcionesPlantilla" required/>
+                <template v-if="categoriasOrigen.length">
+                    <F :model-value="categoriaOrigen" label="Categoría de origen" type="select" :options="categoriasOrigen"
+                       :menu-props="menuPlantillas" required @update:model-value="elegirCategoriaOrigen"/>
+                    <F :model-value="servicioOrigen" label="Servicio de origen" type="select" :options="serviciosOrigen"
+                       :menu-props="menuPlantillas" :disabled="!categoriaOrigen" required @update:model-value="elegirServicioOrigen"/>
+                    <F v-model="seleccionPlantilla" :label="reutilizar === 'preguntas' ? 'Pregunta' : 'Concepto'"
+                       type="select" :options="opcionesPlantilla" :menu-props="menuPlantillas" :disabled="!servicioOrigen" required/>
+                    <p class="ayuda-configuracion">Vas a poder editar la copia antes de guardarla. Las reglas y los precios se configuran por separado.</p>
+                </template>
                 <p v-else class="notice">No hay registros activos de otros servicios disponibles para copiar.</p>
-                <p v-if="opcionesPlantilla.length" class="ayuda-configuracion">Vas a poder editar la copia antes de guardarla. Las reglas y los precios se configuran por separado.</p>
             </form>
             <template #footer>
                 <B variant="secondary" @click="reutilizar = null">Cancelar</B>
-                <B type="submit" :form="formularios.plantilla" :disabled="!seleccionPlantilla">Usar como plantilla</B>
+                <B type="submit" :form="formularios.plantilla" :disabled="!plantillaElegida">Usar como plantilla</B>
             </template>
         </SidePanel>
 
@@ -565,6 +594,12 @@ function publishPrices() {
     margin: 0;
     min-height: 36px;
     cursor: pointer;
+}
+
+/* Las opciones largas se leen completas dentro del ancho del panel. */
+:global(.menu-plantillas-servicio .v-list-item-title) {
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .component-price {
