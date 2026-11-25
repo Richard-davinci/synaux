@@ -5,7 +5,7 @@ import I from '../UI/AppIcon.vue';
 import {referenceHref} from '../../support/prototype';
 
 // Este panel organiza enlaces ya autorizados; mostrar un enlace no concede permisos de acceso.
-const props = defineProps({items: Array, area: String, current: String, title: String, tituloId: String});
+const props = defineProps({items: Array, area: String, current: String, title: String, tituloId: String, showAreaSwitch: Boolean});
 const emit = defineEmits(['navigate']);
 const page = usePage();
 
@@ -23,6 +23,10 @@ function unreadFor(label) {
 // Administración reemplaza las secciones de gestión dentro del mismo panel para evitar una lista desplegada que obligue a desplazarse.
 const isAdminView = computed(() => props.area === 'gestion' && props.current === 'administracion');
 const iconoArea = computed(() => isAdminView.value ? 'grid' : props.area === 'gestion' ? 'layout' : 'folder');
+// La cuenta con acceso a ambas áreas puede abrir la otra desde el mismo panel.
+const otraArea = computed(() => isAdminView.value
+    ? {nombre: 'Gestión', ruta: '/gestion', icono: 'layout'}
+    : {nombre: 'Administración', ruta: '/admin/servicios', icono: 'grid'});
 const activeAdminSection = computed(() => page.props.section || page.url.split(/[?#]/)[0].split('/')[2] || 'servicios');
 
 const icons = {
@@ -70,7 +74,7 @@ function isActive(href) {
                     v-if="unreadFor(label)" class="workspace-unread"
                     :aria-label="`${unreadFor(label)} sin leer`">{{ unreadFor(label) }}</span></a>
             </nav>
-            <!-- El panel muestra los grupos de Administración y el navbar devuelve a Gestión. -->
+            <!-- Administración muestra sus propios grupos de navegación. -->
             <div v-else class="workspace-admin">
                 <!-- Los grupos conservan rutas y permisos existentes; la vista actual marca una sola sección activa. -->
                 <nav v-for="group in administration" :key="group.title" :aria-label="group.title"
@@ -85,6 +89,12 @@ function isActive(href) {
                 </nav>
             </div>
         </div>
+        <!-- El acceso se mantiene visible aunque la lista de secciones tenga desplazamiento. -->
+        <nav v-if="area === 'gestion' && showAreaSwitch" class="workspace-area-switch" aria-label="Cambiar de área">
+            <a :href="referenceHref(otraArea.ruta, page.props)" @click="emit('navigate')">
+                <I :name="otraArea.icono"/><span>{{ otraArea.nombre }}</span><I class="workspace-area-arrow" name="arrow"/>
+            </a>
+        </nav>
     </div>
 </template>
 
@@ -202,6 +212,17 @@ function isActive(href) {
     stroke-width: 1.7;
     stroke-linecap: round;
     stroke-linejoin: round;
+}
+
+/* El acceso entre áreas queda separado de las secciones y al alcance en móvil. */
+.workspace-area-switch {
+    flex: 0 0 auto;
+    padding: 8px 18px;
+    border-top: 1px solid #1f6f7f26;
+}
+
+.workspace-area-arrow {
+    margin-inline-start: auto;
 }
 
 /* Los grupos administrativos se muestran al mismo nivel dentro del panel. */

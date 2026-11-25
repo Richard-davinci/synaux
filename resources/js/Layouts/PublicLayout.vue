@@ -106,7 +106,7 @@ watch(() => page.url, () => {
             <aside v-if="mostrarPanel" class="workspace-sidebar">
                 <div class="workspace-panel-surface workspace-sidebar-sticky">
                     <WorkspaceNavigation :items="nav" :area="area" :current="currentSection"
-                                         :title="workspaceTitle"/>
+                                         :title="workspaceTitle" :show-area-switch="showAreaSwitch"/>
                 </div>
             </aside>
             <v-main id="contenido" class="workspace-content" tabindex="-1">
@@ -120,7 +120,8 @@ watch(() => page.url, () => {
                   @after-leave="restoreWorkspaceFocus" aria-labelledby="workspace-mobile-title">
             <div id="workspace-mobile-panel" class="synaux-app workspace-panel-surface">
                 <WorkspaceNavigation :items="nav" :area="area" :current="currentSection"
-                                     :title="workspaceTitle" titulo-id="workspace-mobile-title" @navigate="workspaceOpen = false">
+                                     :title="workspaceTitle" :show-area-switch="showAreaSwitch" titulo-id="workspace-mobile-title"
+                                     @navigate="workspaceOpen = false">
                     <template #accion-encabezado>
                         <button type="button" class="workspace-close" aria-label="Cerrar menú del panel"
                                 @click="workspaceOpen = false"><I name="close"/></button>
