@@ -195,7 +195,7 @@ function publishPrices() {
     <div class="service-configuration">
         <!-- Cada pregunta muestra su alcance, su estado y si requiere respuesta. -->
         <template v-if="section === 'preguntas'">
-            <section v-for="grupo in gruposPreguntas" :key="grupo.id" class="bloque-configuracion">
+            <v-card tag="section" v-for="grupo in gruposPreguntas" :key="grupo.id" class="card bloque-configuracion">
                 <div class="cabecera-configuracion">
                     <div><h2>{{ grupo.titulo }}</h2><p>{{ grupo.descripcion }}</p></div>
                     <div class="acciones-configuracion">
@@ -213,18 +213,18 @@ function publishPrices() {
                     </div>
                     <B compact variant="secondary" :aria-label="'Editar pregunta ' + question.question" @click="edit('preguntas', question)">Editar</B>
                 </article>
-            </section>
+            </v-card>
         </template>
 
         <!-- La base, los conceptos y las condiciones se revisan por separado. -->
         <template v-else-if="section === 'estimacion'">
-            <section class="bloque-configuracion">
+            <v-card tag="section" class="card bloque-configuracion">
                 <h2>Cómo se calcula la estimación</h2>
                 <p v-if="automatica">La estimación empieza con el precio base y suma los conceptos según sus cantidades.</p>
                 <p v-else>Este servicio se cotiza manualmente. Podés preparar sus conceptos y reglas para cuando actives la estimación automática.</p>
                 <div v-if="automatica" class="resumen-importe"><strong>Precio base vigente</strong><span>{{ importe(baseVigente) }}</span></div>
-            </section>
-            <section class="bloque-configuracion">
+            </v-card>
+            <v-card tag="section" class="card bloque-configuracion">
                 <div class="cabecera-configuracion">
                     <div><h2>Conceptos de precio</h2><p>Definí qué se suma al precio base y en qué cantidad.</p></div>
                     <div class="acciones-configuracion">
@@ -246,8 +246,8 @@ function publishPrices() {
                         <B compact variant="secondary" :aria-label="'Editar concepto ' + concepto.name" @click="edit('componentes', concepto)">Editar</B>
                     </article>
                 </section>
-            </section>
-            <section class="bloque-configuracion">
+            </v-card>
+            <v-card tag="section" class="card bloque-configuracion">
                 <div class="cabecera-configuracion">
                     <div><h2>Reglas de cálculo</h2><p>Cada regla indica cuántas unidades suma una respuesta a un concepto.</p></div>
                     <B compact :disabled="!opcionesActivas.length || !conceptosActivos.length" @click="edit('reglas')">Agregar regla</B>
@@ -263,11 +263,11 @@ function publishPrices() {
                     </div>
                     <B compact variant="secondary" :aria-label="'Editar regla ' + optionLabel(regla.estimator_option_id) + ' a ' + componentName(regla.service_component_id)" @click="edit('reglas', regla)">Editar</B>
                 </article>
-            </section>
+            </v-card>
         </template>
 
         <!-- Para actualizar el tarifario se abre un formulario aparte. -->
-        <section v-else-if="section === 'precios'" class="bloque-configuracion">
+        <v-card tag="section" v-else-if="section === 'precios'" class="card bloque-configuracion">
             <div class="cabecera-configuracion">
                 <div><h2>Precios vigentes</h2>
                     <p v-if="automatica && currentTariff">{{ currentTariff.name }} · {{ moneda }} · Desde {{ date(currentTariff.effective_from) }}</p>
@@ -292,7 +292,7 @@ function publishPrices() {
                 </dl>
             </template>
             <p v-else class="notice"><strong>A cotizar.</strong> El precio se define en un presupuesto profesional.</p>
-        </section>
+        </v-card>
 
         <SidePanel :title="reutilizar ? 'Reutilizar ' + titulos[reutilizar] : 'Reutilizar'" :model-value="Boolean(reutilizar)"
                    @update:model-value="reutilizar = null">
@@ -417,11 +417,15 @@ function publishPrices() {
 </template>
 
 <style scoped>
-/* Los grupos de configuración separan visualmente las decisiones y admiten textos largos. */
-.bloque-configuracion + .bloque-configuracion {
-    margin-top: 28px;
-    padding-top: 24px;
-    border-top: 1px solid #1f6f7f26;
+/* Las tarjetas separan cada grupo y mantienen los márgenes de la ficha. */
+.service-configuration {
+    display: grid;
+    gap: 16px;
+}
+
+.card.bloque-configuracion {
+    min-width: 0;
+    padding: clamp(18px, 3vw, 28px);
 }
 
 .bloque-configuracion h2 {

@@ -1,5 +1,7 @@
 <script setup>
-import {computed, ref, watch} from 'vue';
+import {computed, ref, useId, watch} from 'vue';
+import {VTab, VTabs} from 'vuetify/components';
+import MigasNavegacion from '../../Components/Navigation/MigasNavegacion.vue';
 import {useForm, usePage} from '@inertiajs/vue3';
 import ServiceConfiguration from '../../Components/Admin/ServiceConfiguration.vue';
 import B from '../../Components/UI/AppButton.vue';
@@ -19,10 +21,18 @@ const tabs = [
     ['precios', 'Precios vigentes'],
 ];
 const configurationTab = ref('informacion');
+// Los identificadores relacionan cada pestaña con su región de contenido.
+const editorId = useId();
+const idPestana = seccion => editorId + '-pestana-' + seccion;
+const idContenido = seccion => editorId + '-contenido-' + seccion;
 const serviceId = computed(() => Number(props.data.preview
     ? props.data.catalogServiceId
     : page.url.split('?')[0].match(/\/servicios\/(\d+)\/editar$/)?.[1]));
 const selected = computed(() => catalog.value.services.find(service => service.id === serviceId.value));
+const migas = computed(() => [
+    ['Servicios', '/admin/servicios'],
+    [selected.value ? 'Editar servicio' : 'Nuevo servicio'],
+]);
 const categoryOptions = computed(() => catalog.value.categories.map(category => ({
     value: category.id,
     label: category.name + (category.active ? '' : ' (inactiva)'),
@@ -63,20 +73,27 @@ function guardar() {
 
 <template>
     <section class="page shell catalog-admin workspace-view catalog-editor">
-        <B href="/admin/servicios" variant="ghost">← Volver a servicios</B>
-        <T eyebrow="Catálogo" :title="selected ? selected.name : 'Nuevo servicio'"
+        <MigasNavegacion class="editor-migas" :niveles="migas"/>
+        <T :title="selected ? selected.name : 'Nuevo servicio'"
            :description="selected ? 'Editá la ficha pública, las preguntas y los precios de este servicio.' : 'Guardá la ficha para configurar sus preguntas y precios.'"/>
-        <!-- Cada pestaña mantiene el contexto del servicio que se está editando. -->
-        <nav v-if="selected" class="service-tabs" aria-label="Configuración del servicio">
-            <B v-for="[key, label] in tabs" :key="key" compact :variant="configurationTab === key ? 'primary' : 'secondary'"
-               :aria-current="configurationTab === key ? 'page' : undefined" @click="configurationTab = key">{{ label }}</B>
-        </nav>
-        <v-card v-if="selected && configurationTab !== 'informacion'" class="card">
-            <ServiceConfiguration :key="selected.id" :service="selected" :administration="catalog" :section="configurationTab"/>
-        </v-card>
-        <v-card v-else class="card form-card">
+        <!-- Vuetify gestiona el teclado y el desplazamiento de la barra en pantallas angostas. -->
+        <VTabs v-if="selected" v-model="configurationTab" class="service-tabs" color="primary"
+               slider-color="#1f6f7f" show-arrows aria-label="Configuración del servicio">
+            <VTab v-for="[key, label] in tabs" :id="idPestana(key)" :key="key" :value="key"
+                  :aria-controls="idContenido(key)">{{ label }}</VTab>
+        </VTabs>
+        <template v-if="selected">
+            <div v-for="[key] in tabs.slice(1)" v-show="configurationTab === key" :id="idContenido(key)"
+                 :key="key" role="tabpanel" :aria-labelledby="idPestana(key)">
+                <ServiceConfiguration v-if="configurationTab === key" :key="selected.id" :service="selected"
+                                      :administration="catalog" :section="key"/>
+            </div>
+        </template>
+        <div v-show="!selected || configurationTab === 'informacion'"
+             :id="selected ? idContenido('informacion') : undefined" :role="selected ? 'tabpanel' : undefined"
+             :aria-labelledby="selected ? idPestana('informacion') : undefined">
             <form class="catalog-form" @submit.prevent="guardar">
-                <section class="catalog-section" aria-labelledby="ficha-general">
+                <v-card tag="section" class="card catalog-section" aria-labelledby="ficha-general">
                     <h2 id="ficha-general">Información general</h2>
                     <div class="catalog-fields">
                         <F v-model="service.name" label="Nombre del servicio" required :error="service.errors.name" maxlength="255"/>
@@ -89,8 +106,8 @@ function guardar() {
                            class="catalog-wide" label="Dirección del servicio (slug)" required maxlength="150"
                            hint="Se genera desde el nombre. Podés ajustarla con letras, números y guiones." :error="service.errors.slug"/>
                     </div>
-                </section>
-                <section class="catalog-section" aria-labelledby="ficha-alcance">
+                </v-card>
+                <v-card tag="section" class="card catalog-section" aria-labelledby="ficha-alcance">
                     <h2 id="ficha-alcance">Alcance del servicio</h2>
                     <div class="catalog-fields">
                         <F v-model="service.description" label="Descripción completa" type="textarea"
@@ -98,40 +115,71 @@ function guardar() {
                         <F v-model="service.deliverables" label="Entregables (uno por línea)" type="textarea"
                            hint="Listá lo que recibe el cliente en «Qué incluye»." required maxlength="10000" :error="service.errors.deliverables"/>
                     </div>
-                </section>
-                <section class="catalog-section" aria-labelledby="ficha-modalidad">
+                </v-card>
+                <v-card tag="section" class="card catalog-section" aria-labelledby="ficha-modalidad">
                     <h2 id="ficha-modalidad">Modalidad de estimación</h2>
                     <F v-model="service.estimation_mode" label="¿Cómo se cotiza este servicio?" type="select"
                        :options="modalidades" required :error="service.errors.estimation_mode"
                        :hint="service.estimation_mode === 'manual' ? 'Un profesional revisa cada solicitud y prepara el presupuesto.' : 'Configurá la base, las reglas y los precios vigentes para calcular una referencia.'"/>
-                </section>
-                <section class="catalog-section" aria-labelledby="ficha-publicacion">
+                </v-card>
+                <v-card tag="section" class="card catalog-section" aria-labelledby="ficha-publicacion">
                     <h2 id="ficha-publicacion">Publicación</h2>
                     <label class="select-row"><input v-model="service.active" type="checkbox">Mostrar en el catálogo</label>
                     <p v-if="service.errors.active" role="alert">{{ service.errors.active }}</p>
                     <p v-if="service.estimation_mode === 'automatic'">Revisá la cobertura de precios antes de publicar un servicio automático.</p>
-                </section>
+                </v-card>
                 <div class="form-actions">
                     <B type="submit" :disabled="service.processing">{{ service.processing ? 'Guardando…' : 'Guardar servicio' }}</B>
                 </div>
             </form>
-        </v-card>
+        </div>
     </section>
 </template>
 
 <style scoped>
 /* La ficha usa una columna amplia con grupos de campos que se apilan en móvil. */
 .catalog-admin.catalog-editor { max-width: 1040px; margin-inline: auto; }
-.service-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
-.catalog-editor .form-card { width: 100%; max-width: none; padding: clamp(18px, 3vw, 28px); }
-.catalog-section + .catalog-section { padding-top: 20px; margin-top: 24px; border-top: 1px solid #1f6f7f22; }
+.catalog-editor .editor-migas {
+    width: 100%;
+    padding: 0;
+    margin: 0 0 16px;
+}
+
+/* La línea inferior une las pestañas y el indicador marca la sección activa. */
+.service-tabs {
+    margin-bottom: 24px;
+    border-bottom: 1px solid #1f6f7f26;
+}
+
+.service-tabs :deep(.v-tab) {
+    padding-inline: clamp(10px, 2vw, 20px);
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: 600;
+    border-radius: 0;
+}
+
+.service-tabs :deep(.v-tab--selected) { font-weight: 700; }
+.service-tabs :deep(.v-tab__slider) { height: 3px; }
+
+/* Cada tarjeta separa una sección dentro del mismo formulario. */
+.catalog-form {
+    display: grid;
+    gap: 16px;
+}
+
+.catalog-section {
+    width: 100%;
+    min-width: 0;
+    padding: clamp(18px, 3vw, 28px);
+}
 .catalog-section h2 { margin-bottom: 14px; }
 .catalog-section p { margin: 8px 0 0; }
 .catalog-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 16px 20px; }
 .catalog-fields > :deep(.field), .catalog-section > :deep(.field) { margin-bottom: 0; }
 .catalog-wide { grid-column: 1 / -1; }
-.catalog-form .form-actions { justify-content: flex-end; padding-top: 18px; border-top: 1px solid #1f6f7f22; }
-.catalog-admin a:not(.btn) { color: #1f6f7f; text-decoration: underline; }
+.catalog-form .form-actions { justify-content: flex-end; margin: 4px 0 0; }
+.catalog-form a { color: #1f6f7f; text-decoration: underline; }
 
 @media (max-width: 680px) {
     .catalog-fields { grid-template-columns: minmax(0, 1fr); }
