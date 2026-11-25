@@ -41,6 +41,22 @@ class EstimateController extends Controller
         return redirect('/cliente/estimaciones')->with('notice', 'Estimación eliminada de tu lista. Las solicitudes vinculadas conservan su historial.');
     }
 
+    // Reinicia la estimación en curso, sin modificar los registros de la cuenta.
+    public function restart(Request $request): RedirectResponse
+    {
+        abort_if($request->user()?->is_admin, 403);
+        $request->validate(['confirmed' => 'required|accepted']);
+
+        $session = $request->session();
+        $session->forget('pending_estimate');
+        // Los avances ligados a un borrador de solicitud guardado se conservan al reiniciar el estimador.
+        if (!$session->get('pending_request.form.id')) {
+            $session->forget('pending_request');
+        }
+
+        return redirect('/estimador');
+    }
+
     // Valida las respuestas, calcula en el servidor y conserva el resultado en la sesión para continuar.
     public function calculate(Request $request, ServiceCatalog $catalog)
     {

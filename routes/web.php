@@ -46,6 +46,7 @@ Route::post('/contacto', [ContactController::class, 'store'])->middleware('throt
 // El formulario nuevo es público; consultar registros guardados y enviar pedidos sigue requiriendo autenticación.
 Route::get('/solicitudes/nueva', [SolicitudController::class, 'create']);
 Route::post('/solicitudes/preparar', [SolicitudController::class, 'prepare'])->middleware('throttle:20,1');
+Route::post('/estimador/reiniciar', [EstimateController::class, 'restart'])->middleware('throttle:15,1,reiniciar-estimacion');
 Route::post('/estimador/calcular', [EstimateController::class, 'calculate'])->middleware('throttle:30,1');
 
 // Registro e ingreso usan sesiones y límites de intentos; la recuperación usa el broker de Laravel.

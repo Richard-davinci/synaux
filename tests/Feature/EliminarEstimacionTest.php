@@ -75,6 +75,27 @@ class EliminarEstimacionTest extends TestCase
         $this->get('/solicitudes/' . $requestId)->assertOk();
     }
 
+    // El reinicio borra solo el avance de sesión; los borradores identificados y estimaciones guardadas permanecen.
+    public function test_restarting_a_calculation_clears_only_the_unsaved_journey(): void
+    {
+        $owner = User::factory()->create();
+        [$id, $calculation] = $this->estimate($owner);
+
+        $this->withSession(['pending_estimate' => $calculation, 'pending_request' => ['form' => ['id' => null]]])
+            ->post('/estimador/reiniciar', ['confirmed' => false])->assertSessionHasErrors('confirmed')
+            ->assertSessionHas('pending_estimate')->assertSessionHas('pending_request');
+        $this->post('/estimador/reiniciar', ['confirmed' => true])->assertRedirect('/estimador')
+            ->assertSessionMissing('pending_estimate')->assertSessionMissing('pending_request');
+        $this->get('/estimador')->assertInertia(fn (Assert $page) => $page
+            ->where('requestStep', 1)->where('requestDraft', null)->has('requestInitialAnswers', 0));
+
+        $guardado = ['form' => ['id' => 19]];
+        $this->actingAs($owner)->withSession(['pending_estimate' => $calculation, 'pending_request' => $guardado])
+            ->post('/estimador/reiniciar', ['confirmed' => true])->assertRedirect('/estimador')
+            ->assertSessionMissing('pending_estimate')->assertSessionHas('pending_request', $guardado);
+        $this->assertDatabaseHas('estimates', ['id' => $id, 'deleted_at' => null]);
+    }
+
     public function test_explicitly_saving_the_same_calculation_recovers_its_original_record(): void
     {
         $owner = User::factory()->create();

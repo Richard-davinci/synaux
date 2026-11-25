@@ -8,6 +8,7 @@ import ServicePicker from '../Catalog/ServicePicker.vue';
 import RequestQuestions from './PreguntasSolicitud.vue';
 import AdditionalServices from './ServiciosAdicionales.vue';
 import RequestSummary from './ResumenSolicitud.vue';
+import ReiniciarEstimacion from '../Estimates/ReiniciarEstimacion.vue';
 import {useRequestPricing} from './usePreciosSolicitud';
 import {useSubmit} from '../../support/useSubmit';
 
@@ -111,6 +112,11 @@ watch(selectedService, (service, previous) => {
         form.additional_services = form.additional_services.filter(item => item.service_id != service.database_id);
     }
 }, {immediate: true});
+// El servicio sugerido y las respuestas vacías forman parte del estado inicial.
+form.defaults();
+const puedeReiniciar = computed(() => !old && Boolean(
+    step.value > 1 || form.isDirty || estimate || props.data.requestDraft || props.data.pending
+));
 
 function extraName(id) {
     return props.data.services.find(item => item.database_id == id)?.name ?? 'Elegí un servicio';
@@ -275,9 +281,14 @@ function save(publish) {
                     </div>
                 </form>
 
-                <B v-if="step >= 2 && authenticated" class="draft-action" variant="ghost"
-                   :disabled="form.processing || handoff.processing || !canSaveDraft"
-                   @click="save(false)">{{ form.processing && !form.publish ? 'Guardando…' : 'Guardar borrador' }}</B>
+                <!-- El reinicio se ofrece en el flujo nuevo, con confirmación si hay datos para descartar. -->
+                <div class="acciones-borrador" v-if="(step >= 2 && authenticated) || puedeReiniciar">
+                    <B v-if="step >= 2 && authenticated" variant="ghost"
+                       :disabled="form.processing || handoff.processing || !canSaveDraft"
+                       @click="save(false)">{{ form.processing && !form.publish ? 'Guardando…' : 'Guardar borrador' }}</B>
+                    <ReiniciarEstimacion v-if="puedeReiniciar"
+                                         :deshabilitado="form.processing || handoff.processing"/>
+                </div>
                 <p v-if="step >= 2 && authenticated && !canSaveDraft" class="draft-help">Completá el título y la
                     descripción para guardar el borrador.</p>
             </v-card>
@@ -410,7 +421,10 @@ function save(publish) {
     font-weight: 700;
 }
 
-.draft-action {
+.acciones-borrador {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
     margin-top: 8px;
 }
 

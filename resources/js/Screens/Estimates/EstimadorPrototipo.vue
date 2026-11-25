@@ -7,6 +7,7 @@ import F from '../../Components/UI/FormField.vue';
 import T from '../../Components/UI/PageTitle.vue';
 import ServiceReference from '../../Components/Estimates/ServiceReference.vue';
 import EstimateResult from '../../Components/Estimates/EstimateResult.vue';
+import ReiniciarEstimacion from '../../Components/Estimates/ReiniciarEstimacion.vue';
 import {useSubmit} from '../../support/useSubmit';
 
 // El formulario conserva sus respuestas al recorrer los pasos; Laravel valida y calcula los importes.
@@ -152,6 +153,11 @@ function save(toRequest) {
                     @click="calculate">{{ form.processing ? 'Calculando…' : 'Calcular estimación' }}</B></div>
             </v-card>
 
+            <!-- La vista de referencia permite reiniciar también antes de calcular. -->
+            <div v-if="step > 1 || form.isDirty" class="estimator-restart">
+                <ReiniciarEstimacion :deshabilitado="form.processing"/>
+            </div>
+
             <aside class="estimator-reference">
                 <ServiceReference :service="selectedService" :reference="currentReference"/>
                 <v-card v-if="!selectedService" class="card reference-empty"><h3>Referencia del servicio</h3>
@@ -168,6 +174,7 @@ function save(toRequest) {
             </template>
             <B v-else href="/ingresar" arrow>Ingresar para solicitar presupuesto</B>
             <B variant="secondary" @click="step = 2">Editar respuestas</B>
+            <ReiniciarEstimacion :deshabilitado="saveForm.processing"/>
         </EstimateResult>
         <v-card v-else class="card"><h2>Comenzá por elegir un servicio</h2>
             <p>Necesitamos tus respuestas para preparar la referencia.</p><B href="/estimador">Volver al estimador</B>
@@ -237,7 +244,15 @@ function save(toRequest) {
     align-items: start;
 }
 
+/* La acción secundaria queda debajo del formulario de referencia. */
+.estimator-restart {
+    grid-row: 2;
+    justify-self: start;
+}
+
 .estimator-reference {
+    grid-column: 2;
+    grid-row: 1;
     position: sticky;
     top: 1.5rem;
 }
@@ -306,6 +321,8 @@ function save(toRequest) {
     }
 
     .estimator-reference {
+        grid-column: 1;
+        grid-row: auto;
         position: static;
     }
 }

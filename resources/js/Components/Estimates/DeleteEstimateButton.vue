@@ -1,6 +1,6 @@
 <script setup>
 import SidePanel from '../UI/SidePanel.vue';
-import {ref, useId} from 'vue';
+import {computed, ref, useId} from 'vue';
 import {useForm, usePage} from '@inertiajs/vue3';
 import B from '../UI/AppButton.vue';
 import {demoNotice} from '../../support/prototype';
@@ -11,6 +11,8 @@ const page = usePage();
 const open = ref(false);
 const titleId = useId();
 const form = useForm({confirmed: false});
+// La lista identifica la eliminación como una acción sobre un borrador ya guardado.
+const accion = computed(() => props.compact ? 'Eliminar borrador' : 'Eliminar estimación');
 
 function ask() {
     form.reset();
@@ -37,7 +39,7 @@ function remove() {
 }
 </script>
 <template>
-    <B variant="ghost" :compact="compact" :aria-label="'Eliminar estimación EST-' + estimate.id" @click="ask">Eliminar</B>
+    <B variant="ghost" :compact="compact" :aria-label="accion + ' EST-' + estimate.id" @click="ask">{{ accion }}</B>
     <SidePanel title="Eliminar estimación" :model-value="open" max-width="440" :persistent="form.processing"
                @update:model-value="value => { if (!value) close(); }" :aria-labelledby="titleId">
         <div class="synaux-app">
