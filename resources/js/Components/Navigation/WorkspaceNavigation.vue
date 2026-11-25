@@ -31,6 +31,7 @@ const icons = {
     Proyectos: 'folder',
     Portfolio: 'palette',
     Consultas: 'message',
+    Clientes: 'user',
     Oportunidades: 'web',
     'Mis propuestas': 'file',
     Propuestas: 'file',
@@ -41,12 +42,12 @@ const icons = {
 const administration = computed(() => [
     {title: 'Catálogo', items: [['Servicios', 'servicios', 'grid'], ['Categorías', 'categorias', 'tag']]},
     {title: 'Precios', items: [['Tarifarios', 'tarifario', 'calculator']]},
-    ...(page.props.preview ? [] : [{title: 'Organización', items: [['Datos de la organización', 'organizacion', 'file'], ['Usuarios', 'usuarios', 'user']]}]),
+    ...(page.props.preview ? [] : [{title: 'Organización', items: [['Datos de la organización', 'organizacion', 'file'], ['Equipo', 'usuarios', 'user']]}]),
 ]);
 const sectionFor = href => href.split('/').filter(Boolean).slice(1).join('/') || 'resumen';
 
 function isActive(href) {
-    return props.current === sectionFor(href);
+    return props.current === sectionFor(href) || props.current === 'clientes' && href === '/gestion/clientes';
 }
 
 // El cierre real invalida la sesión en Laravel; la galería solo muestra un aviso de demostración.

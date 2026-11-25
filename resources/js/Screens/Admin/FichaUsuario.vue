@@ -8,9 +8,9 @@ defineProps({data: {type: Object, required: true}});
 </script>
 
 <template>
-    <section class="page shell workspace-view user-profile" aria-label="Ficha de usuario">
-        <B :href="data.userDirectoryUrl" variant="ghost">← Volver a Usuarios</B>
-        <T eyebrow="Ficha de usuario" :title="data.selectedUser.name"/>
+    <section class="page shell workspace-view user-profile" aria-label="Ficha de cliente">
+        <B :href="data.userDirectoryUrl" variant="ghost">← Volver a Clientes</B>
+        <T eyebrow="Ficha de cliente" :title="data.selectedUser.name"/>
 
         <!-- La ficha identifica la cuenta y muestra el acceso vigente que se le asignó. -->
         <v-card class="card account-summary">
@@ -22,11 +22,11 @@ defineProps({data: {type: Object, required: true}});
                 </div>
                 <div>
                     <dt>Rol</dt>
-                    <dd>{{ data.selectedUser.is_admin ? 'Administrador' : 'Cliente' }}</dd>
+                    <dd>Cliente</dd>
                 </div>
                 <div>
                     <dt>Acceso</dt>
-                    <dd>{{ data.selectedUser.is_admin ? 'Gestión y Administración' : 'Área cliente' }}</dd>
+                    <dd>Área cliente</dd>
                 </div>
                 <div>
                     <dt>Fecha de alta</dt>
@@ -34,6 +34,28 @@ defineProps({data: {type: Object, required: true}});
                 </div>
             </dl>
         </v-card>
+
+        <!-- El historial muestra los documentos enviados y mantiene el acceso a sus detalles de Gestión. -->
+        <div class="historial-cliente">
+            <v-card tag="section" class="card historial-seccion">
+                <h2>Solicitudes recientes</h2>
+                <ul v-if="data.solicitudesCliente.length">
+                    <li v-for="solicitud in data.solicitudesCliente" :key="solicitud.id">
+                        <a :href="'/solicitudes/' + solicitud.id">{{ solicitud.title }}</a>
+                    </li>
+                </ul>
+                <p v-else>No hay solicitudes enviadas.</p>
+            </v-card>
+            <v-card tag="section" class="card historial-seccion">
+                <h2>Presupuestos recientes</h2>
+                <ul v-if="data.presupuestosCliente.length">
+                    <li v-for="presupuesto in data.presupuestosCliente" :key="presupuesto.id">
+                        <a :href="'/presupuestos/' + presupuesto.id">{{ presupuesto.title }} · V{{ presupuesto.version_number }}</a>
+                    </li>
+                </ul>
+                <p v-else>No hay presupuestos enviados.</p>
+            </v-card>
+        </div>
 
         <!-- Cada enlace abre el detalle operativo del proyecto en el panel de Gestión. -->
         <section class="user-projects" aria-labelledby="user-projects-title">
@@ -80,6 +102,12 @@ defineProps({data: {type: Object, required: true}});
 .account-summary dd {
     overflow-wrap: anywhere;
 }
+
+.historial-cliente { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; margin-top: 18px; }
+.historial-seccion { padding: 20px; }
+.historial-seccion h2 { margin: 0 0 10px; font-size: 1.15rem; }
+.historial-seccion ul { margin: 0; padding-left: 20px; overflow-wrap: anywhere; }
+.historial-seccion li + li { margin-top: 8px; }
 
 .user-projects {
     margin-top: 28px;

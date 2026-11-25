@@ -125,7 +125,8 @@ function guardar(seccion) {
                         <div class="account-fields">
                             <F v-model="contactoForm.name" label="Nombre y apellido" autocomplete="name" maxlength="255"
                                required :error="contactoForm.errors.name"/>
-                            <F v-model="contactoForm.email" label="Correo de ingreso y contacto" type="email"
+                            <F v-model="contactoForm.email" label="Correo de ingreso y contacto" type="email" :disabled="profile.correo_fijo"
+                               :hint="profile.correo_fijo ? 'El correo del equipo es fijo.' : undefined"
                                autocomplete="email" maxlength="254" required :error="contactoForm.errors.email"/>
                             <F v-if="emailChanged" v-model="contactoForm.current_password" class="account-field-wide"
                                label="Contraseña actual para cambiar el correo" type="password"

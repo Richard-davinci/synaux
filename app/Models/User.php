@@ -37,6 +37,12 @@ class User extends Authenticatable
         'activacion_hash',
     ];
 
+    // Cualquier membresía de equipo mantiene fijo el correo de esa cuenta.
+    public function perteneceAEquipo(): bool
+    {
+        return \Illuminate\Support\Facades\DB::table('organizacion_miembros')->where('user_id', $this->id)->exists();
+    }
+
     // El contacto propio se reutiliza al iniciar un pedido, sin modificar pedidos ya guardados.
     public function contactDetails(): array
     {

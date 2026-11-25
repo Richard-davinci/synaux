@@ -15,76 +15,105 @@ use Inertia\Inertia;
 
 class DirectorioUsuariosController extends Controller
 {
-    // La ruta administrativa consulta solo los datos que muestra el listado y pagina en el servidor.
+    private const ROLES = ['administrador', 'supervisor', 'profesional'];
+
+    // Administración lista solo miembros. Gestión abre su cartera por una ruta propia.
     public function __invoke(Request $request)
     {
-        $query = $request->query('buscar');
-        $search = is_string($query) ? Str::substr(trim($query), 0, 120) : '';
+        return $this->listado($request, equipo: true);
+    }
 
-        // El rol de equipo se consulta solo para el espacio inicial de la organización.
+    public function clientes(Request $request)
+    {
+        return $this->listado($request, equipo: false);
+    }
+
+    private function listado(Request $request, bool $equipo)
+    {
         $organizacion = Organizacion::principal();
-        $users = User::query()
-            ->when($search !== '', fn($query) => $query->where(fn($account) => $account
-                ->whereLike('name', '%' . $search . '%')
-                ->orWhereLike('email', '%' . $search . '%')))
-            ->select('id', 'name', 'email', 'is_admin', 'created_at', 'activacion_pendiente')
-            ->selectSub(DB::table('organizacion_miembros')->select('rol')
-                ->where('organizacion_id', $organizacion->id)->whereColumn('user_id', 'users.id'), 'rol_organizacion')
-            ->latest('id')
-            ->paginate(20)
+        $search = $this->busqueda($request);
+        $usuarios = $equipo ? $organizacion->miembros() : $organizacion->clientes();
+        $users = $usuarios
+            ->when($search !== '', fn ($query) => $query->where(fn ($account) => $account
+                ->whereLike('users.name', '%' . $search . '%')
+                ->orWhereLike('users.email', '%' . $search . '%')))
+            ->latest('users.id')
+            ->paginate(20, ['users.id', 'users.name', 'users.email', 'users.is_admin', 'users.created_at', 'users.activacion_pendiente'])
             ->appends($search !== '' ? ['buscar' => $search] : []);
 
+        // Solo se exponen los campos de la tabla, sin las claves de la relación.
+        $users->through(fn (User $usuario) => [
+            ...$usuario->only('id', 'name', 'email', 'is_admin', 'created_at', 'activacion_pendiente'),
+            'rol_organizacion' => $equipo ? $usuario->pivot->rol : null,
+        ]);
+
         return Inertia::render('EspacioTrabajo', [
-            'screen' => 'admin',
+            'screen' => $equipo ? 'admin' : 'gestion',
             'area' => 'gestion',
-            'section' => 'usuarios',
+            'section' => $equipo ? 'usuarios' : 'clientes',
             'users' => $users,
             'userSearch' => $search,
+            'dominioEquipo' => $equipo ? $organizacion->dominio_correo_equipo : null,
         ])->toResponse($request)->header('Cache-Control', 'private, no-store');
     }
 
-    // El alta queda pendiente de activación. La membresía de una cuenta existente se actualiza por correo.
+    // Un miembro nuevo siempre recibe una cuenta corporativa independiente.
     public function guardarMiembro(Request $request)
     {
         $data = $request->validate([
-            'modo' => ['required', Rule::in(['existente', 'nueva'])],
+            'name' => 'required|string|max:255',
             'email' => 'required|email|max:254',
-            'name' => 'exclude_unless:modo,nueva|required|string|max:255',
-            'rol' => ['required', Rule::in(['administrador', 'supervisor', 'profesional'])],
+            'rol' => ['required', Rule::in(self::ROLES)],
         ]);
+        $correo = Str::lower($data['email']);
 
-        DB::transaction(function () use ($data) {
-            $correo = Str::lower($data['email']);
-            $usuario = User::query()->where('email', $correo)->first();
-            if ($data['modo'] === 'nueva') {
-                if ($usuario) {
-                    throw ValidationException::withMessages(['email' => 'Ese correo ya tiene una cuenta. Elegí Cuenta existente.']);
-                }
-                $usuario = User::unguarded(fn () => User::query()->createOrFirst(['email' => $correo], [
-                    'name' => $data['name'], 'password' => Str::random(64), 'activacion_pendiente' => true,
-                ]));
-                if (!$usuario->wasRecentlyCreated) {
-                    throw ValidationException::withMessages(['email' => 'Ese correo ya tiene una cuenta. Elegí Cuenta existente.']);
-                }
-            } elseif (!$usuario) {
-                throw ValidationException::withMessages(['email' => 'No encontramos una cuenta con ese correo.']);
+        DB::transaction(function () use ($data, $correo) {
+            $organizacion = Organizacion::principal();
+            if (!$organizacion->dominio_correo_equipo || Str::afterLast($correo, '@') !== $organizacion->dominio_correo_equipo) {
+                throw ValidationException::withMessages(['email' => $organizacion->dominio_correo_equipo
+                    ? 'Usá una cuenta con el dominio @' . $organizacion->dominio_correo_equipo . '.'
+                    : 'Configurá primero el dominio de correo del equipo en Datos de la organización.']);
             }
 
-            // La membresía no modifica el permiso global de Administración ni las credenciales existentes.
-            if ($usuario->is_admin && $data['rol'] !== 'administrador') {
-                throw ValidationException::withMessages(['rol' => 'La cuenta administra la plataforma y debe conservar el rol Administrador.']);
+            $usuario = User::unguarded(fn () => User::query()->createOrFirst(['email' => $correo], [
+                'name' => $data['name'], 'password' => Str::random(64), 'activacion_pendiente' => true,
+            ]));
+            if (!$usuario->wasRecentlyCreated) {
+                throw ValidationException::withMessages(['email' => 'Ese correo ya tiene una cuenta. Creá el miembro con otro correo de la empresa.']);
             }
-            DB::table('organizacion_miembros')->upsert([
-                ['organizacion_id' => Organizacion::principal()->id, 'user_id' => $usuario->id, 'rol' => $data['rol']],
-            ], ['organizacion_id', 'user_id'], ['rol']);
+            $organizacion->miembros()->attach($usuario->id, ['rol' => $data['rol']]);
         });
 
-        if ($data['modo'] === 'nueva') {
-            return redirect()->route('admin.users.index', ['buscar' => Str::lower($data['email'])])
-                ->with('notice', 'Cuenta creada. Usá Compartir para entregar el enlace de activación.');
-        }
+        return redirect()->route('admin.users.index', ['buscar' => $correo])
+            ->with('notice', 'Cuenta creada. Usá Compartir para entregar el enlace de activación.');
+    }
 
-        return back()->with('notice', 'Guardamos el rol en el equipo de synaux.');
+    // El identificador de la URL fija la cuenta. El correo y los datos personales quedan fuera de esta operación.
+    public function cambiarRol(Request $request, User $user)
+    {
+        $data = $request->validate([
+            'rol' => ['required', Rule::in(self::ROLES)],
+            'email' => 'prohibited',
+        ]);
+        $miembros = Organizacion::principal()->miembros();
+        abort_if($user->is_admin, 403);
+        abort_unless($miembros->whereKey($user->id)->exists(), 404);
+        $miembros->updateExistingPivot($user->id, ['rol' => $data['rol']]);
+
+        return back()->with('notice', 'Actualizamos el rol en el equipo.');
+    }
+
+    // Quita la membresía y revoca cualquier enlace pendiente. La cuenta queda disponible para su historial.
+    public function quitarMiembro(User $user)
+    {
+        DB::transaction(function () use ($user) {
+            $cuenta = User::query()->lockForUpdate()->findOrFail($user->id);
+            abort_if($cuenta->is_admin, 403);
+            abort_unless(Organizacion::principal()->miembros()->detach($cuenta->id), 404);
+            $cuenta->forceFill(['activacion_hash' => null, 'activacion_vence' => null])->save();
+        });
+
+        return back()->with('notice', 'Quitamos la cuenta del equipo.');
     }
 
     // Solo un alta pendiente del espacio puede recibir un enlace. Compartir uno nuevo revoca el anterior.
@@ -106,28 +135,45 @@ class DirectorioUsuariosController extends Controller
         ])->header('Cache-Control', 'private, no-store');
     }
 
-    // Expone datos de la cuenta y una lista resumida; los proyectos se editan en el panel de Gestión.
+    // La ficha y sus proyectos se entregan únicamente para clientes vinculados a la organización.
     public function show(Request $request, User $user, ProjectQueries $projects)
     {
-        $query = $request->query('buscar');
-        $search = is_string($query) ? Str::substr(trim($query), 0, 120) : '';
+        abort_unless(Organizacion::principal()->clientes()->whereKey($user->id)->exists(), 404);
+
+        $search = $this->busqueda($request);
         $directoryPage = max(1, $request->integer('pagina_usuarios', 1));
         $directoryFilters = array_filter([
-            'buscar' => $search !== '' ? $search : null,
+            'buscar' => $search ?: null,
             'page' => $directoryPage > 1 ? $directoryPage : null,
-        ], fn($value) => $value !== null);
+        ]);
         $projectFilters = array_filter([
             'buscar' => $directoryFilters['buscar'] ?? null,
             'pagina_usuarios' => $directoryFilters['page'] ?? null,
-        ], fn($value) => $value !== null);
+        ]);
+
+        $solicitudes = DB::table('project_requests')->where('user_id', $user->id)->where('status', '<>', 'draft');
+        $presupuestos = DB::table('budget_versions as v')->join('budgets as b', 'b.id', '=', 'v.budget_id')
+            ->leftJoin('proposals as p', 'p.id', '=', 'b.proposal_id')
+            ->where(fn ($query) => $query->where('b.client_user_id', $user->id)
+                ->orWhereIn(DB::raw('COALESCE(b.project_request_id, p.project_request_id)'), (clone $solicitudes)->select('id')))
+            ->whereNotNull('v.sent_at');
 
         return Inertia::render('EspacioTrabajo', [
-            'screen' => 'admin',
+            'screen' => 'gestion',
             'area' => 'gestion',
-            'section' => 'usuarios',
-            'selectedUser' => $user->only('id', 'name', 'email', 'is_admin', 'created_at', 'activacion_pendiente'),
+            'section' => 'clientes',
+            'selectedUser' => $user->only('id', 'name', 'email', 'created_at'),
+            'solicitudesCliente' => $solicitudes->latest('id')->limit(10)->get(['id', 'title']),
+            'presupuestosCliente' => $presupuestos->latest('v.id')->limit(10)->get(['v.id', 'v.title', 'v.version_number']),
             'clientProjects' => $projects->forClient($user->id)->appends($projectFilters),
-            'userDirectoryUrl' => route('admin.users.index', $directoryFilters, absolute: false),
+            'userDirectoryUrl' => route('gestion.clientes.index', $directoryFilters, absolute: false),
         ])->toResponse($request)->header('Cache-Control', 'private, no-store');
+    }
+
+    private function busqueda(Request $request): string
+    {
+        $query = $request->query('buscar');
+
+        return is_string($query) ? Str::substr(trim($query), 0, 120) : '';
     }
 }

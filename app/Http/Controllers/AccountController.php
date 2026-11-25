@@ -17,7 +17,7 @@ class AccountController extends Controller
         $user = $request->user();
         return Inertia::render('PerfilCuenta', [
             'profile' => [...$user->only('name', 'email', 'phone', 'company', 'address'), 'details' => $user->profile_details,
-                'is_admin' => (bool)$user->is_admin, 'created_at' => $user->created_at?->toDateString()],
+                'correo_fijo' => $user->perteneceAEquipo(), 'is_admin' => (bool)$user->is_admin, 'created_at' => $user->created_at?->toDateString()],
             'area' => $user->is_admin ? 'gestion' : 'cliente',
         ]);
     }
@@ -33,6 +33,9 @@ class AccountController extends Controller
                 $request->merge(['email' => Str::lower(trim($request->input('email')))]);
             }
             $emailChanged = $request->has('email') && $request->input('email') !== $user->email;
+            if ($emailChanged && $user->perteneceAEquipo()) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['email' => 'El correo de una cuenta del equipo es fijo.']);
+            }
             $data = $request->validate([
                 'name' => 'sometimes|required|string|max:255',
                 'email' => ['sometimes', 'required', 'email', 'max:254', Rule::unique('users', 'email')->ignore($user->id)],

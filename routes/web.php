@@ -111,13 +111,17 @@ Route::middleware('auth')->group(function () {
     Route::middleware('synaux.management')->group(function () {
         // La ficha de synaux queda en Administración y requiere el permiso de Gestión.
         Route::get('/admin/organizacion', [OrganizacionController::class, 'edit']);
+        Route::patch('/admin/organizacion/dominio-equipo', [OrganizacionController::class, 'actualizarDominio'])->middleware('throttle:10,1,dominio-equipo');
         Route::patch('/admin/organizacion', [OrganizacionController::class, 'update'])->middleware('throttle:10,1');
         // El listado de cuentas usa el mismo permiso administrativo que el catálogo.
         Route::get('/admin/usuarios', DirectorioUsuariosController::class)->name('admin.users.index');
-        Route::post('/admin/usuarios/equipo', [DirectorioUsuariosController::class, 'guardarMiembro'])->middleware('throttle:10,1');
+        Route::post('/admin/usuarios/equipo', [DirectorioUsuariosController::class, 'guardarMiembro'])->middleware('throttle:10,1,alta-equipo');
         Route::post('/admin/usuarios/{user}/activacion', [DirectorioUsuariosController::class, 'compartirActivacion'])
-            ->whereNumber('user')->middleware('throttle:10,1');
-        Route::get('/admin/usuarios/{user}', [DirectorioUsuariosController::class, 'show'])->whereNumber('user')->name('admin.users.show');
+            ->whereNumber('user')->middleware('throttle:10,1,activacion-equipo');
+        Route::patch('/admin/usuarios/{user}/rol', [DirectorioUsuariosController::class, 'cambiarRol'])->whereNumber('user')->middleware('throttle:20,1,rol-equipo');
+        Route::delete('/admin/usuarios/{user}/equipo', [DirectorioUsuariosController::class, 'quitarMiembro'])->whereNumber('user')->middleware('throttle:10,1,baja-equipo');
+        Route::get('/gestion/clientes', [DirectorioUsuariosController::class, 'clientes'])->name('gestion.clientes.index');
+        Route::get('/gestion/clientes/{user}', [DirectorioUsuariosController::class, 'show'])->whereNumber('user')->name('gestion.clientes.show');
         Route::post('/admin/tarifario/importar', [TariffImportController::class, 'store'])->middleware('throttle:2,1');
         // Entrada administrativa de revisión para las funciones de la segunda etapa.
         Route::get('/admin/etapa-2', fn() => Inertia::render('RevisionEtapaDos'))->name('stage-two');

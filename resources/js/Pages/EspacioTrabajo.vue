@@ -91,7 +91,7 @@ const component = computed(() => {
     if (screen === 'estimacion') return SavedEstimate;
     if (screen === 'admin') {
         if (section === 'tarifario') return AdminTariffs;
-        if (section === 'usuarios') return data.value.selectedUser ? FichaUsuario : DirectorioUsuarios;
+        if (section === 'usuarios') return DirectorioUsuarios;
         if (preview && ['preguntas', 'componentes', 'reglas'].includes(section)) return AdminConfigurationPreview;
         const path = page.url.split('?')[0];
         const editingService = /\/servicios\/(nuevo|\d+\/editar)$/.test(path) || Boolean(preview && data.value.catalogServiceId);
@@ -100,6 +100,7 @@ const component = computed(() => {
     if (screen === 'editor-presupuesto') return BudgetEditor;
     if (screen === 'editor-trabajo') return PortfolioWorkEditor;
     if (screen === 'solicitud' && area === 'gestion' && data.value.selected?.status !== 'draft') return ManagementRequestDetail;
+    if (screen === 'gestion' && section === 'clientes') return data.value.selectedUser ? FichaUsuario : DirectorioUsuarios;
     if (screen === 'gestion') return !section || section === 'resumen' ? ManagementOverview : ManagementRecords;
     if (screen === 'profesional') return professionalScreens[section || 'resumen'] ?? null;
     if (screen === 'solicitud') return ClientRequestDetail;

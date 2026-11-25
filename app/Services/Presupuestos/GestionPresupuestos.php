@@ -110,6 +110,12 @@ class GestionPresupuestos
 
             // El cliente recibe el aviso únicamente cuando se envía la versión, nunca por borradores.
             if ($data['send'] && $record) {
+                // Emitir en Gestión también incorpora clientes de solicitudes históricas.
+                if ($request->user()->is_admin) {
+                    DB::table('organizacion_clientes')->insertOrIgnore([
+                        'organizacion_id' => Organizacion::principal()->id, 'user_id' => $record->user_id,
+                    ]);
+                }
                 $this->notifications->send('presupuesto', $versionId, 'presupuesto-enviado:' . $versionId,
                     'Nuevo presupuesto', $data['title'], [$record->user_id], actor: $request->user()->id);
             }

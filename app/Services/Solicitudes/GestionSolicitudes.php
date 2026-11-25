@@ -2,6 +2,7 @@
 
 namespace App\Services\Solicitudes;
 
+use App\Models\Organizacion;
 use App\Models\User;
 use App\Services\Notifications\NotificationCenter;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +21,9 @@ class GestionSolicitudes
     public function save(int $userId, array $d, ?array $pending = null): int
     {
         return DB::transaction(function () use ($userId, $d, $pending) {
+            // Una cuenta del equipo usa su identidad laboral y no entra en la cartera como cliente.
+            $usuario = User::findOrFail($userId);
+            abort_if($usuario->perteneceAEquipo(), 403);
             $existing = !empty($d['id']) ? DB::table('project_requests')->where('id', $d['id'])->lockForUpdate()->firstOrFail() : null;
             if ($existing) {
                 abort_unless($existing->user_id === $userId && $existing->status === 'draft', 403);
@@ -55,7 +59,7 @@ class GestionSolicitudes
             }
             // Todos los servicios comparten un contacto, copiado del perfil si el pedido todavía no tiene uno.
             $contact = $d['contact'] ?? json_decode($existing?->contact_snapshot ?? 'null', true)
-                ?? User::findOrFail($userId)->contactDetails();
+                ?? $usuario->contactDetails();
             $values = ['user_id' => $userId, 'service_id' => $d['service_id'], 'estimate_id' => $estimate?->id ?? $existing?->estimate_id,
                 'title' => $d['title'], 'description' => $d['description'], 'visibility' => $d['visibility'], 'category' => $d['category'] ?? null,
                 'contact_snapshot' => json_encode($contact), 'requested_services' => json_encode($additional),
@@ -71,6 +75,10 @@ class GestionSolicitudes
             }
             // Solo el envío definitivo avisa a gestión; guardar un borrador no publica su existencia.
             if ($d['publish']) {
+                // La primera solicitud enviada incorpora al cliente a la cartera de synaux.
+                DB::table('organizacion_clientes')->insertOrIgnore([
+                    'organizacion_id' => Organizacion::principal()->id, 'user_id' => $userId,
+                ]);
                 $this->notifications->send('solicitud', $id, 'solicitud-enviada:' . $id,
                     'Nueva solicitud', $d['title'], management: true, actor: $userId);
             }

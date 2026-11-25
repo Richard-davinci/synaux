@@ -25,6 +25,17 @@ const datos = computed(() => [
     ['Teléfono comercial', props.organizacion.telefono],
     ['Domicilio', props.organizacion.domicilio],
 ].filter(([, valor]) => valor));
+// El dominio del equipo tiene su propio guardado, separado de los datos fiscales.
+const dominio = useForm({dominio_correo_equipo: props.organizacion.dominio_correo_equipo ?? ''});
+const editandoDominio = ref(false);
+function editarDominio(estado) {
+    dominio.defaults('dominio_correo_equipo', props.organizacion.dominio_correo_equipo ?? '').resetAndClearErrors();
+    editandoDominio.value = estado;
+}
+function guardarDominio() {
+    dominio.patch('/admin/organizacion/dominio-equipo', {preserveScroll: true, onSuccess: () => editarDominio(false)});
+}
+
 const roles = {administrador: 'Administrador', supervisor: 'Supervisor', profesional: 'Profesional'};
 
 function cambiarEdicion(estado) {
@@ -54,6 +65,15 @@ function guardar() {
                     <F v-model="form.email" label="Correo comercial" type="email" maxlength="254" required :error="form.errors.email"/>
                     <F v-model="form.phone" label="Teléfono comercial (opcional)" type="tel" maxlength="50" :error="form.errors.phone"/>
                     <F v-model="form.address" label="Domicilio (opcional)" maxlength="500" :error="form.errors.address"/>
+
+                </TarjetaPerfil>
+                <TarjetaPerfil id="correo-equipo" titulo="Correo del equipo" icono="user"
+                               :datos="organizacion.dominio_correo_equipo ? [['Dominio', organizacion.dominio_correo_equipo]] : []"
+                               vacio="Configurá el dominio que usarán las nuevas cuentas del equipo."
+                               accion-guardar="Guardar dominio" :editando="editandoDominio" :guardando="dominio.processing" :modificado="dominio.isDirty"
+                               @editar="editarDominio(true)" @cancelar="editarDominio(false)" @guardar="guardarDominio">
+                    <F v-model="dominio.dominio_correo_equipo" label="Dominio corporativo" maxlength="253" required
+                       placeholder="empresa.com" hint="Ingresá el dominio a la derecha de @." :error="dominio.errors.dominio_correo_equipo"/>
                 </TarjetaPerfil>
                 <v-card v-if="equipo.length" tag="section" class="card equipo-organizacion" aria-labelledby="titulo-equipo">
                     <h2 id="titulo-equipo">Equipo</h2>

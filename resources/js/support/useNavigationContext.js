@@ -34,6 +34,7 @@ const workspaceNav = {
         ['Presupuestos', '/gestion/presupuestos'],
         ['Proyectos', '/gestion/proyectos'],
         ['Consultas', '/gestion/contactos'],
+        ['Clientes', '/gestion/clientes'],
         ['Portfolio', '/gestion/portfolio'],
     ],
 };
