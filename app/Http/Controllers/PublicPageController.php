@@ -29,10 +29,10 @@ class PublicPageController extends Controller
     {
         $featuredServices = $this->catalog->featuredServices();
 
-        // La portada recibe solo los campos visibles de los últimos trabajos publicados.
+        // La portada muestra una fila de hasta tres trabajos y recibe solo los campos visibles.
         $featuredWorks = array_map(
             fn(array $work) => Arr::only($work, ['id', 'title', 'category', 'description', 'cover_path']),
-            $this->portfolioQueries->works(limit: 2),
+            $this->portfolioQueries->works(limit: 3),
         );
 
         return Inertia::render('InicioSitio', [

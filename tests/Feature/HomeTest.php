@@ -73,8 +73,8 @@ class HomeTest extends TestCase
         );
     }
 
-    // La portada limita la selección y nunca comparte trabajos privados ni perfiles inactivos.
-    public function test_site_home_shows_two_recent_public_works_only(): void
+    // La portada muestra los tres trabajos públicos más recientes de los perfiles activos.
+    public function test_site_home_shows_three_recent_public_works_only(): void
     {
         $this->get('/inicio')->assertInertia(fn(Assert $page) => $page->component('InicioSitio')->has('featuredWorks', 0));
 
@@ -90,6 +90,7 @@ class HomeTest extends TestCase
             'is_public' => 1,
         ];
         DB::table('portfolio_projects')->insert([...$work, 'title' => 'Proyecto anterior']);
+        $third = DB::table('portfolio_projects')->insertGetId([...$work, 'title' => 'Tercer proyecto']);
         $second = DB::table('portfolio_projects')->insertGetId([...$work, 'title' => 'Segundo proyecto']);
         $first = DB::table('portfolio_projects')->insertGetId([...$work, 'title' => 'Proyecto más reciente']);
         DB::table('portfolio_projects')->insert([...$work, 'title' => 'Proyecto privado', 'is_public' => 0]);
@@ -97,10 +98,11 @@ class HomeTest extends TestCase
 
         $this->get('/inicio')->assertOk()->assertInertia(fn(Assert $page) => $page
             ->component('InicioSitio')
-            ->has('featuredWorks', 2)
+            ->has('featuredWorks', 3)
             ->where('featuredWorks.0.id', $first)
             ->where('featuredWorks.0.category', 'Desarrollo web')
             ->where('featuredWorks.1.id', $second)
+            ->where('featuredWorks.2.id', $third)
             ->missing('featuredWorks.0.professional_profile_id')
         );
         $this->get('/trabajos/' . $first)->assertOk();
