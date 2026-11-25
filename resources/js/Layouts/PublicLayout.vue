@@ -21,6 +21,7 @@ const page = usePage();
 // La landing real empieza directamente con la marca; el prototipo conserva su selector de pantallas.
 const showSiteHeader = computed(() => !props.landing || Boolean(page.props.preview));
 const workspaceOpen = ref(false);
+const anchoPanel = 340;
 let accesoAlPanel;
 // Se mide el encabezado real para compensar cambios de ancho, menú móvil y barra de referencia.
 const fixedHeader = ref(null);
@@ -63,6 +64,7 @@ const {
     paginaDePanel,
     navbarRole,
     accountName,
+    accountRole,
     currentSection,
     migasCliente,
     adminView,
@@ -80,15 +82,19 @@ watch(() => page.url, () => {
 <template>
     <v-app class="synaux-app" :data-workspace-role="mostrarPanel ? area : undefined"
            :data-navbar-role="navbarRole || undefined"
-           :style="{ '--navbar-height': (showSiteHeader ? headerHeight : 0) + 'px', '--workspace-bar-height': workspaceBarHeight + 'px' }">
+           :style="{ '--navbar-height': (showSiteHeader ? headerHeight : 0) + 'px', '--workspace-bar-height': workspaceBarHeight + 'px', '--workspace-panel-width': anchoPanel + 'px' }">
         <!-- Las páginas con encabezado reservan su altura; la landing conserva el salto por teclado. -->
         <template v-if="showSiteHeader">
             <div ref="fixedHeader" class="fixed-header">
                 <SiteHeader :gestion-active="paginaDePanel && area === 'gestion' && !adminView"
-                            :admin-view="adminView" :show-area-switch="showAreaSwitch">
+                            :admin-view="adminView" :show-area-switch="showAreaSwitch"
+                            :account-name="mostrarPanel ? accountName : ''" :account-role="accountRole">
                     <template v-if="mostrarPanel && !panelFijo" #acceso-panel>
-                        <AppButton compact variant="secondary" :aria-expanded="workspaceOpen" aria-haspopup="dialog"
-                                   aria-controls="workspace-mobile-panel" @click="abrirPanel">Mi panel</AppButton>
+                        <AppButton compact variant="secondary" class="navbar-panel-access"
+                                   aria-label="Mi panel" :aria-expanded="workspaceOpen" aria-haspopup="dialog"
+                                   aria-controls="workspace-mobile-panel" @click="abrirPanel">
+                            <I name="layout"/><span class="navbar-panel-label">Mi panel</span>
+                        </AppButton>
                     </template>
                 </SiteHeader>
             </div>
@@ -105,11 +111,9 @@ watch(() => page.url, () => {
             </button>
         </div>
         <div :class="['workspace-layout', { 'with-workspace': panelFijo }]">
-            <aside v-if="panelFijo" class="workspace-sidebar">
-                <div class="workspace-sidebar-sticky">
-                    <WorkspaceNavigation :items="nav" :area="area" :current="currentSection" :account-name="accountName"
-                                         :title="workspaceTitle"/>
-                </div>
+            <aside v-if="panelFijo" class="workspace-sidebar workspace-panel-surface">
+                <WorkspaceNavigation :items="nav" :area="area" :current="currentSection" :account-name="accountName"
+                                     :account-role="accountRole" :title="workspaceTitle"/>
             </aside>
             <v-main id="contenido" class="workspace-content" tabindex="-1">
                 <MigasNavegacion v-if="panelFijo && migasCliente.length" :niveles="migasCliente"/>
@@ -117,18 +121,19 @@ watch(() => page.url, () => {
             </v-main>
         </div>
         <!-- El mismo panel se abre sobre las páginas públicas y en pantallas privadas angostas. -->
-        <v-dialog v-if="mostrarPanel" v-model="workspaceOpen" class="workspace-mobile-dialog" max-width="340"
+        <v-dialog v-if="mostrarPanel" v-model="workspaceOpen" class="workspace-mobile-dialog" :max-width="anchoPanel"
+                  :style="{ '--navbar-height': headerHeight + 'px', '--workspace-panel-width': anchoPanel + 'px' }"
                   @after-leave="restoreWorkspaceFocus" aria-labelledby="workspace-mobile-title">
-            <div id="workspace-mobile-panel" class="synaux-app workspace-mobile-panel">
+            <div id="workspace-mobile-panel" class="synaux-app workspace-panel-surface">
                 <div class="workspace-mobile-heading"><strong id="workspace-mobile-title">Menú del panel</strong>
                     <button type="button" aria-label="Cerrar menú del panel" @click="workspaceOpen = false"><I
                         name="close"/></button>
                 </div>
                 <WorkspaceNavigation :items="nav" :area="area" :current="currentSection" :account-name="accountName"
-                                     :title="workspaceTitle" @navigate="workspaceOpen = false"/>
+                                     :account-role="accountRole" :title="workspaceTitle" @navigate="workspaceOpen = false"/>
             </div>
         </v-dialog>
-        <SiteFooter :year="year" :landing="landing" :has-workspace="panelFijo"/>
+        <SiteFooter :year="year" :landing="landing"/>
     </v-app>
 </template>
 
@@ -193,7 +198,8 @@ watch(() => page.url, () => {
 
 .with-workspace {
     display: grid;
-    grid-template-columns: 240px minmax(0, 1fr);
+    grid-template-columns: calc(var(--workspace-panel-width) + 16px) minmax(0, 1fr);
+    column-gap: 12px;
     align-items: start;
 }
 
@@ -202,23 +208,14 @@ watch(() => page.url, () => {
     width: 100%;
 }
 
+/* La tarjeta anclada acompaña el contenido y se desplaza dentro de su propia columna. */
 .workspace-sidebar {
-    align-self: stretch;
+    position: sticky;
+    top: calc(var(--navbar-height) + 16px);
+    align-self: start;
     min-width: 0;
-    background: #f5f9fa;
-    border-right: 1px solid #1f6f7f22;
-}
-
-/* El panel ocupa el alto bajo el navbar; la navegación interna conserva su pie de cuenta visible. */
-.workspace-sidebar-sticky {
-    position: fixed;
-    top: var(--navbar-height);
-    bottom: 0;
-    left: 0;
-    width: 240px;
-    background: #f5f9fa;
-    border-right: 1px solid #1f6f7f22;
-    z-index: 40;
+    width: var(--workspace-panel-width);
+    margin: 16px 0 24px 16px;
 }
 
 .with-workspace :deep(.page) {
@@ -281,6 +278,15 @@ watch(() => page.url, () => {
 }
 
 @media (max-width: 600px) {
+    /* El acceso compacto reserva espacio para la marca y la cuenta. */
+    .navbar-panel-access {
+        min-height: 44px;
+    }
+
+    .navbar-panel-label {
+        display: none;
+    }
+
     .workspace-mobile-bar {
         padding-inline: 16px;
         font-size: .9rem;
@@ -288,26 +294,31 @@ watch(() => page.url, () => {
 }
 </style>
 <style>
-/* El panel se superpone a la página y conserva el foco y el cierre de Vuetify. */
-.workspace-mobile-dialog .v-overlay__content {
-    position: fixed;
-    top: 0;
-    left: 0;
-    margin: 0 !important;
-    width: min(340px, calc(100vw - 24px)) !important;
-    max-height: 100dvh !important;
-    height: 100dvh;
-}
-
-/* En móvil, la navegación ocupa el alto restante debajo del encabezado hasta el pie. */
-.workspace-mobile-panel {
+/* Ambas entradas usan el mismo ancho y alto. El panel flotante se abre debajo del navbar. */
+.workspace-panel-surface {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    height: min(680px, calc(100dvh - var(--navbar-height) - 48px));
     overflow: hidden;
+    border: 1px solid #1f6f7f26;
+    border-radius: 12px;
     background: #f5f9fa;
+    box-shadow: 0 4px 14px #153b6417;
     color: #153b64;
     font-family: 'Nunito', sans-serif;
+}
+
+.workspace-mobile-dialog .v-overlay__content {
+    position: fixed;
+    top: calc(var(--navbar-height) + 16px);
+    left: 12px;
+    margin: 0 !important;
+    width: min(var(--workspace-panel-width), calc(100vw - 24px)) !important;
+    max-height: calc(100dvh - var(--navbar-height) - 32px) !important;
+}
+
+.workspace-mobile-dialog .v-overlay__scrim {
+    top: var(--navbar-height);
 }
 
 .workspace-mobile-heading {

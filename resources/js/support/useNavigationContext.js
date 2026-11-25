@@ -76,16 +76,19 @@ export function useNavigationContext() {
 
     // Las secciones de la segunda etapa aparecen al entrar expresamente en el área correspondiente.
     const nav = computed(() => {
-        const items = (workspaceNav[area.value] ?? publicNav).filter(([, href]) =>
+        return (workspaceNav[area.value] ?? publicNav).filter(([, href]) =>
             !stageTwoPaths.includes(href) || (page.props.stageTwo && stageTwoPaths.includes(path.value))
         );
-        // Desde una página pública, el panel también da acceso directo a Administración.
-        return !paginaDePanel.value && !page.props.preview && page.props.auth?.is_admin
-            ? [...items, ['Administración', '/admin/servicios']]
-            : items;
     });
     const hasWorkspace = computed(() => page.props.preview ? paginaDePanel.value : Boolean(page.props.auth));
     const accountName = computed(() => page.props.auth?.name ?? (page.props.preview ? 'Cuenta de ejemplo' : ''));
+    // El rol visible describe la cuenta. El cliente se identifica solo por su nombre e iniciales.
+    const accountRole = computed(() => {
+        const auth = page.props.auth;
+        if (auth?.is_admin || (page.props.preview && area.value === 'gestion')) return 'Administrador';
+        const roles = {administrador: 'Administrador', supervisor: 'Supervisor', profesional: 'Profesional'};
+        return roles[auth?.rol_organizacion] ?? (area.value === 'profesional' ? 'Profesional' : '');
+    });
     const currentSection = computed(() => {
         if (!paginaDePanel.value) return null;
         if (path.value === '/mi-perfil' || ['cuenta-admin', 'cuenta-cliente'].includes(page.props.referenceKey)) return 'mi-perfil';
@@ -133,6 +136,7 @@ export function useNavigationContext() {
         paginaDePanel,
         navbarRole,
         accountName,
+        accountRole,
         currentSection,
         migasCliente,
         adminView,

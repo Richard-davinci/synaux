@@ -5,6 +5,7 @@ defineProps({name: {type: String, default: 'arrow'}});
 <template>
     <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
         <path v-if="name === 'arrow'" d="M5 12h14M13 6l6 6-6 6"/>
+        <path v-else-if="name === 'chevron-down'" d="m6 9 6 6 6-6"/>
         <path v-else-if="name === 'check'" d="m5 12 4 4L19 6"/>
         <g v-else-if="name === 'clock'">
             <circle cx="12" cy="12" r="9"/>

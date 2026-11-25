@@ -5,7 +5,7 @@ import I from '../UI/AppIcon.vue';
 import {referenceHref} from '../../support/prototype';
 
 // Este panel organiza enlaces ya autorizados; mostrar un enlace no concede permisos de acceso.
-const props = defineProps({items: Array, area: String, current: String, accountName: String, title: String});
+const props = defineProps({items: Array, area: String, current: String, accountName: String, accountRole: String, title: String});
 const emit = defineEmits(['navigate']);
 const page = usePage();
 
@@ -24,16 +24,8 @@ function unreadFor(label) {
 const isAdminView = computed(() => props.area === 'gestion' && props.current === 'administracion');
 const activeAdminSection = computed(() => page.props.section || page.url.split(/[?#]/)[0].split('/')[2] || 'servicios');
 
-// El nombre de rol refleja la cuenta y su membresía, independientemente de la sección abierta.
-const roles = {administrador: 'Administrador de la organización', supervisor: 'Supervisor', profesional: 'Profesional'};
-const rolCuenta = computed(() => {
-    const auth = page.props.auth;
-    if (auth?.is_admin || (page.props.preview && props.area === 'gestion')) return 'Administrador';
-    return roles[auth?.rol_organizacion] ?? (props.area === 'profesional' ? 'Profesional' : 'Cliente');
-});
 const icons = {
     Resumen: 'layout',
-    Administración: 'grid',
     Estimaciones: 'edit',
     Solicitudes: 'file',
     Presupuestos: 'receipt',
@@ -63,13 +55,13 @@ function isActive(href) {
 
 <template>
     <div class="workspace-navigation" :data-role="isAdminView ? 'admin' : area">
-        <!-- Las secciones recibidas ocupan el área desplazable y dejan la cuenta al pie del panel. -->
+        <!-- Las secciones recibidas ocupan el área desplazable del panel. -->
         <div class="workspace-sections">
             <div v-if="accountName" class="workspace-identity">
                 <I name="user"/>
                 <div>
                     <p class="workspace-user">{{ accountName }}</p>
-                    <p class="workspace-role">{{ rolCuenta }}</p>
+                    <p v-if="accountRole" class="workspace-role">{{ accountRole }}</p>
                 </div>
             </div>
             <h2>{{ title }}</h2>
@@ -95,11 +87,6 @@ function isActive(href) {
                 </nav>
             </div>
         </div>
-        <!-- El enlace al perfil se mantiene al pie del panel. -->
-        <nav class="workspace-account" aria-label="Opciones de la cuenta"><a
-            :href="referenceHref('/mi-perfil', page.props)" :aria-current="current === 'mi-perfil' ? 'page' : undefined"
-            @click="emit('navigate')"><I name="user"/><span>Mi perfil</span></a>
-        </nav>
     </div>
 </template>
 
@@ -115,8 +102,7 @@ function isActive(href) {
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
-    height: 100%;
-    padding: 26px 18px;
+    padding: 20px 18px;
     color: #153b64;
 }
 
@@ -277,11 +263,4 @@ function isActive(href) {
     background: #ffffff33;
 }
 
-/* El pie reserva espacio para perfil y salida aunque crezca la lista de secciones. */
-.workspace-account {
-    flex-shrink: 0;
-    margin-top: 22px;
-    padding-top: 16px;
-    border-top: 1px solid #1f6f7f33;
-}
 </style>

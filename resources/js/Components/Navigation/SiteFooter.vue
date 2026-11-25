@@ -4,14 +4,14 @@ import navbarLogo from '../../../images/brand/synaux-horizontal-sin-slogan-color
 import {referenceHref} from '../../support/prototype';
 import {publicNav} from '../../support/useNavigationContext';
 
-defineProps({year: Number, landing: Boolean, hasWorkspace: Boolean});
+defineProps({year: Number, landing: Boolean});
 
 const page = usePage();
 </script>
 
 <template>
     <!-- El pie usa la misma marca horizontal que el encabezado y conserva la trama. -->
-    <footer class="site-footer" :class="{ 'landing-footer': landing, 'workspace-footer': hasWorkspace }">
+    <footer class="site-footer" :class="{ 'landing-footer': landing }">
         <div class="synaux-brand-pattern site-footer-pattern" aria-hidden="true"></div>
         <div class="shell footer-grid">
             <a :href="referenceHref('/inicio', page.props)" aria-label="synaux: inicio">
@@ -33,16 +33,3 @@ const page = usePage();
         </div>
     </footer>
 </template>
-
-<style scoped>
-/* El pie ocupa el mismo ancho del contenido que acompaña al panel fijo. */
-.workspace-footer {
-    margin-left: 240px;
-}
-
-@media (max-width: 1100px) {
-    .workspace-footer {
-        margin-left: 0;
-    }
-}
-</style>

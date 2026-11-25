@@ -12,7 +12,6 @@ const props = defineProps({
     etiqueta: String,
     href: String,
     deshabilitada: Boolean,
-    sinMarco: Boolean,
 });
 const emit = defineEmits(['click']);
 // Los enlaces de la galería resuelven los mismos destinos que los botones de texto.
@@ -24,7 +23,7 @@ const destino = computed(() => referenceHref(props.href, page.props));
     <VTooltip :text="texto" location="top" open-on-focus>
         <template #activator="{props: activador}">
             <component :is="href ? 'a' : 'button'" v-bind="activador" class="accion-icono"
-                       :class="{'accion-icono-sin-marco': sinMarco}" :href="destino" :type="href ? undefined : 'button'" :disabled="!href && deshabilitada ? true : undefined"
+                       :href="destino" :type="href ? undefined : 'button'" :disabled="!href && deshabilitada ? true : undefined"
                        :aria-label="etiqueta || texto" @click="emit('click', $event)">
                 <AppIcon :name="icono"/>
             </component>
@@ -51,17 +50,6 @@ const destino = computed(() => referenceHref(props.href, page.props));
 .accion-icono:hover:not(:disabled) {
     background: #f5f9fa;
     border-color: #1f6f7f;
-}
-
-/* El navbar presenta el icono con el mismo tamaño y sin superficie en reposo. */
-.accion-icono.accion-icono-sin-marco {
-    border: 0;
-    background: transparent;
-    box-shadow: none;
-}
-
-.accion-icono.accion-icono-sin-marco:hover:not(:disabled) {
-    background: #f5f9fa;
 }
 
 .accion-icono:focus-visible {

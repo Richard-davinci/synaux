@@ -1,9 +1,9 @@
 <script setup>
 import {ref, watch} from 'vue';
-import {useForm, usePage} from '@inertiajs/vue3';
+import {usePage} from '@inertiajs/vue3';
 import NotificationCenter from '../Notifications/NotificationCenter.vue';
 import AppButton from '../UI/AppButton.vue';
-import AccionIcono from '../UI/AccionIcono.vue';
+import MenuCuenta from './MenuCuenta.vue';
 import navbarLogo from '../../../images/brand/synaux-horizontal-sin-slogan-color.svg';
 import {referenceHref} from '../../support/prototype';
 import {publicNav} from '../../support/useNavigationContext';
@@ -12,12 +12,12 @@ defineProps({
     gestionActive: Boolean,
     adminView: Boolean,
     showAreaSwitch: Boolean,
+    accountName: String,
+    accountRole: String,
 });
 
 const page = usePage();
 const mobileOpen = ref(false);
-// El botón del navbar usa la misma salida autenticada de Laravel.
-const salida = useForm({});
 watch(() => page.url, () => {
     mobileOpen.value = false;
 });
@@ -55,32 +55,21 @@ watch(() => page.url, () => {
                 <AppButton compact href="/ingresar" variant="ghost">Ingresar</AppButton>
                 <AppButton compact href="/crear-cuenta">Crear cuenta</AppButton>
             </div>
-            <div v-if="showAreaSwitch" class="mobile-area-links">
-                <a :href="referenceHref('/gestion', page.props)"
-                   :aria-current="gestionActive ? 'page' : undefined">Ir a Gestión</a>
-                <a :href="referenceHref('/admin/servicios', page.props)" :aria-current="adminView ? 'page' : undefined">Ir
-                    a administración</a>
-            </div>
         </nav>
 
         <!-- Los accesos de la cuenta y sus notificaciones comparten el grupo de la derecha. -->
-        <div v-if="!page.props.preview || showAreaSwitch" class="header-account"
+        <div v-if="!page.props.preview || accountName" class="header-account"
              :class="{ 'guest-account': !page.props.auth && !page.props.preview }">
-            <nav v-if="showAreaSwitch && !$slots['acceso-panel']" class="header-area-links" aria-label="Áreas de la cuenta">
-                <a :href="referenceHref('/gestion', page.props)"
-                   :aria-current="gestionActive ? 'page' : undefined">Gestión</a>
-                <a :href="referenceHref('/admin/servicios', page.props)" :aria-current="adminView ? 'page' : undefined">Administración</a>
-            </nav>
             <template v-if="!page.props.preview && !page.props.auth">
                 <AppButton compact href="/ingresar" variant="ghost">Ingresar</AppButton>
                 <AppButton compact href="/crear-cuenta">Crear cuenta</AppButton>
             </template>
-            <template v-else-if="!page.props.preview">
+            <template v-else-if="accountName">
                 <slot name="acceso-panel"/>
                 <div class="header-session-actions">
-                    <NotificationCenter/>
-                    <AccionIcono icono="logout" texto="Cerrar sesión" sin-marco :deshabilitada="salida.processing"
-                                 @click="salida.post('/salir')"/>
+                    <NotificationCenter v-if="!page.props.preview"/>
+                    <MenuCuenta :nombre="accountName" :rol="accountRole" :show-area-switch="showAreaSwitch"
+                                :gestion-active="gestionActive" :admin-view="adminView"/>
                 </div>
             </template>
         </div>
@@ -121,44 +110,11 @@ watch(() => page.url, () => {
     gap: 6px;
 }
 
-/* Los accesos de Gestión y Administración usan el acento de la sección actual. */
-.header-area-links {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.header-area-links a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 40px;
-    padding: 8px 10px;
-    border-radius: 8px;
-    color: #153b64;
-    font-weight: 700;
-    text-decoration: none;
-    white-space: nowrap;
-}
-
-.header-area-links a:hover {
-    background: #2db3a31a;
-}
-
-.header-area-links a[aria-current='page'] {
-    box-shadow: inset 0 -3px 0 var(--navbar-accent, #2db3a3);
-}
-
-/* El cambio de área conserva una referencia visible para navegación con teclado en escritorio y móvil. */
-.header-area-links a:focus-visible, .mobile-area-links a:focus-visible {
-    outline: 2px solid #2db3a3;
-    outline-offset: 2px;
-}
-
-.header .mobile-toggle, .header .mobile-auth, .header .mobile-area-links {
+.header .mobile-toggle, .header .mobile-auth {
     display: none;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
     .header {
         display: flex;
         flex-wrap: wrap;
@@ -179,10 +135,6 @@ watch(() => page.url, () => {
         gap: 8px;
     }
 
-    .header .header-area-links {
-        display: none;
-    }
-
     .header .guest-account {
         display: none;
     }
@@ -193,9 +145,18 @@ watch(() => page.url, () => {
         margin-left: 0;
     }
 
+    /* En tablet, el menú público se despliega igual que en móvil para dejar espacio a la cuenta. */
     .header .main-nav {
+        display: none;
+        position: absolute;
+        inset: 100% 0 auto;
         order: 3;
-        top: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+        padding: 18px 20px 24px;
+        background: #fff;
+        box-shadow: var(--navbar-shadow);
     }
 
     .header .main-nav.mobile-open {
@@ -206,27 +167,5 @@ watch(() => page.url, () => {
         display: grid;
     }
 
-    /* En pantallas angostas el cambio de área aparece dentro del menú desplegable y mantiene objetivos táctiles amplios. */
-    .header .mobile-area-links {
-        display: grid;
-        gap: 4px;
-        padding-top: 12px;
-        border-top: 1px solid #2db3a344;
-    }
-
-    .mobile-area-links a {
-        display: flex;
-        align-items: center;
-        min-height: 44px;
-        padding: 10px 12px;
-        color: #153b64;
-        font-weight: 700;
-        text-decoration: none;
-    }
-
-    .mobile-area-links a[aria-current='page'] {
-        box-shadow: inset 3px 0 0 var(--navbar-accent, #2db3a3);
-        background: #2db3a31a;
-    }
 }
 </style>
