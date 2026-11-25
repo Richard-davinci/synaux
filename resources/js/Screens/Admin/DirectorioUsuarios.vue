@@ -159,7 +159,7 @@ function findUsers() {
                         <legend>Rol en synaux</legend>
                         <label v-for="rol in roles" :key="rol.value">
                             <input v-model="cambio.rol" type="radio" name="rol-equipo" :value="rol.value" required/>
-                            {{ rol.label }}
+                            <span>{{ rol.label }}</span>
                         </label>
                     </fieldset>
                     <p v-if="cambio.errors.rol" class="error" role="alert">{{ cambio.errors.rol }}</p>
@@ -264,8 +264,61 @@ function findUsers() {
 .estado-activacion { display: block; margin-top: 4px; color: #1f6f7f; font-size: .875rem; font-weight: 700; }
 .formulario-equipo { padding: 24px; }
 .formulario-equipo h2 { margin: 0 0 4px; font-size: 1.2rem; }
-.roles-equipo { margin: 0 0 18px; padding: 12px; border: 1px solid #1f6f7f33; border-radius: 8px; }
-.roles-equipo label { display: flex; gap: 10px; align-items: center; min-height: 40px; }
+/* Cada rol ocupa una fila pulsable. El radio mantiene su medida frente a los estilos generales de inputs. */
+.roles-equipo {
+    display: grid;
+    gap: 4px;
+    min-inline-size: 0;
+    margin: 0 0 18px;
+    padding: 8px;
+    border: 1px solid #1f6f7f33;
+    border-radius: 8px;
+}
+
+.roles-equipo legend {
+    padding-inline: 6px;
+    font-weight: 700;
+}
+
+.roles-equipo label {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.roles-equipo label:hover {
+    background: #f5f9fa;
+}
+
+.roles-equipo label:has(input:checked) {
+    background: #2db3a31a;
+    border-color: #1f6f7f44;
+}
+
+.roles-equipo label:has(input:focus-visible) {
+    outline: 2px solid #1f6f7f;
+    outline-offset: 1px;
+}
+
+.roles-equipo input[type='radio'] {
+    width: 18px;
+    height: 18px;
+    min-height: 0;
+    padding: 0;
+    margin: 0;
+    accent-color: #1f6f7f;
+    cursor: pointer;
+}
+
+.roles-equipo span {
+    overflow-wrap: anywhere;
+}
 .baja-equipo { margin-top: 24px; padding-top: 16px; border-top: 1px solid #1f6f7f22; }
 
 /* La búsqueda y la paginación se adaptan a una línea nueva si falta ancho. */
