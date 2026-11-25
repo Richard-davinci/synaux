@@ -25,7 +25,8 @@ const emit = defineEmits(['go', 'publish']);
             <dd>{{ selectedService?.name }}</dd>
         </div>
         <div v-for="(item, index) in form.additional_services" :key="index">
-            <dt>{{ extraName(item.service_id) }} × {{ item.quantity }}</dt>
+            <!-- Las cantidades múltiples de solicitudes anteriores siguen visibles al revisar. -->
+            <dt>{{ extraName(item.service_id) }}<template v-if="item.quantity > 1"> × {{ item.quantity }}</template></dt>
             <dd>
                 <p v-if="item.notes">{{ item.notes }}</p>
                 <template v-for="question in extraQuestions(item.service_id)" :key="question.id">

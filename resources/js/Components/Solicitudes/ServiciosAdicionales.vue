@@ -46,6 +46,8 @@ function extraOptions(index) {
 function changeExtra(item, serviceId) {
     if (item.service_id == serviceId) return;
     item.service_id = serviceId;
+    // Al reemplazar el servicio, el nuevo se calcula como una unidad.
+    item.quantity = 1;
     item.answers = props.initialExtraAnswers(serviceId);
 }
 
@@ -68,8 +70,10 @@ function addService() {
                         @click="expandedExtra = expandedExtra === item ? null : item">
                     <I name="arrow"/>
                     <span>
-                        <!-- Una fila sin servicio muestra su estado de selección, sin cantidad ni cotización. -->
-                        <strong v-if="item.service_id">{{ extraName(item.service_id) }} × {{ item.quantity }}</strong>
+                        <!-- Solo las cantidades múltiples de borradores previos se muestran junto al servicio. -->
+                        <strong v-if="item.service_id">
+                            {{ extraName(item.service_id) }}<template v-if="item.quantity > 1"> × {{ item.quantity }}</template>
+                        </strong>
                         <strong v-else>Servicio adicional {{ index + 1 }}</strong>
                         <small v-if="!item.service_id">Elegí una categoría y un servicio</small>
                         <small v-else>
@@ -94,8 +98,6 @@ function addService() {
                                :label="'Servicio adicional ' + (index + 1)" category-placeholder="Seleccione una opción"
                                :error="form.errors['additional_services.' + index + '.service_id']"
                                @update:model-value="changeExtra(item, $event)"/>
-                <F class="request-extra-quantity" v-model="item.quantity" label="Cantidad" type="number"
-                   min="1" max="1000" step="1" required :error="form.errors['additional_services.' + index + '.quantity']"/>
                 <fieldset v-if="extraQuestions(item.service_id).length" class="request-extra-questions">
                     <legend>Preguntas de {{ extraName(item.service_id) }}</legend>
                     <RequestQuestions v-model="item.answers" :questions="extraQuestions(item.service_id)"
@@ -186,10 +188,6 @@ function addService() {
 
 .request-extra-body {
     padding-top: 16px;
-}
-
-.request-extra-quantity {
-    max-width: 150px;
 }
 
 .request-extra-body :deep(textarea) {

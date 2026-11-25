@@ -51,9 +51,11 @@ const documento = computed(() => {
         const cantidad = Number(servicio.quantity);
         const valida = Number.isInteger(cantidad) && cantidad >= 1 && cantidad <= 1000;
         const nombre = extraName(servicio.service_id);
+        // El multiplicador se conserva en el documento si el borrador ya tenía más de una unidad.
+        const concepto = valida && cantidad > 1 ? nombre + ' × ' + cantidad : nombre;
         const referencia = linea?.preliminar ? ['Referencia preliminar', linea.segment].filter(Boolean).join(' · ') : '';
         renglones.push({
-            description: [valida ? nombre + ' × ' + cantidad : nombre, referencia, servicio.notes?.trim()].filter(Boolean).join('\n'),
+            description: [concepto, referencia, servicio.notes?.trim()].filter(Boolean).join('\n'),
             importe: linea?.priced ? importe(linea, moneda) : valida ? 'A cotizar' : 'Completá la cantidad',
         });
     });
