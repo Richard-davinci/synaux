@@ -569,6 +569,18 @@ class SynauxFlowTest extends TestCase
         $this->assertDatabaseCount('project_updates', 1);
         $this->post('/acciones/proyecto', [...$data, 'status' => 'completed'])->assertSessionHasErrors('progress');
         $this->assertDatabaseCount('project_updates', 1);
+        // Administración enlaza al proyecto del cliente; el detalle y la edición pertenecen a Gestión.
+        $this->get('/admin/usuarios/' . $client->id . '?buscar=estudio&pagina_usuarios=2')
+            ->assertInertia(fn(Assert $page) => $page->where('section', 'usuarios')
+                ->where('selectedUser.id', $client->id)->missing('selectedUser.password')->missing('selectedUser.remember_token')
+                ->where('userDirectoryUrl', '/admin/usuarios?buscar=estudio&page=2')
+                ->has('clientProjects.data', 1)->has('clientProjects.data.0', fn(Assert $card) => $card
+                    ->where('id', $project)->has('title')->where('status', 'in_progress')->where('progress', 60)));
+        $this->get('/admin/usuarios/' . $issuer->id)
+            ->assertInertia(fn(Assert $page) => $page->has('clientProjects.data', 0));
+        $this->get('/proyectos/' . $project)
+            ->assertInertia(fn(Assert $page) => $page->where('area', 'gestion')->where('selected.id', $project));
+
         $next = [...$data, 'progress' => 80, 'notes' => 'Desarrollo terminado, falta revisión.', 'next_steps' => 'Revisar el sitio con el cliente.'];
         $this->post('/acciones/proyecto', $next)->assertSessionHasNoErrors();
         $this->assertDatabaseCount('project_updates', 2);

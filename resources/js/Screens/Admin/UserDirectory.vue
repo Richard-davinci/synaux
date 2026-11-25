@@ -10,6 +10,15 @@ const props = defineProps({data: {type: Object, required: true}});
 
 // La búsqueda vuelve a la primera página y la URL conserva el filtro al navegar por el listado.
 const search = ref(props.data.userSearch);
+
+// La ficha conserva el texto y la página del listado para poder regresar al mismo resultado.
+function profileHref(id) {
+    const filters = new URLSearchParams();
+    if (props.data.userSearch) filters.set('buscar', props.data.userSearch);
+    if (props.data.users.current_page > 1) filters.set('pagina_usuarios', props.data.users.current_page);
+    return '/admin/usuarios/' + id + (filters.size ? '?' + filters.toString() : '');
+}
+
 function findUsers() {
     const term = search.value.trim();
     router.get('/admin/usuarios', term ? {buscar: term} : {});
@@ -37,6 +46,7 @@ function findUsers() {
                     <th scope="col">Usuario</th>
                     <th scope="col">Rol</th>
                     <th scope="col">Fecha de alta</th>
+                    <th scope="col">Acción</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -51,9 +61,10 @@ function findUsers() {
                         </span>
                     </td>
                     <td><time v-if="user.created_at" :datetime="user.created_at">{{ date(user.created_at) }}</time><span v-else>—</span></td>
+                    <td><B :href="profileHref(user.id)" :aria-label="'Ver ficha de ' + user.name" compact variant="secondary">Ver ficha</B></td>
                 </tr>
                 <tr v-if="!data.users.data.length">
-                    <td colspan="3">{{ data.userSearch ? 'No encontramos usuarios con esa búsqueda.' : 'No hay usuarios para mostrar.' }}</td>
+                    <td colspan="4">{{ data.userSearch ? 'No encontramos usuarios con esa búsqueda.' : 'No hay usuarios para mostrar.' }}</td>
                 </tr>
                 </tbody>
             </table>
@@ -88,7 +99,7 @@ function findUsers() {
 
 /* El correo puede cortarse en varias líneas y los roles tienen nombre visible además del color. */
 .users-table table {
-    min-width: 440px;
+    min-width: 520px;
 }
 
 .users-table:focus-visible {

@@ -21,6 +21,8 @@ class UserDirectoryTest extends TestCase
         $this->actingAs($client)->get('/admin/usuarios')->assertForbidden()
             ->assertInertia(fn(Assert $page) => $page->missing('users'));
         $this->get('/cliente')->assertInertia(fn(Assert $page) => $page->missing('users'));
+        $this->get('/admin/usuarios/' . $client->id)->assertForbidden()
+            ->assertInertia(fn(Assert $page) => $page->missing('selectedUser')->missing('clientProjects'));
 
         $this->actingAs($admin)->get('/admin/usuarios')->assertOk()
             ->assertInertia(fn(Assert $page) => $page->component('EspacioTrabajo')

@@ -103,7 +103,8 @@ Route::middleware('auth')->group(function () {
     // Gestión y Administración comparten autorización de área, además de la autenticación del grupo exterior.
     Route::middleware('synaux.management')->group(function () {
         // El listado de cuentas usa el mismo permiso administrativo que el catálogo.
-        Route::get('/admin/usuarios', UserDirectoryController::class);
+        Route::get('/admin/usuarios', UserDirectoryController::class)->name('admin.users.index');
+        Route::get('/admin/usuarios/{user}', [UserDirectoryController::class, 'show'])->whereNumber('user')->name('admin.users.show');
         Route::post('/admin/tarifario/importar', [TariffImportController::class, 'store'])->middleware('throttle:2,1');
         // Entrada administrativa de revisión para las funciones de la segunda etapa.
         Route::get('/admin/etapa-2', fn() => Inertia::render('RevisionEtapaDos'))->name('stage-two');

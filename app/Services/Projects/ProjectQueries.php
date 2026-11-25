@@ -2,6 +2,7 @@
 
 namespace App\Services\Projects;
 
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 class ProjectQueries
@@ -17,5 +18,19 @@ class ProjectQueries
         return $projects->map(fn($project) => [
             ...((array)$project), 'updates' => ($updates[$project->id] ?? collect())->map(fn($update) => (array)$update)->all(),
         ])->all();
+    }
+
+    // Relaciona al cliente registrado con proyectos de solicitudes, propuestas o presupuestos directos.
+    public function forClient(int $clientId): LengthAwarePaginator
+    {
+        return DB::table('projects as project')
+            ->join('budget_versions as version', 'version.id', '=', 'project.accepted_budget_version_id')
+            ->join('budgets as budget', 'budget.id', '=', 'version.budget_id')
+            ->leftJoin('proposals as proposal', 'proposal.id', '=', 'budget.proposal_id')
+            ->leftJoin('project_requests as request', fn($join) => $join
+                ->on('request.id', '=', DB::raw('COALESCE(budget.project_request_id, proposal.project_request_id)')))
+            ->where(fn($query) => $query->where('budget.client_user_id', $clientId)->orWhere('request.user_id', $clientId))
+            ->orderByDesc('project.id')
+            ->paginate(15, ['project.id', 'project.title', 'project.status', 'project.progress']);
     }
 }

@@ -1,9 +1,10 @@
 <script setup>
-import {computed} from 'vue';
+import {computed, ref} from 'vue';
 import B from '../UI/AppButton.vue';
 import T from '../UI/PageTitle.vue';
 import S from '../UI/StatusBadge.vue';
 import I from '../UI/AppIcon.vue';
+import ProjectUpdate from './ProjectUpdate.vue';
 import {date, money} from '../../support/formatters';
 
 // El presupuesto y el historial llegan filtrados por la cuenta; el cliente consulta el seguimiento.
@@ -11,6 +12,8 @@ const props = defineProps({data: Object});
 const project = computed(() => props.data.selected ?? {});
 const budget = computed(() => props.data.quotes?.find(item => item.id === project.value.accepted_budget_version_id));
 const management = computed(() => props.data.area === 'gestion' || props.data.area === 'profesional');
+// Gestión reutiliza el formulario de seguimiento desde el detalle del proyecto.
+const updating = ref(false);
 const guidance = computed(() => ({
     pending: ['Coordinación del inicio', 'El presupuesto fue aceptado. synaux coordinará el inicio y registrará los próximos pasos.'],
     in_progress: ['Proyecto en desarrollo', 'Consultá los avances registrados y las próximas tareas acordadas.'],
@@ -23,7 +26,13 @@ const guidance = computed(() => ({
     <section class="page shell">
         <div class="project-detail">
             <B :href="management ? '/gestion/proyectos' : '/cliente/proyectos'" variant="ghost">← Volver a proyectos</B>
-            <T :eyebrow="'PRY-' + project.id + ' · Proyecto'" :title="project.title"><S :status="project.status"/></T>
+            <T :eyebrow="'PRY-' + project.id + ' · Proyecto'" :title="project.title">
+                <div class="button-row">
+                    <S :status="project.status"/>
+                    <B v-if="data.area === 'gestion' && data.auth?.is_admin && !data.preview"
+                       @click="updating = true">Actualizar avance</B>
+                </div>
+            </T>
             <div class="project-guidance"><I :name="project.status === 'completed' ? 'check' : 'folder'"/>
                 <div><strong>{{ guidance[0] }}</strong>
                     <p>{{ guidance[1] }}</p></div>
@@ -104,6 +113,7 @@ const guidance = computed(() => ({
                 </aside>
             </div>
         </div>
+        <ProjectUpdate v-if="updating" :project="project" @close="updating = false"/>
     </section>
 </template>
 
