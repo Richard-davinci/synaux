@@ -99,6 +99,8 @@ function saveIssuer() {
                         <p v-if="profile.created_at" class="account-help">Cuenta creada el {{ date(profile.created_at) }}</p>
                         <nav aria-label="Secciones de Mi perfil">
                             <a href="#datos-personales">Datos personales</a>
+                            <a href="#organizacion">Organización</a>
+                            <a href="#ubicacion">Ubicación</a>
                             <a href="#facturacion">Domicilio de facturación</a>
                             <a href="#seguridad">Seguridad</a>
                             <a v-if="profile.is_admin" href="#emision">Datos de emisión</a>
@@ -106,13 +108,14 @@ function saveIssuer() {
                     </v-card>
                 </aside>
                 <div class="account-panels">
-                    <v-card id="datos-personales" tag="section" class="card" aria-labelledby="titulo-datos-personales">
-                        <div class="account-section-title">
-                            <I name="user"/>
-                            <h2 id="titulo-datos-personales">Datos personales y contacto</h2>
-                        </div>
-                        <p class="account-description">Tu contacto y domicilio se completan automáticamente en las próximas solicitudes.</p>
-                        <form @submit.prevent="savePersonal">
+                    <!-- Las tarjetas de contacto comparten un solo guardado para conservar los cambios entre secciones. -->
+                    <form class="account-personal-form" @submit.prevent="savePersonal">
+                        <v-card id="datos-personales" tag="section" class="card" aria-labelledby="titulo-datos-personales">
+                            <div class="account-section-title">
+                                <I name="user"/>
+                                <h2 id="titulo-datos-personales">Datos personales y contacto</h2>
+                            </div>
+                            <p class="account-description">Tu contacto se completa automáticamente en las próximas solicitudes.</p>
                             <!-- Los datos principales se leen en una fila y los campos largos ocupan todo el ancho. -->
                             <div class="account-fields">
                                 <F v-model="form.name" label="Nombre y apellido" autocomplete="name" maxlength="255"
@@ -128,60 +131,72 @@ function saveIssuer() {
                                    autocomplete="tel" placeholder="Ej.: +54 9 221 555 0123"
                                    maxlength="50" :error="form.errors.phone"/>
                             </div>
-
-                            <!-- Los datos opcionales se agrupan por su uso dentro del mismo perfil. -->
-                            <fieldset class="account-fieldset">
-                                <legend>Organización <small>Opcional</small></legend>
-                                <div class="account-fields">
-                                    <F v-model="form.company" label="Empresa u organización"
-                                       autocomplete="organization" maxlength="255" :error="form.errors.company"/>
-                                    <F v-model="form.details.position" label="Cargo" autocomplete="organization-title"
-                                       maxlength="120" :error="form.errors['details.position']"/>
-                                    <F v-model="form.details.website" class="account-field-wide" label="Sitio web"
-                                       type="url" autocomplete="url" placeholder="https://ejemplo.com" maxlength="255"
-                                       :error="form.errors['details.website']"/>
-                                </div>
-                            </fieldset>
-                            <fieldset class="account-fieldset">
-                                <legend>Ubicación <small>Opcional</small></legend>
-                                <div class="account-fields">
-                                    <CamposUbicacion v-model="form.details.location" :errores="form.errors"
-                                                     prefijo="details.location"/>
-                                </div>
-                            </fieldset>
-                            <fieldset id="facturacion" class="account-fieldset">
-                                <legend>Domicilio de facturación <small>Opcional</small></legend>
-                                <p>Guardalo una vez para usarlo en pedidos con uno o varios servicios.</p>
-                                <B v-if="Object.values(form.details.location).some(Boolean)" type="button"
-                                   variant="secondary" compact class="account-copy-location" @click="copiarUbicacion">
-                                    Usar mi ubicación
-                                </B>
-                                <div class="account-fields">
-                                    <CamposUbicacion v-model="form.details.billing_address" :errores="form.errors"
-                                                     prefijo="details.billing_address" facturacion/>
-                                    <F v-model="form.details.billing_address.postal_code" label="Código postal"
-                                       autocomplete="section-facturacion billing postal-code" maxlength="16"
-                                       :error="form.errors['details.billing_address.postal_code']"/>
-                                    <F v-model="form.details.billing_address.street" label="Calle" maxlength="150"
-                                       autocomplete="section-facturacion billing address-line1"
-                                       :error="form.errors['details.billing_address.street']"/>
-                                    <F v-model="form.details.billing_address.number" label="Número" maxlength="20"
-                                       :error="form.errors['details.billing_address.number']"/>
-                                    <F v-model="form.details.billing_address.unit" label="Piso y departamento"
-                                       autocomplete="section-facturacion billing address-line2" maxlength="40"
-                                       :error="form.errors['details.billing_address.unit']"/>
-                                    <F v-if="profile.address || form.address" v-model="form.address"
-                                       class="account-field-wide" label="Dirección de contacto anterior"
-                                       hint="Se usa cuando todavía no guardaste un domicilio de facturación."
-                                       maxlength="500" :error="form.errors.address"/>
-                                </div>
-                            </fieldset>
+                        </v-card>
+                        <v-card id="organizacion" tag="section" class="card" aria-labelledby="titulo-organizacion">
+                            <div class="account-section-title">
+                                <I name="folder"/>
+                                <h2 id="titulo-organizacion">Organización</h2>
+                                <span class="account-optional">Opcional</span>
+                            </div>
+                            <div class="account-fields">
+                                <F v-model="form.company" label="Empresa u organización"
+                                   autocomplete="organization" maxlength="255" :error="form.errors.company"/>
+                                <F v-model="form.details.position" label="Cargo" autocomplete="organization-title"
+                                   maxlength="120" :error="form.errors['details.position']"/>
+                                <F v-model="form.details.website" class="account-field-wide" label="Sitio web"
+                                   type="url" autocomplete="url" placeholder="https://ejemplo.com" maxlength="255"
+                                   :error="form.errors['details.website']"/>
+                            </div>
+                        </v-card>
+                        <v-card id="ubicacion" tag="section" class="card" aria-labelledby="titulo-ubicacion">
+                            <div class="account-section-title">
+                                <I name="location"/>
+                                <h2 id="titulo-ubicacion">Ubicación</h2>
+                                <span class="account-optional">Opcional</span>
+                            </div>
+                            <div class="account-fields">
+                                <CamposUbicacion v-model="form.details.location" :errores="form.errors"
+                                                 prefijo="details.location"/>
+                            </div>
+                        </v-card>
+                        <v-card id="facturacion" tag="section" class="card" aria-labelledby="titulo-facturacion">
+                            <div class="account-section-title">
+                                <I name="receipt"/>
+                                <h2 id="titulo-facturacion">Domicilio de facturación</h2>
+                                <span class="account-optional">Opcional</span>
+                            </div>
+                            <p class="account-description">Guardalo una vez para usarlo en pedidos con uno o varios servicios.</p>
+                            <B v-if="Object.values(form.details.location).some(Boolean)" type="button"
+                               variant="secondary" compact class="account-copy-location" @click="copiarUbicacion">
+                                Usar mi ubicación
+                            </B>
+                            <div class="account-fields">
+                                <CamposUbicacion v-model="form.details.billing_address" :errores="form.errors"
+                                                 prefijo="details.billing_address" facturacion/>
+                                <F v-model="form.details.billing_address.postal_code" label="Código postal"
+                                   autocomplete="section-facturacion billing postal-code" maxlength="16"
+                                   :error="form.errors['details.billing_address.postal_code']"/>
+                                <F v-model="form.details.billing_address.street" label="Calle" maxlength="150"
+                                   autocomplete="section-facturacion billing address-line1"
+                                   :error="form.errors['details.billing_address.street']"/>
+                                <F v-model="form.details.billing_address.number" label="Número" maxlength="20"
+                                   :error="form.errors['details.billing_address.number']"/>
+                                <F v-model="form.details.billing_address.unit" label="Piso y departamento"
+                                   autocomplete="section-facturacion billing address-line2" maxlength="40"
+                                   :error="form.errors['details.billing_address.unit']"/>
+                                <F v-if="profile.address || form.address" v-model="form.address"
+                                   class="account-field-wide" label="Dirección de contacto anterior"
+                                   hint="Se usa cuando todavía no guardaste un domicilio de facturación."
+                                   maxlength="500" :error="form.errors.address"/>
+                            </div>
                             <p class="account-note"><I name="info"/> Los cambios se aplican a las nuevas solicitudes. Las guardadas conservan sus datos de contacto.</p>
-                            <div class="form-actions"><B type="submit" :disabled="form.processing || !form.isDirty">{{
-                                    form.processing ? 'Guardando…' : 'Guardar datos del perfil'
-                                }}</B></div>
-                        </form>
-                    </v-card>
+                        </v-card>
+                        <div class="form-actions account-profile-actions">
+                            <B type="submit" :disabled="form.processing || !form.isDirty">{{
+                                form.processing ? 'Guardando…' : 'Guardar datos del perfil'
+                            }}</B>
+                        </div>
+                    </form>
                     <v-card id="seguridad" tag="section" class="card" aria-labelledby="titulo-seguridad">
                         <div class="account-section-title"><I name="check"/>
                             <h2 id="titulo-seguridad">Seguridad</h2></div>
@@ -334,13 +349,15 @@ function saveIssuer() {
 }
 
 /* Las tarjetas y los campos comparten alineación, y los enlaces dejan la sección debajo del encabezado fijo. */
-.account-panels {
+.account-panels,
+.account-personal-form {
     display: grid;
     gap: 20px;
     min-width: 0;
 }
 
-.account-panels > .card {
+.account-panels > .card,
+.account-personal-form > .card {
     padding: clamp(18px, 2vw, 28px);
     scroll-margin-top: var(--account-offset);
 }
@@ -380,31 +397,24 @@ function saveIssuer() {
     grid-column: 1 / -1;
 }
 
-
-/* Las secciones se distinguen sin separar el formulario ni su acción de guardado. */
-.account-fieldset {
-    min-width: 0;
-    margin: 8px 0 16px;
-    padding: 12px 0 0;
-    border: 0;
-    border-top: 1px solid #1f6f7f26;
-    scroll-margin-top: var(--account-offset);
-}
-
-.account-fieldset legend {
-    padding-right: 10px;
-    color: #153b64;
-    font: 700 1.05rem/1.3 'Space Grotesk', sans-serif;
-}
-
-.account-fieldset legend small {
-    margin-left: 4px;
+/* El rótulo indica los grupos que pueden quedar vacíos. */
+.account-optional {
+    flex-shrink: 0;
+    margin-left: auto;
     color: #446075;
-    font: 600 .8rem/1.5 'Nunito', sans-serif;
+    font-size: .8rem;
 }
 
-.account-fieldset p {
-    margin: 0 0 12px;
+.account-personal-form .account-section-title {
+    margin-bottom: 12px;
+}
+
+.account-personal-form .account-fields > :last-child {
+    margin-bottom: 0;
+}
+
+.account-personal-form .account-note {
+    margin-top: 16px;
 }
 
 .account-copy-location {
@@ -429,6 +439,10 @@ function saveIssuer() {
 
 .account-panels .form-actions {
     margin-top: 16px;
+}
+
+.account-panels .account-profile-actions {
+    margin-top: 0;
 }
 
 @media (max-width: 900px) {

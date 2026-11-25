@@ -19,6 +19,11 @@ defineProps({name: {type: String, default: 'arrow'}});
             <circle cx="12" cy="8" r="4"/>
             <path d="M4 21c1-5 4-7 8-7s7 2 8 7"/>
         </g>
+        <!-- El marcador identifica los datos de ubicación del perfil. -->
+        <g v-else-if="name === 'location'">
+            <path d="M19 10c0 5-7 10-7 10S5 15 5 10a7 7 0 1 1 14 0Z"/>
+            <circle cx="12" cy="10" r="2.5"/>
+        </g>
         <path v-else-if="name === 'menu'" d="M4 7h16M4 12h16M4 17h16"/>
         <path v-else-if="name === 'close'" d="m6 6 12 12M18 6 6 18"/>
         <!-- La campana identifica el centro de novedades sin alterar los recursos originales de marca. -->
