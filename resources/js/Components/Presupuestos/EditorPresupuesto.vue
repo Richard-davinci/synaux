@@ -158,7 +158,7 @@ function save(send) {
 
 <template>
     <section class="page shell budget-editor">
-        <B href="/gestion/presupuestos" variant="ghost">← Volver a presupuestos</B>
+        <B :href="data.area === 'profesional' ? '/profesional/presupuestos' : '/gestion/presupuestos'" variant="ghost">← Volver a presupuestos</B>
         <div class="budget-heading"><p class="eyebrow">Gestión · Presupuesto formal</p>
             <h1>{{ selected.budget_id ? 'Prepará la próxima versión' : 'Prepará el presupuesto' }}</h1>
             <p>{{

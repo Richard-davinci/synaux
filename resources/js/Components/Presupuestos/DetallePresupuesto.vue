@@ -93,7 +93,7 @@ function decide() {
 <template>
     <section class="page shell">
         <div class="client-budget">
-            <B :href="data.area === 'gestion' ? '/gestion/presupuestos' : '/cliente/presupuestos'" variant="ghost">←
+            <B :href="'/' + (data.area || 'cliente') + '/presupuestos'" variant="ghost">←
                 Volver a presupuestos</B>
             <T :eyebrow="'PRE-' + record.budget_id + ' · Presupuesto formal'" :title="record.title"
                :description="'Versión ' + record.version_number + ' · Emitida el ' + date(record.sent_at ?? record.created_at)">
@@ -134,7 +134,7 @@ function decide() {
                                 variant="secondary" @click="decision = 'rejected'">Rechazar presupuesto</B></template>
                             <B v-if="project && record.status === 'accepted'" :href="'/proyectos/' + project.id" arrow>Ver
                                 proyecto</B>
-                            <B v-else-if="record.status === 'accepted'" href="/cliente/proyectos" arrow>Ir a mis
+                            <B v-else-if="record.status === 'accepted'" :href="'/' + (data.area || 'cliente') + '/proyectos'" arrow>Ir a mis
                                 proyectos</B>
                             <B v-if="canEdit" :href="'/editor/presupuesto/' + record.id" variant="secondary">{{
                                     record.status === 'draft' ? 'Continuar borrador' : 'Preparar nueva versión'

@@ -68,6 +68,10 @@ class PublicPageController extends Controller
             $data['selected'] = $id ? collect($data['works'])->firstWhere('id', (int)$id) ?? abort(404) : null;
         }
         if (in_array($screen, ['muro', 'oportunidad'], true)) {
+            // Una cuenta participante conserva su menú profesional al explorar oportunidades.
+            if ($request->user() && !$request->user()->is_admin) {
+                $data['area'] = 'profesional';
+            }
             $data['opportunities'] = $this->requestQueries->requests(null, public: true);
             $data['selected'] = $id ? collect($data['opportunities'])->firstWhere('id', (int)$id) : null;
             if ($id && !$data['selected']) {

@@ -81,7 +81,9 @@ function canRevise(budget) {
     <section class="page shell workspace-view">
         <T :eyebrow="data.screen === 'profesional' ? 'Área profesional' : 'Gestión'"
            :title="listing.title" :description="listing.description">
-            <B v-if="section === 'portfolio'" compact href="/editor/trabajo" arrow>Nuevo trabajo</B>
+            <B v-if="section === 'portfolio' && data.screen === 'profesional' && !data.profile && !data.preview"
+               compact href="/profesional/perfil" arrow>Completar perfil</B>
+            <B v-else-if="section === 'portfolio'" compact href="/editor/trabajo" arrow>Nuevo trabajo</B>
             <B v-if="section === 'presupuestos'" compact href="/editor/presupuesto?directo=1" arrow>Crear presupuesto
                 directo</B>
         </T>

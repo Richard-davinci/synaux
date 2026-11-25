@@ -21,10 +21,12 @@ class ProjectController extends Controller
         $quotes = $budgetQueries->quotes($user->id, (bool)$user->is_admin, id: $versionId);
         $selected = $projectQueries->projects($quotes, id: $id)[0] ?? abort(404);
         $notifications->readEntity($user, 'proyecto', $id);
+        // La persona que emitió el presupuesto vuelve al área desde la que participa en el proyecto.
+        $professional = config('synaux.stage_two_enabled') && $quotes[0]['issuer_id'] === $user->id;
 
         return Inertia::render('EspacioTrabajo', [
             'screen' => 'proyecto',
-            'area' => $user->is_admin ? 'gestion' : 'cliente',
+            'area' => $user->is_admin ? 'gestion' : ($professional ? 'profesional' : 'cliente'),
             'selected' => $selected,
             'quotes' => $quotes,
         ]);

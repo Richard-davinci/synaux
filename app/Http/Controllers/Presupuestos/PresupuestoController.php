@@ -33,10 +33,12 @@ class PresupuestoController extends Controller
         $management = (bool)$user->is_admin;
         $selected = $this->budgetQueries->quotes($user->id, $management, id: $id)[0] ?? abort(404);
         $this->notifications->readEntity($user, 'presupuesto', $id);
+        // Emisión y recepción usan el área de la cuenta correspondiente al presupuesto.
+        $professional = config('synaux.stage_two_enabled') && $selected['issuer_id'] === $user->id;
 
         return Inertia::render('EspacioTrabajo', [
             'screen' => 'presupuesto',
-            'area' => $management ? 'gestion' : 'cliente',
+            'area' => $management ? 'gestion' : ($professional ? 'profesional' : 'cliente'),
             'selected' => $selected,
             'quotes' => $this->budgetQueries->quotes($user->id, $management, budgetId: $selected['budget_id']),
             'requests' => $selected['request_id'] ? $this->requestQueries->requests($user->id, $management, only: [$selected['request_id']]) : [],
@@ -86,7 +88,7 @@ class PresupuestoController extends Controller
 
         return Inertia::render('EspacioTrabajo', [
             'screen' => 'editor-presupuesto',
-            'area' => $management ? 'gestion' : 'cliente',
+            'area' => $management ? 'gestion' : (config('synaux.stage_two_enabled') ? 'profesional' : 'cliente'),
             'requestId' => (int)$request->query('solicitud', 0),
             'selected' => $selected,
             'directBudget' => $direct,

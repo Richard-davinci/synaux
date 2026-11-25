@@ -34,7 +34,8 @@ const icons = {
     'Mis propuestas': 'file',
     Propuestas: 'file',
     Publicaciones: 'web',
-    Invitaciones: 'user'
+    Invitaciones: 'user',
+    'Perfil profesional': 'user'
 };
 // Los grupos organizan el catálogo, los precios y las cuentas; el prototipo solo muestra sus secciones de referencia.
 const administration = computed(() => [
@@ -42,7 +43,14 @@ const administration = computed(() => [
     {title: 'Precios', items: [['Tarifarios', 'tarifario', 'calculator']]},
     ...(page.props.preview ? [] : [{title: 'Cuentas', items: [['Usuarios', 'usuarios', 'user']]}]),
 ]);
-const sectionFor = href => href.split('/').filter(Boolean).slice(1).join('/') || 'resumen';
+// La misma sesión permite alternar entre cliente y profesional, incluso antes de crear el perfil público.
+const accountAreaLink = computed(() => {
+    if (!page.props.stageTwo || !page.props.auth || page.props.auth.is_admin || page.props.preview) return null;
+    if (props.area === 'cliente') return {href: '/profesional', label: 'Ir al área profesional'};
+    if (props.area === 'profesional') return {href: '/cliente', label: 'Ir al área cliente'};
+    return null;
+});
+const sectionFor = href => href === '/oportunidades' ? 'oportunidades' : (href.split('/').filter(Boolean).slice(1).join('/') || 'resumen');
 
 function isActive(href) {
     return props.current === sectionFor(href);
@@ -95,8 +103,11 @@ function logout() {
             </div>
         </div>
         <!-- Los accesos de cuenta permanecen al pie sin cambiar sus rutas ni el cierre de sesión. -->
-        <nav class="workspace-account" aria-label="Opciones de la cuenta"><a
-            :href="referenceHref('/mi-perfil', page.props)" :aria-current="current === 'mi-perfil' ? 'page' : undefined"
+        <nav class="workspace-account" aria-label="Opciones de la cuenta">
+            <a v-if="accountAreaLink" :href="accountAreaLink.href" @click="emit('navigate')">
+                <I name="arrow"/><span>{{ accountAreaLink.label }}</span>
+            </a>
+            <a :href="referenceHref('/mi-perfil', page.props)" :aria-current="current === 'mi-perfil' ? 'page' : undefined"
             @click="emit('navigate')"><I name="user"/><span>Mi perfil</span></a>
             <button type="button" class="workspace-logout" :disabled="logoutForm.processing" @click="logout"><I
                 name="arrow"/><span>{{ logoutForm.processing ? 'Cerrando sesión…' : 'Cerrar sesión' }}</span></button>

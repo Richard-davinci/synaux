@@ -17,11 +17,14 @@ class UserDirectoryController extends Controller
         $search = is_string($query) ? Str::substr(trim($query), 0, 120) : '';
 
         $users = User::query()
+            ->select(['id', 'name', 'email', 'is_admin', 'created_at'])
+            ->selectRaw('exists (select 1 from professional_profiles where professional_profiles.user_id = users.id) as is_professional')
+            ->withCasts(['is_professional' => 'boolean'])
             ->when($search !== '', fn($query) => $query->where(fn($account) => $account
                 ->whereLike('name', '%' . $search . '%')
                 ->orWhereLike('email', '%' . $search . '%')))
             ->latest('id')
-            ->paginate(20, ['id', 'name', 'email', 'is_admin', 'created_at'])
+            ->paginate(20)
             ->appends($search !== '' ? ['buscar' => $search] : []);
 
         return Inertia::render('EspacioTrabajo', [

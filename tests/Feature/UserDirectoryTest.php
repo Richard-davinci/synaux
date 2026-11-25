@@ -27,7 +27,7 @@ class UserDirectoryTest extends TestCase
                 ->where('section', 'usuarios')->has('users.data', 2)
                 ->has('users.data.0', fn(Assert $row) => $row
                     ->where('id', $admin->id)->where('name', $admin->name)->where('email', $admin->email)
-                    ->where('is_admin', true)->has('created_at'))
+                    ->where('is_admin', true)->where('is_professional', false)->has('created_at'))
                 ->where('users.data.1.is_admin', false));
     }
 

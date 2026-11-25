@@ -58,7 +58,7 @@ class EspacioTrabajoController extends Controller
         $data['screen'] = $area;
         $data['area'] = $area === 'admin' ? 'gestion' : $area;
         $data['section'] = $section;
-        if ($area === 'profesional' && in_array($section, ['presupuestos', 'proyectos'], true)) {
+        if ($area === 'profesional') {
             // Distingue los presupuestos emitidos del historial de esta misma persona como cliente.
             $data['quotes'] = array_values(array_filter($data['quotes'], fn($q) => $q['issuer_id'] === $request->user()->id));
             $data['projects'] = $this->projectQueries->projects($data['quotes']);

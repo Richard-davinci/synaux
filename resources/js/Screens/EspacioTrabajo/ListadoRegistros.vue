@@ -70,7 +70,7 @@ function clearFilters() {
 
 <template>
     <section class="page shell">
-        <T eyebrow="Área cliente" :title="listing.title"
+        <T :eyebrow="data.area === 'profesional' ? 'Área profesional' : 'Área cliente'" :title="listing.title"
            description="Consultá el estado y los próximos pasos de cada proyecto.">
             <B v-if="listing.create" :href="listing.create.href" arrow>{{ listing.create.label }}</B>
         </T>
