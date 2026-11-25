@@ -42,6 +42,10 @@ defineProps({name: {type: String, default: 'arrow'}});
             <path
                 d="m3 3 18 18M10.6 5.1A12 12 0 0 1 12 5c6.5 0 10 7 10 7a18 18 0 0 1-3 4M6.3 6.3A20 20 0 0 0 2 12s3.5 7 10 7a12 12 0 0 0 5.7-1.7M10 10a3 3 0 0 0 4 4"/>
         </g>
+        <!-- El cesto identifica acciones de eliminación con confirmación. -->
+        <g v-else-if="name === 'trash'">
+            <path d="M4 7h16m-10 4v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/>
+        </g>
         <path v-else-if="name === 'plus'" d="M12 5v14M5 12h14"/>
         <g v-else-if="name === 'edit'">
             <path d="m4 16-1 5 5-1L19 9l-4-4z"/>

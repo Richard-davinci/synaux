@@ -100,4 +100,51 @@ class CatalogAdministrationTest extends TestCase
             $this->assertSame($snapshot, DB::table($table)->orderBy('id')->get()->toJson());
         }
     }
+
+    // Los borrados conservan vínculos relacionales y referencias guardadas en JSON.
+    public function test_catalog_deletion_requires_admin_and_no_linked_data(): void
+    {
+        $this->seed(SynauxCatalogSeeder::class);
+        $cliente = User::factory()->create();
+        $admin = User::factory()->create(['is_admin' => true]);
+        $categoria = DB::table('service_categories')->insertGetId([
+            'name' => 'Temporal', 'slug' => 'temporal', 'description' => 'Solo para la prueba.', 'active' => false,
+        ]);
+        $servicio = DB::table('services')->insertGetId([
+            'name' => 'Temporal', 'slug' => 'temporal', 'summary' => 'Servicio de prueba.',
+            'description' => 'Solo para la prueba.', 'service_category_id' => $categoria,
+            'estimation_mode' => 'manual', 'active' => false,
+        ]);
+        $borrarCategoria = "/admin/catalogo/categorias/$categoria";
+        $borrarServicio = "/admin/catalogo/servicios/$servicio";
+        $this->delete($borrarServicio)->assertRedirect('/ingresar');
+        $this->actingAs($cliente)->delete($borrarServicio)->assertForbidden();
+        $this->delete($borrarCategoria)->assertForbidden();
+        $this->actingAs($admin)->from('/admin/categorias')->delete($borrarCategoria)
+            ->assertSessionHasErrors(['eliminar_catalogo' => 'El registro está vinculado a servicios.']);
+
+        $solicitud = DB::table('project_requests')->insertGetId([
+            'user_id' => $cliente->id, 'title' => 'Pedido con un adicional', 'description' => 'Solo para la prueba.',
+            'requested_services' => json_encode([['service_id' => $servicio, 'name' => 'Temporal']]),
+        ]);
+        DB::table('site_home_settings')->updateOrInsert(['id' => 1], ['featured_service_ids' => json_encode([$servicio])]);
+        $this->from('/admin/servicios')->delete($borrarServicio)->assertSessionHasErrors([
+            'eliminar_catalogo' => 'El registro está vinculado a servicios destacados, solicitudes con este servicio adicional.',
+        ]);
+        $this->assertDatabaseHas('services', ['id' => $servicio]);
+
+        DB::table('site_home_settings')->where('id', 1)->update(['featured_service_ids' => '[]']);
+        DB::table('project_requests')->where('id', $solicitud)->update(['service_id' => $servicio, 'requested_services' => '[]']);
+        $this->delete($borrarServicio)->assertSessionHasErrors([
+            'eliminar_catalogo' => 'El registro está vinculado a solicitudes.',
+        ]);
+
+        DB::table('project_requests')->where('id', $solicitud)->update(['service_id' => null]);
+        $this->delete($borrarServicio)->assertRedirect('/admin/servicios')->assertSessionHasNoErrors();
+        $this->assertDatabaseMissing('services', ['id' => $servicio]);
+        $this->from('/admin/categorias')->delete($borrarCategoria)->assertRedirect('/admin/categorias')->assertSessionHasNoErrors();
+        $this->assertDatabaseMissing('service_categories', ['id' => $categoria]);
+        $this->assertDatabaseHas('project_requests', ['id' => $solicitud]);
+    }
+
 }

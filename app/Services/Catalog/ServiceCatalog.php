@@ -28,17 +28,21 @@ class ServiceCatalog
     // Valida contra la oferta pública y guarda toda la selección en una sola escritura.
     public function saveFeaturedServices(array $ids): void
     {
-        $activeIds = array_column($this->services(), 'database_id');
+        DB::transaction(function () use ($ids) {
+            // Comparte el bloqueo con el borrado porque los destacados guardan identificadores en JSON.
+            DB::table('services')->whereIn('id', $ids)->orderBy('id')->lockForUpdate()->pluck('id');
+            $activeIds = array_column($this->services(), 'database_id');
 
-        if (array_diff($ids, $activeIds)) {
-            throw ValidationException::withMessages([
-                'service_ids' => 'Solo podés destacar servicios activos de categorías activas.',
-            ]);
-        }
+            if (array_diff($ids, $activeIds)) {
+                throw ValidationException::withMessages([
+                    'service_ids' => 'Solo podés destacar servicios activos de categorías activas.',
+                ]);
+            }
 
-        DB::table('site_home_settings')->upsert([
-            ['id' => 1, 'featured_service_ids' => json_encode($ids, JSON_THROW_ON_ERROR)],
-        ], ['id'], ['featured_service_ids']);
+            DB::table('site_home_settings')->upsert([
+                ['id' => 1, 'featured_service_ids' => json_encode($ids, JSON_THROW_ON_ERROR)],
+            ], ['id'], ['featured_service_ids']);
+        }, 3);
     }
 
     // Une servicios y categorías y prepara los campos compartidos por catálogo, formularios y detalles.

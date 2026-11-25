@@ -21,6 +21,14 @@ class GestionSolicitudes
     public function save(int $userId, array $d, ?array $pending = null): int
     {
         return DB::transaction(function () use ($userId, $d, $pending) {
+            // Los adicionales se guardan en JSON; el bloqueo evita vincular un servicio que se está eliminando.
+            $adicionales = array_map('intval', array_column($d['additional_services'] ?? [], 'service_id'));
+            if ($adicionales) {
+                $existentes = DB::table('services')->whereIn('id', $adicionales)->orderBy('id')->lockForUpdate()->pluck('id')->all();
+                if (array_diff($adicionales, $existentes)) {
+                    throw ValidationException::withMessages(['additional_services' => 'Un servicio adicional ya no está disponible.']);
+                }
+            }
             // Una cuenta del equipo usa su identidad laboral y no entra en la cartera como cliente.
             $usuario = User::findOrFail($userId);
             abort_if($usuario->perteneceAEquipo(), 403);

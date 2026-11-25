@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\Catalog\ServiceCatalog;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -28,6 +29,70 @@ class CatalogConfigurationController extends Controller
         $catalog->saveFeaturedServices(array_map('intval', $data['service_ids']));
 
         return back()->with('notice', 'Servicios destacados del Inicio actualizados.');
+    }
+
+    // Los vínculos históricos y de configuración impiden el borrado, incluso si están inactivos.
+    public function eliminar(Request $request, string $resource, int $id)
+    {
+        abort_unless($request->user()->is_admin, 403);
+
+        $esServicio = $resource === 'servicios';
+        $tabla = $esServicio ? 'services' : 'service_categories';
+        $relaciones = $esServicio ? [
+            ['service_components', 'service_id', 'conceptos de estimación'],
+            ['estimator_questions', 'service_id', 'preguntas'],
+            ['option_services', 'service_id', 'opciones de estimación'],
+            ['service_prices', 'service_id', 'tarifarios'],
+            ['professional_services', 'service_id', 'perfiles profesionales'],
+            ['portfolio_projects', 'service_id', 'trabajos de portfolio'],
+            ['estimates', 'service_id', 'estimaciones'],
+            ['project_requests', 'service_id', 'solicitudes'],
+            ['budgets', 'direct_service_id', 'presupuestos'],
+        ] : [['services', 'service_category_id', 'servicios']];
+
+        try {
+            DB::transaction(function () use ($tabla, $id, $relaciones, $esServicio) {
+                $registro = DB::table($tabla)->where('id', $id);
+                $registro->lockForUpdate()->firstOrFail();
+                $vinculos = [];
+                foreach ($relaciones as [$relacion, $columna, $nombre]) {
+                    if (DB::table($relacion)->where($columna, $id)->exists()) {
+                        $vinculos[] = $nombre;
+                    }
+                }
+                if ($esServicio) {
+                    // Estas dos listas guardan identificadores dentro de JSON y carecen de clave foránea.
+                    $destacados = DB::table('site_home_settings')->where('id', 1)->value('featured_service_ids');
+                    if (in_array($id, json_decode($destacados ?? '[]', true), true)) {
+                        $vinculos[] = 'servicios destacados';
+                    }
+                    $solicitudes = DB::table('project_requests')->select('id', 'requested_services')
+                        ->whereNotNull('requested_services')->where('requested_services', '!=', '[]')->lazyById();
+                    foreach ($solicitudes as $solicitud) {
+                        $idsAdicionales = array_column(json_decode($solicitud->requested_services, true) ?? [], 'service_id');
+                        if (in_array($id, array_map('intval', $idsAdicionales), true)) {
+                            $vinculos[] = 'solicitudes con este servicio adicional';
+                            break;
+                        }
+                    }
+                }
+                if ($vinculos) {
+                    throw ValidationException::withMessages([
+                        'eliminar_catalogo' => 'El registro está vinculado a ' . implode(', ', $vinculos) . '.',
+                    ]);
+                }
+                $registro->delete();
+            }, 3);
+        } catch (QueryException $error) {
+            // La clave foránea es la última defensa ante un vínculo agregado durante el borrado.
+            if ((int)($error->errorInfo[1] ?? 0) !== 1451
+                && !str_contains($error->errorInfo[2] ?? '', 'FOREIGN KEY constraint failed')) {
+                throw $error;
+            }
+            throw ValidationException::withMessages(['eliminar_catalogo' => 'El registro tiene datos asociados.']);
+        }
+
+        return back()->with('notice', $esServicio ? 'Servicio eliminado.' : 'Categoría eliminada.');
     }
 
     // Valida el recurso permitido y guarda sus cambios solo para una cuenta administrativa.

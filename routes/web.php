@@ -138,6 +138,8 @@ Route::middleware('auth')->group(function () {
             Route::post('/admin/guardar/tarifario', [TariffController::class, 'store']);
             Route::post('/admin/guardar/servicios-destacados', [CatalogConfigurationController::class, 'saveFeatured']);
             Route::post('/admin/guardar/{resource}', [CatalogConfigurationController::class, 'save']);
+            Route::delete('/admin/catalogo/{resource}/{id}', [CatalogConfigurationController::class, 'eliminar'])
+                ->whereIn('resource', ['servicios', 'categorias'])->whereNumber('id');
         });
     });
 });
