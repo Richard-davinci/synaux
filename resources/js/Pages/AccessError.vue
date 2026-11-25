@@ -22,7 +22,7 @@ const messages = {
     },
     404: {
         title: 'Página no encontrada',
-        description: 'Revisá si la dirección está bien escrita.',
+        description: 'Puede que el enlace haya cambiado o que la dirección esté incompleta.',
         action: ['Ir al Inicio', '/inicio'],
     },
 };
@@ -71,7 +71,7 @@ onMounted(() => heading.value?.focus({preventScroll: true}));
 
 .access-error-card {
     width: min(100%, 570px);
-    padding: clamp(24px, 6vw, 56px);
+    padding: clamp(24px, 6vw, 44px) clamp(20px, 6vw, 48px);
     text-align: center;
     background: #fff;
     border: 1px solid #44607533;
@@ -84,12 +84,12 @@ onMounted(() => heading.value?.focus({preventScroll: true}));
     display: block;
     width: 112px;
     height: auto;
-    margin: 0 auto 28px;
+    margin: 0 auto 24px;
 }
 
 /* El título y las acciones conservan su jerarquía al ampliarse el texto. */
 .access-error-status {
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     color: #1f6f7f;
     font-size: 1rem;
     font-weight: 700;
@@ -100,8 +100,14 @@ onMounted(() => heading.value?.focus({preventScroll: true}));
     font: 700 clamp(1.75rem, 4vw, 2.5rem)/1.14 'Space Grotesk', sans-serif;
 }
 
+/* El foco programático anuncia el título; los enlaces conservan su indicador de teclado. */
+.access-error h1:focus {
+    outline: none;
+}
+
 .access-error-description {
-    margin: 16px auto 0;
+    max-width: 38ch;
+    margin: 12px auto 0;
     color: #446075;
     line-height: 1.6;
 }
@@ -114,7 +120,21 @@ onMounted(() => heading.value?.focus({preventScroll: true}));
     margin-top: 24px;
 }
 
+/* La salida principal tiene mayor superficie y se apila con el enlace secundario en pantallas angostas. */
 .access-error-actions :deep(.v-btn) {
-    min-height: 44px;
+    min-height: 48px;
+    font-size: 1rem;
+}
+
+.access-error-actions :deep(.btn-primary) {
+    min-width: 152px;
+    padding-inline: 24px;
+}
+
+@media (max-width: 420px) {
+    .access-error-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
 }
 </style>
