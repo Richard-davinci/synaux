@@ -4,6 +4,7 @@ import B from '../UI/AppButton.vue';
 import F from '../UI/FormField.vue';
 import I from '../UI/AppIcon.vue';
 import RequestQuestions from './PreguntasSolicitud.vue';
+import ServicePicker from '../Catalog/ServicePicker.vue';
 import {money} from '../../support/formatters';
 
 // Se editan las mismas filas del formulario para conservar las respuestas y sus errores.
@@ -23,16 +24,16 @@ const extrasId = useId();
 async function revealExtra(event, item) {
     expandedExtra.value = item;
     await nextTick();
-    event.target.focus();
-    event.target.scrollIntoView({block: 'center'});
+    const target = event.target.getAttribute('aria-hidden') === 'true'
+        ? event.target.parentElement.querySelector('input:not([aria-hidden="true"])')
+        : event.target;
+    target?.focus();
+    target?.scrollIntoView({block: 'center'});
 }
 
 function extraOptions(index) {
     const used = props.form.additional_services.filter((_, position) => position !== index).map(item => Number(item.service_id));
-    return props.extras.filter(item => !used.includes(item.database_id)).map(item => ({
-        value: item.database_id,
-        label: item.name
-    }));
+    return props.extras.filter(item => !used.includes(Number(item.database_id)));
 }
 
 function changeExtra(item, serviceId) {
@@ -79,13 +80,12 @@ function addService() {
         </div>
         <div v-show="expandedExtra === item" :id="extrasId + '-' + index" class="request-extra-body"
              @invalid.capture="revealExtra($event, item)">
-            <div class="request-extra-fields">
-                <F :model-value="item.service_id" @update:model-value="changeExtra(item, $event)"
-                   :label="'Servicio adicional ' + (index + 1)" type="select" :options="extraOptions(index)" required
-                   :error="form.errors['additional_services.' + index + '.service_id']"/>
-                <F v-model="item.quantity" label="Cantidad" type="number" min="1" max="1000" step="1" required
-                   :error="form.errors['additional_services.' + index + '.quantity']"/>
-            </div>
+            <ServicePicker :model-value="item.service_id" :services="extraOptions(index)"
+                           :label="'Servicio adicional ' + (index + 1)"
+                           :error="form.errors['additional_services.' + index + '.service_id']"
+                           @update:model-value="changeExtra(item, $event)"/>
+            <F class="request-extra-quantity" v-model="item.quantity" label="Cantidad" type="number"
+               min="1" max="1000" step="1" required :error="form.errors['additional_services.' + index + '.quantity']"/>
             <fieldset v-if="extraQuestions(item.service_id).length" class="request-extra-questions">
                 <legend>Preguntas de {{ extraName(item.service_id) }}</legend>
                 <RequestQuestions v-model="item.answers" :questions="extraQuestions(item.service_id)"
@@ -165,10 +165,8 @@ function addService() {
     padding-top: 16px;
 }
 
-.request-extra-fields {
-    display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(80px, 1fr);
-    gap: 16px;
+.request-extra-quantity {
+    max-width: 150px;
 }
 
 .request-extra-body :deep(textarea) {
@@ -207,10 +205,6 @@ function addService() {
         padding: 12px;
     }
 
-    .request-extra-fields {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 0;
-    }
 }
 
 /* Las preguntas de cada adicional quedan agrupadas con el servicio correspondiente. */

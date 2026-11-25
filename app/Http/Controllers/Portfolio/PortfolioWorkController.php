@@ -26,12 +26,19 @@ class PortfolioWorkController extends Controller
         $profile = DB::table('professional_profiles')->where('user_id', $user->id)->first();
         abort_unless($profile, 403, 'Completá tu perfil profesional.');
 
+        $services = $catalog->services((bool)$user->is_admin);
+        // El autor puede conservar el servicio original si dejó de estar activo en el catálogo.
+        if ($selected && !$user->is_admin && !in_array($selected['service_id'], array_column($services, 'database_id'), true)) {
+            $historical = collect($catalog->services(true))->firstWhere('database_id', $selected['service_id']);
+            if ($historical) $services[] = $historical;
+        }
+
         return Inertia::render('EspacioTrabajo', [
             'screen' => 'editor-trabajo',
             'area' => $user->is_admin ? 'gestion' : 'cliente',
             'selected' => $selected,
             'galleryRevision' => $selected ? $gallery->revision($selected['images']) : null,
-            'services' => $catalog->services((bool)$user->is_admin),
+            'services' => $services,
         ]);
     }
 

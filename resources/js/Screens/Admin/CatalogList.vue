@@ -36,6 +36,7 @@ function clearFilters() {
 
 // El panel guarda la selección por orden y solo ofrece servicios visibles en el catálogo.
 const featuredOpen = ref(false);
+const featuredCategory = ref('');
 const featuredTrigger = ref(null);
 const featuredForm = useForm({service_ids: []});
 const featuredLimit = computed(() => catalog.value.featuredServiceLimit ?? 3);
@@ -43,6 +44,13 @@ const activeCategoryIds = computed(() => new Set(catalog.value.categories.filter
 const featuredOptions = computed(() => catalog.value.services
     .filter(row => row.active && activeCategoryIds.value.has(Number(row.service_category_id)))
     .toSorted((a, b) => a.name.localeCompare(b.name, 'es')));
+// Cambiar de categoría solo oculta opciones; mantiene la selección y su orden.
+const featuredCategories = computed(() => {
+    const availableIds = new Set(featuredOptions.value.map(service => Number(service.service_category_id)));
+    return categoryOptions.value.filter(option => availableIds.has(Number(option.value)));
+});
+const visibleFeaturedOptions = computed(() => featuredOptions.value.filter(service =>
+    !featuredCategory.value || Number(service.service_category_id) === Number(featuredCategory.value)));
 const featuredIds = computed(() => (catalog.value.featuredServiceIds ?? []).map(Number));
 const featuredNames = computed(() => featuredIds.value.map(id => catalog.value.services.find(row => Number(row.id) === id)?.name).filter(Boolean));
 const featuredError = computed(() => featuredForm.errors.service_ids ?? Object.values(featuredForm.errors)[0]);
@@ -51,6 +59,7 @@ function openFeatured() {
     featuredForm.defaults({service_ids: [...featuredIds.value]});
     featuredForm.reset();
     featuredForm.clearErrors();
+    featuredCategory.value = '';
     featuredOpen.value = true;
 }
 
@@ -163,9 +172,12 @@ function saveCategory() {
             <form class="featured-form" @submit.prevent="saveFeatured">
                 <p>Elegí hasta {{ featuredLimit }} servicios activos. Se muestran en el Inicio en el orden de selección.</p>
                 <p class="featured-count" aria-live="polite">{{ featuredForm.service_ids.length }} de {{ featuredLimit }} seleccionados</p>
-                <fieldset v-if="featuredOptions.length" class="featured-options">
+                <F v-if="featuredCategories.length" v-model="featuredCategory" label="Categoría" type="select"
+                   :options="[{ value: '', label: 'Todas las categorías' }, ...featuredCategories]"
+                   :disabled="featuredForm.processing"/>
+                <fieldset v-if="visibleFeaturedOptions.length" class="featured-options">
                     <legend>Servicios disponibles</legend>
-                    <label v-for="service in featuredOptions" :key="service.id">
+                    <label v-for="service in visibleFeaturedOptions" :key="service.id">
                         <input v-model="featuredForm.service_ids" type="checkbox" :value="Number(service.id)"
                                :disabled="featuredForm.processing || (featuredForm.service_ids.length >= featuredLimit && !featuredForm.service_ids.includes(Number(service.id)))">
                         <span>{{ service.name }}<small>{{ categoryName(service.service_category_id) }}</small></span>

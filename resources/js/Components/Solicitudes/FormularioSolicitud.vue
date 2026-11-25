@@ -110,8 +110,10 @@ const canSaveDraft = computed(() => form.title.trim().length >= 5 && form.descri
 watch(selectedService, (service, previous) => {
     if (previous && service?.database_id !== previous.database_id) form.answers = {};
     initializeAnswers();
-    if (service) form.category = service.category;
-    form.additional_services = form.additional_services.filter(item => item.service_id != form.service_id);
+    if (service) {
+        form.category = service.category;
+        form.additional_services = form.additional_services.filter(item => item.service_id != service.database_id);
+    }
 }, {immediate: true});
 
 function extraName(id) {

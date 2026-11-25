@@ -1,7 +1,7 @@
 <script setup>
 import {computed, ref} from 'vue';
 import {router, useForm} from '@inertiajs/vue3';
-import {VAutocomplete, VListItem} from 'vuetify/components';
+import ServicePicker from '../../Components/Catalog/ServicePicker.vue';
 import B from '../../Components/UI/AppButton.vue';
 import F from '../../Components/UI/FormField.vue';
 import T from '../../Components/UI/PageTitle.vue';
@@ -25,27 +25,6 @@ for (const question of props.data.questions ?? []) {
 const form = useForm({service: service.value, answers: initial});
 const saveForm = useForm({to_request: false});
 const labels = ['Servicio', 'Preguntas', 'Revisión', 'Resultado'];
-// La categoría acota las opciones y el autocompletado evita desplegar cientos de tarjetas.
-const categories = computed(() => [...new Set(props.data.services.map(item => item.category))]);
-const category = ref(selectedService.value?.category ?? categories.value[0] ?? '');
-const serviceSearch = ref('');
-const availableServices = computed(() => props.data.services
-    .filter(item => item.category === category.value)
-    .sort((a, b) => a.name.localeCompare(b.name, 'es')));
-const normalize = value => String(value ?? '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('es');
-
-function filterService(value, query) {
-    const title = normalize(value);
-    return normalize(query).trim().split(/\s+/).every(word => title.includes(word));
-}
-
-function changeCategory(value) {
-    category.value = value;
-    serviceSearch.value = '';
-    if (selectedService.value?.category !== value) choose(null);
-    form.clearErrors('service');
-}
-
 // El precio orientativo sigue al segmento elegido, sin alterar los importes históricos del resultado.
 const currentReference = computed(() => {
     const reference = props.data.references?.[service.value];
@@ -73,7 +52,7 @@ function choose(id) {
 }
 
 function next() {
-    if (!selectedService.value || selectedService.value.category !== category.value) return;
+    if (!selectedService.value) return;
     if (props.data.preview || props.data.selected?.id === service.value) {
         step.value = 2;
         return;
@@ -118,25 +97,8 @@ function save(toRequest) {
                 <h2>¿Qué necesitás resolver?</h2>
                 <p>Elegí el servicio para conocer su alcance y preparar la estimación.</p>
                 <form class="estimator-service-form" @submit.prevent="next">
-                    <F :model-value="category" label="Categoría" type="select" :options="categories" required
-                       @update:model-value="changeCategory"/>
-                    <p class="service-count">{{ availableServices.length }}
-                        {{ availableServices.length === 1 ? 'servicio disponible' : 'servicios disponibles' }} en esta
-                        categoría.</p>
-                    <VAutocomplete :model-value="service" v-model:search="serviceSearch"
-                                   class="estimator-service-select"
-                                   :items="availableServices" item-title="name" item-value="id" label="Servicio"
-                                   placeholder="Buscá o elegí un servicio"
-                                   variant="outlined" color="primary" density="compact" clearable
-                                   :custom-filter="filterService" :menu-props="{ maxHeight: 280 }"
-                                   no-data-text="No encontramos servicios con esa búsqueda."
-                                   hint="Escribí parte del nombre para encontrar el servicio." persistent-hint
-                                   :error-messages="form.errors.service" :disabled="!availableServices.length"
-                                   @update:model-value="choose">
-                        <template #item="{ props: itemProps, item }">
-                            <VListItem v-bind="itemProps" :subtitle="item.raw.mode"/>
-                        </template>
-                    </VAutocomplete>
+                    <ServicePicker :model-value="service" :services="data.services" label="Servicio" value-key="id"
+                                   :error="form.errors.service" @update:model-value="choose"/>
                     <p v-if="selectedService" class="service-mode">{{ selectedService.mode }}</p>
                     <div class="form-actions"><span/><B type="submit" arrow :disabled="!selectedService">Continuar</B>
                     </div>
@@ -287,42 +249,6 @@ function save(toRequest) {
 /* Los controles ocupan una altura estable y la lista de opciones se desplaza dentro del menú. */
 .estimator-service-form {
     margin-top: 24px;
-}
-
-.service-count {
-    margin: -6px 0 20px;
-    font-size: .9rem;
-    color: #446075;
-}
-
-.estimator-service-select {
-    margin-bottom: 12px;
-}
-
-.estimator-service-select :deep(.v-field) {
-    border-radius: 10px;
-    background: #fff;
-}
-
-.estimator-service-select :deep(.v-field__input) {
-    font-family: 'Nunito', sans-serif;
-}
-
-.estimator-service-select :deep(.v-messages) {
-    font-size: .875rem;
-    line-height: 1.45;
-    color: #446075;
-    opacity: 1;
-}
-
-/* El input interno usa el borde del componente Vuetify, sin el borde adicional de los campos nativos. */
-.estimator-service-select :deep(.v-field input) {
-    min-height: 0;
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    outline: none;
 }
 
 .service-mode {
