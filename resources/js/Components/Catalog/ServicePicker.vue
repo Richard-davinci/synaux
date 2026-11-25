@@ -56,7 +56,8 @@ function invalidSelection() {
            :disabled="disabled" required
            @update:model-value="changeCategory"/>
         <div class="service-picker-main"><label :for="serviceInputId">{{ label }} <span aria-hidden="true">*</span></label>
-            <VAutocomplete ref="serviceControl" :id="serviceInputId" :model-value="modelValue" v-model:search="search" :items="available"
+            <!-- La búsqueda consulta el catálogo y evita que el navegador sugiera búsquedas guardadas. -->
+            <VAutocomplete autocomplete="suppress" name="buscar-servicio-catalogo" ref="serviceControl" :id="serviceInputId" :model-value="modelValue" v-model:search="search" :items="available"
                            item-title="name" :item-value="valueKey" :aria-label="label" aria-required="true"
                            placeholder="Buscá o elegí un servicio"
                            variant="outlined" density="compact" color="primary" clearable
