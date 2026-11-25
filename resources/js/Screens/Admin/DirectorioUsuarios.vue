@@ -88,15 +88,37 @@ async function prepararEnlace(user) {
     }
 }
 
-async function copiarEnlace() {
-    try {
-        await navigator.clipboard.writeText(enlace.value);
-        mensajeEnlace.value = 'Enlace copiado.';
-    } catch {
-        campoEnlace.value?.focus();
-        campoEnlace.value?.select();
-        mensajeEnlace.value = 'El enlace quedó seleccionado para que lo copies.';
+// En HTTP local, se usa el campo de solo lectura para copiar dentro del clic del usuario.
+async function copiarEnlace(evento) {
+    const texto = enlace.value;
+    const boton = evento.currentTarget;
+    if (!texto) return;
+
+    if (navigator.clipboard?.writeText) {
+        try {
+            await navigator.clipboard.writeText(texto);
+            if (enlace.value === texto) mensajeEnlace.value = 'Enlace copiado.';
+            return;
+        } catch {
+            // Si el navegador deniega el acceso, se intenta copiar desde la selección.
+        }
     }
+
+    const campo = campoEnlace.value;
+    if (!campo || campo.value !== texto) return;
+    campo.focus();
+    campo.select();
+
+    try {
+        if (document.execCommand?.('copy')) {
+            mensajeEnlace.value = 'Enlace copiado.';
+            boton?.focus();
+            return;
+        }
+    } catch {
+        // Si se bloquean ambos métodos, la selección queda lista para copiar manualmente.
+    }
+    mensajeEnlace.value = 'El enlace quedó seleccionado. Copialo con Ctrl+C o desde el menú Copiar.';
 }
 
 async function compartirEnlace() {
