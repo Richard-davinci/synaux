@@ -10,6 +10,7 @@ import SidePanel from '../../Components/UI/SidePanel.vue';
 import AccionIcono from '../../Components/UI/AccionIcono.vue';
 import ServiciosDestacados from '../../Components/Admin/ServiciosDestacados.vue';
 import {useSubmit} from '../../support/useSubmit';
+import {date} from '../../support/formatters';
 import {slugify} from './catalogSlug';
 
 const props = defineProps({data: {type: Object, required: true}});
@@ -49,16 +50,26 @@ const columnas = computed(() => [
         : {clave: 'categoria', titulo: 'Categoría', valor: row => categoryName(row.service_category_id)},
     ...(!categoriesView.value ? [{clave: 'modalidad', titulo: 'Modalidad', valor: modalidad}] : []),
     {clave: 'estado', titulo: 'Estado', valor: row => row.active ? 'Activo' : 'Inactivo'},
+    ...(!categoriesView.value ? [{clave: 'actualizacion', titulo: 'Última actualización', valor: row => row.updated_at, recientePrimero: true}] : []),
 ]);
 const filasOrdenadas = computed(() => {
     const columna = columnas.value.find(item => item.clave === columnaOrden.value) ?? columnas.value[0];
     const sentido = descendente.value ? -1 : 1;
-    return [...rows.value].sort((a, b) => sentido * comparador.compare(columna.valor(a), columna.valor(b))
-        || comparador.compare(a.name, b.name) || a.id - b.id);
+    return [...rows.value].sort((a, b) => {
+        const primero = columna.valor(a);
+        const segundo = columna.valor(b);
+        // Los registros sin fecha quedan al final en ambos sentidos.
+        if (primero == null && segundo != null) return 1;
+        if (primero != null && segundo == null) return -1;
+        return sentido * comparador.compare(primero ?? '', segundo ?? '')
+            || comparador.compare(a.name, b.name) || a.id - b.id;
+    });
 });
 
 function ordenarPor(clave) {
-    descendente.value = columnaOrden.value === clave && !descendente.value;
+    descendente.value = columnaOrden.value === clave
+        ? !descendente.value
+        : Boolean(columnas.value.find(columna => columna.clave === clave)?.recientePrimero);
     columnaOrden.value = clave;
     pagina.value = 1;
 }
@@ -192,6 +203,10 @@ function saveCategory() {
                     </td>
                     <td v-if="!categoriesView">{{ modalidad(row) }}</td>
                     <td><S :status="row.active ? 'enabled' : 'disabled'"/></td>
+                    <td v-if="!categoriesView" class="fecha-catalogo">
+                        <time v-if="row.updated_at" :datetime="row.updated_at">{{ date(row.updated_at) }}</time>
+                        <span v-else>Sin registro</span>
+                    </td>
                     <td class="celda-acciones-catalogo">
                         <div class="acciones-catalogo">
                             <AccionIcono icono="eye" texto="Vista previa"
@@ -206,7 +221,7 @@ function saveCategory() {
                     </td>
                 </tr>
                 <tr v-if="!rows.length">
-                    <td :colspan="categoriesView ? 4 : 5">No hay resultados para mostrar.</td>
+                    <td :colspan="columnas.length + 1">No hay resultados para mostrar.</td>
                 </tr>
                 </tbody>
             </table>
@@ -314,6 +329,8 @@ th[aria-sort] .orden-catalogo, th[aria-sort] .orden-catalogo span { color: #153b
 /* La columna de acciones queda a la derecha aunque cambie el ancho de la tabla. */
 .workspace-table .celda-acciones-catalogo { text-align: right; }
 .acciones-catalogo { justify-content: flex-end; }
+.fecha-catalogo time { white-space: nowrap; }
+.fecha-catalogo span { color: #446075; }
 
 /* La navegación queda debajo de la tabla. */
 .acciones-catalogo, .paginacion-catalogo, .paginacion-catalogo nav {

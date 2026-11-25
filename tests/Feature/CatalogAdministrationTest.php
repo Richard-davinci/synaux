@@ -82,6 +82,7 @@ class CatalogAdministrationTest extends TestCase
         foreach (['tariff_versions', 'service_prices', 'component_prices'] as $table) {
             $prices[$table] = DB::table($table)->orderBy('id')->get()->toJson();
         }
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-11-24 15:00:00', 'UTC'));
         $this->actingAs($admin)->post('/admin/guardar/categorias', [
             'name' => 'Comunicación', 'slug' => 'comunicacion', 'description' => 'Servicios de comunicación.', 'active' => true,
         ])->assertRedirect()->assertSessionHasNoErrors();
@@ -93,9 +94,15 @@ class CatalogAdministrationTest extends TestCase
         $this->assertDatabaseHas('services', ['slug' => 'asesoria', 'active' => false, 'estimation_mode' => 'manual']);
         $service = DB::table('services')->where('slug', 'asesoria')->first();
         $this->assertSame(['Diagnóstico', 'Plan de trabajo'], json_decode($service->deliverables, true));
+        $this->assertSame('2026-11-24 15:00:00', $service->updated_at);
+        $this->travel(1)->day();
         $this->post('/admin/guardar/servicios', [...$values, 'slug' => ''])->assertSessionHasErrors('slug');
         $this->post('/admin/guardar/servicios', [...$values, 'id' => $service->id, 'active' => true])->assertSessionHasNoErrors();
-        $this->assertDatabaseHas('services', ['id' => $service->id, 'active' => true]);
+        $this->assertDatabaseHas('services', ['id' => $service->id, 'active' => true, 'updated_at' => '2026-11-25 15:00:00']);
+        $this->assertDatabaseHas('services', ['slug' => 'tienda-online', 'updated_at' => null]);
+        $this->get('/admin/servicios')->assertInertia(fn(Assert $page) => $page->where('administration.services', fn($services) =>
+            collect($services)->firstWhere('id', $service->id)['updated_at'] === '2026-11-25T15:00:00.000000Z'));
+        $this->travelBack();
         foreach ($prices as $table => $snapshot) {
             $this->assertSame($snapshot, DB::table($table)->orderBy('id')->get()->toJson());
         }

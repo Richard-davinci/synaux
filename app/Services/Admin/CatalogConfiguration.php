@@ -3,6 +3,7 @@
 namespace App\Services\Admin;
 
 use App\Services\Catalog\ServiceCatalog;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class CatalogConfiguration
@@ -16,7 +17,12 @@ class CatalogConfiguration
             'featuredServiceIds' => array_column($this->catalog->featuredServices(), 'database_id'),
             'featuredServiceLimit' => ServiceCatalog::FEATURED_LIMIT,
             'categories' => DB::table('service_categories')->get(),
-            'services' => DB::table('services')->get()->map(fn($s) => [...((array)$s), 'deliverables' => json_decode($s->deliverables ?? '[]', true)]),
+            // La fecha incluye la zona horaria para verse igual desde distintos navegadores.
+            'services' => DB::table('services')->get()->map(fn($s) => [
+                ...((array)$s),
+                'deliverables' => json_decode($s->deliverables ?? '[]', true),
+                'updated_at' => $s->updated_at ? Carbon::parse($s->updated_at, 'UTC')->toISOString() : null,
+            ]),
             'components' => DB::table('service_components')->get(),
             'questions' => DB::table('estimator_questions')->orderBy('sort_order')->get()->map(fn($q) => [...((array)$q), 'options' => DB::table('estimator_options')->where('question_id', $q->id)->orderBy('sort_order')->get()]),
             // Usa la hora del servidor para mostrar la misma versión vigente que usa el cálculo.

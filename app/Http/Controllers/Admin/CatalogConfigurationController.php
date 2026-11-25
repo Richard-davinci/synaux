@@ -151,6 +151,8 @@ class CatalogConfigurationController extends Controller
                 }
             }
             if ($resource === 'servicios') {
+                // Registra la edición de la ficha comercial con la hora del servidor.
+                $data['updated_at'] = now();
                 $data['deliverables'] = json_encode(array_values(array_filter(array_map('trim', explode("\n", $data['deliverables'])))));
             }
             if ($resource === 'componentes') {
