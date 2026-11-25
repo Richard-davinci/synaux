@@ -22,7 +22,7 @@ class PortfolioWorkController extends Controller
 
         return Inertia::render('EspacioTrabajo', [
             'screen' => 'editor-trabajo',
-            'area' => $user->is_admin ? 'gestion' : (config('synaux.stage_two_enabled') ? 'profesional' : 'cliente'),
+            'area' => $user->is_admin ? 'gestion' : 'cliente',
             'selected' => $selected,
             'services' => $catalog->services((bool)$user->is_admin),
         ]);

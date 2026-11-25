@@ -39,8 +39,8 @@ const {proposals, invitations} = useMarketplaceRecords(props);
             <aside>
                 <v-card class="card soft-panel">
                     <h3>Tu perfil profesional</h3>
-                    <p>{{ data.profile ? 'Mantené actualizadas tus habilidades y disponibilidad.' : 'Cargá tu especialidad y experiencia para presentar propuestas.' }}</p>
-                    <B href="/profesional/perfil" variant="secondary">{{ data.profile ? 'Editar mi perfil' : 'Completar perfil' }}</B>
+                    <p>Mantené actualizadas tus habilidades y disponibilidad.</p>
+                    <B href="/profesional/perfil" variant="secondary">Editar mi perfil</B>
                     <B href="/profesional/portfolio" variant="ghost">Administrar portfolio</B>
                 </v-card>
             </aside>

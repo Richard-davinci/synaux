@@ -1,6 +1,6 @@
 <?php
 
-// Cada instalación decide cuándo habilitar el área profesional y el marketplace.
+// La etapa 1 es pública. La etapa 2 permanece disponible para revisión administrativa.
 return [
-    'stage_two_enabled' => (bool)env('SYNAUX_STAGE_TWO_ENABLED', false),
+    'stage_two_enabled' => false,
 ];

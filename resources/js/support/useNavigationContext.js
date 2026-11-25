@@ -16,7 +16,6 @@ const workspaceNav = {
         ['Solicitudes', '/cliente/solicitudes'],
         ['Publicaciones', '/cliente/publicaciones'],
         ['Propuestas', '/cliente/propuestas'],
-        ['Invitaciones', '/cliente/invitaciones'],
         ['Presupuestos', '/cliente/presupuestos'],
         ['Proyectos', '/cliente/proyectos'],
     ],
@@ -27,8 +26,7 @@ const workspaceNav = {
         ['Invitaciones', '/profesional/invitaciones'],
         ['Presupuestos', '/profesional/presupuestos'],
         ['Proyectos', '/profesional/proyectos'],
-        ['Portfolio', '/profesional/portfolio'],
-        ['Perfil profesional', '/profesional/perfil'],
+        ['Mi perfil', '/profesional/perfil'],
     ],
     gestion: [
         ['Resumen', '/gestion'],
@@ -47,8 +45,6 @@ const sectionsByScreen = {
     presupuesto: 'presupuestos',
     'editor-presupuesto': 'presupuestos',
     proyecto: 'proyectos',
-    muro: 'oportunidades',
-    oportunidad: 'oportunidades',
     estimacion: 'estimaciones',
     'editor-trabajo': 'portfolio',
 };
@@ -64,9 +60,9 @@ export function useNavigationContext() {
     });
     const path = computed(() => page.url.split('?')[0]);
 
-    // La cuenta cliente accede a las secciones habilitadas; la revisión administrativa sigue siendo explícita.
+    // Las secciones de la segunda etapa aparecen al entrar expresamente en el área correspondiente.
     const nav = computed(() => (workspaceNav[area.value] ?? publicNav).filter(([, href]) =>
-        !stageTwoPaths.includes(href) || (page.props.stageTwo && (!page.props.auth?.is_admin || stageTwoPaths.includes(path.value)))
+        !stageTwoPaths.includes(href) || (page.props.stageTwo && stageTwoPaths.includes(path.value))
     ));
     const hasWorkspace = computed(() => area.value !== 'public' && Boolean(page.props.auth || page.props.preview));
     const navbarRole = computed(() => {

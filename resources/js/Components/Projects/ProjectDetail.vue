@@ -10,6 +10,7 @@ import {date, money} from '../../support/formatters';
 const props = defineProps({data: Object});
 const project = computed(() => props.data.selected ?? {});
 const budget = computed(() => props.data.quotes?.find(item => item.id === project.value.accepted_budget_version_id));
+const management = computed(() => props.data.area === 'gestion' || props.data.area === 'profesional');
 const guidance = computed(() => ({
     pending: ['Coordinación del inicio', 'El presupuesto fue aceptado. synaux coordinará el inicio y registrará los próximos pasos.'],
     in_progress: ['Proyecto en desarrollo', 'Consultá los avances registrados y las próximas tareas acordadas.'],
@@ -21,7 +22,7 @@ const guidance = computed(() => ({
 <template>
     <section class="page shell">
         <div class="project-detail">
-            <B :href="'/' + (data.area || 'cliente') + '/proyectos'" variant="ghost">← Volver a proyectos</B>
+            <B :href="management ? '/gestion/proyectos' : '/cliente/proyectos'" variant="ghost">← Volver a proyectos</B>
             <T :eyebrow="'PRY-' + project.id + ' · Proyecto'" :title="project.title"><S :status="project.status"/></T>
             <div class="project-guidance"><I :name="project.status === 'completed' ? 'check' : 'folder'"/>
                 <div><strong>{{ guidance[0] }}</strong>

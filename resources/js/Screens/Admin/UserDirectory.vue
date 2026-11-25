@@ -49,7 +49,6 @@ function findUsers() {
                         <span class="user-role" :class="{ 'user-role-admin': user.is_admin }">
                             {{ user.is_admin ? 'Administrador' : 'Cliente' }}
                         </span>
-                        <span v-if="!user.is_admin && user.is_professional" class="user-role user-role-professional">Profesional</span>
                     </td>
                     <td><time v-if="user.created_at" :datetime="user.created_at">{{ date(user.created_at) }}</time><span v-else>—</span></td>
                 </tr>
@@ -110,10 +109,6 @@ function findUsers() {
     background: #f5f9fa;
     color: #446075;
     font-weight: 700;
-}
-
-.user-role-professional {
-    margin-inline-start: 4px;
 }
 
 .user-role-admin {

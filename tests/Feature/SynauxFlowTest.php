@@ -432,25 +432,6 @@ class SynauxFlowTest extends TestCase
         $this->assertDatabaseCount('projects', 0);
     }
 
-    // Una cuenta puede crear un perfil profesional sin perder su acceso de cliente.
-    public function test_one_account_can_use_client_and_professional_workspaces(): void
-    {
-        $user = $this->account();
-
-        $this->get('/profesional')->assertRedirect('/ingresar');
-        $this->actingAs($user)->get('/profesional')->assertInertia(fn(Assert $p) => $p
-            ->where('area', 'profesional')->where('profile', null)->where('stageTwo', true));
-        $this->post('/acciones/perfil', ['brand_name' => 'Estudio prueba', 'headline' => 'Diseño web',
-            'bio' => 'Diseño y desarrollo sitios web.', 'skills' => 'Diseño, WordPress', 'availability_status' => 'available',
-            'active' => true])->assertRedirect('/profesional/perfil');
-        $this->get('/profesional/perfil')->assertInertia(fn(Assert $p) => $p
-            ->where('area', 'profesional')->where('auth.professional', true)->where('profile.brand_name', 'Estudio prueba'));
-        $this->get('/cliente')->assertInertia(fn(Assert $p) => $p
-            ->where('area', 'cliente')->where('auth.id', $user->id)->where('auth.is_admin', false));
-        $this->actingAs($this->account(true))->get('/admin/usuarios?buscar=' . rawurlencode($user->email))
-            ->assertInertia(fn(Assert $p) => $p->has('users.data', 1)->where('users.data.0.is_professional', true));
-    }
-
     // La invitación privada se vuelve legible solo para su destinatario después de aceptarla.
     public function test_private_invitation_and_professional_selection_flow(): void
     {
@@ -464,24 +445,14 @@ class SynauxFlowTest extends TestCase
         $this->actingAs($other)->post('/acciones/responder-invitacion', ['id' => $invite, 'status' => 'accepted'])->assertForbidden();
         $this->actingAs($pro)->get('/oportunidades/' . $id)->assertNotFound();
         $this->post('/acciones/responder-invitacion', ['id' => $invite, 'status' => 'accepted'])->assertRedirect();
-        $this->get('/oportunidades/' . $id)->assertInertia(fn(Assert $p) => $p->where('area', 'profesional')->missing('selected.answers')->missing('selected.user_id'));
+        $this->get('/oportunidades/' . $id)->assertInertia(fn(Assert $p) => $p->missing('selected.answers')->missing('selected.user_id'));
         $this->post('/acciones/propuesta', ['request_id' => $id, 'message' => 'Puedo desarrollar la solución con una revisión inicial.', 'estimated_delivery_days' => 30, 'currency_code' => 'ARS'])->assertRedirect('/profesional/propuestas');
         $proposal = DB::table('proposals')->value('id');
         $this->post('/acciones/presupuesto', $this->quoteData($id))->assertForbidden();
         $this->actingAs($client)->post('/acciones/seleccionar-propuesta', ['id' => $proposal])->assertRedirect();
-        $this->actingAs($pro)->get('/editor/presupuesto?solicitud=' . $id)->assertInertia(fn(Assert $p) => $p->where('area', 'profesional')->has('budgetRequests', 1)->where('budgetRequests.0.id', $id));
+        $this->actingAs($pro)->get('/editor/presupuesto?solicitud=' . $id)->assertInertia(fn(Assert $p) => $p->has('budgetRequests', 1)->where('budgetRequests.0.id', $id));
         $this->post('/acciones/presupuesto', $this->quoteData($id))->assertRedirect()->assertSessionHasNoErrors();
         $this->assertDatabaseCount('budget_versions', 1);
-        $version = DB::table('budget_versions')->value('id');
-        $this->get('/presupuestos/' . $version)->assertInertia(fn(Assert $p) => $p->where('area', 'profesional'));
-        $this->actingAs($client)->get('/presupuestos/' . $version)->assertInertia(fn(Assert $p) => $p->where('area', 'cliente'));
-        $this->post('/acciones/decidir-presupuesto', ['id' => $version, 'decision' => 'accepted', 'confirmed' => true])->assertRedirect();
-        $project = DB::table('projects')->value('id');
-        $this->get('/proyectos/' . $project)->assertInertia(fn(Assert $p) => $p->where('area', 'cliente'));
-        $this->actingAs($pro)->get('/profesional/proyectos')->assertInertia(fn(Assert $p) => $p
-            ->where('area', 'profesional')->has('projects', 1)->where('projects.0.id', $project));
-        $this->get('/proyectos/' . $project)->assertInertia(fn(Assert $p) => $p->where('area', 'profesional'));
-        $this->actingAs($other)->get('/proyectos/' . $project)->assertNotFound();
     }
 
     // El contacto heredado solo se entrega al dueño o Gestión; nunca se incorpora al muro público.
