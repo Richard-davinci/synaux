@@ -86,7 +86,8 @@ watch(() => page.url, () => {
             <div ref="fixedHeader" class="fixed-header">
                 <SiteHeader :gestion-active="paginaDePanel && area === 'gestion' && !adminView"
                             :admin-view="adminView" :show-area-switch="showAreaSwitch"
-                            :account-name="hasWorkspace ? accountName : ''" :account-role="accountRole"/>
+                            :account-name="hasWorkspace ? accountName : ''" :account-role="accountRole"
+                            :acceso-cliente="area === 'cliente'"/>
             </div>
             <div class="navbar-space" aria-hidden="true"></div>
         </template>

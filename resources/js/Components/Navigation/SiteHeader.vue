@@ -12,6 +12,7 @@ defineProps({
     gestionActive: Boolean,
     adminView: Boolean,
     showAreaSwitch: Boolean,
+    accesoCliente: Boolean,
     accountName: String,
     accountRole: String,
 });
@@ -68,7 +69,7 @@ watch(() => page.url, () => {
                 <div class="header-session-actions">
                     <NotificationCenter v-if="!page.props.preview"/>
                     <MenuCuenta :nombre="accountName" :rol="accountRole" :show-area-switch="showAreaSwitch"
-                                :gestion-active="gestionActive" :admin-view="adminView"/>
+                                :gestion-active="gestionActive" :admin-view="adminView" :acceso-cliente="accesoCliente"/>
                 </div>
             </template>
         </div>

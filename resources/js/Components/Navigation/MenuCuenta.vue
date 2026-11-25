@@ -6,16 +6,22 @@ import I from '../UI/AppIcon.vue';
 import {initials} from '../../support/formatters';
 import {demoNotice, referenceHref} from '../../support/prototype';
 
-const props = defineProps({nombre: String, rol: String, showAreaSwitch: Boolean, gestionActive: Boolean, adminView: Boolean});
+const props = defineProps({nombre: String, rol: String, showAreaSwitch: Boolean, accesoCliente: Boolean, gestionActive: Boolean, adminView: Boolean});
 const page = usePage();
 const abierto = ref(false);
 const salida = useForm({});
 
 // El menú cambia de sección con los permisos vigentes de la cuenta.
-const areas = computed(() => props.showAreaSwitch ? [
-    {nombre: 'Gestión', ruta: '/gestion', icono: 'layout', activa: props.gestionActive},
-    {nombre: 'Administración', ruta: '/admin/servicios', icono: 'grid', activa: props.adminView},
-] : []);
+const areas = computed(() => {
+    if (props.showAreaSwitch) return [
+        {nombre: 'Gestión', ruta: '/gestion', icono: 'layout', activa: props.gestionActive},
+        {nombre: 'Administración', ruta: '/admin/servicios', icono: 'grid', activa: props.adminView},
+    ];
+    if (props.accesoCliente) return [
+        {nombre: 'Mi espacio', ruta: '/cliente', icono: 'layout', activa: page.url.split('?')[0] === '/cliente'},
+    ];
+    return [];
+});
 watch(() => page.url, () => { abierto.value = false; });
 
 function cerrarSesion() {
