@@ -18,6 +18,7 @@ const props = defineProps({
     step: [String, Number],
     placeholder: String,
     disabled: Boolean,
+    readonly: Boolean,
     minlength: [String, Number],
     maxlength: [String, Number]
 });
@@ -83,6 +84,7 @@ function invalidSelection() {
                    :placeholder="placeholder" rows="3" auto-grow @update:model-value="update"/>
         <VTextField v-else class="synaux-field-control" v-bind="common" :model-value="modelValue"
                     :type="type === 'password' ? (passwordVisible ? 'text' : 'password') : type" :required="required"
+                    :readonly="readonly"
                     :autocomplete="autocomplete" :minlength="minlength" :maxlength="maxlength" :min="min" :max="max"
                     :step="step" :placeholder="placeholder" @update:model-value="update">
             <template v-if="type === 'password'" #append-inner>

@@ -130,9 +130,12 @@ function guardar(seccion) {
                         <div class="account-fields">
                             <F v-model="contactoForm.name" label="Nombre y apellido" autocomplete="name" maxlength="255"
                                required :error="contactoForm.errors.name"/>
-                            <F v-model="contactoForm.email" label="Correo de ingreso y contacto" type="email" :disabled="profile.correo_fijo"
+                            <!-- El correo del equipo se puede leer y copiar mientras se editan los demás datos. -->
+                            <F v-model="contactoForm.email" label="Correo de ingreso y contacto" type="email"
+                               :class="{'account-email-fixed': profile.correo_fijo}" :readonly="profile.correo_fijo"
                                :hint="profile.correo_fijo ? 'El correo del equipo es fijo.' : undefined"
-                               autocomplete="email" maxlength="254" required :error="contactoForm.errors.email"/>
+                               autocomplete="email" maxlength="254" :required="!profile.correo_fijo"
+                               :error="contactoForm.errors.email"/>
                             <F v-if="emailChanged" v-model="contactoForm.current_password" class="account-field-wide"
                                label="Contraseña actual para cambiar el correo" type="password"
                                autocomplete="current-password"
@@ -334,7 +337,13 @@ function guardar(seccion) {
 .account-fields {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
     column-gap: 16px;
+}
+
+/* La ayuda queda debajo de su campo y el correo fijo conserva el contraste del texto. */
+.account-email-fixed :deep(.v-field) {
+    background: #f5f9fa;
 }
 
 .account-field-wide {
