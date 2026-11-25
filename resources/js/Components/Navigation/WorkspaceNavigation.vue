@@ -95,7 +95,6 @@ function isActive(href) {
 .workspace-navigation {
     --role-accent: #153b64;
     --role-selection: #153b64;
-    --role-selection-ink: #fff;
     --role-tint: #153b640a;
     display: flex;
     flex-direction: column;
@@ -111,7 +110,7 @@ function isActive(href) {
     --role-tint: #2db3a31a;
 }
 
-/* Gestión usa turquesa azulado y Administración usa turquesa claro con texto oscuro. */
+/* Gestión y Administración distinguen la selección con sus respectivos fondos turquesa. */
 .workspace-navigation[data-role='gestion'] {
     --role-accent: #1f6f7f;
     --role-selection: #1f6f7f;
@@ -121,7 +120,6 @@ function isActive(href) {
 .workspace-navigation[data-role='admin'] {
     --role-accent: #2db3a3;
     --role-selection: #2db3a3;
-    --role-selection-ink: #0e3155;
     --role-tint: #2db3a31a;
 }
 
@@ -182,7 +180,7 @@ function isActive(href) {
 }
 
 .workspace-navigation a[aria-current='page'] {
-    color: var(--role-selection-ink);
+    color: #fff;
     background: var(--role-selection);
     box-shadow: inset 3px 0 0 var(--role-accent), var(--button-shadow);
 }
