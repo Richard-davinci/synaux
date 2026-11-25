@@ -36,11 +36,12 @@ const icons = {
     Publicaciones: 'web',
     Invitaciones: 'user'
 };
-// Los grupos separan la información comercial de los recursos que calculan estimaciones orientativas.
-const administration = [
+// Los grupos organizan el catálogo, los precios y las cuentas; el prototipo solo muestra sus secciones de referencia.
+const administration = computed(() => [
     {title: 'Catálogo', items: [['Servicios', 'servicios', 'grid'], ['Categorías', 'categorias', 'tag']]},
     {title: 'Precios', items: [['Tarifarios', 'tarifario', 'calculator']]},
-];
+    ...(page.props.preview ? [] : [{title: 'Cuentas', items: [['Usuarios', 'usuarios', 'user']]}]),
+]);
 const sectionFor = href => href.split('/').filter(Boolean).slice(1).join('/') || 'resumen';
 
 function isActive(href) {
@@ -78,7 +79,7 @@ function logout() {
                     v-if="unreadFor(label)" class="workspace-unread"
                     :aria-label="`${unreadFor(label)} sin leer`">{{ unreadFor(label) }}</span></a>
             </nav>
-            <!-- En administración solo se muestran sus dos grupos; el navbar devuelve al panel de gestión. -->
+            <!-- El panel muestra los grupos de Administración y el navbar devuelve a Gestión. -->
             <div v-else class="workspace-admin">
                 <!-- Los grupos conservan rutas y permisos existentes; la vista actual marca una sola sección activa. -->
                 <nav v-for="group in administration" :key="group.title" :aria-label="group.title"
@@ -224,7 +225,7 @@ function logout() {
     stroke-linejoin: round;
 }
 
-/* Los módulos administrativos ocupan el ancho del panel y dos grupos compactos, sin anidación ni lista extra. */
+/* Los grupos administrativos se muestran al mismo nivel dentro del panel. */
 .workspace-admin {
     display: grid;
     gap: 16px;

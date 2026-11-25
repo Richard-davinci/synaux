@@ -30,6 +30,7 @@ import NewRequest from '../Screens/Solicitudes/NuevaSolicitud.vue';
 import ManagementOverview from '../Screens/Management/ResumenGestion.vue';
 import ManagementRecords from '../Screens/Management/RegistrosGestion.vue';
 import AdminTariffs from '../Screens/Admin/Tariffs.vue';
+import AdminUsers from '../Screens/Admin/UserDirectory.vue';
 import AdminConfigurationPreview from '../Screens/Admin/ConfigurationPreview.vue';
 import PortfolioWorkEditor from '../Screens/Portfolio/WorkEditor.vue';
 import CatalogList from '../Screens/Admin/CatalogList.vue';
@@ -89,6 +90,7 @@ const component = computed(() => {
     if (screen === 'estimacion') return SavedEstimate;
     if (screen === 'admin') {
         if (section === 'tarifario') return AdminTariffs;
+        if (section === 'usuarios') return AdminUsers;
         if (preview && ['preguntas', 'componentes', 'reglas'].includes(section)) return AdminConfigurationPreview;
         const path = page.url.split('?')[0];
         const editingService = /\/servicios\/(nuevo|\d+\/editar)$/.test(path) || Boolean(preview && data.value.catalogServiceId);
