@@ -7,7 +7,6 @@ import I from '../UI/AppIcon.vue';
 import ServicePicker from '../Catalog/ServicePicker.vue';
 import RequestQuestions from './PreguntasSolicitud.vue';
 import AdditionalServices from './ServiciosAdicionales.vue';
-import RequestReview from './RevisionSolicitud.vue';
 import RequestSummary from './ResumenSolicitud.vue';
 import {useRequestPricing} from './usePreciosSolicitud';
 import {useSubmit} from '../../support/useSubmit';
@@ -18,7 +17,8 @@ const page = usePage();
 const old = props.data.selected?.status === 'draft' ? props.data.selected : null;
 const estimate = props.data.selectedEstimate ?? props.data.estimates?.find(item => item.id === old?.estimate_id);
 const pending = props.data.requestDraft ?? {};
-const step = ref(props.data.requestStep ?? (props.data.referenceKey === 'publicar-revision' ? 4 : 1));
+// La vista de referencia anterior abre el nuevo paso final, igual que una solicitud retomada.
+const step = ref(props.data.requestStep ?? (props.data.referenceKey === 'publicar-revision' ? 3 : 1));
 const authenticated = computed(() => !!(page.props.auth || props.data.preview));
 const handoff = useForm({});
 // Los pasos permanecen visibles y el cambio de paso vuelve al inicio del formulario.
@@ -30,7 +30,9 @@ watch(step, async () => {
 // El adicional abierto se conserva al volver al paso de servicios o recibir errores.
 const expandedExtra = ref(null);
 
-const labels = ['Servicios', 'Proyecto', 'Contacto', 'Revisión'];
+// Los datos de contacto se confirman en el mismo paso en que se envía la solicitud.
+const labels = ['Servicios', 'Proyecto', 'Confirmar y enviar'];
+const titulos = ['Elegí los servicios', 'Contanos qué necesitás', 'Confirmá tus datos de contacto'];
 const submit = useSubmit();
 // Un borrador conserva su instantánea, incluso si luego cambia el contacto de la cuenta.
 const contact = old?.contact ?? props.data.accountContact ?? page.props.auth ?? {};
@@ -95,14 +97,8 @@ const pricing = reactive(useRequestPricing(toRef(props, 'data'), form, {
     extraQuestions
 }));
 
-function extraAnswerText(item, question) {
-    const value = item.answers[question.id];
-    if (value === '' || value == null) return '';
-    const selected = (Array.isArray(value) ? value : [value]).map(String);
-    return question.options?.length
-        ? question.options.filter(option => selected.includes(String(option.id))).map(option => option.label).join(', ')
-        : String(value);
-}
+// La acción conserva el texto de publicación cuando el cliente eligió visibilidad pública.
+const textoEnvio = computed(() => form.visibility === 'public' ? 'Publicar solicitud' : 'Solicitar presupuesto');
 
 const canSaveDraft = computed(() => form.title.trim().length >= 5 && form.description.trim().length >= 10);
 
@@ -123,7 +119,11 @@ function extraName(id) {
 // El visitante prepara el proyecto antes de ingresar; no se envía una solicitud hasta su confirmación autenticada.
 function advance() {
     if (step.value === 1 && !selectedService.value) return;
-    if (step.value === 3 && !authenticated.value) return;
+    if (form.processing || handoff.processing) return;
+    if (step.value === 3) {
+        if (authenticated.value) save(true);
+        return;
+    }
     // Al completar el proyecto se obtiene el cálculo real y se conserva el avance antes del contacto.
     if (step.value === 2 && !props.data.preview) {
         prepareJourney('review');
@@ -167,7 +167,7 @@ function save(publish) {
 
 <template>
     <div ref="wizard" class="request-wizard">
-        <!-- Los cuatro pasos quedan en una fila y se fijan debajo de las barras del sitio. -->
+        <!-- Los tres pasos quedan en una fila y se fijan debajo de las barras del sitio. -->
         <ol class="request-steps" aria-label="Pasos para solicitar presupuesto">
             <li v-for="(label, index) in labels" :key="label">
                 <button type="button" :disabled="index + 1 > step || form.processing || handoff.processing"
@@ -181,17 +181,15 @@ function save(publish) {
                         :estimacion-guardada="estimate" :extra-name="extraName"/>
         <div class="request-main">
             <v-card class="card request-card">
-                <h2 class="request-step-title">{{
-                    ['Elegí los servicios', 'Contanos qué necesitás', 'Datos de contacto', 'Revisá tu solicitud'][step - 1]
-                }}</h2>
+                <h2 class="request-step-title">{{ titulos[step - 1] }}</h2>
                 <div v-if="Object.keys(form.errors).length" class="notice" role="alert">
                     <ul>
                         <li v-for="(error, field) in form.errors" :key="field">{{ error }}</li>
                     </ul>
                 </div>
 
-                <!-- Solo se valida el paso visible al avanzar; Laravel comprueba el pedido completo al guardarlo. -->
-                <form v-if="step < 4" @submit.prevent="advance">
+                <!-- El último paso valida el contacto antes de enviar; Laravel comprueba la solicitud completa. -->
+                <form @submit.prevent="advance">
                     <template v-if="step === 1">
                         <!-- El servicio heredado aparece como dato guardado, con los adicionales aún editables. -->
                         <div v-if="form.estimate_id && selectedService" class="request-saved-service">
@@ -268,19 +266,17 @@ function save(publish) {
                            maxlength="500" :error="form.errors['contact.address']"/>
                     </template>
                     <div v-if="step !== 3 || authenticated" class="form-actions">
-                        <B v-if="step > 1" variant="secondary" @click="step -= 1">Anterior</B>
-                        <B type="submit" arrow :disabled="!selectedService || handoff.processing">
-                            {{ step === 3 ? 'Revisar solicitud' : 'Continuar' }}
+                        <B v-if="step > 1" variant="secondary" :disabled="form.processing || handoff.processing"
+                           @click="step -= 1">Anterior</B>
+                        <B type="submit" arrow :disabled="!selectedService || form.processing || handoff.processing">
+                            <template v-if="step === 3">{{ form.processing && form.publish ? 'Enviando…' : textoEnvio }}</template>
+                            <template v-else>Continuar</template>
                         </B>
                     </div>
                 </form>
 
-                <RequestReview v-else :form="form" :selected-service="selectedService"
-                               :extra-name="extraName" :extra-questions="extraQuestions"
-                               :extra-answer-text="extraAnswerText"
-                               @go="step = $event" @publish="save(true)"/>
                 <B v-if="step >= 2 && authenticated" class="draft-action" variant="ghost"
-                   :disabled="form.processing || !canSaveDraft"
+                   :disabled="form.processing || handoff.processing || !canSaveDraft"
                    @click="save(false)">{{ form.processing && !form.publish ? 'Guardando…' : 'Guardar borrador' }}</B>
                 <p v-if="step >= 2 && authenticated && !canSaveDraft" class="draft-help">Completá el título y la
                     descripción para guardar el borrador.</p>
@@ -323,7 +319,7 @@ function save(publish) {
     top: calc(var(--navbar-height, 108px) + var(--workspace-bar-height, 0px));
     z-index: 45;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
     padding: 8px 0;
     margin: 0;
@@ -459,11 +455,6 @@ function save(publish) {
     color: #153b64;
     font-weight: 700;
     overflow-wrap: anywhere;
-}
-
-.request-wizard :deep(.data-list dd) {
-    overflow-wrap: anywhere;
-    min-width: 0;
 }
 
 .request-auth-gate {
