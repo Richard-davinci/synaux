@@ -67,9 +67,15 @@ export function useNavigationContext() {
     });
 
     // Las secciones de la segunda etapa aparecen al entrar expresamente en el área correspondiente.
-    const nav = computed(() => (workspaceNav[area.value] ?? publicNav).filter(([, href]) =>
-        !stageTwoPaths.includes(href) || (page.props.stageTwo && stageTwoPaths.includes(path.value))
-    ));
+    const nav = computed(() => {
+        const items = (workspaceNav[area.value] ?? publicNav).filter(([, href]) =>
+            !stageTwoPaths.includes(href) || (page.props.stageTwo && stageTwoPaths.includes(path.value))
+        );
+        // Desde una página pública, el panel también da acceso directo a Administración.
+        return !paginaDePanel.value && !page.props.preview && page.props.auth?.is_admin
+            ? [...items, ['Administración', '/admin/servicios']]
+            : items;
+    });
     const hasWorkspace = computed(() => page.props.preview ? paginaDePanel.value : Boolean(page.props.auth));
     const navbarRole = computed(() => {
         if (page.props.preview) return hasWorkspace.value ? (area.value === 'gestion' ? 'admin' : area.value) : null;

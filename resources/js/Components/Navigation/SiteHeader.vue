@@ -63,7 +63,7 @@ watch(() => page.url, () => {
         <!-- Los accesos de la cuenta y sus notificaciones comparten el grupo de la derecha. -->
         <div v-if="!page.props.preview || showAreaSwitch" class="header-account"
              :class="{ 'guest-account': !page.props.auth && !page.props.preview }">
-            <nav v-if="showAreaSwitch" class="header-area-links" aria-label="Áreas de la cuenta">
+            <nav v-if="showAreaSwitch && !$slots['acceso-panel']" class="header-area-links" aria-label="Áreas de la cuenta">
                 <a :href="referenceHref('/gestion', page.props)"
                    :aria-current="gestionActive ? 'page' : undefined">Gestión</a>
                 <a :href="referenceHref('/admin/servicios', page.props)" :aria-current="adminView ? 'page' : undefined">Administración</a>
@@ -73,6 +73,7 @@ watch(() => page.url, () => {
                 <AppButton compact href="/crear-cuenta">Crear cuenta</AppButton>
             </template>
             <template v-else-if="!page.props.preview">
+                <slot name="acceso-panel"/>
                 <NotificationCenter/>
             </template>
         </div>

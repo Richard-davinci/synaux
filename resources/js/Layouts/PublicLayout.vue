@@ -4,6 +4,7 @@ import {usePage} from '@inertiajs/vue3';
 import FlashMessages from '../Components/Notifications/FlashMessages.vue';
 import SiteHeader from '../Components/Navigation/SiteHeader.vue';
 import SiteFooter from '../Components/Navigation/SiteFooter.vue';
+import AppButton from '../Components/UI/AppButton.vue';
 import {useNavigationContext} from '../support/useNavigationContext';
 import WorkspaceNavigation from '../Components/Navigation/WorkspaceNavigation.vue';
 import I from '../Components/UI/AppIcon.vue';
@@ -19,7 +20,7 @@ const page = usePage();
 // La landing real empieza directamente con la marca; el prototipo conserva su selector de pantallas.
 const showSiteHeader = computed(() => !props.landing || Boolean(page.props.preview));
 const workspaceOpen = ref(false);
-const workspaceToggle = ref(null);
+let accesoAlPanel;
 // Se mide el encabezado real para compensar cambios de ancho, menú móvil y barra de referencia.
 const fixedHeader = ref(null);
 const headerHeight = ref(76);
@@ -45,8 +46,13 @@ watch(workspaceBar, (bar, previous) => {
     if (bar) headerObserver?.observe(bar);
 });
 
+function abrirPanel(event) {
+    accesoAlPanel = event.currentTarget;
+    workspaceOpen.value = true;
+}
+
 function restoreWorkspaceFocus() {
-    workspaceToggle.value?.focus();
+    accesoAlPanel?.focus();
 }
 
 const {
@@ -64,6 +70,7 @@ const {
 
 // La landing de campaña conserva su composición independiente del panel de la cuenta.
 const mostrarPanel = computed(() => !props.landing && hasWorkspace.value);
+const panelFijo = computed(() => mostrarPanel.value && paginaDePanel.value);
 watch(() => page.url, () => {
     workspaceOpen.value = false;
 });
@@ -76,7 +83,12 @@ watch(() => page.url, () => {
         <template v-if="showSiteHeader">
             <div ref="fixedHeader" class="fixed-header">
                 <SiteHeader :gestion-active="paginaDePanel && area === 'gestion' && !adminView"
-                            :admin-view="adminView" :show-area-switch="showAreaSwitch"/>
+                            :admin-view="adminView" :show-area-switch="showAreaSwitch">
+                    <template v-if="mostrarPanel && !panelFijo" #acceso-panel>
+                        <AppButton compact variant="secondary" :aria-expanded="workspaceOpen" aria-haspopup="dialog"
+                                   aria-controls="workspace-mobile-panel" @click="abrirPanel">Mi panel</AppButton>
+                    </template>
+                </SiteHeader>
             </div>
             <div class="navbar-space" aria-hidden="true"></div>
         </template>
@@ -84,14 +96,14 @@ watch(() => page.url, () => {
         <!-- El componente compartido anuncia resultados y errores sin perderse al desplazar la página. -->
         <FlashMessages :message="demoNotice || $page.props.notice" :errors="$page.props.errors" :page-key="$page.url"
                        @close-message="demoNotice = ''"/>
-        <!-- El panel es adicional al sitio y solo acompaña las pantallas privadas. -->
-        <div v-if="mostrarPanel" ref="workspaceBar" class="workspace-mobile-bar"><span>{{ workspaceTitle }}</span>
-            <button ref="workspaceToggle" type="button" :aria-expanded="workspaceOpen"
-                    aria-controls="workspace-mobile-panel" @click="workspaceOpen = true"><I name="menu"/>Menú del panel
+        <!-- El panel reserva espacio únicamente dentro del área privada. -->
+        <div v-if="panelFijo" ref="workspaceBar" class="workspace-mobile-bar"><span>{{ workspaceTitle }}</span>
+            <button type="button" :aria-expanded="workspaceOpen" aria-haspopup="dialog"
+                    aria-controls="workspace-mobile-panel" @click="abrirPanel"><I name="menu"/>Menú del panel
             </button>
         </div>
-        <div :class="['workspace-layout', { 'with-workspace': mostrarPanel, 'private-workspace': mostrarPanel && paginaDePanel }]">
-            <aside v-if="mostrarPanel" class="workspace-sidebar">
+        <div :class="['workspace-layout', { 'with-workspace': panelFijo }]">
+            <aside v-if="panelFijo" class="workspace-sidebar">
                 <div class="workspace-sidebar-sticky">
                     <WorkspaceNavigation :items="nav" :area="area" :current="currentSection" :account-name="accountName"
                                          :title="workspaceTitle"/>
@@ -101,7 +113,7 @@ watch(() => page.url, () => {
                 <slot/>
             </v-main>
         </div>
-        <!-- Vuetify mantiene el foco en el panel móvil y permite cerrarlo con Escape o fuera de él. -->
+        <!-- El mismo panel se abre sobre las páginas públicas y en pantallas privadas angostas. -->
         <v-dialog v-if="mostrarPanel" v-model="workspaceOpen" class="workspace-mobile-dialog" max-width="340"
                   @after-leave="restoreWorkspaceFocus" aria-labelledby="workspace-mobile-title">
             <div id="workspace-mobile-panel" class="synaux-app workspace-mobile-panel">
@@ -113,7 +125,7 @@ watch(() => page.url, () => {
                                      :title="workspaceTitle" @navigate="workspaceOpen = false"/>
             </div>
         </v-dialog>
-        <SiteFooter :year="year" :landing="landing" :has-workspace="mostrarPanel"/>
+        <SiteFooter :year="year" :landing="landing" :has-workspace="panelFijo"/>
     </v-app>
 </template>
 
@@ -197,11 +209,11 @@ watch(() => page.url, () => {
     z-index: 40;
 }
 
-.private-workspace :deep(.page) {
+.with-workspace :deep(.page) {
     padding-block: 40px 72px;
 }
 
-.private-workspace :deep(.admin-layout) {
+.with-workspace :deep(.admin-layout) {
     grid-template-columns: minmax(0, 1fr);
 }
 
@@ -260,7 +272,7 @@ watch(() => page.url, () => {
 }
 </style>
 <style>
-/* El diálogo móvil se presenta como un panel lateral y conserva el foco y el cierre de Vuetify. */
+/* El panel se superpone a la página y conserva el foco y el cierre de Vuetify. */
 .workspace-mobile-dialog .v-overlay__content {
     position: fixed;
     top: 0;

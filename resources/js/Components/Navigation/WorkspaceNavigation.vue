@@ -24,6 +24,7 @@ function unreadFor(label) {
 const isAdminView = computed(() => props.area === 'gestion' && props.current === 'administracion');
 const icons = {
     Resumen: 'layout',
+    Administración: 'grid',
     Estimaciones: 'edit',
     Solicitudes: 'file',
     Presupuestos: 'receipt',
