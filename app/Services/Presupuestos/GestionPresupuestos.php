@@ -145,7 +145,15 @@ class GestionPresupuestos
     // Procesa una decisión formal vigente y devuelve el siguiente paso del recorrido.
     public function decide(Request $request): ?int
     {
-        $data = $request->validate(['id' => 'required|integer', 'decision' => ['required', Rule::in(['accepted', 'rejected'])], 'confirmed' => 'accepted']);
+        $data = $request->validate([
+            'id' => 'required|integer',
+            'decision' => ['required', Rule::in(['accepted', 'rejected'])],
+            'confirmed' => 'accepted',
+            'motivo_rechazo' => 'exclude_unless:decision,rejected|required|string|max:1000',
+        ], [
+            'motivo_rechazo.required' => 'Indicá por qué rechazás esta versión.',
+            'motivo_rechazo.max' => 'El motivo admite hasta 1000 caracteres.',
+        ]);
 
         return DB::transaction(function () use ($request, $data) {
             $version = DB::table('budget_versions')->where('id', $data['id'])->lockForUpdate()->firstOrFail();
@@ -163,8 +171,17 @@ class GestionPresupuestos
             if (DB::table('budget_versions')->where('budget_id', $budget->id)->where('status', 'accepted')->exists()) {
                 throw ValidationException::withMessages(['decision' => 'Este presupuesto ya tiene una versión aceptada. Consultá el proyecto.']);
             }
-            DB::table('budget_versions')->where('id', $version->id)->update(['status' => $data['decision'], 'updated_at' => now()]);
+            // El motivo pertenece a la versión rechazada. El aviso dirige al emisor al detalle autorizado.
+            DB::table('budget_versions')->where('id', $version->id)->update([
+                'status' => $data['decision'], 'motivo_rechazo' => $data['motivo_rechazo'] ?? null, 'updated_at' => now(),
+            ]);
             if ($data['decision'] !== 'accepted') {
+                $perfil = $budget->professional_profile_id ?? $origin?->professional_profile_id;
+                $emisor = DB::table('professional_profiles')->where('id', $perfil)->value('user_id');
+                $this->notifications->send('presupuesto', $version->id, 'presupuesto-rechazado:' . $version->id,
+                    'Presupuesto rechazado', 'El cliente rechazó el presupuesto. Consultá el motivo en el detalle.',
+                    [$emisor], actor: $request->user()->id);
+
                 return null;
             }
             // La unicidad de accepted_budget_version_id y el bloqueo evitan crear proyectos duplicados.

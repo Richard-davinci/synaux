@@ -3,6 +3,7 @@ import SidePanel from '../UI/SidePanel.vue';
 import {computed, ref, watch} from 'vue';
 import {useForm} from '@inertiajs/vue3';
 import B from '../UI/AppButton.vue';
+import F from '../UI/FormField.vue';
 import T from '../UI/PageTitle.vue';
 import S from '../UI/StatusBadge.vue';
 import I from '../UI/AppIcon.vue';
@@ -30,7 +31,7 @@ const state = computed(() => {
     };
     if (record.value.status === 'rejected') return {
         title: 'Presupuesto rechazado',
-        text: 'Tu decisión quedó registrada. El documento permanece disponible para consultar y descargar.',
+        text: 'El rechazo quedó registrado. La versión sigue disponible en el historial.',
         icon: 'info'
     };
     if (record.value.status === 'draft') return {
@@ -65,7 +66,11 @@ const state = computed(() => {
     };
 });
 const decision = ref(props.data.referenceKey === 'presupuesto-aceptar' ? 'accepted' : props.data.referenceKey === 'presupuesto-rechazar' ? 'rejected' : '');
-const form = useForm({id: record.value.id, decision: '', confirmed: false});
+const form = useForm({id: record.value.id, decision: '', confirmed: false, motivo_rechazo: ''});
+// La aceptación solo pide confirmación. Para rechazar también se necesita un motivo escrito.
+const puedeConfirmar = computed(() => form.confirmed && !form.processing
+    && (decision.value !== 'rejected' || Boolean(form.motivo_rechazo.trim())));
+const otrosErrores = computed(() => Object.entries(form.errors).filter(([campo]) => campo !== 'motivo_rechazo'));
 const submit = useSubmit();
 
 // La galería enlaza estados ficticios; en la cuenta cada enlace abre el documento autorizado.
@@ -79,12 +84,11 @@ function historyHref(item) {
 
 // Cada apertura exige confirmar de nuevo; cerrar no conserva una casilla marcada de otra decisión.
 watch(decision, () => {
-    form.confirmed = false;
-    form.clearErrors();
+    form.resetAndClearErrors('confirmed', 'motivo_rechazo');
 });
 
 function decide() {
-    if (!canDecide.value || !form.confirmed || form.processing) return;
+    if (!canDecide.value || !puedeConfirmar.value) return;
     form.decision = decision.value;
     submit(form, 'decidir-presupuesto', {previewTarget: decision.value === 'accepted' ? 'proyecto' : 'presupuestos'});
 }
@@ -100,7 +104,12 @@ function decide() {
                 <S :status="record.display_status ?? record.status"/></T>
             <div class="budget-state" role="status"><I :name="state.icon"/>
                 <div><strong>{{ state.title }}</strong>
-                    <p>{{ state.text }}</p><B v-if="latest && latest.id !== record.id"
+                    <p>{{ state.text }}</p>
+                    <template v-if="record.status === 'rejected' && record.motivo_rechazo">
+                        <h3 class="motivo-rechazo">Motivo del rechazo</h3>
+                        <p class="preserve-lines">{{ record.motivo_rechazo }}</p>
+                    </template>
+                    <B v-if="latest && latest.id !== record.id"
                                               :href="data.preview ? '/prototipo/presupuesto' : '/presupuestos/' + latest.id"
                                               variant="secondary">Ver versión {{ latest.version_number }}</B></div>
             </div>
@@ -189,9 +198,12 @@ function decide() {
                                 </div>
                             </dl>
                         </div>
-                        <div v-if="Object.keys(form.errors).length" role="alert" class="notice">
+                        <F v-if="decision === 'rejected'" v-model="form.motivo_rechazo" label="Motivo del rechazo"
+                           type="textarea" maxlength="1000" required :disabled="form.processing" :error="form.errors.motivo_rechazo"
+                           hint="Por ejemplo, si necesitás ajustar el importe, el plazo o el alcance."/>
+                        <div v-if="otrosErrores.length" role="alert" class="notice">
                             <ul>
-                                <li v-for="(error, key) in form.errors" :key="key">{{ error }}</li>
+                                <li v-for="[campo, error] in otrosErrores" :key="campo">{{ error }}</li>
                             </ul>
                         </div>
                         <label class="decision-check"><input v-model="form.confirmed" type="checkbox"
@@ -200,7 +212,7 @@ function decide() {
                             }}</span></label>
                         <div class="form-actions"><B variant="secondary" :disabled="form.processing"
                                                      @click="decision = ''">Volver al presupuesto</B><B
-                            :disabled="!form.confirmed || form.processing" @click="decide">{{
+                            :disabled="!puedeConfirmar" @click="decide">{{
                                 form.processing ? 'Guardando decisión…' : decision === 'accepted' ? 'Confirmar aceptación' : 'Confirmar rechazo'
                             }}</B></div>
                     </v-card>
@@ -260,6 +272,13 @@ function decide() {
 .budget-state p {
     margin: 6px 0 0;
 }
+
+.motivo-rechazo {
+    margin: 12px 0 0;
+    font-size: 1rem;
+}
+
+.budget-state .preserve-lines { overflow-wrap: anywhere; }
 
 .budget-state .btn {
     margin-top: 14px;

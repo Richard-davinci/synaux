@@ -405,12 +405,23 @@ class SynauxFlowTest extends TestCase
         $this->actingAs($client)->post('/acciones/decidir-presupuesto', [
             'id' => $version->id, 'decision' => 'rejected', 'confirmed' => false,
         ])->assertSessionHasErrors('confirmed');
-        $this->post('/acciones/decidir-presupuesto', [
-            'id' => $version->id, 'decision' => 'rejected', 'confirmed' => true,
-        ])->assertRedirect();
-        $this->assertDatabaseHas('budget_versions', ['id' => $version->id, 'status' => 'rejected']);
+        $rechazo = ['id' => $version->id, 'decision' => 'rejected', 'confirmed' => true];
+        $this->post('/acciones/decidir-presupuesto', $rechazo)->assertSessionHasErrors('motivo_rechazo');
+        $this->post('/acciones/decidir-presupuesto', [...$rechazo, 'motivo_rechazo' => '   '])->assertSessionHasErrors('motivo_rechazo');
+        $this->post('/acciones/decidir-presupuesto', [...$rechazo, 'motivo_rechazo' => str_repeat('a', 1001)])->assertSessionHasErrors('motivo_rechazo');
+        $this->assertDatabaseHas('budget_versions', ['id' => $version->id, 'status' => 'sent', 'motivo_rechazo' => null]);
+
+        $motivo = 'Necesitamos ajustar el alcance y el plazo.';
+        $this->post('/acciones/decidir-presupuesto', [...$rechazo, 'motivo_rechazo' => $motivo])->assertRedirect();
+        $this->assertDatabaseHas('budget_versions', ['id' => $version->id, 'status' => 'rejected', 'motivo_rechazo' => $motivo]);
+        $this->assertDatabaseHas('project_requests', ['id' => $requestId, 'status' => 'open']);
         $this->assertDatabaseCount('projects', 0);
-        $this->get('/presupuestos/' . $version->id)->assertInertia(fn(Assert $page) => $page->where('selected.status', 'rejected'));
+        $this->assertDatabaseHas('synaux_notifications', ['user_id' => $issuer->id, 'event_key' => 'presupuesto-rechazado:' . $version->id]);
+        $this->get('/presupuestos/' . $version->id)->assertInertia(fn(Assert $page) => $page
+            ->where('selected.status', 'rejected')->where('selected.motivo_rechazo', $motivo));
+        $this->actingAs($issuer)->get('/presupuestos/' . $version->id)->assertInertia(fn(Assert $page) => $page
+            ->where('area', 'gestion')->where('selected.motivo_rechazo', $motivo));
+        $this->actingAs($client);
         $this->get('/presupuestos/' . $version->id . '/pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->post('/acciones/decidir-presupuesto', [
             'id' => $version->id, 'decision' => 'accepted', 'confirmed' => true,
