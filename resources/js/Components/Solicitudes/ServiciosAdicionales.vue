@@ -67,13 +67,21 @@ function addService() {
                 <button type="button" class="request-extra-toggle" :aria-expanded="expandedExtra === item"
                         :aria-controls="extrasId + '-' + index"
                         @click="expandedExtra = expandedExtra === item ? null : item">
-                    <I name="arrow"/><span><strong>{{ extraName(item.service_id) }} × {{
-                        item.quantity
-                    }}</strong><small>{{ expandedExtra === item ? 'Ocultar datos' : 'Editar datos' }} · <template
-                    v-if="additionalPrices[index].priced">{{ money(additionalPrices[index].min, summaryCurrency) }}<template
-                    v-if="additionalPrices[index].max !== additionalPrices[index].min"> – {{
-                        money(additionalPrices[index].max, summaryCurrency)
-                    }}</template></template><template v-else>Pendiente de cotización</template></small></span>
+                    <I name="arrow"/>
+                    <span>
+                        <strong>{{ extraName(item.service_id) }} × {{ item.quantity }}</strong>
+                        <small>
+                            {{ expandedExtra === item ? 'Ocultar datos' : 'Editar datos' }} ·
+                            <template v-if="additionalPrices[index].priced">
+                                <template v-if="additionalPrices[index].preliminar">Referencia · </template>
+                                {{ money(additionalPrices[index].min, summaryCurrency) }}
+                                <template v-if="additionalPrices[index].max !== additionalPrices[index].min">
+                                    – {{ money(additionalPrices[index].max, summaryCurrency) }}
+                                </template>
+                            </template>
+                            <template v-else>Pendiente de cotización</template>
+                        </small>
+                    </span>
                 </button>
                 <B variant="ghost" class="remove-extra" :aria-label="'Quitar servicio adicional ' + (index + 1)"
                    @click="form.additional_services.splice(index, 1)"><I name="close"/>Quitar</B>

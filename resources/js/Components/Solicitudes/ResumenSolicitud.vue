@@ -49,8 +49,9 @@ const documento = computed(() => {
         const cantidad = Number(servicio.quantity);
         const valida = Number.isInteger(cantidad) && cantidad >= 1 && cantidad <= 1000;
         const nombre = extraName(servicio.service_id);
+        const referencia = linea?.preliminar ? ['Referencia preliminar', linea.segment].filter(Boolean).join(' · ') : '';
         renglones.push({
-            description: [valida ? nombre + ' × ' + cantidad : nombre, servicio.notes?.trim()].filter(Boolean).join('\n'),
+            description: [valida ? nombre + ' × ' + cantidad : nombre, referencia, servicio.notes?.trim()].filter(Boolean).join('\n'),
             importe: linea?.priced ? importe(linea, moneda) : valida ? 'A cotizar' : 'Completá la cantidad',
         });
     });

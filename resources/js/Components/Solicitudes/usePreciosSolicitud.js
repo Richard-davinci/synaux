@@ -11,6 +11,18 @@ function sameAnswers(questionsForService, snapshot, readValue) {
     });
 }
 
+// Encuentra el segmento de la tarifa usando las opciones del propio servicio.
+function segmentoElegido(referencia, preguntas, respuestas) {
+    if (!referencia?.segments?.length) return null;
+
+    for (const pregunta of preguntas) {
+        const opcion = pregunta.options?.find(item => String(item.id) === String(respuestas[pregunta.id]));
+        const segmento = referencia.segments.find(item => item.label === opcion?.label);
+        if (segmento) return segmento;
+    }
+    return null;
+}
+
 // Usa las instantáneas del servidor cuando coinciden las respuestas y las referencias publicadas al editar.
 export function useRequestPricing(data, form, {estimate, old, selectedService, questions, extraQuestions}) {
     const matchingCalculation = computed(() => {
@@ -33,30 +45,37 @@ export function useRequestPricing(data, form, {estimate, old, selectedService, q
         };
 
         const published = data.value.references?.[selectedService.value?.id];
-        const labels = questions.value.flatMap(question => (question.options ?? [])
-            .filter(option => String(option.id) === String(form.answers[question.id])).map(option => option.label));
-        const segment = published?.segments?.find(item => labels.includes(item.label));
+        const segment = segmentoElegido(published, questions.value, form.answers);
         return segment ? {...published, min: segment.min, max: segment.max, segment: segment.label} : published;
     });
     const preliminaryReference = computed(() => Boolean(reference.value && !estimate && !matchingCalculation.value));
     // Cada adicional tiene su propia referencia confirmada, en la misma moneda que el resumen.
     const summaryCurrency = computed(() => reference.value?.currency ?? estimate?.currency_snapshot ?? matchingCalculation.value?.currency ?? 'ARS');
-    const extraSnapshots = computed(() => data.value.requestAdditionalPricing?.length
-        ? data.value.requestAdditionalPricing : old?.additional_services ?? []);
+    const adicionalesRevisados = computed(() => data.value.requestAdditionalPricing ?? []);
+    const extraSnapshots = computed(() => adicionalesRevisados.value.length
+        ? adicionalesRevisados.value : old?.additional_services ?? []);
 
     function matchingExtra(item) {
         const previous = extraSnapshots.value.find(snapshot => snapshot.service_id == item.service_id && Array.isArray(snapshot.answers));
         return previous && sameAnswers(extraQuestions(item.service_id), previous.answers, question => item.answers[question.id]) ? previous : null;
     }
 
-    const pendingExtraCalculation = computed(() => form.additional_services.some(item => extraQuestions(item.service_id).length && !matchingExtra(item)));
     const additionalPrices = computed(() => form.additional_services.map(item => {
         const verified = matchingExtra(item);
+        if (verified && (verified.pricing_reference || adicionalesRevisados.value.length)) {
+            return referenceLine(verified.pricing_reference, item.quantity, null, summaryCurrency.value);
+        }
+
+        // Un borrador incompleto puede conservar una referencia orientativa hasta el cálculo del servidor.
         const service = data.value.services.find(service => service.database_id == item.service_id);
-        if (verified) return referenceLine(verified.pricing_reference, item.quantity, null, summaryCurrency.value);
-        if (extraQuestions(item.service_id).length) return referenceLine(null, item.quantity);
-        return referenceLine(data.value.references?.[service?.id], item.quantity, null, summaryCurrency.value);
+        const published = data.value.references?.[service?.id];
+        const preguntas = extraQuestions(item.service_id);
+        const segmento = segmentoElegido(published, preguntas, item.answers);
+        const linea = referenceLine(published, item.quantity, segmento?.label, summaryCurrency.value);
+
+        return {...linea, preliminar: linea.priced && preguntas.length > 0};
     }));
+    const pendingExtraCalculation = computed(() => additionalPrices.value.some(linea => linea.preliminar));
     const summaryPrice = computed(() => summarizePrices([
         referenceLine(reference.value, 1, null, summaryCurrency.value), ...additionalPrices.value,
     ], summaryCurrency.value));
