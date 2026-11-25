@@ -101,9 +101,11 @@ watch(() => page.url, () => {
             </button>
         </div>
         <div :class="['workspace-layout', { 'with-workspace': mostrarPanel }]">
-            <aside v-if="mostrarPanel" class="workspace-sidebar workspace-panel-surface">
-                <WorkspaceNavigation :items="nav" :area="area" :current="currentSection"
-                                     :title="workspaceTitle"/>
+            <aside v-if="mostrarPanel" class="workspace-sidebar">
+                <div class="workspace-panel-surface workspace-sidebar-sticky">
+                    <WorkspaceNavigation :items="nav" :area="area" :current="currentSection"
+                                         :title="workspaceTitle"/>
+                </div>
             </aside>
             <v-main id="contenido" class="workspace-content" tabindex="-1">
                 <MigasNavegacion v-if="mostrarPanel && migasCliente.length" :niveles="migasCliente"/>
@@ -115,12 +117,13 @@ watch(() => page.url, () => {
                   :style="{ '--navbar-height': headerHeight + 'px', '--workspace-panel-width': anchoPanel + 'px' }"
                   @after-leave="restoreWorkspaceFocus" aria-labelledby="workspace-mobile-title">
             <div id="workspace-mobile-panel" class="synaux-app workspace-panel-surface">
-                <div class="workspace-mobile-heading"><strong id="workspace-mobile-title">Menú del panel</strong>
-                    <button type="button" aria-label="Cerrar menú del panel" @click="workspaceOpen = false"><I
-                        name="close"/></button>
-                </div>
                 <WorkspaceNavigation :items="nav" :area="area" :current="currentSection"
-                                     :title="workspaceTitle" @navigate="workspaceOpen = false"/>
+                                     :title="workspaceTitle" titulo-id="workspace-mobile-title" @navigate="workspaceOpen = false">
+                    <template #accion-encabezado>
+                        <button type="button" class="workspace-close" aria-label="Cerrar menú del panel"
+                                @click="workspaceOpen = false"><I name="close"/></button>
+                    </template>
+                </WorkspaceNavigation>
             </div>
         </v-dialog>
         <SiteFooter :year="year" :landing="landing"/>
@@ -197,13 +200,18 @@ watch(() => page.url, () => {
     width: 100%;
 }
 
-/* El panel queda al ras del navbar y da inicio a la columna de navegación. */
+/* El fondo de la columna llega al pie. El menú se mantiene debajo del navbar al hacer scroll. */
 .workspace-sidebar {
+    align-self: stretch;
+    min-width: 0;
+    border-inline-end: 1px solid #1f6f7f26;
+    background: #f5f9fa;
+}
+
+.workspace-sidebar-sticky {
     position: sticky;
     top: var(--navbar-height);
-    align-self: start;
-    min-width: 0;
-    width: var(--workspace-panel-width);
+    border-inline-end: 0;
 }
 
 .with-workspace :deep(.page) {
@@ -273,14 +281,13 @@ watch(() => page.url, () => {
 }
 </style>
 <style>
-/* Las dos vistas se acoplan al borde izquierdo y comparten el ancho y la altura máxima. */
+/* El panel toma todo el alto disponible desde el navbar hasta el borde inferior. */
 .workspace-panel-surface {
     display: flex;
     flex-direction: column;
-    height: min(680px, calc(100dvh - var(--navbar-height) - 48px));
+    height: calc(100dvh - var(--navbar-height));
     overflow: hidden;
     border-inline-end: 1px solid #1f6f7f26;
-    border-block-end: 1px solid #1f6f7f26;
     background: #f5f9fa;
     color: #153b64;
     font-family: 'Nunito', sans-serif;
@@ -288,28 +295,17 @@ watch(() => page.url, () => {
 
 .workspace-mobile-dialog .v-overlay__content {
     position: fixed;
-    top: var(--navbar-height);
-    left: 0;
+    inset: var(--navbar-height) auto 0 0;
     margin: 0 !important;
     width: min(var(--workspace-panel-width), calc(100vw - 24px)) !important;
-    max-height: calc(100dvh - var(--navbar-height) - 32px) !important;
+    max-height: calc(100dvh - var(--navbar-height)) !important;
 }
 
 .workspace-mobile-dialog .v-overlay__scrim {
     top: var(--navbar-height);
 }
 
-.workspace-mobile-heading {
-    flex-shrink: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 18px;
-    border-bottom: 1px solid #1f6f7f33;
-}
-
-.workspace-mobile-heading button {
+.workspace-close {
     display: grid;
     place-items: center;
     width: 44px;
@@ -321,7 +317,7 @@ watch(() => page.url, () => {
     cursor: pointer;
 }
 
-.workspace-mobile-heading button:focus-visible {
+.workspace-close:focus-visible {
     outline: 3px solid #1f6f7f;
 }
 </style>

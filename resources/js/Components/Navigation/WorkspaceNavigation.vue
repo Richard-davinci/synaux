@@ -5,7 +5,7 @@ import I from '../UI/AppIcon.vue';
 import {referenceHref} from '../../support/prototype';
 
 // Este panel organiza enlaces ya autorizados; mostrar un enlace no concede permisos de acceso.
-const props = defineProps({items: Array, area: String, current: String, title: String});
+const props = defineProps({items: Array, area: String, current: String, title: String, tituloId: String});
 const emit = defineEmits(['navigate']);
 const page = usePage();
 
@@ -22,6 +22,7 @@ function unreadFor(label) {
 
 // Administración reemplaza las secciones de gestión dentro del mismo panel para evitar una lista desplegada que obligue a desplazarse.
 const isAdminView = computed(() => props.area === 'gestion' && props.current === 'administracion');
+const iconoArea = computed(() => isAdminView.value ? 'grid' : props.area === 'gestion' ? 'layout' : 'folder');
 const activeAdminSection = computed(() => page.props.section || page.url.split(/[?#]/)[0].split('/')[2] || 'servicios');
 
 const icons = {
@@ -55,9 +56,13 @@ function isActive(href) {
 
 <template>
     <div class="workspace-navigation" :data-role="isAdminView ? 'admin' : area">
-        <!-- Las secciones recibidas ocupan el área desplazable del panel. -->
+        <!-- El título y el icono dan contexto al menú mientras se desplazan las secciones. -->
+        <header class="workspace-heading">
+            <I :name="iconoArea"/>
+            <h2 :id="tituloId">{{ title }}</h2>
+            <slot name="accion-encabezado"/>
+        </header>
         <div class="workspace-sections">
-            <h2>{{ title }}</h2>
             <nav v-if="!isAdminView" :aria-label="'Secciones de ' + title.toLowerCase()">
                 <a v-for="[label, href] in items.filter(([label]) => label !== 'Mi perfil')" :key="href"
                    :href="referenceHref(href, page.props)" :aria-current="isActive(href) ? 'page' : undefined"
@@ -95,7 +100,7 @@ function isActive(href) {
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
-    padding: 20px 18px;
+    padding: 0;
     color: #153b64;
 }
 
@@ -121,8 +126,7 @@ function isActive(href) {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
-    padding: 2px 4px 12px;
-    margin-inline: -4px;
+    padding: 14px 18px 18px;
 }
 
 .workspace-navigation h2 {
@@ -130,7 +134,25 @@ function isActive(href) {
     font-size: 1.3rem;
     font-weight: 700;
     line-height: 1.25;
-    margin: 0 0 14px;
+    margin: 0;
+}
+
+.workspace-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 64px;
+    padding: 8px 18px;
+    border-block-end: 1px solid #1f6f7f26;
+    background: var(--role-tint);
+}
+
+.workspace-heading > .icon {
+    color: #153b64;
+}
+
+.workspace-heading :slotted(.workspace-close) {
+    margin-inline-start: auto;
 }
 
 .workspace-navigation nav {

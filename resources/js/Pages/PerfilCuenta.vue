@@ -10,6 +10,7 @@ import CamposUbicacion from '../Components/Cuenta/CamposUbicacion.vue';
 import TarjetaPerfil from '../Components/Cuenta/TarjetaPerfil.vue';
 import {date, initials} from '../support/formatters';
 import {demoNotice} from '../support/prototype';
+import {useNavigationContext} from '../support/useNavigationContext';
 import '../../css/panel.css';
 import '../../css/ajustes-panel.css';
 
@@ -35,6 +36,9 @@ const {
 const editando = reactive({});
 const emailChanged = computed(() => contactoForm.email.trim().toLowerCase() !== props.profile.email);
 const accountHref = computed(() => props.profile.is_admin ? '/gestion' : '/cliente');
+// Los integrantes del equipo administran aquí su cuenta personal. La ficha de la empresa tiene su propia sección.
+const esCuentaEquipo = computed(() => Boolean(props.profile.is_admin || props.profile.correo_fijo));
+const {accountRole} = useNavigationContext();
 const accountDescription = 'Actualizá tus datos de contacto y tu contraseña.';
 
 const conDatos = filas => filas.filter(([, dato]) => dato);
@@ -104,15 +108,16 @@ function guardar(seccion) {
                             <h2>{{ profile.name }}</h2>
                         </div>
                         <p class="account-email">{{ profile.email }}</p>
-                        <span class="account-role"><I name="user"/>{{ profile.is_admin ? 'Administrador' : 'Cliente' }}</span>
+                        <span class="account-role"><I name="user"/>{{ accountRole || (profile.is_admin ? 'Administrador' : 'Cliente') }}</span>
                         <p v-if="profile.created_at" class="account-help">Cuenta creada el {{ date(profile.created_at) }}</p>
                         <nav aria-label="Secciones de Mi perfil">
                             <a href="#datos-personales">Datos personales</a>
-                            <a href="#organizacion">Organización</a>
-                            <a href="#ubicacion">Ubicación</a>
-                            <a href="#facturacion">Domicilio de facturación</a>
+                            <template v-if="!esCuentaEquipo">
+                                <a href="#organizacion">Organización</a>
+                                <a href="#ubicacion">Ubicación</a>
+                                <a href="#facturacion">Domicilio de facturación</a>
+                            </template>
                             <a href="#seguridad">Seguridad</a>
-                            <a v-if="profile.is_admin && !preview" href="/admin/organizacion">Datos de la organización</a>
                         </nav>
                     </v-card>
                 </aside>
@@ -138,7 +143,7 @@ function guardar(seccion) {
                                maxlength="50" :error="contactoForm.errors.phone"/>
                         </div>
                     </TarjetaPerfil>
-                    <TarjetaPerfil id="organizacion" titulo="Organización" icono="folder"
+                    <TarjetaPerfil v-if="!esCuentaEquipo" id="organizacion" titulo="Organización" icono="folder"
                                    :datos="datosOrganizacion" vacio="Sin datos de organización." accion-guardar="Guardar organización"
                                    :editando="editando.organizacion" :guardando="organizacionForm.processing" :modificado="organizacionForm.isDirty"
                                    @editar="cambiarEdicion('organizacion', true)" @cancelar="cambiarEdicion('organizacion', false)"
@@ -153,7 +158,7 @@ function guardar(seccion) {
                                :error="organizacionForm.errors['details.website']"/>
                         </div>
                     </TarjetaPerfil>
-                    <TarjetaPerfil id="ubicacion" titulo="Ubicación" icono="location"
+                    <TarjetaPerfil v-if="!esCuentaEquipo" id="ubicacion" titulo="Ubicación" icono="location"
                                    :datos="datosUbicacion" vacio="Sin ubicación guardada." accion-guardar="Guardar ubicación"
                                    :editando="editando.ubicacion" :guardando="ubicacionForm.processing" :modificado="ubicacionForm.isDirty"
                                    @editar="cambiarEdicion('ubicacion', true)" @cancelar="cambiarEdicion('ubicacion', false)"
@@ -163,7 +168,7 @@ function guardar(seccion) {
                                              prefijo="details.location"/>
                         </div>
                     </TarjetaPerfil>
-                    <TarjetaPerfil id="facturacion" titulo="Domicilio de facturación" icono="receipt"
+                    <TarjetaPerfil v-if="!esCuentaEquipo" id="facturacion" titulo="Domicilio de facturación" icono="receipt"
                                    :datos="datosDomicilio" vacio="Sin domicilio de facturación guardado." accion-guardar="Guardar domicilio"
                                    :editando="editando.domicilio" :guardando="domicilioForm.processing" :modificado="domicilioForm.isDirty"
                                    @editar="cambiarEdicion('domicilio', true)" @cancelar="cambiarEdicion('domicilio', false)"
