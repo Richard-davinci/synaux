@@ -108,6 +108,7 @@ Route::middleware('auth')->group(function () {
         Route::patch('/admin/organizacion', [OrganizacionController::class, 'update'])->middleware('throttle:10,1');
         // El listado de cuentas usa el mismo permiso administrativo que el catálogo.
         Route::get('/admin/usuarios', DirectorioUsuariosController::class)->name('admin.users.index');
+        Route::post('/admin/usuarios/equipo', [DirectorioUsuariosController::class, 'guardarMiembro'])->middleware('throttle:10,1');
         Route::get('/admin/usuarios/{user}', [DirectorioUsuariosController::class, 'show'])->whereNumber('user')->name('admin.users.show');
         Route::post('/admin/tarifario/importar', [TariffImportController::class, 'store'])->middleware('throttle:2,1');
         // Entrada administrativa de revisión para las funciones de la segunda etapa.

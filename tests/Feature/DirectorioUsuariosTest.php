@@ -29,7 +29,7 @@ class DirectorioUsuariosTest extends TestCase
                 ->where('section', 'usuarios')->has('users.data', 2)
                 ->has('users.data.0', fn(Assert $row) => $row
                     ->where('id', $admin->id)->where('name', $admin->name)->where('email', $admin->email)
-                    ->where('is_admin', true)->has('created_at'))
+                    ->where('is_admin', true)->has('created_at')->where('rol_organizacion', null))
                 ->where('users.data.1.is_admin', false));
     }
 
@@ -52,5 +52,27 @@ class DirectorioUsuariosTest extends TestCase
 
         $this->get('/admin/usuarios?buscar=equipo%40example.test')->assertOk()
             ->assertInertia(fn(Assert $page) => $page->has('users.data', 1)->where('users.data.0.id', $first->id));
+    }
+
+    // Un rol del equipo nunca convierte a su titular en administrador de la plataforma.
+    public function test_administrator_can_create_and_assign_team_accounts(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $cliente = User::factory()->create();
+        $alta = ['modo' => 'nueva', 'email' => 'equipo@example.test', 'name' => 'Profesional de prueba',
+            'password' => 'ClaveTemporal123!', 'rol' => 'supervisor'];
+
+        $this->actingAs($cliente)->post('/admin/usuarios/equipo', $alta)->assertForbidden();
+        $this->actingAs($admin)->post('/admin/usuarios/equipo', $alta)->assertSessionHasNoErrors();
+        $usuario = User::where('email', $alta['email'])->firstOrFail();
+        $this->assertFalse($usuario->is_admin);
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check($alta['password'], $usuario->password));
+        $this->post('/admin/usuarios/equipo', $alta)->assertSessionHasErrors('email');
+        $this->post('/admin/usuarios/equipo', ['modo' => 'existente', 'email' => $usuario->email, 'rol' => 'profesional'])
+            ->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('organizacion_miembros', ['user_id' => $usuario->id, 'rol' => 'profesional']);
+        $this->get('/admin/usuarios?buscar=equipo%40example.test')->assertInertia(fn (Assert $page) => $page
+            ->where('users.data.0.rol_organizacion', 'profesional'));
+        $this->actingAs($usuario)->get('/admin/usuarios')->assertForbidden();
     }
 }
