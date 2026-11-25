@@ -116,6 +116,8 @@ function isActive(href) {
 /* Gestión y Administración se distinguen por el tono de la línea activa. */
 .workspace-navigation[data-role='gestion'] {
     --role-accent: #1f6f7f;
+    /* La línea necesita un tono más claro que el acento del encabezado para verse sobre el azul. */
+    --role-indicator: color-mix(in srgb, #1f6f7f 60%, #fff);
     --role-tint: #1f6f7f12;
 }
 
