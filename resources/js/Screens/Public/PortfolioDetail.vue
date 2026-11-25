@@ -193,6 +193,12 @@ figcaption [aria-hidden="true"] {
     margin: 0;
 }
 
+/* Las miniaturas comparten proporción; el visor sigue usando las dimensiones originales. */
+.case-gallery-grid .case-image img {
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+}
+
 .case-contact {
     margin-top: 32px;
 }
