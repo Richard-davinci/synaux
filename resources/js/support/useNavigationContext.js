@@ -90,7 +90,7 @@ export function useNavigationContext() {
     const accountRole = computed(() => {
         const auth = page.props.auth;
         if (auth?.is_admin || (page.props.preview && area.value === 'gestion')) return 'Administrador';
-        const roles = {administrador: 'Administrador', supervisor: 'Supervisor', profesional: 'Profesional'};
+        const roles = {administrador: 'Administrador', supervisor: 'Supervisor', profesional: 'Profesional interno'};
         return roles[auth?.rol_organizacion] ?? (area.value === 'profesional' ? 'Profesional' : '');
     });
     const currentSection = computed(() => {

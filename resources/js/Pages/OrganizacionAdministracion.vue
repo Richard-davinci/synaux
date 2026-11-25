@@ -36,7 +36,7 @@ function guardarDominio() {
     dominio.patch('/admin/organizacion/dominio-equipo', {preserveScroll: true, onSuccess: () => editarDominio(false)});
 }
 
-const roles = {administrador: 'Administrador', supervisor: 'Supervisor', profesional: 'Profesional'};
+const roles = {administrador: 'Administrador', supervisor: 'Supervisor', profesional: 'Profesional interno'};
 
 function cambiarEdicion(estado) {
     form.defaults(valores()).resetAndClearErrors();

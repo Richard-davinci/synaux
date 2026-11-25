@@ -28,7 +28,7 @@ const baja = useForm({});
 const roles = [
     {value: 'administrador', label: 'Administrador de la organización'},
     {value: 'supervisor', label: 'Supervisor'},
-    {value: 'profesional', label: 'Profesional'},
+    {value: 'profesional', label: 'Profesional interno'},
 ];
 function editarRol(user) {
     miembro.value = user;
