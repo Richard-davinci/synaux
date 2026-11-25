@@ -540,9 +540,13 @@ class SynauxFlowTest extends TestCase
         $owner = $this->account();
         $this->profile($owner);
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l1sAAAAASUVORK5CYII=');
-        $data = ['service_id' => DB::table('services')->value('id'), 'title' => 'Trabajo publicado', 'description' => 'Descripción del proyecto de prueba', 'category' => 'Desarrollo web', 'is_public' => true];
+        $data = ['service_id' => DB::table('services')->where('slug', 'sitio-institucional')->value('id'), 'title' => 'Trabajo publicado', 'description' => 'Descripción del proyecto de prueba', 'category' => 'Categoría ajena al catálogo', 'is_public' => true];
         $this->actingAs($owner)->post('/acciones/trabajo', [...$data, 'cover' => UploadedFile::fake()->createWithContent('portada.png', $png)])->assertSessionHasNoErrors()->assertRedirect();
         $work = DB::table('portfolio_projects')->first();
+        $this->assertSame('Desarrollo web', $work->category);
+        DB::table('portfolio_projects')->where('id', $work->id)->update(['category' => 'Rótulo anterior']);
+        $this->get('/trabajos/' . $work->id)->assertInertia(fn(Assert $page) => $page
+            ->where('selected.category', 'Desarrollo web'));
         $this->get($work->cover_path)->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
         $visitor = $this->account();
         $this->actingAs($visitor)->get($work->cover_path)->assertOk();

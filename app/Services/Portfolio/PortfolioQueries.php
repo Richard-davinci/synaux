@@ -15,8 +15,11 @@ class PortfolioQueries
             ->when($owner !== null, fn($q) => $q->where('p.user_id', $owner))
             ->when($id !== null, fn($q) => $q->where('w.id', $id))
             ->when($limit !== null, fn($q) => $q->limit($limit))
-            ->select('w.*', 'p.brand_name')->orderByDesc('w.id')->get()->map(fn($w) => [
-                ...((array)$w), 'images' => DB::table('portfolio_project_images')->where('portfolio_project_id', $w->id)->orderBy('sort_order')->get(),
+            ->leftJoin('services as service', 'service.id', '=', 'w.service_id')
+            ->leftJoin('service_categories as category', 'category.id', '=', 'service.service_category_id')
+            ->select('w.*', 'p.brand_name', 'category.name as catalog_category')->orderByDesc('w.id')->get()->map(fn($w) => [
+                // La ficha refleja el catálogo actual y conserva el rótulo de trabajos sin servicio asociado.
+                ...((array)$w), 'category' => $w->catalog_category ?? $w->category, 'images' => DB::table('portfolio_project_images')->where('portfolio_project_id', $w->id)->orderBy('sort_order')->get(),
             ])->all();
     }
 

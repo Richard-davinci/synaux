@@ -1,6 +1,6 @@
 <script setup>
 import {useForm} from '@inertiajs/vue3';
-import {onBeforeUnmount, ref} from 'vue';
+import {computed, onBeforeUnmount, ref} from 'vue';
 import B from '../../Components/UI/AppButton.vue';
 import F from '../../Components/UI/FormField.vue';
 import T from '../../Components/UI/PageTitle.vue';
@@ -15,7 +15,6 @@ const work = useForm({
     service_id: selected.service_id ?? props.data.services[0]?.database_id,
     title: selected.title ?? '',
     description: selected.description ?? '',
-    category: selected.category ?? 'Desarrollo web',
     challenge: selected.challenge ?? '',
     result: selected.result ?? '',
     year: selected.year ?? (selected.id ? null : new Date().getFullYear()),
@@ -23,6 +22,10 @@ const work = useForm({
     is_public: !!selected.is_public,
     gallery: [],
 });
+
+// La categoría se toma del servicio elegido, también cuando se abre un trabajo ya guardado.
+const category = computed(() => props.data.services.find(service => Number(service.database_id) === Number(work.service_id))?.category
+    ?? (work.service_id === selected.service_id ? selected.category : null));
 
 // El orden, los reemplazos y las bajas se envían junto con los datos del trabajo.
 const galleryItems = ref((selected.images ?? []).map(image => ({...image, replacement: null})));
@@ -98,7 +101,10 @@ function saveWork() {
                     <F v-model="work.service_id" label="Servicio" type="select"
                        :options="data.services.map(service => ({ value: service.database_id, label: service.name }))"
                        required/>
-                    <F v-model="work.category" label="Categoría" required/>
+                    <div class="field">
+                        <span>Categoría del servicio</span>
+                        <p class="work-category" aria-live="polite">{{ category || 'Seleccioná un servicio' }}</p>
+                    </div>
                     <F v-model="work.year" label="Año" type="number" min="1990" max="2100"/>
                 </div>
                 <F v-model="work.description" label="Descripción breve" type="textarea" required/>
@@ -176,6 +182,18 @@ function saveWork() {
 </template>
 
 <style scoped>
+/* La categoría se muestra como dato del catálogo, junto a la selección del servicio. */
+.work-category {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 8px 12px;
+    color: #446075;
+    background: #f5f9fa;
+    border: 1px solid #1f6f7f26;
+    border-radius: 8px;
+}
+
 /* Cada imagen se vincula con sus controles y se apila en pantallas pequeñas. */
 .work-gallery {
     border-top: 1px solid #1f6f7f26;

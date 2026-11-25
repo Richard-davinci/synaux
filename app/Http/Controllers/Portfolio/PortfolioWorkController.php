@@ -41,7 +41,7 @@ class PortfolioWorkController extends Controller
         $imageRules = 'image|mimes:jpg,jpeg,png,webp|max:5120';
         $d = $request->validate([
             'id' => 'nullable|integer', 'service_id' => 'required|integer|exists:services,id', 'title' => 'required|string|max:255',
-            'description' => 'required|string|max:10000', 'category' => 'required|string|max:255', 'challenge' => 'nullable|string|max:10000',
+            'description' => 'required|string|max:10000', 'challenge' => 'nullable|string|max:10000',
             'result' => 'nullable|string|max:10000', 'year' => 'nullable|integer|min:1990|max:2100', 'is_public' => 'required|boolean',
             'live_url' => 'nullable|url:http,https|max:2048', 'cover' => 'nullable|' . $imageRules,
             'gallery' => 'nullable|array|max:8', 'gallery.*' => $imageRules,
@@ -60,6 +60,10 @@ class PortfolioWorkController extends Controller
 
         $profile = DB::table('professional_profiles')->where('user_id', $request->user()->id)->firstOrFail();
         $values = collect($d)->except(['id', 'cover', 'gallery', 'gallery_items', 'gallery_revision', 'gallery_replacements', 'cover_choice'])->all();
+        // La categoría se obtiene del catálogo y no depende de un valor enviado por el formulario.
+        $values['category'] = DB::table('services as service')
+            ->join('service_categories as category', 'category.id', '=', 'service.service_category_id')
+            ->where('service.id', $d['service_id'])->value('category.name');
         $uploaded = [];
 
         try {
