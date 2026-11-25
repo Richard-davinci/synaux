@@ -79,22 +79,17 @@ function restoreImageFocus() {
             <B href="/contacto" variant="secondary" arrow>Hablemos de tu proyecto</B>
         </div>
 
-        <v-dialog v-model="imageOpen" max-width="1240" scrollable aria-labelledby="case-viewer-title"
+        <v-dialog v-model="imageOpen" fullscreen class="case-gallery-dialog" aria-labelledby="case-viewer-title"
                   @after-leave="restoreImageFocus">
-            <v-card v-if="activeImage" class="case-viewer">
+            <div v-if="activeImage" class="case-viewer">
                 <div class="case-viewer-header">
                     <h2 id="case-viewer-title">{{ activeImage.label }}</h2>
                     <B compact variant="ghost" @click="imageOpen = false">Cerrar</B>
                 </div>
-                <v-card-text class="case-viewer-content">
+                <div class="case-viewer-content">
                     <img :src="activeImage.path" :alt="activeImage.label">
-                </v-card-text>
-                <v-card-actions>
-                    <B :href="activeImage.path" compact variant="secondary" target="_blank" rel="noopener">
-                        Abrir imagen original
-                    </B>
-                </v-card-actions>
-            </v-card>
+                </div>
+            </div>
         </v-dialog>
     </section>
 </template>
@@ -181,7 +176,7 @@ figcaption [aria-hidden="true"] {
     margin: 0;
 }
 
-/* Las miniaturas comparten proporción; el visor sigue usando las dimensiones originales. */
+/* Las miniaturas comparten proporción; el visor muestra el encuadre completo. */
 .case-gallery-grid .case-image img {
     aspect-ratio: 4 / 3;
     object-fit: cover;
@@ -191,23 +186,60 @@ figcaption [aria-hidden="true"] {
     margin-top: 32px;
 }
 
-/* El visor permite desplazarse en móvil y abrir el archivo original si se necesita más detalle. */
+/* El encabezado reserva su propio espacio y la imagen se ajusta al resto de la pantalla. */
+:global(.case-gallery-dialog.v-dialog--fullscreen > .v-overlay__content) {
+    overflow: hidden;
+}
+
+.case-viewer {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    width: 100%;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+    background: #f5f9fa;
+}
+
 .case-viewer-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 12px 16px;
+    padding: max(8px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 8px max(16px, env(safe-area-inset-left));
+    border-bottom: 1px solid #1f6f7f26;
+    background: #fff;
 }
 
 .case-viewer-header h2 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    min-width: 0;
+    margin: 0;
     color: #153b64;
-    font: 700 clamp(1.1rem, 3vw, 1.4rem)/1.25 'Space Grotesk', sans-serif;
+    font: 700 clamp(1rem, 3vw, 1.25rem)/1.25 'Space Grotesk', sans-serif;
+    overflow-wrap: anywhere;
+}
+
+.case-viewer-header .btn {
+    min-height: 44px;
+    flex-shrink: 0;
+}
+
+.case-viewer-content {
+    display: grid;
+    grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+    padding: 8px max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
 }
 
 .case-viewer-content img {
     display: block;
     width: 100%;
-    height: auto;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    object-fit: contain;
 }
 </style>
