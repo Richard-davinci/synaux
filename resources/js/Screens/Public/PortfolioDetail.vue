@@ -8,6 +8,9 @@ const props = defineProps({data: Object});
 
 // Usa el trabajo seleccionado por Laravel para la ficha y su galería.
 const selected = computed(() => props.data.selected ?? {});
+
+// La vista previa de Stitch se identifica como prototipo en el enlace de la ficha.
+const isStitchPreview = computed(() => selected.value.live_url?.startsWith('https://stitch.google.com/preview/'));
 </script>
 
 <template>
@@ -41,7 +44,9 @@ const selected = computed(() => props.data.selected ?? {});
                         <dd>{{ selected.year }}</dd>
                     </div>
                 </dl>
-                <B v-if="selected.live_url" :href="selected.live_url" variant="secondary">Visitar proyecto</B>
+                <B v-if="selected.live_url" :href="selected.live_url" variant="secondary">
+                    {{ isStitchPreview ? 'Ver prototipo' : 'Visitar proyecto' }}
+                </B>
             </aside>
         </div>
     </section>
