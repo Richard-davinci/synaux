@@ -177,6 +177,8 @@ function save(publish) {
                 </button>
             </li>
         </ol>
+        <RequestSummary :form="form" :pricing="pricing" :selected-service="selectedService"
+                        :estimacion-guardada="estimate" :extra-name="extraName"/>
         <div class="request-main">
             <v-card class="card">
                 <p class="eyebrow">Paso {{ step }} de 4</p>
@@ -277,9 +279,6 @@ function save(publish) {
                     descripción para guardar el borrador.</p>
             </v-card>
         </div>
-
-        <RequestSummary :form="form" :pricing="pricing" :selected-service="selectedService"
-                        :estimate="estimate" :estimate-answers="estimateAnswers" :extra-name="extraName"/>
     </div>
 </template>
 
@@ -295,6 +294,7 @@ function save(publish) {
 }
 
 .request-main {
+    grid-column: 1;
     min-width: 0;
 }
 

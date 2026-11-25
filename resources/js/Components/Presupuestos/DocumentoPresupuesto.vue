@@ -5,33 +5,39 @@ import I from '../UI/AppIcon.vue';
 import {date, money} from '../../support/formatters';
 
 // El editor y el documento recibido comparten los datos de una versión, sin consultar perfiles actuales.
-const props = defineProps({budget: Object, client: Object, issuer: Object, compact: Boolean, example: Boolean});
+const props = defineProps({budget: Object, client: Object, issuer: Object, compact: Boolean, example: Boolean, estimacion: Object});
 const pending = computed(() => (props.budget.items ?? []).some(item => item.unit_price === '' || item.unit_price == null));
 const tax = computed(() => Math.round((Number(props.budget.total ?? 0) - Number(props.budget.subtotal ?? 0)) * 100) / 100);
 const scope = description => String(description ?? '').split('\n').slice(1).join('\n');
 const concept = description => String(description ?? '').split('\n')[0] || 'Servicio por definir';
 </script>
 <template>
-    <article class="budget-document" :class="{ 'budget-document-compact': compact }">
+    <article class="budget-document" :class="{ 'budget-document-compact': compact, 'documento-estimacion': estimacion }">
         <header class="document-heading">
             <BrandLogo :with-slogan="false" variant="white"/>
             <div>
-                <p class="document-label">Presupuesto</p>
-                <!-- Solo la muestra pública usa esta etiqueta; las versiones reales conservan su numeración. -->
-                <p v-if="example" class="document-number">Propuesta de ejemplo</p>
+                <p class="document-label">{{ estimacion ? 'Estimación' : 'Presupuesto' }}</p>
+                <!-- La estimación en curso y la muestra pública se identifican sin numeración oficial. -->
+                <p v-if="estimacion" class="document-number">Vista previa en vivo</p>
+                <p v-else-if="example" class="document-number">Propuesta de ejemplo</p>
                 <p v-else class="document-number">{{ budget.budget_id ? 'PRE-' + budget.budget_id : 'Borrador' }} · Versión
                     {{ budget.version_number ?? 1 }}</p>
             </div>
         </header>
-        <div class="document-dates"><span><I name="clock"/>Fecha: {{
+        <div v-if="estimacion" class="document-dates">Importes orientativos</div>
+        <div v-else class="document-dates"><span><I name="clock"/>Fecha: {{
                 date(budget.sent_at ?? budget.created_at ?? new Date().toISOString())
             }}</span><span>Válido hasta: {{ date(budget.valid_until) }}</span></div>
         <div class="document-content">
-            <h2 class="document-title">{{ budget.title || 'Tu proyecto' }}</h2>
+            <component :is="estimacion ? 'h3' : 'h2'" class="document-title">{{ budget.title || 'Tu proyecto' }}</component>
+            <details v-if="estimacion?.alcance" class="documento-alcance">
+                <summary>Descripción del proyecto</summary>
+                <p class="preserve-lines">{{ estimacion.alcance }}</p>
+            </details>
             <div class="document-parties">
                 <section><h3><I name="user"/>Cliente</h3>
                     <div class="party-content"><strong>{{
-                            client?.company || client?.name || 'Cliente por definir'
+                            client?.company || client?.name || (estimacion ? 'Datos por completar' : 'Cliente por definir')
                         }}</strong>
                         <p v-if="client?.company && client?.name">{{ client.name }}</p>
                         <p v-for="field in ['email','phone','address']" :key="field">{{ client?.[field] }}</p></div>
@@ -52,31 +58,43 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
                         <th>Concepto y alcance</th>
                         <th v-if="!compact">Cant.</th>
                         <th v-if="!compact">Precio unit.</th>
-                        <th>{{ compact ? 'Importe' : 'Subtotal' }}</th>
+                        <th>{{ estimacion ? 'Estimado' : compact ? 'Importe' : 'Subtotal' }}</th>
                     </tr>
                     </thead>
                     <tbody>
                     <tr v-for="(item,index) in budget.items" :key="index">
                         <td><strong>{{ concept(item.description) }}</strong>
-                            <p v-if="(!compact || example) && scope(item.description)" class="preserve-lines">
+                            <p v-if="(!compact || example || estimacion) && scope(item.description)" class="preserve-lines">
                                 {{ scope(item.description) }}</p></td>
                         <td v-if="!compact">{{ item.quantity }}</td>
                         <td v-if="!compact">{{
                                 item.unit_price === '' || item.unit_price == null ? 'A cotizar' : money(item.unit_price, budget.currency_code)
                             }}
                         </td>
-                        <td>{{
+                        <td v-if="estimacion">{{ item.importe }}</td>
+                        <td v-else>{{
                                 item.unit_price === '' || item.unit_price == null ? 'A cotizar' : money(Math.round(item.quantity * item.unit_price * 100) / 100, budget.currency_code)
                             }}
                         </td>
                     </tr>
                     <tr v-if="!budget.items?.length">
-                        <td :colspan="compact ? 2 : 4">Agregá los servicios para preparar el presupuesto.</td>
+                        <td :colspan="compact ? 2 : 4">{{ estimacion ? 'Elegí un servicio para ver su referencia.' : 'Agregá los servicios para preparar el presupuesto.' }}</td>
                     </tr>
                     </tbody>
                 </table>
             </div>
-            <dl class="document-totals" aria-live="polite">
+            <!-- La estimación puede contener rangos o conceptos pendientes; el documento emitido muestra subtotal, IVA y total. -->
+            <div v-if="estimacion && budget.items?.length" class="totales-estimacion" role="status" aria-atomic="true">
+                <dl class="document-totals">
+                    <div class="document-grand-total">
+                        <dt>{{ estimacion.etiqueta }}</dt>
+                        <dd>{{ estimacion.importe }}</dd>
+                    </div>
+                </dl>
+                <p v-if="estimacion.pendientes" class="document-warning">{{ estimacion.pendientes }}</p>
+                <p v-if="estimacion.recalculo" class="document-warning">{{ estimacion.recalculo }}</p>
+            </div>
+            <dl v-else-if="!estimacion" class="document-totals" aria-live="polite">
                 <div>
                     <dt>Subtotal{{ pending ? ' cotizado' : '' }}</dt>
                     <dd>{{ money(budget.subtotal, budget.currency_code) }}</dd>
@@ -90,11 +108,15 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
                     <dd>{{ money(budget.total, budget.currency_code) }}</dd>
                 </div>
             </dl>
-            <p v-if="pending" class="document-warning">Hay servicios pendientes de cotizar. El total se completará al
+            <p v-if="!estimacion && pending" class="document-warning">Hay servicios pendientes de cotizar. El total se completará al
                 definir sus precios.</p>
         </div>
         <!-- La landing resume las condiciones; las vistas de trabajo conservan el documento completo. -->
-        <section v-if="compact" class="document-conditions document-conditions-summary">
+        <section v-if="estimacion" class="document-conditions document-conditions-summary">
+            <p v-if="estimacion.plazo"><strong>Plazo deseado</strong> · {{ estimacion.plazo }}</p>
+            <p>synaux confirmará el precio, los plazos y las condiciones en el presupuesto formal.</p>
+        </section>
+        <section v-else-if="compact" class="document-conditions document-conditions-summary">
             <p v-if="example">Entrega estimada: {{ budget.estimated_delivery_days }} días desde el inicio acordado.</p>
             <p v-else>Entrega estimada: {{ budget.estimated_delivery_days }} días. Alcance y condiciones a acordar en la propuesta formal.</p>
             <p v-if="example && budget.terms">{{ budget.terms }}</p>
@@ -460,6 +482,48 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
 
 .budget-document-compact .document-conditions-summary p + p {
     margin-top: 4px;
+}
+
+/* La descripción se puede consultar sin desplazar los importes mientras se escribe. */
+.documento-alcance {
+    margin-bottom: 12px;
+    font-size: .8rem;
+    overflow-wrap: anywhere;
+}
+
+.documento-alcance summary {
+    color: #1f6f7f;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.documento-alcance p {
+    margin: 8px 0 0;
+}
+
+/* Los rangos de la solicitud pueden ocupar varias líneas en el documento compacto. */
+.documento-estimacion .document-items td:last-child {
+    width: 44%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.documento-estimacion .document-grand-total {
+    flex-wrap: wrap;
+    border-top: 0;
+}
+
+.documento-estimacion .document-grand-total dd {
+    margin-left: auto;
+    overflow-wrap: anywhere;
+}
+
+.documento-estimacion .document-warning + .document-warning {
+    margin-top: 6px;
+}
+
+.documento-estimacion .document-conditions {
+    overflow-wrap: anywhere;
 }
 
 @container (max-width: 420px) {

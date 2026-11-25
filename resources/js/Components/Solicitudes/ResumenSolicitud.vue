@@ -1,166 +1,159 @@
 <script setup>
+import {computed, ref, watch} from 'vue';
+import {useDisplay} from 'vuetify';
+import DocumentoPresupuesto from '../Presupuestos/DocumentoPresupuesto.vue';
+import AppIcon from '../UI/AppIcon.vue';
+import SidePanel from '../UI/SidePanel.vue';
+import {referenceLine} from '../../support/calculoPreciosSolicitud';
 import {date, money} from '../../support/formatters';
 
-defineProps({
+// La vista previa lee los importes del mismo cálculo que usa el formulario.
+const props = defineProps({
     form: {type: Object, required: true},
     pricing: {type: Object, required: true},
     selectedService: Object,
-    estimate: Object,
-    estimateAnswers: {type: Array, required: true},
+    estimacionGuardada: Object,
     extraName: {type: Function, required: true},
 });
+
+const {width} = useDisplay();
+const movil = computed(() => width.value <= 900);
+const abierto = ref(false);
+watch(movil, (esMovil) => {
+    if (!esMovil) abierto.value = false;
+});
+
+function importe(precio, moneda) {
+    return precio.min === precio.max
+        ? money(precio.min, moneda)
+        : money(precio.min, moneda) + ' – ' + money(precio.max, moneda);
+}
+
+const documento = computed(() => {
+    const {form, pricing, selectedService, extraName} = props;
+    const moneda = pricing.summaryCurrency;
+    const renglones = [];
+    if (selectedService) {
+        const linea = referenceLine(pricing.reference, 1, null, moneda);
+        const referencia = props.estimacionGuardada
+            ? 'Estimación guardada · ' + date(props.estimacionGuardada.created_at)
+            : linea.segment;
+        renglones.push({
+            description: [selectedService.name, referencia].filter(Boolean).join('\n'),
+            importe: linea.priced ? importe(linea, moneda) : 'A cotizar',
+        });
+    }
+
+    form.additional_services.forEach((servicio, indice) => {
+        const linea = pricing.additionalPrices[indice];
+        const cantidad = Number(servicio.quantity);
+        const valida = Number.isInteger(cantidad) && cantidad >= 1 && cantidad <= 1000;
+        const nombre = extraName(servicio.service_id);
+        renglones.push({
+            description: [valida ? nombre + ' × ' + cantidad : nombre, servicio.notes?.trim()].filter(Boolean).join('\n'),
+            importe: linea?.priced ? importe(linea, moneda) : valida ? 'A cotizar' : 'Completá la cantidad',
+        });
+    });
+
+    return {title: form.title.trim(), items: renglones};
+});
+
+const estimacion = computed(() => {
+    const {pricing, form} = props;
+    const total = pricing.summaryPrice;
+    const preliminar = pricing.preliminaryReference || pricing.pendingExtraCalculation;
+    const pendientes = total.pending && documento.value.items.length ? total.pending : 0;
+
+    return {
+        alcance: form.description.trim(),
+        etiqueta: pendientes && total.hasPrice
+            ? (preliminar ? 'Subtotal preliminar' : 'Subtotal estimado')
+            : (preliminar ? 'Importe preliminar' : 'Total estimado'),
+        importe: total.hasPrice ? importe(total, total.currency) : 'A cotizar',
+        pendientes: total.hasPrice && pendientes
+            ? (pendientes === 1 ? '1 servicio pendiente queda fuera del subtotal.' : pendientes + ' servicios pendientes quedan fuera del subtotal.')
+            : '',
+        recalculo: preliminar ? 'El importe se recalcula al continuar con tus respuestas.' : '',
+        plazo: form.desired_deadline.trim(),
+    };
+});
+
+const datosDocumento = computed(() => ({
+    budget: documento.value,
+    client: props.form.contact,
+    estimacion: estimacion.value,
+    compact: true,
+}));
 </script>
 
 <template>
-    <!-- El resumen se actualiza con los mismos valores del formulario y se apila debajo en móvil. -->
-    <aside class="request-summary">
-        <v-card class="card">
-            <p class="eyebrow">Tu solicitud</p>
-            <h2>Resumen</h2>
-            <div v-if="form.title" class="summary-extra"><strong>{{ form.title }}</strong>
-                <p v-if="form.desired_deadline">Plazo deseado: {{ form.desired_deadline }}</p></div>
-            <h3>{{ selectedService?.name }}</h3>
-            <p>{{ selectedService?.summary }}</p>
-            <ul v-if="selectedService?.includes?.length">
-                <li v-for="item in selectedService.includes" :key="item">{{ item }}</li>
-            </ul>
-            <div class="request-price"><p>{{
-                    estimate ? 'Estimación guardada · servicio principal' : pricing.preliminaryReference ? 'Referencia preliminar del servicio principal' : 'Referencia del servicio principal'
-                }}</p><strong v-if="pricing.reference">{{ money(pricing.reference.min, pricing.reference.currency) }}
-                <template v-if="pricing.reference.max !== pricing.reference.min"> –
-                    {{ money(pricing.reference.max, pricing.reference.currency) }}
-                </template>
-            </strong><strong v-else>A cotizar según el alcance</strong>
-                <p v-if="estimate">{{ date(estimate.created_at) }}</p>
-                <p v-else-if="pricing.reference?.segment">{{ pricing.reference.segment }}</p></div>
-            <dl v-if="estimateAnswers.length" class="summary-answers">
-                <div v-for="answer in estimateAnswers" :key="answer.id">
-                    <dt>{{ answer.question }}</dt>
-                    <dd>{{ answer.label }}</dd>
-                </div>
-            </dl>
-            <div v-for="(item, index) in form.additional_services" :key="index" class="summary-extra">
-                <strong>{{ extraName(item.service_id) }} × {{ item.quantity }}</strong>
-                <template v-if="pricing.additionalPrices[index].priced">
-                    <p>{{ money(pricing.additionalPrices[index].min, pricing.summaryCurrency) }}
-                        <template v-if="pricing.additionalPrices[index].max !== pricing.additionalPrices[index].min"> –
-                            {{ money(pricing.additionalPrices[index].max, pricing.summaryCurrency) }}
-                        </template>
-                    </p>
-                    <small>{{ money(pricing.additionalPrices[index].unitMin, pricing.summaryCurrency) }}
-                        <template
-                            v-if="pricing.additionalPrices[index].unitMax !== pricing.additionalPrices[index].unitMin">
-                            – {{ money(pricing.additionalPrices[index].unitMax, pricing.summaryCurrency) }}
-                        </template>
-                        por unidad</small></template>
-                <p v-else>{{
-                        Number.isInteger(Number(item.quantity)) && Number(item.quantity) >= 1 && Number(item.quantity) <= 1000 ? 'Pendiente de cotización' : 'Ingresá una cantidad válida para calcular'
-                    }}</p>
-                <p v-if="item.notes">{{ item.notes }}</p>
-            </div>
-            <!-- El total reacciona a cambios de servicio, segmento y cantidad sin enviar importes del navegador. -->
-            <div class="request-price summary-total" role="status" aria-live="polite" aria-atomic="true">
-                <p>{{
-                        pricing.preliminaryReference || pricing.pendingExtraCalculation ? 'Importe preliminar' : pricing.summaryPrice.pending ? 'Subtotal estimado' : 'Total estimado'
-                    }}</p>
-                <strong v-if="pricing.summaryPrice.hasPrice">{{
-                        money(pricing.summaryPrice.min, pricing.summaryPrice.currency)
-                    }}
-                    <template v-if="pricing.summaryPrice.max !== pricing.summaryPrice.min"> –
-                        {{ money(pricing.summaryPrice.max, pricing.summaryPrice.currency) }}
-                    </template>
-                </strong>
-                <strong v-else>A cotizar según el alcance</strong>
-                <small v-if="pricing.summaryPrice.pending">{{
-                        pricing.summaryPrice.pending === 1 ? 'Hay 1 servicio pendiente de cotización o con cantidad por completar.' : 'Hay ' + pricing.summaryPrice.pending + ' servicios pendientes de cotización o con cantidades por completar.'
-                    }} No está{{ pricing.summaryPrice.pending === 1 ? '' : 'n' }}
-                    incluido{{ pricing.summaryPrice.pending === 1 ? '' : 's' }} en el subtotal.</small>
-                <small v-if="pricing.preliminaryReference || pricing.pendingExtraCalculation">El importe se recalcula al
-                    continuar, con las respuestas de tu solicitud.</small>
-                <small v-else>Importes orientativos. El presupuesto formal confirmará el precio final.</small>
-            </div>
-            <p v-if="form.contact.name">{{ form.contact.name }}<br>{{ form.contact.email }}</p>
-            <p class="summary-note">synaux revisará el pedido y enviará un presupuesto formal con el total, los plazos y
-                las condiciones.</p>
-        </v-card>
+    <!-- En pantallas chicas el mismo documento se abre sin desplazar la etapa del formulario. -->
+    <div v-if="movil" class="acceso-vista-previa">
+        <SidePanel v-model="abierto" title="Vista previa de tu estimación" max-width="580"
+                   body-label="Documento de tu estimación" close-label="Cerrar vista previa">
+            <template #activator="{ props: activador }">
+                <button v-bind="activador" type="button" class="boton-vista-previa">
+                    <AppIcon name="file" aria-hidden="true"/>
+                    <span>Ver estimación</span>
+                    <AppIcon name="arrow" aria-hidden="true"/>
+                </button>
+            </template>
+            <div class="documento-en-panel"><DocumentoPresupuesto v-bind="datosDocumento"/></div>
+        </SidePanel>
+    </div>
+    <aside v-else class="vista-previa-escritorio" aria-label="Vista previa de tu estimación" tabindex="0">
+        <DocumentoPresupuesto v-bind="datosDocumento"/>
     </aside>
 </template>
 
 <style scoped>
-.request-summary {
+/* El documento se mantiene debajo de los pasos y se desplaza si se agregan muchos servicios. */
+.vista-previa-escritorio {
+    --tope-vista-previa: calc(var(--navbar-height, 108px) + var(--workspace-bar-height, 0px) + var(--steps-height) + 16px);
     position: sticky;
-    top: calc(var(--navbar-height, 108px) + var(--workspace-bar-height, 0px) + var(--steps-height) + 16px);
-}
-
-.request-summary ul {
-    padding-left: 1.25rem;
-    margin-bottom: 1rem;
-}
-
-.summary-extra {
-    border-top: 1px solid rgb(31 111 127 / 18%);
-    padding-top: 1rem;
-    margin-top: 1rem;
-}
-
-.summary-note {
-    color: #446075;
-    margin-top: 1.25rem;
-}
-
-.request-price {
-    padding: 18px;
-    background: #f5f9fa;
-    border: 1px solid #1f6f7f22;
+    top: var(--tope-vista-previa);
+    grid-column: 2;
+    grid-row: 2;
+    min-width: 0;
+    max-height: calc(100dvh - var(--tope-vista-previa) - 16px);
     border-radius: 12px;
-    margin: 20px 0;
+    overflow: auto;
+    overscroll-behavior: contain;
 }
 
-.request-price strong {
-    display: block;
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 1.65rem;
-    line-height: 1.3;
-    overflow-wrap: anywhere;
+.acceso-vista-previa {
+    margin-bottom: -8px;
 }
 
-.request-price p {
-    margin: 0 0 8px;
+.boton-vista-previa {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    gap: 8px;
+    padding: 8px 14px;
+    border: 1px solid #1f6f7f4d;
+    border-radius: 8px;
+    color: #153b64;
+    font-weight: 700;
+    background: #f5f9fa;
+    cursor: pointer;
 }
 
-.summary-total {
+.boton-vista-previa:hover {
     border-color: #1f6f7f;
 }
 
-.request-price small {
-    display: block;
-    margin-top: 12px;
+.boton-vista-previa:focus-visible, .vista-previa-escritorio:focus-visible {
+    outline: 2px solid #1f6f7f;
+    outline-offset: 3px;
 }
 
-.summary-answers {
-    margin: 0 0 20px;
+.boton-vista-previa .icon {
+    width: 18px;
+    height: 18px;
 }
 
-.summary-answers > div {
-    padding: 12px 0;
-    border-bottom: 1px solid #1f6f7f22;
-}
-
-.summary-answers dd {
-    margin: 4px 0 0;
-    color: #153b64;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-}
-
-.request-summary {
-    overflow-wrap: anywhere;
-    min-width: 0;
-}
-
-@media (max-width: 900px) {
-    .request-summary {
-        position: static;
-    }
+.documento-en-panel {
+    padding: 16px;
 }
 </style>
