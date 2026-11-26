@@ -313,15 +313,18 @@ function decide() {
 
 .budget-side .button-stack .btn {
     width: min(100%, 250px);
-    height: 44px;
+    min-width: 0;
+    height: auto;
     min-height: 44px;
-    padding: 0 14px;
+    padding: 8px 14px;
     font-size: .9375rem;
     line-height: 1.2;
 }
 
 .budget-side .button-stack .btn :deep(.v-btn__content) {
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: center;
 }
 
 .budget-total-label {

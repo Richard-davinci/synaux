@@ -8,7 +8,7 @@ const includeVat = defineModel({type: Boolean});
 
 <template>
     <section class="vat-settings" aria-label="IVA del presupuesto">
-        <VSwitch v-model="includeVat" label="Incluir IVA" color="primary" inset hide-details density="compact"
+        <VSwitch v-model="includeVat" label="Incluir IVA" color="primary" hide-details density="compact"
                  :disabled="quote.processing"/>
         <F v-if="includeVat" v-model="quote.tax_rate" label="IVA (%)" type="number" min="0.01" max="100" step="0.01"
            :error="quote.errors.tax_rate" required/>
@@ -21,6 +21,10 @@ const includeVat = defineModel({type: Boolean});
 
 <style scoped>
 .vat-settings {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 140px;
+    align-items: start;
+    gap: 8px 16px;
     margin: 20px 0;
     padding: 16px;
     background: #f5f9fa;
@@ -29,15 +33,44 @@ const includeVat = defineModel({type: Boolean});
 }
 
 .vat-settings :deep(.field) {
-    margin: 12px 0;
+    grid-column: 2;
+    grid-row: 1;
+    width: 140px;
+    max-width: 100%;
+    margin: 0;
+}
+
+.vat-settings :deep(.v-switch) {
+    grid-column: 1;
+    grid-row: 1;
+    width: max-content;
+    max-width: 100%;
+    margin: 0;
+}
+
+.vat-settings :deep(.v-switch .v-selection-control) {
+    min-height: 36px;
 }
 
 .vat-settings p {
+    grid-column: 1 / -1;
     margin-bottom: 0;
 }
 
 .editor-hint {
     font-size: .9rem;
     color: #446075;
+}
+
+@media (max-width: 420px) {
+    .vat-settings {
+        grid-template-columns: minmax(0, 1fr) 112px;
+        gap: 8px;
+        padding: 12px;
+    }
+
+    .vat-settings :deep(.field) {
+        width: 112px;
+    }
 }
 </style>

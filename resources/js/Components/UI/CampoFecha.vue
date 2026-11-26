@@ -23,7 +23,8 @@ function seleccionar(fecha) {
 <template>
     <div class="field campo-fecha">
         <label :for="id">{{ label }}<span v-if="required" aria-hidden="true"> *</span></label>
-        <VMenu v-model="abierto" :close-on-content-click="false" :offset="6" location="bottom start">
+        <VMenu v-model="abierto" :close-on-content-click="false" :offset="6" :min-width="0" :max-width="344"
+               location="bottom start">
             <template #activator="{props: activador}">
                 <button v-bind="activador" :id="id" type="button" class="fecha-activador"
                         :aria-label="label + ', ' + texto" :aria-invalid="Boolean(error)"
@@ -33,7 +34,8 @@ function seleccionar(fecha) {
                 </button>
             </template>
             <v-card class="selector-fecha">
-                <VDatePicker :model-value="fecha" :min="min" color="primary" hide-header :first-day-of-week="1"
+                <VDatePicker :model-value="fecha" :min="min" color="primary" hide-header width="320"
+                             :first-day-of-week="1"
                              show-adjacent-months @update:model-value="seleccionar"/>
                 <div class="selector-fecha-acciones">
                     <B variant="ghost" compact :disabled="!valor" @click="seleccionar('')">Borrar fecha</B>
@@ -68,18 +70,25 @@ function seleccionar(fecha) {
 .fecha-activador .icon { width: 18px; height: 18px; flex-shrink: 0; }
 /* El encabezado define el contorno superior y el borde fino separa el menú del formulario. */
 .selector-fecha {
+    width: 320px;
     max-width: calc(100vw - 24px);
     border: 1px solid #153b6433;
     box-shadow: 0 6px 16px #153b6424;
     overflow: hidden;
 }
 .selector-fecha :deep(.v-date-picker) {
+    width: 100%;
     max-width: 100%;
     color: #153b64;
 }
 .selector-fecha :deep(.v-date-picker-controls) {
     background: #153b64;
     color: #fff;
+}
+@media (max-width: 360px) {
+    .selector-fecha :deep(.v-date-picker) {
+        width: 100% !important;
+    }
 }
 .selector-fecha :deep(.v-date-picker-controls .v-btn) {
     color: #fff;

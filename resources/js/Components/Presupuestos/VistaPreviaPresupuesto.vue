@@ -5,9 +5,10 @@ import SidePanel from '../UI/SidePanel.vue';
 import B from '../UI/AppButton.vue';
 import I from '../UI/AppIcon.vue';
 import BudgetDocument from './DocumentoPresupuesto.vue';
+import {money} from '../../support/formatters';
 
 // La vista queda fija junto al formulario en escritorio y se abre en un panel angosto en pantallas chicas.
-defineProps({
+const props = defineProps({
     visible: Boolean,
     vistaPreviaVisible: Boolean,
     budget: {type: Object, required: true},
@@ -23,6 +24,18 @@ const emit = defineEmits(['close', 'ocultar-vista', 'save-draft', 'send']);
 const {width} = useDisplay();
 const vistaMovil = computed(() => width.value <= 1260);
 const panelFijo = ref(null);
+const confirmarEnvio = ref(false);
+
+function solicitarEnvio() {
+    if (props.disabled || props.persistent) return;
+    confirmarEnvio.value = true;
+}
+
+function confirmarEnvioPresupuesto() {
+    if (props.disabled || props.persistent) return;
+    confirmarEnvio.value = false;
+    emit('send');
+}
 
 function irAVista() {
     panelFijo.value?.scrollIntoView({behavior: 'smooth', block: 'start'});
@@ -53,7 +66,7 @@ defineExpose({irAVista});
             <B variant="secondary" compact :disabled="disabled || saving" @click="emit('save-draft')">
                 {{ saving ? 'Guardando…' : 'Guardar borrador' }}
             </B>
-            <B v-if="step === 3" compact :disabled="disabled || persistent" arrow @click="emit('send')">
+            <B v-if="step === 3" compact :disabled="disabled || persistent" arrow @click="solicitarEnvio">
                 {{ direct ? 'Emitir presupuesto' : 'Enviar presupuesto' }}
             </B>
         </footer>
@@ -78,11 +91,31 @@ defineExpose({irAVista});
                     {{ saving ? 'Guardando…' : 'Guardar borrador' }}
                 </B>
                 <B variant="ghost" compact :disabled="persistent" @click="emit('close')">Seguir editando</B>
-                <B v-if="step === 3" compact :disabled="disabled || persistent" arrow @click="emit('send')">
+                <B v-if="step === 3" compact :disabled="disabled || persistent" arrow @click="solicitarEnvio">
                     {{ direct ? 'Emitir presupuesto' : 'Enviar presupuesto' }}
                 </B>
             </div>
         </template>
+    </SidePanel>
+    <SidePanel :title="direct ? 'Confirmar emisión' : 'Confirmar envío'" :model-value="confirmarEnvio"
+               :persistent="persistent" :max-width="480" @update:model-value="confirmarEnvio = $event">
+        <v-card class="card modal-card send-confirmation">
+            <p class="eyebrow">Presupuesto · Versión {{ budget.version_number }}</p>
+            <h2>{{ direct ? '¿Querés emitir este presupuesto?' : '¿Querés enviar este presupuesto al cliente?' }}</h2>
+            <p>{{ direct
+                ? 'Se guardará como presupuesto emitido y podrás descargar el PDF para compartirlo.'
+                : 'El cliente recibirá esta versión y podrá revisarla, aceptarla o rechazarla.' }}</p>
+            <div class="send-confirmation-summary">
+                <strong>{{ budget.title }}</strong>
+                <span>Total · {{ money(budget.total, budget.currency_code) }}</span>
+            </div>
+            <div class="send-confirmation-actions">
+                <B variant="secondary" compact :disabled="persistent" @click="confirmarEnvio = false">Volver</B>
+                <B compact :disabled="disabled || persistent" @click="confirmarEnvioPresupuesto">
+                    {{ direct ? 'Confirmar emisión' : 'Confirmar envío' }}
+                </B>
+            </div>
+        </v-card>
     </SidePanel>
 </template>
 
@@ -93,7 +126,7 @@ defineExpose({irAVista});
     inset: var(--navbar-height, 76px) 0 0 auto;
     display: flex;
     flex-direction: column;
-    width: var(--budget-preview-width, clamp(380px, 32vw, 460px));
+    width: var(--budget-preview-width, clamp(400px, 34vw, 500px));
     min-height: 0;
     overflow: hidden;
     border: 1px solid #1f6f7f26;
@@ -173,6 +206,20 @@ defineExpose({irAVista});
     grid-column: 1 / -1;
 }
 
+.preview-actions :deep(.btn) {
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    height: auto;
+    padding: 6px 10px;
+}
+
+.preview-actions :deep(.v-btn__content) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: center;
+}
+
 .preview-mobile-actions {
     display: flex;
     flex-wrap: wrap;
@@ -180,6 +227,66 @@ defineExpose({irAVista});
     justify-content: flex-end;
     width: 100%;
     gap: 8px;
+}
+
+.preview-mobile-actions :deep(.btn) {
+    min-width: 0;
+    min-height: 40px;
+    height: auto;
+    padding: 6px 10px;
+}
+
+.preview-mobile-actions :deep(.v-btn__content) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: center;
+}
+
+.send-confirmation {
+    padding: 24px;
+}
+
+.send-confirmation h2 {
+    margin: 4px 0 10px;
+    color: #153b64;
+    font: 700 1.35rem/1.25 'Space Grotesk', sans-serif;
+}
+
+.send-confirmation > p:not(.eyebrow) {
+    color: #446075;
+}
+
+.send-confirmation-summary {
+    display: grid;
+    gap: 6px;
+    margin: 18px 0;
+    padding: 14px;
+    border: 1px solid #1f6f7f26;
+    border-radius: 10px;
+    background: #f5f9fa;
+}
+
+.send-confirmation-summary span {
+    color: #446075;
+    font-size: .9rem;
+}
+
+.send-confirmation-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+@media (max-width: 600px) {
+    .preview-mobile-actions :deep(.btn) {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+
+    .send-confirmation {
+        padding: 18px;
+    }
 }
 
 .budget-preview-panel {

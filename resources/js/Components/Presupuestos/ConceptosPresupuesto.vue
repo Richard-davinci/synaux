@@ -16,7 +16,7 @@ const emit = defineEmits(['add-item']);
     <h2>Definí los servicios</h2>
     <p>Describí el alcance y definí el importe de cada concepto.</p>
     <div v-for="(item, index) in quote.items" :key="index" class="quote-item">
-        <div class="context-heading"><h3>Concepto {{ index + 1 }}</h3><B variant="ghost" compact
+        <div class="context-heading"><h3>Concepto {{ index + 1 }}</h3><B variant="secondary" compact
                                                                          :disabled="quote.items.length === 1 || quote.processing"
                                                                          :aria-label="'Quitar concepto ' + (index + 1)"
                                                                          @click="quote.items.splice(index, 1)">Quitar</B>

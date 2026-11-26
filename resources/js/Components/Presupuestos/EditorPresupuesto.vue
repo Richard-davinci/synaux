@@ -344,7 +344,7 @@ function save(send) {
 }
 
 .budget-editor {
-    --budget-preview-width: clamp(380px, 32vw, 460px);
+    --budget-preview-width: clamp(400px, 34vw, 500px);
     width: calc(100% - var(--budget-preview-width) - 48px);
     max-width: none;
     margin: 0 0 0 24px;
