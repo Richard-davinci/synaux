@@ -79,7 +79,11 @@ class SolicitudController extends Controller
         });
         $request->session()->forget('pending_request');
 
-        return redirect('/solicitudes/' . $id)->with('notice', $data['publish'] ? 'Solicitud enviada.' : 'Borrador guardado.');
+        if (!$data['publish']) {
+            return redirect('/cliente/estimaciones')->with('notice', 'Preparación guardada en Mis estimaciones.');
+        }
+
+        return redirect('/solicitudes/' . $id)->with('notice', 'Solicitud enviada a synaux.');
     }
 
     // Abre el formulario público con la estimación elegida por su titular, si corresponde.

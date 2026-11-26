@@ -13,20 +13,22 @@ import {presupuestosSinProyecto} from '../../support/agrupacionPresupuestos';
 const props = defineProps({data: {type: Object, required: true}});
 const page = usePage();
 const nombre = computed(() => page.props.auth?.name?.trim().split(/\s+/)[0] || (props.data.preview ? 'Martina' : ''));
+const preparaciones = computed(() => (props.data.requests ?? []).filter(request => request.status === 'draft'));
+const estimacionesEnPreparacion = computed(() => new Set(preparaciones.value.map(request => request.estimate_id).filter(Boolean)));
 const indicadores = computed(() => [
-    ['Estimaciones', 'estimaciones', 'edit', props.data.estimates?.length ?? 0],
-    ['Solicitudes', 'solicitudes', 'file', props.data.requests?.length ?? 0],
+    ['Estimaciones', 'estimaciones', 'edit', (props.data.estimates ?? []).filter(estimate => !estimacionesEnPreparacion.value.has(estimate.id)).length + preparaciones.value.length],
+    ['Solicitudes', 'solicitudes', 'file', (props.data.requests ?? []).filter(request => request.status !== 'draft').length],
     ['Presupuestos', 'presupuestos', 'receipt', presupuestosSinProyecto(props.data.quotes ?? []).length],
     ['Proyectos', 'proyectos', 'folder', props.data.projects?.length ?? 0],
 ]);
-const recientes = computed(() => (props.data.requests ?? []).slice(0, 3));
+const recientes = computed(() => (props.data.requests ?? []).filter(request => request.status !== 'draft').slice(0, 3));
 </script>
 
 <template>
     <section class="page shell workspace-view">
         <PageTitle eyebrow="Área cliente" :title="nombre ? 'Hola, ' + nombre : 'Resumen'"
                    description="Revisá tus solicitudes, presupuestos y proyectos.">
-            <AppButton href="/solicitudes/nueva" arrow>Nueva solicitud</AppButton>
+            <AppButton href="/solicitudes/nueva" arrow>Nueva estimación</AppButton>
         </PageTitle>
 
         <IndicadoresPanel :indicadores="indicadores" ruta-base="/cliente" :contexto="data"/>
@@ -55,7 +57,7 @@ const recientes = computed(() => (props.data.requests ?? []).slice(0, 3));
                     </AppButton>
                 </li>
             </ul>
-            <p v-else class="sin-solicitudes">Todavía no tenés solicitudes.</p>
+            <p v-else class="sin-solicitudes">Todavía no enviaste solicitudes. Las preparaciones guardadas están en Estimaciones.</p>
         </section>
     </section>
 </template>

@@ -8,7 +8,7 @@ import RequestForm from '../../Components/Solicitudes/FormularioSolicitud.vue';
 import {date} from '../../support/formatters';
 import {useSubmit} from '../../support/useSubmit';
 
-// El borrador reusa el formulario de solicitud; los pedidos enviados muestran su estado y sus respuestas.
+// La preparación guardada reusa el formulario; las solicitudes enviadas muestran su estado y respuestas.
 const props = defineProps({data: {type: Object, required: true}});
 const record = computed(() => props.data.selected ?? {});
 const submit = useSubmit();
@@ -22,8 +22,8 @@ function closeRequest() {
 <template>
     <section class="page shell workspace-view detalle-solicitud">
         <template v-if="record.status === 'draft'">
-            <T eyebrow="Solicitud en borrador" :title="record.title"
-               description="Podés completar y revisar la información antes de enviarla."/>
+            <T eyebrow="Preparación guardada" :title="record.title"
+               description="Esta preparación sigue en Estimaciones. Completá o revisá los datos y enviála cuando esté lista."/>
             <RequestForm :data="data"/>
         </template>
         <template v-else>

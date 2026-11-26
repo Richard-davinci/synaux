@@ -18,17 +18,17 @@ const seccion = computed(() => props.data.section);
 const listados = {
     estimaciones: {
         coleccion: 'estimates', titulo: 'Mis estimaciones', prefijo: 'EST',
-        descripcion: 'Consultá tus cálculos orientativos. Para iniciar una nueva, prepará una solicitud y revisá la estimación antes de enviarla.',
-        vacio: 'Guardá una estimación para continuar con tu solicitud más adelante.',
-        estados: [['calculated', 'Calculada'], ['manual', 'Revisión profesional']],
-        crear: {href: '/solicitudes/nueva', etiqueta: 'Nueva solicitud'},
+        descripcion: 'Consultá tus cálculos y retomá las preparaciones guardadas. Cuando envíes una, pasará a Solicitudes para que synaux la revise.',
+        vacio: 'Tus estimaciones y preparaciones guardadas aparecerán acá.',
+        estados: [['calculated', 'Calculada'], ['manual', 'Revisión profesional'], ['preparation_saved', 'Preparación guardada']],
+        crear: {href: '/solicitudes/nueva', etiqueta: 'Nueva estimación'},
     },
     solicitudes: {
         coleccion: 'requests', titulo: 'Mis solicitudes', prefijo: 'SOL', aviso: 'solicitud',
-        descripcion: 'Revisá el estado de tus pedidos y retomá tus borradores.',
-        vacio: 'Tus borradores y las solicitudes que envíes aparecerán acá.',
-        estados: [['draft', 'Borrador'], ['open', 'Enviada'], ['closed', 'Cerrada'], ['cancelled', 'Cancelada']],
-        crear: {href: '/solicitudes/nueva', etiqueta: 'Nueva solicitud'},
+        descripcion: 'Revisá el estado de las solicitudes que ya enviaste a synaux.',
+        vacio: 'Cuando envíes una solicitud, vas a poder seguir su revisión desde acá.',
+        estados: [['open', 'Enviada'], ['closed', 'Cerrada'], ['cancelled', 'Cancelada']],
+        crear: {href: '/solicitudes/nueva', etiqueta: 'Nueva estimación'},
     },
     presupuestos: {
         coleccion: 'quotes', titulo: 'Mis presupuestos', prefijo: 'PRE', aviso: 'presupuesto',
@@ -55,9 +55,37 @@ const busqueda = ref('');
 const estado = ref('');
 const filtrosActivos = computed(() => Boolean(busqueda.value.trim() || estado.value));
 const agrupaPresupuestos = computed(() => props.data.area === 'cliente' && seccion.value === 'presupuestos');
+const muestraPreparaciones = computed(() => props.data.area === 'cliente' && seccion.value === 'estimaciones');
+const ocultaBorradores = computed(() => props.data.area === 'cliente' && seccion.value === 'solicitudes');
 const registros = computed(() => {
     const disponibles = props.data[listado.value.coleccion] ?? [];
-    return agrupaPresupuestos.value ? presupuestosSinProyecto(disponibles) : disponibles;
+    if (agrupaPresupuestos.value) return presupuestosSinProyecto(disponibles);
+    if (muestraPreparaciones.value) {
+        // Una preparación se presenta junto a las estimaciones y reemplaza su fila técnica vinculada.
+        const borradores = (props.data.requests ?? []).filter(request => request.status === 'draft');
+        const estimacionesEnPreparacion = new Set(borradores.map(request => request.estimate_id).filter(Boolean));
+        const estimacionesSinPreparacion = disponibles.filter(estimate => !estimacionesEnPreparacion.has(estimate.id));
+        const preparaciones = borradores.map(request => {
+            const estimate = disponibles.find(item => item.id === request.estimate_id);
+            return {
+                ...(estimate ?? {}),
+                id: estimate?.id ?? request.id,
+                request_id: request.id,
+                title: request.title,
+                summary: request.title,
+                service_name: request.service_name,
+                service_id: request.service_id,
+                status: 'preparation_saved',
+                created_at: request.created_at,
+                price_min: estimate?.price_min ?? request.pricing_reference?.min ?? null,
+                price_max: estimate?.price_max ?? request.pricing_reference?.max ?? null,
+                currency_snapshot: estimate?.currency_snapshot ?? request.pricing_reference?.currency ?? null,
+            };
+        });
+        return [...preparaciones, ...estimacionesSinPreparacion].sort((a, b) =>
+            new Date(b.created_at ?? 0) - new Date(a.created_at ?? 0));
+    }
+    return ocultaBorradores.value ? disponibles.filter(request => request.status !== 'draft') : disponibles;
 });
 const tienePresupuestosEnProyectos = computed(() => agrupaPresupuestos.value
     && (props.data.quotes ?? []).some(version => version.status === 'accepted'));
@@ -96,6 +124,11 @@ function detalle(registro) {
         : minimo + ' – ' + money(registro.price_max, registro.currency_snapshot);
 }
 
+function destino(registro) {
+    if (muestraPreparaciones.value && registro.request_id) return '/solicitudes/' + registro.request_id;
+    return '/' + seccion.value + '/' + registro.id;
+}
+
 function limpiarFiltros() {
     busqueda.value = '';
     estado.value = '';
@@ -120,7 +153,7 @@ function limpiarFiltros() {
                     <small>{{ identificador(registro) }} · {{ date(registro.sent_at ?? registro.created_at) }}</small>
                     <div class="record-heading">
                         <h2>{{ registro.title ?? registro.summary }}</h2>
-                        <NewBadge :type="listado.aviso" :id="registro.id"/>
+                        <NewBadge v-if="listado.aviso" :type="listado.aviso" :id="registro.id"/>
                     </div>
                     <p v-if="detalle(registro)">{{ detalle(registro) }}</p>
                     <div v-if="seccion === 'proyectos'" class="fila-avance">
@@ -131,10 +164,10 @@ function limpiarFiltros() {
                 </div>
                 <StatusBadge :status="registro.display_status ?? registro.status" :request="seccion === 'solicitudes'"/>
                 <div class="fila-acciones">
-                    <AppButton :href="'/' + seccion + '/' + registro.id" variant="ghost" compact>
-                        {{ registro.status === 'draft' && seccion === 'solicitudes' ? 'Continuar borrador' : agrupaPresupuestos ? 'Ver presupuesto' : 'Ver detalle' }}
+                    <AppButton :href="destino(registro)" variant="ghost" compact>
+                        {{ registro.request_id ? 'Continuar preparación' : agrupaPresupuestos ? 'Ver presupuesto' : 'Ver detalle' }}
                     </AppButton>
-                    <DeleteEstimateButton v-if="seccion === 'estimaciones'" :estimate="registro" compact/>
+                    <DeleteEstimateButton v-if="seccion === 'estimaciones' && !registro.request_id" :estimate="registro" compact/>
                 </div>
                 <HistorialPresupuesto v-if="registro.historial?.length" :versiones="registro.historial" class="historial-en-lista"/>
             </li>

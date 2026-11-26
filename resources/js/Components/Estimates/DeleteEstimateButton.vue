@@ -1,6 +1,6 @@
 <script setup>
 import SidePanel from '../UI/SidePanel.vue';
-import {computed, ref, useId} from 'vue';
+import {ref, useId} from 'vue';
 import {useForm, usePage} from '@inertiajs/vue3';
 import B from '../UI/AppButton.vue';
 import {demoNotice} from '../../support/prototype';
@@ -11,8 +11,8 @@ const page = usePage();
 const open = ref(false);
 const titleId = useId();
 const form = useForm({confirmed: false});
-// La lista identifica la eliminación como una acción sobre un borrador ya guardado.
-const accion = computed(() => props.compact ? 'Eliminar borrador' : 'Eliminar estimación');
+// La acción elimina una estimación guardada, sin confundirla con una preparación de solicitud.
+const accion = 'Eliminar estimación';
 
 function ask() {
     form.reset();

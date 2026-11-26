@@ -24,6 +24,7 @@ const labels = {
     in_progress: 'En desarrollo',
     completed: 'Completado',
     calculated: 'Calculada',
+    preparation_saved: 'Preparación guardada',
     manual: 'Revisión profesional',
     review: 'En revisión'
 };

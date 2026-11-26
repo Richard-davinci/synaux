@@ -49,7 +49,7 @@ const identificadoresCliente = {
 const stageTwoPaths = ['/cliente/publicaciones', '/cliente/propuestas', '/cliente/invitaciones'];
 const sectionsByScreen = {
     solicitud: 'solicitudes',
-    publicar: 'solicitudes',
+    publicar: 'estimaciones',
     presupuesto: 'presupuestos',
     'editor-presupuesto': 'presupuestos',
     proyecto: 'proyectos',
@@ -100,6 +100,7 @@ export function useNavigationContext() {
         if (!paginaDePanel.value) return null;
         if (path.value === '/mi-perfil' || ['cuenta-admin', 'cuenta-cliente'].includes(page.props.referenceKey)) return 'mi-perfil';
         if (page.props.screen === 'admin' || page.url.startsWith('/admin')) return 'administracion';
+        if (page.props.screen === 'solicitud' && page.props.selected?.status === 'draft') return 'estimaciones';
         return sectionsByScreen[page.props.screen] ?? (page.props.section || 'resumen');
     });
     // Las migas del cliente reutilizan el nombre y destino de la sección del menú lateral.
@@ -113,7 +114,10 @@ export function useNavigationContext() {
         if (!seccion) return [];
 
         const {screen, selected} = page.props;
-        if (screen === 'publicar') return [inicio, seccion, ['Nueva solicitud']];
+        if (screen === 'publicar') return [inicio, seccion, ['Nueva estimación']];
+        if (screen === 'solicitud' && selected?.status === 'draft') {
+            return [inicio, seccion, ['EST-' + (selected.estimate_id ?? selected.id)]];
+        }
         const identificador = identificadoresCliente[screen];
         if (identificador) {
             const [prefijo, campo] = identificador;

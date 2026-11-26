@@ -8,9 +8,9 @@ defineProps({data: {type: Object, required: true}});
 
 <template>
     <section class="page shell workspace-view nueva-solicitud">
-        <T title="Nueva solicitud"
-           :description="data.area === 'cliente' ? 'Elegí los servicios y revisá tu estimación antes de enviar la solicitud.'
-               : 'Elegí los servicios y revisá tu estimación. Podés empezar sin cuenta.'"/>
+        <T title="Nueva estimación"
+           :description="data.area === 'cliente' ? 'Elegí los servicios y completá los datos del proyecto. Podés guardar la preparación en Estimaciones; al enviarla, pasará a Solicitudes para que synaux la revise.'
+               : 'Elegí los servicios y completá los datos del proyecto. Podés revisar la estimación antes de enviarla.'"/>
         <RequestForm :data="data"/>
     </section>
 </template>

@@ -285,10 +285,11 @@ function save(publish) {
                 <div class="acciones-borrador" v-if="(step >= 2 && authenticated) || puedeReiniciar">
                     <B v-if="step >= 2 && authenticated" variant="ghost"
                        :disabled="form.processing || handoff.processing || !canSaveDraft"
-                       @click="save(false)">{{ form.processing && !form.publish ? 'Guardando…' : 'Guardar borrador' }}</B>
+                       @click="save(false)">{{ form.processing && !form.publish ? 'Guardando…' : 'Guardar en Estimaciones' }}</B>
                     <ReiniciarEstimacion v-if="puedeReiniciar"
                                          :deshabilitado="form.processing || handoff.processing"/>
                 </div>
+                <p v-if="step >= 2 && authenticated" class="draft-help">Si guardás ahora, vas a encontrar la preparación en Estimaciones. Al enviarla a synaux, pasará a Solicitudes.</p>
                 <p v-if="step >= 2 && authenticated && !canSaveDraft" class="draft-help">Completá el título y la
                     descripción para guardar el borrador.</p>
             </v-card>

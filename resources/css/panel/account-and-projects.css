@@ -294,6 +294,10 @@
         background: var(--success-bg);
         color: var(--success);
     }
+    .status-preparation_saved {
+        background: #e7f4f7;
+        color: #176d7c;
+    }
     .status-rejected, .status-expired, .status-cancelled, .status-declined {
         background: var(--danger-bg);
         color: var(--danger);
