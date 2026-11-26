@@ -256,23 +256,24 @@ function save(send) {
         </div>
         <div class="budget-workspace">
             <div class="budget-editor-flow">
-                <div class="budget-stepper">
-                    <ol class="budget-steps" aria-label="Pasos para preparar presupuesto">
-                        <li v-for="(label, index) in labels" :key="label">
-                            <button type="button" :disabled="index + 1 > step || quote.processing"
-                                    :aria-current="step === index + 1 ? 'step' : undefined" @click="step = index + 1">{{
-                                    index + 1
-                                }}. {{ label }}
-                            </button>
-                        </li>
-                    </ol>
-                    <B v-if="vistaPreviaMovil" variant="secondary" :disabled="quote.processing" @click="openBudgetPreview">
+                <v-stepper v-model="step" class="budget-stepper" flat hide-actions non-linear>
+                    <template #header>
+                        <template v-for="(label, index) in labels" :key="label">
+                            <v-divider v-if="index" class="budget-step-line"
+                                       :class="{'budget-step-line--complete': step > index}"/>
+                            <v-stepper-item :value="index + 1" :title="label"
+                                            :complete="step > index + 1"
+                                            :editable="!quote.processing && index + 1 < step"
+                                            :color="step === index + 1 ? 'primary' : 'secondary'"/>
+                        </template>
+                    </template>
+                    <B v-if="vistaPreviaMovil" variant="secondary" compact :disabled="quote.processing" @click="openBudgetPreview">
                         Vista previa ampliada
                     </B>
                     <B v-else-if="!vistaPreviaVisible" variant="secondary" compact @click="vistaPreviaVisible = true">
                         <I name="panel-show"/> Mostrar vista previa
                     </B>
-                </div>
+                </v-stepper>
                 <div v-if="Object.keys(quote.errors).length" class="notice" role="alert">
                     <div><strong>Revisá los datos del presupuesto</strong>
                         <ul>
@@ -283,12 +284,12 @@ function save(send) {
                 <div v-if="needsIssuer" class="editor-note" role="status">
                     <template v-if="emiteOrganizacion">
                         <p>Faltan los datos de emisión de synaux. Se administran en Datos de la organización.</p>
-                        <B v-if="data.auth?.puede_administrar" href="/admin/organizacion#emision" variant="secondary">Completar datos de la organización</B>
+                        <B v-if="data.auth?.puede_administrar" href="/admin/organizacion#emision" variant="secondary" compact>Completar datos de la organización</B>
                         <p v-else>Pedile a un administrador que los complete.</p>
                     </template>
                     <template v-else>
                         <p>Completá tu perfil profesional antes de guardar o enviar el presupuesto.</p>
-                        <B v-if="data.stageTwo" href="/profesional/perfil" variant="secondary">Completar perfil profesional</B>
+                        <B v-if="data.stageTwo" href="/profesional/perfil" variant="secondary" compact>Completar perfil profesional</B>
                     </template>
                 </div>
 
@@ -307,13 +308,13 @@ function save(send) {
                             Esta solicitud ya no está abierta. Consultá el presupuesto y el estado del proyecto antes de continuar.
                         </p>
                         <div class="form-actions">
-                            <B v-if="step > 1" variant="secondary" :disabled="quote.processing" @click="step -= 1">
+                            <B v-if="step > 1" variant="secondary" compact :disabled="quote.processing" @click="step -= 1">
                                 Anterior
                             </B>
                             <span v-else/>
                             <div class="budget-next-actions">
                                 <B variant="neutro" compact :disabled="quote.processing" :href="cancelarHref">Cancelar</B>
-                                <B type="submit" :disabled="!canPrepare || needsIssuer || quote.processing" arrow>
+                                <B type="submit" compact :disabled="!canPrepare || needsIssuer || quote.processing" arrow>
                                     {{ step === 3 ? 'Revisar documento' : 'Continuar' }}
                                 </B>
                             </div>
@@ -418,16 +419,6 @@ function save(send) {
     font-weight: 700;
 }
 
-.budget-steps {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
-    padding: 0;
-    margin: 0;
-    list-style: none;
-    min-width: 0;
-}
-
 .budget-stepper {
     position: sticky;
     top: calc(var(--navbar-height, 76px) + var(--workspace-bar-height, 0px) + 10px);
@@ -435,41 +426,59 @@ function save(send) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 16px;
-    margin: 0 0 28px;
-    padding: 12px 14px;
+    gap: 12px;
+    margin: 0 0 22px;
+    padding: 7px 10px;
     border: 1px solid #1f6f7f22;
-    border-radius: 14px;
+    border-radius: 12px;
     background: #fff;
     box-shadow: 0 5px 14px #153b6410;
 }
 
-.budget-steps button {
-    min-height: 54px;
-    width: 100%;
-    border: 1px solid #1f6f7f33;
-    border-radius: 10px;
+.budget-stepper :deep(.v-stepper-header) {
+    min-width: 0;
+    height: auto;
+    box-shadow: none;
+}
+
+.budget-stepper :deep(.v-stepper-item) {
+    min-width: 0;
+    min-height: 36px;
+    padding: 4px 8px;
+}
+
+.budget-stepper :deep(.v-stepper-item__avatar) {
+    color: #fff !important;
+    background: #9aabb7 !important;
+}
+
+.budget-stepper :deep(.v-stepper-item--selected .v-stepper-item__avatar) {
+    background: #153b64 !important;
+}
+
+.budget-stepper :deep(.v-stepper-item--complete .v-stepper-item__avatar) {
+    background: #1f6f7f !important;
+}
+
+.budget-stepper :deep(.v-stepper-item__title) {
+    color: #446075;
+    font-family: 'Nunito', sans-serif;
+    font-size: .875rem;
+    font-weight: 600;
+}
+
+.budget-stepper :deep(.v-stepper-item--selected .v-stepper-item__title) {
     color: #153b64;
-    background: white;
-    font: inherit;
-    font-weight: 700;
-    padding: 10px 14px;
-    cursor: pointer;
+    font-weight: 800;
 }
 
-.budget-steps button[aria-current='step'] {
-    background: #153b64;
-    color: white;
+.budget-stepper :deep(.budget-step-line) {
+    opacity: 1;
+    border-color: #d6e1e7;
 }
 
-.budget-steps button:disabled {
-    opacity: .6;
-    cursor: default;
-}
-
-.budget-steps button:focus-visible {
-    outline: 3px solid #1f6f7f;
-    outline-offset: 3px;
+.budget-stepper :deep(.budget-step-line--complete) {
+    border-color: #1f6f7f;
 }
 
 .budget-editor-grid {
@@ -552,25 +561,27 @@ function save(send) {
         margin-inline: auto;
     }
 
-    .budget-steps {
-        gap: 6px;
-    }
-
     .budget-stepper {
         grid-template-columns: 1fr;
         gap: 10px;
         margin-bottom: 20px;
-        padding: 10px;
+        padding: 8px;
     }
 
     .budget-stepper > :deep(.btn) {
         width: 100%;
     }
 
-    .budget-steps button {
-        min-height: 48px;
-        font-size: .8rem;
-        padding: 8px 4px;
+    .budget-stepper :deep(.v-stepper-item) {
+        flex-direction: column;
+        gap: 2px;
+        padding: 4px 2px;
+    }
+
+    .budget-stepper :deep(.v-stepper-item__title) {
+        font-size: .72rem;
+        white-space: normal;
+        text-align: center;
     }
 
     .form-actions {

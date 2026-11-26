@@ -16,7 +16,7 @@ const emit = defineEmits(['add-item']);
     <h2>Definí los servicios</h2>
     <p>Describí el alcance y definí el importe de cada concepto.</p>
     <div v-for="(item, index) in quote.items" :key="index" class="quote-item">
-        <div class="context-heading"><h3>Concepto {{ index + 1 }}</h3><B variant="ghost"
+        <div class="context-heading"><h3>Concepto {{ index + 1 }}</h3><B variant="ghost" compact
                                                                          :disabled="quote.items.length === 1 || quote.processing"
                                                                          :aria-label="'Quitar concepto ' + (index + 1)"
                                                                          @click="quote.items.splice(index, 1)">Quitar</B>
@@ -30,7 +30,7 @@ const emit = defineEmits(['add-item']);
                 item.unit_price === '' ? 'Pendiente de cotizar' : money(lineCents(item) / 100, quote.currency_code)
             }}</strong></p>
     </div>
-    <B variant="secondary" :disabled="quote.items.length >= 100 || quote.processing" @click="emit('add-item')">Agregar
+    <B variant="secondary" compact :disabled="quote.items.length >= 100 || quote.processing" @click="emit('add-item')">Agregar
         concepto</B>
 </template>
 
