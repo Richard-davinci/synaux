@@ -129,28 +129,15 @@ function decide() {
                 <aside class="budget-side">
                     <v-card class="card">
                         <p class="eyebrow">Versión {{ record.version_number }}</p>
-                        <h2>Resumen del presupuesto</h2>
+                        <h2>Acciones del presupuesto</h2>
+                        <p class="budget-total-label">Total · {{ record.currency_code }}</p>
                         <strong class="budget-amount">{{ money(record.total, record.currency_code) }}</strong>
-                        <dl class="data-list">
-                            <div>
-                                <dt>Moneda</dt>
-                                <dd>{{ record.currency_code }}</dd>
-                            </div>
-                            <div>
-                                <dt>Vigencia hasta</dt>
-                                <dd>{{ date(record.valid_until) }}</dd>
-                            </div>
-                            <div>
-                                <dt>Entrega estimada</dt>
-                                <dd>{{ record.estimated_delivery_days }} días desde el inicio acordado</dd>
-                            </div>
-                        </dl>
-                        <div class="button-stack">
+                        <div :class="['button-stack', { 'budget-action-grid': canEdit }]">
                             <B v-if="canEdit && record.status === 'draft'" :href="'/editor/presupuesto/' + record.id">
                                 Continuar borrador
                             </B>
                             <B v-if="!data.preview" :href="'/presupuestos/' + record.id + '/pdf'"
-                               variant="secondary">Descargar PDF · versión {{ record.version_number }}</B>
+                               variant="secondary">Descargar PDF</B>
                             <p v-else class="budget-help">La descarga del PDF está disponible en tu cuenta con el
                                 presupuesto real.</p>
                             <template v-if="canDecide"><B arrow @click="decision = 'accepted'">Aceptar presupuesto</B><B
@@ -340,6 +327,23 @@ function decide() {
 
 .budget-side .button-stack .btn :deep(.v-btn__content) {
     white-space: nowrap;
+}
+
+.budget-total-label {
+    margin: 18px 0 -10px;
+    color: #446075;
+    font-size: .875rem;
+    font-weight: 700;
+}
+
+.budget-action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.budget-side .budget-action-grid .btn {
+    padding-inline: 8px;
+    font-size: .875rem;
 }
 
 .client-budget h2, .budget-decision h2 {
@@ -643,6 +647,10 @@ function decide() {
 
     .budget-document-stage :deep(.document-conditions) {
         padding: 14px 16px;
+    }
+
+    .budget-action-grid {
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .budget-decision .form-actions {
