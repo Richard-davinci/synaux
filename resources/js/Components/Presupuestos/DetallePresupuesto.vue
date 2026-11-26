@@ -309,6 +309,24 @@ function decide() {
     top: calc(var(--navbar-height, 76px) + var(--workspace-bar-height, 0px) + 16px);
 }
 
+.budget-side .button-stack {
+    /* Las acciones de versión comparten alto y ancho máximo; no se estiran a toda la tarjeta. */
+    justify-items: start;
+}
+
+.budget-side .button-stack .btn {
+    width: min(100%, 250px);
+    height: 44px;
+    min-height: 44px;
+    padding: 0 14px;
+    font-size: .9375rem;
+    line-height: 1.2;
+}
+
+.budget-side .button-stack .btn :deep(.v-btn__content) {
+    white-space: nowrap;
+}
+
 .client-budget h2, .budget-decision h2 {
     font-size: clamp(1.2rem, 1.7vw, 1.5rem);
     font-weight: 700;
