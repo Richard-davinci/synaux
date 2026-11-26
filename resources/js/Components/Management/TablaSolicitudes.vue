@@ -25,10 +25,10 @@ function etapa(item) {
             draft: 'Presupuesto en preparación', sent: 'Presupuesto enviado', issued: 'Presupuesto emitido',
             accepted: 'Presupuesto aceptado', rejected: 'Presupuesto rechazado', expired: 'Presupuesto vencido',
         };
-        return {status: estado, etiqueta: etiquetas[estado] ?? estado};
+        return {status: estado === 'draft' ? 'review' : estado, etiqueta: etiquetas[estado] ?? estado};
     }
-    if (item.status === 'open' && item.reviewed_at) return {status: 'review', etiqueta: 'Pendiente de presupuesto'};
-    if (item.status === 'open') return {status: 'open', etiqueta: 'Pendiente de revisión'};
+    if (item.status === 'open' && item.reviewed_at) return {status: 'pending', etiqueta: 'Pendiente de presupuesto'};
+    if (item.status === 'open') return {status: 'pending', etiqueta: 'Pendiente de revisión'};
     return {status: item.status};
 }
 

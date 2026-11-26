@@ -26,12 +26,12 @@ const estadoRevision = computed(() => {
     if (props.data.area !== 'gestion') return null;
     if (presupuesto.value) {
         const estado = presupuesto.value.display_status ?? presupuesto.value.status;
-        return {status: estado, etiqueta: ({draft: 'Presupuesto en preparación', sent: 'Presupuesto enviado', issued: 'Presupuesto emitido',
+        return {status: estado === 'draft' ? 'review' : estado, etiqueta: ({draft: 'Presupuesto en preparación', sent: 'Presupuesto enviado', issued: 'Presupuesto emitido',
             accepted: 'Presupuesto aceptado', rejected: 'Presupuesto rechazado', expired: 'Presupuesto vencido'})[estado] ?? estado};
     }
     if (request.value.status === 'open') return request.value.reviewed_at
-        ? {status: 'review', etiqueta: 'Pendiente de presupuesto'}
-        : {status: 'open', etiqueta: 'Pendiente de revisión'};
+        ? {status: 'pending', etiqueta: 'Pendiente de presupuesto'}
+        : {status: 'pending', etiqueta: 'Pendiente de revisión'};
     return null;
 });
 const extras = computed(() => request.value.additional_services ?? []);
