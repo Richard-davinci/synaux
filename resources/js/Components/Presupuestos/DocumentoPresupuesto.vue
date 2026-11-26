@@ -57,7 +57,13 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
             </div>
             <h3 class="document-section-title"><I name="file"/>Detalle de servicios</h3>
             <div class="table-scroll document-items">
-                <table>
+                <table :class="{'document-items-with-quantity': !compact && mostrarCantidad}">
+                    <colgroup>
+                        <col class="document-column-concept"/>
+                        <col v-if="!compact && mostrarCantidad" class="document-column-quantity"/>
+                        <col v-if="!compact && mostrarCantidad" class="document-column-unit-price"/>
+                        <col class="document-column-amount"/>
+                    </colgroup>
                     <thead>
                     <tr>
                         <th>Concepto y alcance</th>
@@ -304,8 +310,31 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
 
 .document-items table {
     width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
     font-size: .8rem;
+}
+
+.document-column-concept {
+    /* El concepto recibe casi todo el ancho; el importe solo reserva sitio para la cifra. */
+    width: 80%;
+}
+
+.document-column-amount {
+    width: 20%;
+}
+
+.document-items-with-quantity .document-column-concept {
+    width: 58%;
+}
+
+.document-items-with-quantity .document-column-quantity {
+    width: 8%;
+}
+
+.document-items-with-quantity .document-column-unit-price,
+.document-items-with-quantity .document-column-amount {
+    width: 17%;
 }
 
 .document-items th {
@@ -335,6 +364,10 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
 
 .document-items td:not(:first-child), .document-items th:not(:first-child) {
     text-align: right;
+}
+
+.document-items td:last-child, .document-items th:last-child {
+    white-space: nowrap;
 }
 
 .document-items td p {
@@ -472,10 +505,6 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
     min-width: 0;
 }
 
-.budget-document-compact .document-items th:first-child {
-    width: auto;
-}
-
 .budget-document-compact .document-items td:last-child {
     white-space: nowrap;
 }
@@ -520,9 +549,16 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
 
 /* Los rangos de la solicitud pueden ocupar varias líneas en el documento compacto. */
 .documento-estimacion .document-items td:last-child {
-    width: 44%;
     white-space: normal;
     overflow-wrap: anywhere;
+}
+
+.documento-estimacion .document-column-concept {
+    width: 66%;
+}
+
+.documento-estimacion .document-column-amount {
+    width: 34%;
 }
 
 .documento-estimacion .document-grand-total {
