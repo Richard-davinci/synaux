@@ -75,6 +75,7 @@ Route::middleware('auth')->group(function () {
     // Las rutas de perfil siempre operan sobre la cuenta autenticada.
     Route::get('/mi-perfil', [AccountController::class, 'edit']);
     Route::get('/mi-perfil/foto', [AccountController::class, 'foto']);
+    Route::post('/mi-perfil', [AccountController::class, 'update'])->middleware('throttle:10,1');
     Route::patch('/mi-perfil', [AccountController::class, 'update'])->middleware('throttle:10,1');
     Route::put('/mi-perfil/clave', [AccountController::class, 'updatePassword'])->middleware('throttle:6,1');
     Route::patch('/mi-perfil/emision', [OrganizacionController::class, 'update'])->middleware('throttle:10,1');

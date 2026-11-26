@@ -127,6 +127,9 @@ function guardar(seccion) {
     const opciones = {preserveScroll: true, onSuccess: () => cambiarEdicion(seccion, false)};
     if (seccion === 'clave') {
         passwordForm.put('/mi-perfil/clave', {...opciones, onFinish: () => passwordForm.reset()});
+    } else if (seccion === 'contacto' && contactoForm.foto_perfil_archivo) {
+        // PHP solo recibe archivos multipart de forma confiable mediante POST.
+        contactoForm.post('/mi-perfil', opciones);
     } else {
         formularios[seccion].patch('/mi-perfil', {
             ...opciones,
