@@ -38,6 +38,10 @@ const quote = useForm({
     ...(configuraPago ? {
         modalidad_pago: selected.plan_pago?.modalidad ?? 'sena_saldo',
         porcentaje_sena: selected.plan_pago?.porcentaje_sena || 50,
+        momento_hito_intermedio: selected.plan_pago?.cuotas?.find(cuota => cuota.concepto === 'hito_intermedio')?.momento
+            ?? 'Al aprobar el diseño y la versión funcional de prueba',
+        momento_pago_final: selected.plan_pago?.cuotas?.find(cuota => cuota.concepto === 'saldo_final')?.momento
+            ?? 'Al aprobar la tienda terminada, antes de publicarla y entregar los accesos',
         instrucciones_transferencia: selected.plan_pago?.instrucciones ?? '',
     } : {}),
     items: selected.items?.map(item => ({
@@ -81,16 +85,31 @@ const subtotalCents = computed(() => quote.items.reduce((sum, item) => sum + lin
 const subtotal = computed(() => subtotalCents.value / 100);
 const totalCentavos = computed(() => Math.round(subtotalCents.value * (1 + Number(quote.tax_rate || 0) / 100)));
 const total = computed(() => totalCentavos.value / 100);
-// La vista previa parte del total en centavos y asigna la diferencia al saldo.
+// La vista previa distribuye el mismo total en centavos que confirma el servidor.
 const planPago = computed(() => {
     if (!configuraPago) return selected.plan_pago;
-    const porcentaje = quote.modalidad_pago === 'sena_saldo' ? Number(quote.porcentaje_sena) : 0;
+    const porcentaje = ['sena_saldo', 'anticipo_dos_hitos'].includes(quote.modalidad_pago)
+        ? Number(quote.porcentaje_sena) : 0;
     const sena = Math.round(totalCentavos.value * porcentaje / 100);
     const cuotas = [];
-    if (sena > 0) cuotas.push({titulo: 'Seña', momento: 'Antes de iniciar el proyecto', importe_centavos: sena});
-    if (totalCentavos.value > 0) cuotas.push({
-        titulo: sena ? 'Saldo' : 'Pago total', momento: 'Al finalizar el trabajo', importe_centavos: totalCentavos.value - sena,
+    if (sena > 0) cuotas.push({
+        concepto: 'sena', titulo: 'Anticipo', porcentaje, momento: 'Al aceptar el presupuesto y antes de iniciar el proyecto',
+        importe_centavos: sena,
     });
+    if (quote.modalidad_pago === 'anticipo_dos_hitos' && totalCentavos.value > 0) {
+        const restante = totalCentavos.value - sena;
+        const intermedio = Math.floor(restante / 2);
+        cuotas.push({concepto: 'hito_intermedio', titulo: 'Segundo pago',
+            porcentaje: Math.floor((100 - porcentaje) / 2),
+            momento: quote.momento_hito_intermedio, importe_centavos: intermedio});
+        cuotas.push({concepto: 'saldo_final', titulo: 'Pago final',
+            porcentaje: 100 - porcentaje - Math.floor((100 - porcentaje) / 2),
+            momento: quote.momento_pago_final, importe_centavos: restante - intermedio});
+    } else if (totalCentavos.value > 0) {
+        cuotas.push({concepto: sena ? 'saldo' : 'pago_total',
+            titulo: sena ? 'Saldo' : 'Pago total', porcentaje: 100 - porcentaje, momento: 'Al finalizar el trabajo',
+            importe_centavos: totalCentavos.value - sena});
+    }
     return {cuotas, instrucciones: quote.instrucciones_transferencia};
 });
 // Si ya existe un borrador, Laravel reutiliza su número; solo las versiones enviadas generan otro.

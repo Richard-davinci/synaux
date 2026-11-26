@@ -14,7 +14,7 @@ const props = defineProps({
     puedeRevisar: Boolean,
 });
 
-// Cada cuota mantiene su formulario y su revisión para que el saldo y la seña se procesen por separado.
+// Cada hito conserva su propio comprobante y revisión, sin mezclar los pagos del proyecto.
 const archivoId = useId();
 const ruta = computed(() => '/proyectos/' + props.proyectoId + '/pagos/' + props.pago.id);
 const comprobante = useForm({comprobante: null});

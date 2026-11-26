@@ -24,11 +24,20 @@ defineProps({
         <h3>Forma de pago</h3>
         <div class="form-grid">
             <F v-model="quote.modalidad_pago" label="Plan de pago" type="select" :options="[
-                {value: 'sena_saldo', label: 'Seña y saldo'},
+                {value: 'sena_saldo', label: 'Anticipo y saldo al finalizar'},
+                {value: 'anticipo_dos_hitos', label: 'Anticipo y dos pagos por hitos'},
                 {value: 'al_finalizar', label: '100% al finalizar'}
             ]" :error="quote.errors.modalidad_pago" required/>
-            <F v-if="quote.modalidad_pago === 'sena_saldo'" v-model="quote.porcentaje_sena" label="Seña (%)"
+            <F v-if="['sena_saldo', 'anticipo_dos_hitos'].includes(quote.modalidad_pago)" v-model="quote.porcentaje_sena" label="Anticipo (%)"
                type="number" min="1" max="99" step="1" :error="quote.errors.porcentaje_sena" required/>
+        </div>
+        <!-- Los dos pagos del saldo quedan asociados a hitos explícitos y pueden adaptarse a cada proyecto. -->
+        <div v-if="quote.modalidad_pago === 'anticipo_dos_hitos'" class="form-grid">
+            <F v-model="quote.momento_hito_intermedio" label="Cuándo se abona el segundo pago" type="text" maxlength="180"
+               :error="quote.errors.momento_hito_intermedio" required/>
+            <F v-model="quote.momento_pago_final" label="Cuándo se abona el pago final" type="text" maxlength="180"
+               :error="quote.errors.momento_pago_final" required/>
+            <p class="editor-note hito-ayuda">El saldo restante se divide en dos importes iguales. Si el total tiene un centavo impar, se suma al pago final.</p>
         </div>
         <F v-if="requiereTransferencia" v-model="quote.instrucciones_transferencia" label="Datos para la transferencia"
            type="textarea" maxlength="1000" hint="Indicá el titular y el alias o CBU de la cuenta que recibirá el pago."

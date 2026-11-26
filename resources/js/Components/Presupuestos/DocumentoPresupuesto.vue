@@ -134,8 +134,9 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
         <section v-if="!compact && !estimacion && budget.plan_pago?.cuotas?.length" class="document-conditions">
             <h3 class="document-section-title"><I name="receipt"/>Plan de pago</h3>
             <div>
-                <p v-for="cuota in budget.plan_pago.cuotas" :key="cuota.titulo">
-                    <strong>{{ cuota.titulo }} · {{ money(cuota.importe_centavos / 100, budget.currency_code) }}</strong>
+                <p v-for="cuota in budget.plan_pago.cuotas" :key="cuota.concepto">
+                    <strong>{{ cuota.titulo }}<template v-if="cuota.porcentaje"> · {{ cuota.porcentaje }}%</template>
+                        · {{ money(cuota.importe_centavos / 100, budget.currency_code) }}</strong>
                     · {{ cuota.momento }}
                 </p>
                 <p v-if="budget.plan_pago.instrucciones" class="preserve-lines">{{ budget.plan_pago.instrucciones }}</p>

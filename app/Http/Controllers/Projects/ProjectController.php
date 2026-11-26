@@ -176,7 +176,7 @@ class ProjectController extends Controller
                     ->where('concepto', 'sena')->where('estado', '!=', 'confirmado')->exists();
                 if ($senaPendiente) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
-                        'status' => 'Confirmá el pago de la seña antes de iniciar el proyecto.',
+                        'status' => 'Confirmá el pago del anticipo antes de iniciar el proyecto.',
                     ]);
                 }
             }

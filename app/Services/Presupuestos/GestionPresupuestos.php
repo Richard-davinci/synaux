@@ -34,7 +34,9 @@ class GestionPresupuestos
             'items' => 'required|array|min:1|max:100', 'items.*.description' => 'required|string|max:2000',
             'items.*.quantity' => 'required|numeric|min:0.001|max:10000', 'items.*.unit_price' => 'required|numeric|min:0|max:100000000',
             'modalidad_pago' => ['sometimes', 'nullable', Rule::in(PlanPago::MODALIDADES)],
-            'porcentaje_sena' => ['required_if:modalidad_pago,sena_saldo', 'nullable', 'integer', 'between:1,99'],
+            'porcentaje_sena' => ['required_if:modalidad_pago,sena_saldo,anticipo_dos_hitos', 'nullable', 'integer', 'between:1,99'],
+            'momento_hito_intermedio' => ['required_if:modalidad_pago,anticipo_dos_hitos', 'nullable', 'string', 'max:180'],
+            'momento_pago_final' => ['required_if:modalidad_pago,anticipo_dos_hitos', 'nullable', 'string', 'max:180'],
             'instrucciones_transferencia' => 'nullable|string|max:1000',
             'send' => 'required|boolean']);
         abort_if(!empty($data['modalidad_pago']) && !$request->user()->puedeGestionarSynaux(), 403);

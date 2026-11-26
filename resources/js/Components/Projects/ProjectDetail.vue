@@ -15,12 +15,21 @@ import {date, money} from '../../support/formatters';
 const props = defineProps({data: Object});
 const project = computed(() => props.data.selected ?? {});
 const budget = computed(() => props.data.quotes?.find(item => item.id === project.value.accepted_budget_version_id));
-// La cuota usa el título y el momento acordados en el presupuesto aceptado.
+// Cada pago recupera el hito y el vencimiento acordados en el presupuesto aceptado.
 const cuotasPorConcepto = computed(() => Object.fromEntries((budget.value?.plan_pago?.cuotas ?? []).map(cuota => [cuota.concepto, cuota])));
 const listadoProyectos = computed(() => props.data.area === 'profesional' ? '/profesional/proyectos' : '/gestion/proyectos');
 // La entrega y los pagos describen etapas distintas y se resumen por separado en el proyecto.
 const entregaRealizada = computed(() => project.value.status === 'completed');
-const saldoPendiente = computed(() => props.data.pagos?.find(pago => pago.concepto === 'saldo' && pago.estado !== 'confirmado'));
+const pagosPosteriores = computed(() => props.data.pagos?.filter(pago => pago.concepto !== 'sena') ?? []);
+const pagoPosteriorPendiente = computed(() => pagosPosteriores.value.find(pago => pago.estado !== 'confirmado'));
+const cantidadPagosPendientes = computed(() => pagosPosteriores.value.filter(pago => pago.estado !== 'confirmado').length);
+const estadoPagosPosteriores = computed(() => {
+    if (!pagosPosteriores.value.length) return '';
+    if (!pagoPosteriorPendiente.value) return 'Pagos confirmados';
+    return pagoPosteriorPendiente.value.estado === 'en_revision' ? 'Comprobante en revisión'
+        : pagoPosteriorPendiente.value.estado === 'observado' ? 'Requiere corrección'
+            : `${cantidadPagosPendientes.value} ${cantidadPagosPendientes.value === 1 ? 'pago pendiente' : 'pagos pendientes'}`;
+});
 const puedeEditarTareas = computed(() => props.data.area === 'gestion'
     || (props.data.area === 'profesional' && project.value.status !== 'completed' && project.value.status !== 'cancelled'));
 // Gestión reutiliza el formulario de seguimiento desde el detalle del proyecto.
@@ -47,8 +56,7 @@ const guidance = computed(() => ({
             </T>
             <v-card v-if="data.pagos?.length" class="card cierre-proyecto">
                 <div><span class="eyebrow">ENTREGA</span><strong>{{ entregaRealizada ? 'Trabajo completado' : 'En curso' }}</strong></div>
-                <div v-if="saldoPendiente"><span class="eyebrow">SALDO</span><strong>{{ saldoPendiente.estado === 'en_revision' ? 'Comprobante en revisión' : saldoPendiente.estado === 'observado' ? 'Requiere corrección' : 'Pago pendiente' }}</strong></div>
-                <div v-else-if="data.pagos.some(pago => pago.concepto === 'saldo')"><span class="eyebrow">SALDO</span><strong>Pago confirmado</strong></div>
+                <div v-if="estadoPagosPosteriores"><span class="eyebrow">PAGOS RESTANTES</span><strong>{{ estadoPagosPosteriores }}</strong></div>
             </v-card>
             <div class="project-guidance"><I :name="project.status === 'completed' ? 'check' : 'folder'"/>
                 <div><strong>{{ guidance[0] }}</strong>
