@@ -17,7 +17,7 @@ const destination = computed(() => referenceHref(props.href, page.props));
 </script>
 <template>
     <v-btn :href="destination" :type="type" :disabled="disabled"
-           :variant="variant === 'ghost' ? 'text' : variant === 'secondary' ? 'outlined' : 'flat'"
+           :variant="variant === 'ghost' ? 'text' : ['secondary', 'neutro'].includes(variant) ? 'outlined' : 'flat'"
            :class="['btn', `btn-${variant}`, { 'btn-compact': compact }]">
         <slot/>
         <AppIcon v-if="arrow" name="arrow"/>
@@ -52,6 +52,21 @@ const destination = computed(() => referenceHref(props.href, page.props));
 .btn-secondary.v-btn:hover {
     color: #153b64;
     background: #f5f9fa;
+}
+
+/* La acción de cancelar queda visible con un tono neutro, sin competir con el envío ni parecer destructiva. */
+.btn-neutro.v-btn,
+.btn-neutro.v-btn:hover,
+.btn-neutro.v-btn:focus-visible {
+    color: #446075;
+    border-color: #44607566;
+    background: #f5f9fa;
+    box-shadow: var(--button-shadow);
+}
+
+.btn-neutro.v-btn:hover {
+    color: #153b64;
+    border-color: #1f6f7f80;
 }
 
 .btn-ghost.v-btn {

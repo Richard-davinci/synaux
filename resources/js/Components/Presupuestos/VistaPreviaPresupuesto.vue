@@ -54,7 +54,7 @@ defineExpose({irAVista});
             <B variant="secondary" compact :disabled="disabled || saving" @click="emit('save-draft')">
                 {{ saving ? 'Guardando…' : 'Guardar borrador' }}
             </B>
-            <B variant="ghost" compact :disabled="persistent" :href="urlCancelar">Cancelar</B>
+            <B variant="neutro" compact :disabled="persistent" :href="urlCancelar">Cancelar</B>
             <B v-if="step === 3" compact :disabled="disabled || persistent" arrow @click="emit('send')">
                 {{ direct ? 'Emitir presupuesto' : 'Enviar presupuesto' }}
             </B>
@@ -79,7 +79,7 @@ defineExpose({irAVista});
                 <B variant="secondary" compact :disabled="disabled || saving" @click="emit('save-draft')">
                     {{ saving ? 'Guardando…' : 'Guardar borrador' }}
                 </B>
-                <B variant="ghost" compact :disabled="persistent" :href="urlCancelar">Cancelar</B>
+                <B variant="neutro" compact :disabled="persistent" :href="urlCancelar">Cancelar</B>
                 <B variant="ghost" compact :disabled="persistent" @click="emit('close')">Seguir editando</B>
                 <B v-if="step === 3" compact :disabled="disabled || persistent" arrow @click="emit('send')">
                     {{ direct ? 'Emitir presupuesto' : 'Enviar presupuesto' }}

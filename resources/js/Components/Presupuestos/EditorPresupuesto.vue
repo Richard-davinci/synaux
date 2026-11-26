@@ -321,7 +321,7 @@ function save(send) {
                     <B variant="secondary" compact :disabled="!canPrepare || needsIssuer || quote.processing" @click="save(false)">
                         Guardar borrador
                     </B>
-                    <B variant="ghost" compact :disabled="quote.processing" :href="cancelarHref">Cancelar</B>
+                    <B variant="neutro" compact :disabled="quote.processing" :href="cancelarHref">Cancelar</B>
                 </div>
             </div>
             <BudgetPreviewPanel ref="panelVistaPrevia" :visible="preview" :vista-previa-visible="vistaPreviaVisible"
