@@ -1,7 +1,7 @@
 <script setup>
 import {computed} from 'vue';
-// Las etiquetas traducen estados persistidos; el estado técnico nunca se muestra al usuario.
-const props = defineProps({value: String, status: String, request: Boolean});
+// Las etiquetas traducen estados persistidos; una pantalla puede precisar el texto sin cambiar el estado ni su color.
+const props = defineProps({value: String, status: String, request: Boolean, etiqueta: String});
 const value = computed(() => props.status ?? props.value);
 const labels = {
     enabled: 'Activo',
@@ -28,10 +28,10 @@ const labels = {
     manual: 'Revisión profesional',
     review: 'En revisión'
 };
-const label = computed(() => props.request && value.value === 'open' ? 'Enviada' : ({
+const label = computed(() => props.etiqueta ?? (props.request && value.value === 'open' ? 'Enviada' : ({
     available: 'Disponible',
     busy: 'Con agenda',
     unavailable: 'No disponible', ...labels
-})[value.value] ?? value.value);
+})[value.value] ?? value.value));
 </script>
 <template><span :class="['status', `status-${value}`]"><span/>{{ label }}</span></template>

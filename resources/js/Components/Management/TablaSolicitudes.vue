@@ -46,9 +46,9 @@ function detailHref(item) {
                 </td>
                 <td class="request-table-secondary request-table-date">{{ date(item.created_at) }}</td>
                 <td>
-                    <S :status="item.status" request/>
+                    <S :status="item.status" request
+                       :etiqueta="porRevisar(item) ? 'Pendiente de revisión' : undefined"/>
                     <small v-if="item.reviewed_at">Revisada</small>
-                    <small v-else-if="item.status === 'open'">Por revisar</small>
                 </td>
                 <td class="request-table-secondary">
                     <AccionIcono :href="detailHref(item)" :icono="porRevisar(item) ? 'file' : 'eye'"
