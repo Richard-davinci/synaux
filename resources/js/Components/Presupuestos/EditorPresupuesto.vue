@@ -193,12 +193,7 @@ function advance() {
     else preview.value = true;
 }
 
-// La consulta del pedido abre el mismo panel de revisión sin abandonar el borrador actual.
-function openRequestPreview() {
-    previewView.value = 'pedido';
-    preview.value = true;
-}
-
+// El único acceso a la revisión abre el panel con sus pestañas de pedido original y presupuesto.
 function openBudgetPreview() {
     previewView.value = 'presupuesto';
     preview.value = true;
@@ -264,10 +259,8 @@ function save(send) {
         <!-- El formulario valida el paso visible y conserva los datos al volver a editar. -->
         <form class="budget-editor-grid" @submit.prevent="advance">
             <v-card class="card budget-panel">
-                <p class="eyebrow">Paso {{ step }} de 3</p>
                 <BudgetSourceFields v-if="step === 1" :quote="quote" :selected="selected" :data="data"
-                                    :direct="direct" :source="source"
-                                    :request-options="requestOptions" @ver-pedido="openRequestPreview"/>
+                                    :direct="direct" :source="source" :request-options="requestOptions"/>
                 <BudgetLines v-else-if="step === 2" :quote="quote" :line-cents="lineCents" :price-hint="priceHint"
                              @add-item="quote.items.push(emptyItem())"/>
                 <BudgetTerms v-else :quote="quote" :direct="direct" :configura-pago="configuraPago" :requiere-transferencia="total > 0"/>

@@ -11,7 +11,6 @@ defineProps({
     source: Object,
     requestOptions: {type: Array, required: true},
 });
-const emit = defineEmits(['ver-pedido']);
 </script>
 
 <template>
@@ -34,15 +33,17 @@ const emit = defineEmits(['ver-pedido']);
     </template>
     <template v-else>
         <h2>Pedido original</h2>
-        <F v-model="quote.request_id" label="Pedido que vas a presupuestar" type="select"
-           :disabled="!!selected.budget_id || quote.processing" :options="requestOptions"
-           :error="quote.errors.request_id" required/>
+        <F v-if="!selected.budget_id" v-model="quote.request_id" label="Pedido que vas a presupuestar" type="select"
+           :disabled="quote.processing" :options="requestOptions" :error="quote.errors.request_id" required/>
+        <div v-else-if="source" class="request-fixed-source">
+            <span>Pedido que vas a presupuestar</span>
+            <strong>SOL-{{ source.id }} · {{ source.title }}</strong>
+        </div>
         <p v-if="!selected.budget_id" class="editor-hint">Elegí el pedido original del cliente. El presupuesto se prepara y se guarda por separado.</p>
         <p v-if="!requestOptions.length">Todavía no hay pedidos disponibles para presupuestar.</p>
         <section v-if="source" class="request-context" aria-label="Pedido del cliente">
             <div class="context-heading">
-                <div><p class="request-id">Pedido original · SOL-{{ source.id }}</p><h3>{{ source.title }}</h3></div>
-                <B variant="secondary" @click="emit('ver-pedido')">Abrir ficha completa</B>
+                <div><p class="request-id">Detalle del pedido original</p><h3 v-if="!selected.budget_id">{{ source.title }}</h3></div>
             </div>
             <p class="preserve-lines request-description">{{ source.description }}</p>
             <dl>
@@ -77,6 +78,28 @@ const emit = defineEmits(['ver-pedido']);
     padding: 16px;
     border-radius: 12px;
     margin: 16px 0;
+}
+
+/* Un borrador vinculado conserva la referencia del pedido como dato, no como control deshabilitado. */
+.request-fixed-source {
+    display: grid;
+    gap: 4px;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    border-left: 3px solid #1f6f7f;
+    border-radius: 0 8px 8px 0;
+    background: #f5f9fa;
+}
+
+.request-fixed-source span {
+    color: #446075;
+    font-size: .8rem;
+}
+
+.request-fixed-source strong {
+    color: #153b64;
+    font-weight: 700;
+    overflow-wrap: anywhere;
 }
 
 .budget-identification-fields {
