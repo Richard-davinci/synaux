@@ -81,7 +81,7 @@ function clearFilters() {
     status.value = '';
 }
 
-// La lista ofrece edición solo al emisor y mientras la solicitud permita preparar otra versión.
+// Solo el emisor puede continuar el borrador actual o preparar la próxima versión si la solicitud sigue abierta.
 function canRevise(budget) {
     return budget.issuer_id === props.data.auth?.id && budget.status !== 'accepted'
         && (budget.external || (props.data.budgetRequests ?? props.data.requests ?? []).some(item => item.id === budget.request_id && item.status === 'open'));
@@ -107,13 +107,9 @@ function canRevise(budget) {
         <div v-else-if="rows.length" class="stack management-records">
             <RecordCard v-for="item in rows" :key="item.claveGrupo ?? item.id" :item="item" :section="section" :icon="listing.icon"
                         :can-revise="section === 'presupuestos' && canRevise(item)" @update-project="project = $event">
-                <HistorialPresupuesto v-if="item.historial?.length" class="historial-en-gestion" :versiones="item.historial">
-                    <template #acciones="{version}">
-                        <B v-if="canRevise(version)" compact :href="'/editor/presupuesto/' + version.id">
-                            {{ version.status === 'draft' ? 'Continuar borrador' : 'Preparar nueva versión' }}
-                        </B>
-                    </template>
-                </HistorialPresupuesto>
+                <!-- El control de edición vive una sola vez en la versión más reciente; el historial permite abrir las anteriores. -->
+                <HistorialPresupuesto v-if="item.historial?.length" class="historial-en-gestion"
+                                      :versiones="item.historial"/>
             </RecordCard>
         </div>
         <E v-else-if="!hasFilters && tienePresupuestosEnProyectos" title="No hay presupuestos para revisar"

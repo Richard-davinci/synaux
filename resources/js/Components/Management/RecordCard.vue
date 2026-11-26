@@ -42,7 +42,7 @@ const emit = defineEmits(['update-project']);
         </div>
         <div v-if="section !== 'contactos'" class="management-record-actions">
             <template v-if="section === 'presupuestos'">
-                <B compact :href="'/presupuestos/' + item.id" variant="secondary">Ver versión</B>
+                <B compact :href="'/presupuestos/' + item.id" variant="secondary">Ver presupuesto</B>
                 <B v-if="canRevise" compact :href="'/editor/presupuesto/' + item.id">{{
                         item.status === 'draft' ? 'Continuar borrador' : 'Preparar nueva versión'
                     }}</B>

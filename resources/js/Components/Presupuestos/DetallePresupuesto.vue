@@ -23,9 +23,6 @@ const migas = computed(() => {
     const destino = cliente ? '/cliente/presupuestos' : '/gestion/presupuestos';
     return [raiz, ['Presupuestos', destino], ['PRE-' + record.value.budget_id, destino], ['Versión ' + record.value.version_number]];
 });
-const descripcionRegistro = computed(() => record.value.status === 'draft'
-    ? `Versión ${record.value.version_number} · Borrador creado el ${date(record.value.created_at)}`
-    : `Versión ${record.value.version_number} · Emitida el ${date(record.value.sent_at ?? record.value.created_at)}`);
 const project = computed(() => props.data.projects?.find(item => item.accepted_budget_version_id === record.value.id));
 const isOwner = computed(() => props.data.preview || record.value.request_owner === props.data.auth?.id || record.value.client_user_id === props.data.auth?.id);
 const canDecide = computed(() => isOwner.value && record.value.status === 'sent' && record.value.display_status !== 'expired'
@@ -107,8 +104,7 @@ function decide() {
     <section class="page shell" :class="{ 'workspace-view': data.area === 'cliente' }">
         <div class="client-budget">
             <MigasNavegacion :niveles="migas" class="budget-breadcrumbs"/>
-            <T :eyebrow="data.area === 'cliente' ? undefined : 'PRE-' + record.budget_id + ' · Presupuesto formal'" :title="record.title"
-               :description="descripcionRegistro">
+            <T :eyebrow="data.area === 'cliente' ? undefined : 'Presupuesto formal'" :title="record.title">
                 <S :status="record.display_status ?? record.status"/></T>
             <div class="budget-state" :class="'budget-state--' + record.status" role="status"><I :name="state.icon"/>
                 <div><strong>{{ state.title }}</strong>
@@ -128,8 +124,7 @@ function decide() {
                 </div>
                 <aside class="budget-side">
                     <v-card class="card">
-                        <p class="eyebrow">Versión {{ record.version_number }}</p>
-                        <h2>Acciones del presupuesto</h2>
+                        <h2>Resumen del presupuesto</h2>
                         <p class="budget-total-label">Total · {{ record.currency_code }}</p>
                         <strong class="budget-amount">{{ money(record.total, record.currency_code) }}</strong>
                         <div :class="['button-stack', { 'budget-action-grid': canEdit }]">
