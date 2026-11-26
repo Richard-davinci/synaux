@@ -17,6 +17,9 @@ const budget = computed(() => props.data.quotes?.find(item => item.id === projec
 // La cuota usa el título y el momento acordados en el presupuesto aceptado.
 const cuotasPorConcepto = computed(() => Object.fromEntries((budget.value?.plan_pago?.cuotas ?? []).map(cuota => [cuota.concepto, cuota])));
 const listadoProyectos = computed(() => props.data.area === 'profesional' ? '/profesional/proyectos' : '/gestion/proyectos');
+// La entrega y los pagos describen etapas distintas y se resumen por separado en el proyecto.
+const entregaRealizada = computed(() => project.value.status === 'completed');
+const saldoPendiente = computed(() => props.data.pagos?.find(pago => pago.concepto === 'saldo' && pago.estado !== 'confirmado'));
 // Gestión reutiliza el formulario de seguimiento desde el detalle del proyecto.
 const updating = ref(false);
 const guidance = computed(() => ({
@@ -39,6 +42,11 @@ const guidance = computed(() => ({
                        @click="updating = true">Actualizar avance</B>
                 </div>
             </T>
+            <v-card v-if="data.pagos?.length" class="card cierre-proyecto">
+                <div><span class="eyebrow">ENTREGA</span><strong>{{ entregaRealizada ? 'Trabajo completado' : 'En curso' }}</strong></div>
+                <div v-if="saldoPendiente"><span class="eyebrow">SALDO</span><strong>{{ saldoPendiente.estado === 'en_revision' ? 'Comprobante en revisión' : saldoPendiente.estado === 'observado' ? 'Requiere corrección' : 'Pago pendiente' }}</strong></div>
+                <div v-else-if="data.pagos.some(pago => pago.concepto === 'saldo')"><span class="eyebrow">SALDO</span><strong>Pago confirmado</strong></div>
+            </v-card>
             <div class="project-guidance"><I :name="project.status === 'completed' ? 'check' : 'folder'"/>
                 <div><strong>{{ guidance[0] }}</strong>
                     <p>{{ guidance[1] }}</p></div>
@@ -151,6 +159,10 @@ const guidance = computed(() => ({
 /* El seguimiento y las condiciones se leen en columnas amplias y se apilan en móvil. */
 .historial-del-proyecto { margin-top: 16px; }
 .pagos-proyecto { display: grid; gap: 12px; }
+.cierre-proyecto { display: flex; flex-wrap: wrap; gap: 20px 36px; }
+.cierre-proyecto > div { display: grid; gap: 4px; }
+.cierre-proyecto strong { color: #153b64; }
+.cierre-proyecto .eyebrow { margin: 0; }
 .pagos-proyecto h3 { font-size: .95rem; }
 .project-grid {
     display: grid;
@@ -274,6 +286,10 @@ const guidance = computed(() => ({
 @media (max-width: 900px) {
     .historial-del-proyecto { margin-top: 16px; }
 .pagos-proyecto { display: grid; gap: 12px; }
+.cierre-proyecto { display: flex; flex-wrap: wrap; gap: 20px 36px; }
+.cierre-proyecto > div { display: grid; gap: 4px; }
+.cierre-proyecto strong { color: #153b64; }
+.cierre-proyecto .eyebrow { margin: 0; }
 .pagos-proyecto h3 { font-size: .95rem; }
 .project-grid {
         grid-template-columns: 1fr;
