@@ -1,5 +1,5 @@
 <script setup>
-import {computed, ref, watch} from 'vue';
+import {computed, nextTick, ref, watch} from 'vue';
 import {useForm} from '@inertiajs/vue3';
 import {useDisplay} from 'vuetify';
 import B from '../UI/AppButton.vue';
@@ -20,7 +20,9 @@ const selected = props.data.selected ?? {};
 const submit = useSubmit();
 const step = ref(1);
 const preview = ref(false);
-const previewPanel = ref(null);
+// En escritorio el visor se puede plegar; en móvil se mantiene como panel modal bajo demanda.
+const vistaPreviaVisible = ref(true);
+const panelVistaPrevia = ref(null);
 const {width} = useDisplay();
 const vistaPreviaMovil = computed(() => width.value <= 1180);
 // El presupuesto directo solicita solo los datos del destinatario y comienza con un concepto editable.
@@ -210,9 +212,13 @@ function advance() {
 }
 
 // En escritorio enfoca el documento fijo; en móvil lo abre como panel para preservar espacio.
-function openBudgetPreview() {
+async function openBudgetPreview() {
     if (vistaPreviaMovil.value) preview.value = true;
-    else previewPanel.value?.irAVista?.();
+    else {
+        vistaPreviaVisible.value = true;
+        await nextTick();
+        panelVistaPrevia.value?.irAVista?.();
+    }
 }
 
 function save(send) {
@@ -232,14 +238,11 @@ function save(send) {
 <template>
     <section class="page shell budget-editor">
         <MigasNavegacion :niveles="migas" dentro-de-contenedor class="budget-editor-breadcrumbs"/>
-        <div class="budget-heading-row">
-            <div class="budget-heading"><p class="eyebrow">Gestión · Presupuesto formal</p>
-                <h1>{{ selected.budget_id && selected.status !== 'draft' ? 'Prepará la próxima versión' : 'Prepará el presupuesto' }}</h1>
-                <p>{{
-                        direct ? 'Cargá los datos del cliente, definí los servicios y prepará el PDF.' : 'Revisá el pedido del cliente, definí los servicios y comprobá el documento antes de enviarlo.'
-                    }}</p></div>
-            <B variant="secondary" compact :href="cancelarHref">Cancelar</B>
-        </div>
+        <div class="budget-heading"><p class="eyebrow">Gestión · Presupuesto formal</p>
+            <h1>{{ selected.budget_id && selected.status !== 'draft' ? 'Prepará la próxima versión' : 'Prepará el presupuesto' }}</h1>
+            <p>{{
+                    direct ? 'Cargá los datos del cliente, definí los servicios y prepará el PDF.' : 'Revisá el pedido del cliente, definí los servicios y comprobá el documento antes de enviarlo.'
+                }}</p></div>
         <div v-if="selected.budget_id" class="editor-budget-state"
              :class="selected.status === 'draft' ? 'editor-budget-state--draft' : 'editor-budget-state--new-version'"
              role="status">
@@ -251,7 +254,7 @@ function save(send) {
                 <p v-else>Las versiones enviadas se conservan. Esta será una nueva versión del presupuesto.</p>
             </div>
         </div>
-        <div class="budget-workspace">
+        <div class="budget-workspace" :class="{'budget-workspace--preview-hidden': !vistaPreviaMovil && !vistaPreviaVisible}">
             <div class="budget-editor-flow">
                 <div class="budget-stepper">
                     <ol class="budget-steps" aria-label="Pasos para preparar presupuesto">
@@ -265,6 +268,9 @@ function save(send) {
                     </ol>
                     <B v-if="vistaPreviaMovil" variant="secondary" :disabled="quote.processing" @click="openBudgetPreview">
                         Vista previa ampliada
+                    </B>
+                    <B v-else-if="!vistaPreviaVisible" variant="secondary" compact @click="vistaPreviaVisible = true">
+                        <I name="panel-show"/> Mostrar vista previa
                     </B>
                 </div>
                 <div v-if="Object.keys(quote.errors).length" class="notice" role="alert">
@@ -311,11 +317,19 @@ function save(send) {
                         </div>
                     </v-card>
                 </form>
+                <div v-if="!vistaPreviaVisible" class="budget-hidden-actions">
+                    <B variant="secondary" compact :disabled="!canPrepare || needsIssuer || quote.processing" @click="save(false)">
+                        Guardar borrador
+                    </B>
+                    <B variant="ghost" compact :disabled="quote.processing" :href="cancelarHref">Cancelar</B>
+                </div>
             </div>
-            <BudgetPreviewPanel ref="previewPanel" :visible="preview" :budget="documentPreview" :client="client" :issuer="issuer"
+            <BudgetPreviewPanel ref="panelVistaPrevia" :visible="preview" :vista-previa-visible="vistaPreviaVisible"
+                                :url-cancelar="cancelarHref" :budget="documentPreview" :client="client" :issuer="issuer"
                                 :direct="direct" :step="step" :disabled="!canPrepare || needsIssuer || quote.processing"
                                 :saving="quote.processing && !quote.send" :persistent="quote.processing"
-                                @close="preview = false" @save-draft="save(false)" @send="save(true)"/>
+                                @close="preview = false" @ocultar-vista="vistaPreviaVisible = false"
+                                @save-draft="save(false)" @send="save(true)"/>
         </div>
     </section>
 </template>
@@ -330,13 +344,6 @@ function save(send) {
     width: min(1540px, calc(100% - 48px));
     max-width: none;
     padding-block: clamp(24px, 4vw, 48px) 64px;
-}
-
-.budget-heading-row {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 20px;
 }
 
 .budget-heading {
@@ -474,10 +481,25 @@ function save(send) {
     min-width: 0;
 }
 
+.budget-workspace--preview-hidden {
+    grid-template-columns: minmax(0, 1fr);
+}
+
 .budget-editor-flow {
     display: grid;
     align-content: start;
     min-width: 0;
+}
+
+.budget-hidden-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #1f6f7f22;
 }
 
 .budget-editor-grid > * {
@@ -520,11 +542,6 @@ function save(send) {
 @media (max-width: 600px) {
     .budget-editor {
         width: min(100% - 28px, 1180px);
-    }
-
-    .budget-heading-row {
-        flex-direction: column;
-        gap: 8px;
     }
 
     .budget-steps {

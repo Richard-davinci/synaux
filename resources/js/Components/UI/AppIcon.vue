@@ -31,6 +31,15 @@ defineProps({name: {type: String, default: 'arrow'}});
             <circle cx="12" cy="10" r="2.5"/>
         </g>
         <path v-else-if="name === 'menu'" d="M4 7h16M4 12h16M4 17h16"/>
+        <!-- Los controles del editor permiten plegar o volver a mostrar el panel de vista previa. -->
+        <g v-else-if="name === 'panel-hide'">
+            <rect x="3" y="4" width="18" height="16" rx="2"/>
+            <path d="M15 4v16m-8-11 3 3-3 3"/>
+        </g>
+        <g v-else-if="name === 'panel-show'">
+            <rect x="3" y="4" width="18" height="16" rx="2"/>
+            <path d="M15 4v16m-5-11-3 3 3 3"/>
+        </g>
         <path v-else-if="name === 'close'" d="m6 6 12 12M18 6 6 18"/>
         <!-- La puerta y la flecha identifican la salida de la cuenta. -->
         <path v-else-if="name === 'logout'" d="M11 4H5v16h6m4-13 5 5-5 5m5-5H9"/>

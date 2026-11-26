@@ -216,8 +216,10 @@ function textoPrecio({min, max}, moneda) {
 .request-facts > div {
     display: grid;
     align-content: start;
+    justify-items: start;
     gap: 3px;
     min-width: 0;
+    text-align: left;
 }
 
 .request-skills {
@@ -232,10 +234,14 @@ function textoPrecio({min, max}, moneda) {
 
 .request-facts dd,
 .request-answers dd {
+    /* Los valores se leen debajo de su etiqueta, con el mismo eje izquierdo que la pregunta. */
     margin: 0;
     color: #153b64;
     font-weight: 700;
     overflow-wrap: anywhere;
+    text-align: left;
+    justify-self: stretch;
+    width: 100%;
 }
 
 .request-service {
@@ -286,11 +292,19 @@ function textoPrecio({min, max}, moneda) {
 
 .request-answers > div {
     display: grid;
+    justify-items: start;
     gap: 3px;
     min-width: 0;
     padding: 8px 10px;
     border-radius: 8px;
     background: #f5f9fa;
+    text-align: left;
+}
+
+.request-answers dt,
+.request-answers dd {
+    width: 100%;
+    text-align: left;
 }
 
 .editor-hint {

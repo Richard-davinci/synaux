@@ -3,11 +3,14 @@ import {computed, ref} from 'vue';
 import {useDisplay} from 'vuetify';
 import SidePanel from '../UI/SidePanel.vue';
 import B from '../UI/AppButton.vue';
+import I from '../UI/AppIcon.vue';
 import BudgetDocument from './DocumentoPresupuesto.vue';
 
 // La vista queda fija junto al formulario en escritorio y se abre en un panel angosto en pantallas chicas.
 defineProps({
     visible: Boolean,
+    vistaPreviaVisible: Boolean,
+    urlCancelar: {type: String, required: true},
     budget: {type: Object, required: true},
     client: Object,
     issuer: Object,
@@ -17,7 +20,7 @@ defineProps({
     saving: Boolean,
     persistent: Boolean,
 });
-const emit = defineEmits(['close', 'save-draft', 'send']);
+const emit = defineEmits(['close', 'ocultar-vista', 'save-draft', 'send']);
 const {width} = useDisplay();
 const vistaMovil = computed(() => width.value <= 1180);
 const panelFijo = ref(null);
@@ -30,13 +33,17 @@ defineExpose({irAVista});
 </script>
 
 <template>
-    <aside v-if="!vistaMovil" ref="panelFijo" class="budget-preview-fixed" aria-label="Vista previa del presupuesto">
+    <aside v-if="!vistaMovil && vistaPreviaVisible" ref="panelFijo" class="budget-preview-fixed" aria-label="Vista previa del presupuesto">
         <div class="preview-heading">
             <div>
                 <p class="eyebrow">Documento en vivo</p>
                 <h2>Vista previa del presupuesto</h2>
             </div>
-            <span class="preview-live"><span aria-hidden="true"></span> Actualizada</span>
+            <div class="preview-heading-actions">
+                <span class="preview-live"><span aria-hidden="true"></span> Actualizada</span>
+                <button type="button" class="preview-toggle" title="Ocultar vista previa" aria-label="Ocultar vista previa"
+                        @click="emit('ocultar-vista')"><I name="panel-hide"/></button>
+            </div>
         </div>
         <div class="preview-document-scroll">
             <section class="budget-preview-content" aria-label="Documento completo actualizado en vivo">
@@ -47,12 +54,13 @@ defineExpose({irAVista});
             <B variant="secondary" compact :disabled="disabled || saving" @click="emit('save-draft')">
                 {{ saving ? 'Guardando…' : 'Guardar borrador' }}
             </B>
+            <B variant="ghost" compact :disabled="persistent" :href="urlCancelar">Cancelar</B>
             <B v-if="step === 3" compact :disabled="disabled || persistent" arrow @click="emit('send')">
                 {{ direct ? 'Emitir presupuesto' : 'Enviar presupuesto' }}
             </B>
         </footer>
     </aside>
-    <SidePanel v-else title="Vista previa del presupuesto" :model-value="visible" :persistent="persistent" :max-width="560"
+    <SidePanel v-if="vistaMovil" title="Vista previa del presupuesto" :model-value="visible" :persistent="persistent" :max-width="560"
                @update:model-value="value => !value && emit('close')">
         <div class="synaux-app budget-preview-panel">
             <section class="budget-preview-content" aria-label="Documento completo actualizado en vivo">
@@ -67,13 +75,16 @@ defineExpose({irAVista});
             </section>
         </div>
         <template #footer>
-            <B variant="secondary" compact :disabled="disabled || saving" @click="emit('save-draft')">
-                {{ saving ? 'Guardando…' : 'Guardar borrador' }}
-            </B>
-            <B variant="ghost" compact :disabled="persistent" @click="emit('close')">Seguir editando</B>
-            <B v-if="step === 3" compact :disabled="disabled || persistent" arrow @click="emit('send')">
-                {{ direct ? 'Emitir presupuesto' : 'Enviar presupuesto' }}
-            </B>
+            <div class="preview-mobile-actions">
+                <B variant="secondary" compact :disabled="disabled || saving" @click="emit('save-draft')">
+                    {{ saving ? 'Guardando…' : 'Guardar borrador' }}
+                </B>
+                <B variant="ghost" compact :disabled="persistent" :href="urlCancelar">Cancelar</B>
+                <B variant="ghost" compact :disabled="persistent" @click="emit('close')">Seguir editando</B>
+                <B v-if="step === 3" compact :disabled="disabled || persistent" arrow @click="emit('send')">
+                    {{ direct ? 'Emitir presupuesto' : 'Enviar presupuesto' }}
+                </B>
+            </div>
         </template>
     </SidePanel>
 </template>
@@ -97,11 +108,44 @@ defineExpose({irAVista});
 }
 
 .budget-preview-fixed > .preview-heading {
+    flex-wrap: wrap;
     flex: 0 0 auto;
     margin: 0;
     padding: 14px 16px;
     border-bottom: 1px solid #1f6f7f22;
     background: #f5f9fa;
+}
+
+.preview-heading-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.preview-toggle {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid #1f6f7f26;
+    border-radius: 8px;
+    background: #fff;
+    color: #153b64;
+    cursor: pointer;
+}
+
+.preview-toggle .icon {
+    width: 18px;
+    height: 18px;
+}
+
+.preview-toggle:hover {
+    background: #eef6f7;
+}
+
+.preview-toggle:focus-visible {
+    outline: 2px solid #1f6f7f;
+    outline-offset: 2px;
 }
 
 .budget-preview-fixed .preview-heading h2 {
@@ -127,8 +171,17 @@ defineExpose({irAVista});
     background: #fff;
 }
 
-.preview-actions > :only-child {
+.preview-actions > :nth-child(3) {
     grid-column: 1 / -1;
+}
+
+.preview-mobile-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    width: 100%;
+    gap: 8px;
 }
 
 .budget-preview-panel {
