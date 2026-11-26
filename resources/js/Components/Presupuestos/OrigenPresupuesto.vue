@@ -37,8 +37,10 @@ function textoPrecio({min, max}, moneda) {
 
 <template>
     <B v-if="!selected.budget_id && (data.auth?.puede_gestionar ?? data.auth?.is_admin) && !data.preview"
-       :href="direct ? '/editor/presupuesto' : '/editor/presupuesto?directo=1'"
-       variant="ghost">{{ direct ? 'Crear desde una solicitud' : 'Crear presupuesto directo' }}</B>
+       :href="direct ? '/gestion/solicitudes' : '/editor/presupuesto?directo=1'"
+       variant="ghost">{{ direct ? 'Elegir una solicitud existente' : 'Crear presupuesto directo' }}</B>
+    <p v-if="direct && !selected.budget_id && (data.auth?.puede_gestionar ?? data.auth?.is_admin) && !data.preview"
+       class="editor-hint">Vas a elegir un pedido recibido para preparar su presupuesto.</p>
     <template v-if="direct">
         <h2>Datos del cliente</h2>
         <F v-model="quote.client.name" label="Nombre del cliente" maxlength="255" :error="quote.errors['client.name']"

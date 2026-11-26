@@ -150,10 +150,17 @@ function decide() {
                         <p v-if="record.display_status === 'expired' && record.current" class="budget-help">Para
                             solicitar una actualización, contactá a synaux indicando PRE-{{ record.budget_id }}.</p>
                     </v-card>
-                    <v-card class="card"><h2>Historial de versiones</h2>
-                        <p class="budget-help">Cada versión conserva sus importes y condiciones.</p>
-                        <!-- La línea temporal hace evidente el orden y permite abrir cualquier versión con toda la fila. -->
-                        <ol class="budget-history" aria-label="Versiones del presupuesto, de la más reciente a la más antigua">
+                    <v-card class="card">
+                        <details class="budget-history-disclosure">
+                            <summary>
+                                <span class="budget-history-disclosure-copy">
+                                    <strong>Historial de versiones</strong>
+                                    <small>{{ versions.length }} {{ versions.length === 1 ? 'versión' : 'versiones' }} · Cada versión conserva sus importes y condiciones.</small>
+                                </span>
+                                <I class="budget-history-disclosure-icon" name="chevron-down"/>
+                            </summary>
+                            <!-- La línea temporal hace evidente el orden al desplegar el historial. -->
+                            <ol class="budget-history" aria-label="Versiones del presupuesto, de la más reciente a la más antigua">
                             <li v-for="item in versions" :key="item.id"
                                 :class="{ 'history-draft': item.status === 'draft' }">
                                 <a class="budget-history-link" :href="historyHref(item)"
@@ -172,7 +179,8 @@ function decide() {
                                     <I class="history-arrow" name="arrow"/>
                                 </a>
                             </li>
-                        </ol>
+                            </ol>
+                        </details>
                     </v-card>
                 </aside>
             </div>
@@ -468,6 +476,57 @@ function decide() {
     padding: 0;
     margin: 8px 0 0;
     list-style: none;
+}
+
+.budget-history-disclosure > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.budget-history-disclosure > summary::-webkit-details-marker {
+    display: none;
+}
+
+.budget-history-disclosure-copy {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.budget-history-disclosure-copy > strong {
+    color: #153b64;
+    font-size: 1.1rem;
+}
+
+.budget-history-disclosure-copy > small {
+    color: #446075;
+    font-size: .85rem;
+}
+
+.budget-history-disclosure-icon {
+    flex: 0 0 20px;
+    width: 20px;
+    height: 20px;
+    color: #1f6f7f;
+    transition: transform .16s ease;
+}
+
+.budget-history-disclosure[open] > summary {
+    margin-bottom: 14px;
+}
+
+.budget-history-disclosure[open] .budget-history-disclosure-icon {
+    transform: rotate(180deg);
+}
+
+.budget-history-disclosure > summary:focus-visible {
+    outline: 2px solid #1f6f7f;
+    outline-offset: 3px;
+    border-radius: 4px;
 }
 
 .budget-history li {

@@ -60,6 +60,14 @@ const quote = useForm({
     items: selected.items?.map(itemComoConcepto) ?? (direct ? [emptyItem()] : []),
     send: false,
 });
+// Vuetify crea sus etapas desde items y cada paso previo se puede volver a abrir.
+const stepperItems = computed(() => labels.map((title, index) => ({
+    title,
+    value: index + 1,
+    complete: step.value > index + 1,
+    editable: !quote.processing && index + 1 < step.value,
+    color: step.value === index + 1 ? 'primary' : 'secondary',
+})));
 // El interruptor aplica IVA a todo el presupuesto; desactivarlo conserva la tasa para volver a incluirlo.
 const previousVatRate = ref(Number(quote.tax_rate) || 21);
 const includeVat = computed({
@@ -256,17 +264,8 @@ function save(send) {
         </div>
         <div class="budget-workspace">
             <div class="budget-editor-flow">
-                <v-stepper v-model="step" class="budget-stepper" flat hide-actions non-linear>
-                    <template #header>
-                        <template v-for="(label, index) in labels" :key="label">
-                            <v-divider v-if="index" class="budget-step-line"
-                                       :class="{'budget-step-line--complete': step > index}"/>
-                            <v-stepper-item :value="index + 1" :title="label"
-                                            :complete="step > index + 1"
-                                            :editable="!quote.processing && index + 1 < step"
-                                            :color="step === index + 1 ? 'primary' : 'secondary'"/>
-                        </template>
-                    </template>
+                <v-stepper v-model="step" :items="stepperItems" item-title="title" item-value="value"
+                           :item-props="true" class="budget-stepper" flat hide-actions non-linear>
                     <B v-if="vistaPreviaMovil" variant="secondary" compact :disabled="quote.processing" @click="openBudgetPreview">
                         Vista previa ampliada
                     </B>
@@ -441,6 +440,10 @@ function save(send) {
     box-shadow: none;
 }
 
+.budget-stepper :deep(.v-stepper-window) {
+    display: none;
+}
+
 .budget-stepper :deep(.v-stepper-item) {
     min-width: 0;
     min-height: 36px;
@@ -477,8 +480,9 @@ function save(send) {
     border-color: #d6e1e7;
 }
 
-.budget-stepper :deep(.budget-step-line--complete) {
-    border-color: #1f6f7f;
+.budget-stepper :deep(.v-divider) {
+    opacity: 1;
+    border-color: #d6e1e7;
 }
 
 .budget-editor-grid {

@@ -12,8 +12,11 @@ defineProps({
 </script>
 
 <template>
-    <section class="historial-presupuestos" :aria-label="titulo">
-        <h3>{{ titulo }} <span>· {{ versiones.length }} {{ versiones.length === 1 ? 'versión' : 'versiones' }}</span></h3>
+    <details class="historial-presupuestos" :aria-label="titulo">
+        <summary class="historial-resumen">
+            <span class="historial-titulo">{{ titulo }} <span>· {{ versiones.length }} {{ versiones.length === 1 ? 'versión' : 'versiones' }}</span></span>
+            <I class="historial-control" name="chevron-down"/>
+        </summary>
         <ol>
             <li v-for="version in versiones" :key="version.id" :class="{'version-borrador': version.status === 'draft'}">
                 <a class="historial-version" :href="'/presupuestos/' + version.id"
@@ -37,7 +40,7 @@ defineProps({
                 </a>
             </li>
         </ol>
-    </section>
+    </details>
 </template>
 
 <style scoped>
@@ -50,17 +53,52 @@ defineProps({
     background: #f5f9fa;
 }
 
-.historial-presupuestos h3 {
-    margin: 0 0 10px;
+.historial-resumen {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: #153b64;
+    cursor: pointer;
+    list-style: none;
+}
+
+.historial-resumen::-webkit-details-marker {
+    display: none;
+}
+
+.historial-titulo {
     color: #153b64;
     font-size: 1rem;
     font-weight: 700;
 }
 
-.historial-presupuestos h3 span {
+.historial-titulo > span {
     color: #446075;
     font-size: .875rem;
     font-weight: 400;
+}
+
+.historial-control {
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
+    color: #1f6f7f;
+    transition: transform .16s ease;
+}
+
+.historial-presupuestos[open] .historial-resumen {
+    margin-bottom: 10px;
+}
+
+.historial-presupuestos[open] .historial-control {
+    transform: rotate(180deg);
+}
+
+.historial-resumen:focus-visible {
+    outline: 2px solid #1f6f7f;
+    outline-offset: 3px;
+    border-radius: 4px;
 }
 
 .historial-presupuestos ol {
