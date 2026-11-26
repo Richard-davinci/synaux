@@ -1,6 +1,7 @@
 <script setup>
 import {computed, ref, watch} from 'vue';
 import {useForm} from '@inertiajs/vue3';
+import {useDisplay} from 'vuetify';
 import B from '../UI/AppButton.vue';
 import I from '../UI/AppIcon.vue';
 import BudgetLines from './ConceptosPresupuesto.vue';
@@ -19,6 +20,9 @@ const selected = props.data.selected ?? {};
 const submit = useSubmit();
 const step = ref(1);
 const preview = ref(false);
+const previewPanel = ref(null);
+const {width} = useDisplay();
+const vistaPreviaMovil = computed(() => width.value <= 1180);
 // El presupuesto directo solicita solo los datos del destinatario y comienza con un concepto editable.
 const direct = Boolean(props.data.directBudget);
 const configuraPago = props.data.area === 'gestion' && !props.data.preview;
@@ -78,6 +82,11 @@ const requestOptions = computed(() => requests.value.filter(item =>
     (item.status === 'open' && item.user_id !== props.data.auth?.id) || item.id == selected.request_id
 ).map(item => ({value: item.id, label: 'SOL-' + item.id + ' · ' + item.title})));
 const client = computed(() => direct ? quote.client : (source.value?.contact ?? selected.client));
+// Cancelar vuelve a la solicitud o ficha que abrió el editor, sin depender de las migas.
+const cancelarHref = computed(() => selected.id ? '/presupuestos/' + selected.id
+    : source.value ? '/solicitudes/' + source.value.id
+        : direct ? '/gestion/presupuestos'
+            : props.data.area === 'profesional' ? '/profesional/presupuestos' : '/gestion/solicitudes');
 const issuer = computed(() => props.data.issuerDetails ?? ({
     name: props.data.profile?.brand_name ?? selected.issuer?.name ?? 'synaux',
     contact: props.data.auth?.name ?? selected.issuer?.contact,
@@ -197,12 +206,13 @@ watch(() => quote.currency_code, (currency, previous) => {
 
 function advance() {
     if (step.value < 3) step.value += 1;
-    else preview.value = true;
+    else openBudgetPreview();
 }
 
-// El paso inicial ya contiene la ficha del pedido; la vista ampliada se reserva al documento presupuestario.
+// En escritorio enfoca el documento fijo; en móvil lo abre como panel para preservar espacio.
 function openBudgetPreview() {
-    preview.value = true;
+    if (vistaPreviaMovil.value) preview.value = true;
+    else previewPanel.value?.irAVista?.();
 }
 
 function save(send) {
@@ -222,11 +232,14 @@ function save(send) {
 <template>
     <section class="page shell budget-editor">
         <MigasNavegacion :niveles="migas" dentro-de-contenedor class="budget-editor-breadcrumbs"/>
-        <div class="budget-heading"><p class="eyebrow">Gestión · Presupuesto formal</p>
-            <h1>{{ selected.budget_id && selected.status !== 'draft' ? 'Prepará la próxima versión' : 'Prepará el presupuesto' }}</h1>
-            <p>{{
-                    direct ? 'Cargá los datos del cliente, definí los servicios y prepará el PDF.' : 'Revisá el pedido del cliente, definí los servicios y comprobá el documento antes de enviarlo.'
-                }}</p></div>
+        <div class="budget-heading-row">
+            <div class="budget-heading"><p class="eyebrow">Gestión · Presupuesto formal</p>
+                <h1>{{ selected.budget_id && selected.status !== 'draft' ? 'Prepará la próxima versión' : 'Prepará el presupuesto' }}</h1>
+                <p>{{
+                        direct ? 'Cargá los datos del cliente, definí los servicios y prepará el PDF.' : 'Revisá el pedido del cliente, definí los servicios y comprobá el documento antes de enviarlo.'
+                    }}</p></div>
+            <B variant="secondary" compact :href="cancelarHref">Cancelar</B>
+        </div>
         <div v-if="selected.budget_id" class="editor-budget-state"
              :class="selected.status === 'draft' ? 'editor-budget-state--draft' : 'editor-budget-state--new-version'"
              role="status">
@@ -248,7 +261,7 @@ function save(send) {
                     </button>
                 </li>
             </ol>
-            <B variant="secondary" :disabled="quote.processing" @click="openBudgetPreview">Vista previa ampliada</B>
+            <B v-if="vistaPreviaMovil" variant="secondary" :disabled="quote.processing" @click="openBudgetPreview">Vista previa ampliada</B>
         </div>
         <div v-if="Object.keys(quote.errors).length" class="notice" role="alert">
             <div><strong>Revisá los datos del presupuesto</strong>
@@ -270,30 +283,31 @@ function save(send) {
         </div>
 
         <!-- El formulario valida el paso visible y conserva los datos al volver a editar. -->
-        <form class="budget-editor-grid" @submit.prevent="advance">
-            <v-card class="card budget-panel">
-                <BudgetSourceFields v-if="step === 1" :quote="quote" :selected="selected" :data="data"
-                                    :direct="direct" :source="source" :request-options="requestOptions"/>
-                <BudgetLines v-else-if="step === 2" :quote="quote" :line-cents="lineCents" :price-hint="priceHint"
-                             @add-item="quote.items.push(emptyItem())"/>
-                <BudgetTerms v-else :quote="quote" :direct="direct" :configura-pago="configuraPago" :requiere-transferencia="total > 0"/>
-                <!-- Una sola tasa de IVA se comparte entre servicios, condiciones y documento. -->
-                <BudgetVatFields v-if="step > 1" v-model="includeVat" :quote="quote"/>
-                <p v-if="source && !canPrepare" class="editor-note" role="status">Esta solicitud ya no está abierta.
-                    Consultá el presupuesto y el estado del proyecto antes de continuar.</p>
-                <div class="form-actions"><B v-if="step > 1" variant="secondary" :disabled="quote.processing"
-                                             @click="step -= 1">Anterior</B><span v-else/><B type="submit"
-                                                                                             :disabled="!canPrepare || needsIssuer || quote.processing"
-                                                                                             arrow>{{
-                        step === 3 ? 'Revisar documento' : 'Continuar'
-                    }}</B></div>
-            </v-card>
-        </form>
-        <BudgetPreviewPanel :visible="preview" :budget="documentPreview" :client="client" :issuer="issuer"
-                            :direct="direct" :step="step" :disabled="!canPrepare || needsIssuer || quote.processing"
-                            :saving="quote.processing && !quote.send" :persistent="quote.processing"
-                            @close="preview = false" @save-draft="save(false)" @send="save(true)"
-                            />
+        <div class="budget-workspace">
+            <form class="budget-editor-grid" @submit.prevent="advance">
+                <v-card class="card budget-panel">
+                    <BudgetSourceFields v-if="step === 1" :quote="quote" :selected="selected" :data="data"
+                                        :direct="direct" :source="source" :request-options="requestOptions"/>
+                    <BudgetLines v-else-if="step === 2" :quote="quote" :line-cents="lineCents" :price-hint="priceHint"
+                                 @add-item="quote.items.push(emptyItem())"/>
+                    <BudgetTerms v-else :quote="quote" :direct="direct" :configura-pago="configuraPago" :requiere-transferencia="total > 0"/>
+                    <!-- Una sola tasa de IVA se comparte entre servicios, condiciones y documento. -->
+                    <BudgetVatFields v-if="step > 1" v-model="includeVat" :quote="quote"/>
+                    <p v-if="source && !canPrepare" class="editor-note" role="status">Esta solicitud ya no está abierta.
+                        Consultá el presupuesto y el estado del proyecto antes de continuar.</p>
+                    <div class="form-actions"><B v-if="step > 1" variant="secondary" :disabled="quote.processing"
+                                                 @click="step -= 1">Anterior</B><span v-else/><B type="submit"
+                                                                                                 :disabled="!canPrepare || needsIssuer || quote.processing"
+                                                                                                 arrow>{{
+                            step === 3 ? 'Revisar documento' : 'Continuar'
+                        }}</B></div>
+                </v-card>
+            </form>
+            <BudgetPreviewPanel ref="previewPanel" :visible="preview" :budget="documentPreview" :client="client" :issuer="issuer"
+                                :direct="direct" :step="step" :disabled="!canPrepare || needsIssuer || quote.processing"
+                                :saving="quote.processing && !quote.send" :persistent="quote.processing"
+                                @close="preview = false" @save-draft="save(false)" @send="save(true)"/>
+        </div>
     </section>
 </template>
 
@@ -304,9 +318,16 @@ function save(send) {
 }
 
 .budget-editor {
-    width: min(1680px, calc(100% - 48px));
+    width: min(1540px, calc(100% - 48px));
     max-width: none;
     padding-block: clamp(24px, 4vw, 48px) 64px;
+}
+
+.budget-heading-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
 }
 
 .budget-heading {
@@ -433,6 +454,17 @@ function save(send) {
     align-items: start;
 }
 
+.budget-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 410px);
+    align-items: start;
+    gap: 24px;
+}
+
+.budget-workspace > * {
+    min-width: 0;
+}
+
 .budget-editor-grid > * {
     min-width: 0;
 }
@@ -464,9 +496,20 @@ function save(send) {
     margin: 0;
 }
 
+@media (max-width: 1180px) {
+    .budget-workspace {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
 @media (max-width: 600px) {
     .budget-editor {
         width: min(100% - 28px, 1180px);
+    }
+
+    .budget-heading-row {
+        flex-direction: column;
+        gap: 8px;
     }
 
     .budget-steps {

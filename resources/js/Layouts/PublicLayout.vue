@@ -19,6 +19,8 @@ const props = defineProps({
 const page = usePage();
 // La landing real empieza directamente con la marca; el prototipo conserva su selector de pantallas.
 const showSiteHeader = computed(() => !props.landing || Boolean(page.props.preview));
+// El editor de presupuestos necesita el ancho completo y oculta la navegación lateral solo durante esta tarea.
+const editorPresupuesto = computed(() => page.props.screen === 'editor-presupuesto');
 const workspaceOpen = ref(false);
 const anchoPanel = 340;
 let accesoAlPanel;
@@ -73,7 +75,7 @@ const {
 } = useNavigationContext();
 
 // El panel lateral pertenece a las páginas privadas. El menú de cuenta también se ofrece en el sitio público.
-const mostrarPanel = computed(() => !props.landing && hasWorkspace.value && paginaDePanel.value);
+const mostrarPanel = computed(() => !props.landing && hasWorkspace.value && paginaDePanel.value && !editorPresupuesto.value);
 watch(() => page.url, () => {
     workspaceOpen.value = false;
 });
@@ -130,7 +132,7 @@ watch(() => page.url, () => {
             </div>
         </v-dialog>
         <!-- El área privada conserva su espacio de trabajo continuo; el pie público queda en páginas abiertas. -->
-        <SiteFooter v-if="!mostrarPanel" :year="year" :landing="landing"/>
+        <SiteFooter v-if="!mostrarPanel && !editorPresupuesto" :year="year" :landing="landing"/>
     </v-app>
 </template>
 

@@ -1,9 +1,11 @@
 <script setup>
+import {computed, ref} from 'vue';
+import {useDisplay} from 'vuetify';
 import SidePanel from '../UI/SidePanel.vue';
 import B from '../UI/AppButton.vue';
 import BudgetDocument from './DocumentoPresupuesto.vue';
 
-// La ampliación muestra el documento presupuestario; la ficha de la solicitud ya está en el primer paso.
+// La vista queda fija junto al formulario en escritorio y se abre en un panel angosto en pantallas chicas.
 defineProps({
     visible: Boolean,
     budget: {type: Object, required: true},
@@ -16,10 +18,41 @@ defineProps({
     persistent: Boolean,
 });
 const emit = defineEmits(['close', 'save-draft', 'send']);
+const {width} = useDisplay();
+const vistaMovil = computed(() => width.value <= 1180);
+const panelFijo = ref(null);
+
+function irAVista() {
+    panelFijo.value?.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+
+defineExpose({irAVista});
 </script>
 
 <template>
-    <SidePanel title="Vista previa del presupuesto" :model-value="visible" :persistent="persistent" :max-width="820"
+    <aside v-if="!vistaMovil" ref="panelFijo" class="budget-preview-fixed" aria-label="Vista previa del presupuesto">
+        <div class="preview-heading">
+            <div>
+                <p class="eyebrow">Documento en vivo</p>
+                <h2>Vista previa del presupuesto</h2>
+            </div>
+            <span class="preview-live"><span aria-hidden="true"></span> Actualizada</span>
+        </div>
+        <div class="preview-document-scroll">
+            <section class="budget-preview-content" aria-label="Documento completo actualizado en vivo">
+                <BudgetDocument :budget="budget" :client="client" :issuer="issuer"/>
+            </section>
+        </div>
+        <footer class="preview-actions">
+            <B variant="secondary" compact :disabled="disabled || saving" @click="emit('save-draft')">
+                {{ saving ? 'Guardando…' : 'Guardar borrador' }}
+            </B>
+            <B v-if="step === 3" compact :disabled="disabled || persistent" arrow @click="emit('send')">
+                {{ direct ? 'Emitir presupuesto' : 'Enviar presupuesto' }}
+            </B>
+        </footer>
+    </aside>
+    <SidePanel v-else title="Vista previa del presupuesto" :model-value="visible" :persistent="persistent" :max-width="560"
                @update:model-value="value => !value && emit('close')">
         <div class="synaux-app budget-preview-panel">
             <section class="budget-preview-content" aria-label="Documento completo actualizado en vivo">
@@ -28,17 +61,17 @@ const emit = defineEmits(['close', 'save-draft', 'send']);
                         <p class="eyebrow">Documento en vivo</p>
                         <h2>{{ direct ? 'Revisá el presupuesto para emitir' : 'Revisá el presupuesto para enviar' }}</h2>
                     </div>
-                    <span class="preview-live"><span aria-hidden="true"></span> Se actualiza al editar</span>
+                    <span class="preview-live"><span aria-hidden="true"></span> Actualizada</span>
                 </div>
                 <BudgetDocument :budget="budget" :client="client" :issuer="issuer"/>
             </section>
         </div>
         <template #footer>
-            <B variant="secondary" :disabled="disabled || saving" @click="emit('save-draft')">
+            <B variant="secondary" compact :disabled="disabled || saving" @click="emit('save-draft')">
                 {{ saving ? 'Guardando…' : 'Guardar borrador' }}
             </B>
-            <B variant="ghost" :disabled="persistent" @click="emit('close')">Seguir editando</B>
-            <B v-if="step === 3" :disabled="disabled || persistent" arrow @click="emit('send')">
+            <B variant="ghost" compact :disabled="persistent" @click="emit('close')">Seguir editando</B>
+            <B v-if="step === 3" compact :disabled="disabled || persistent" arrow @click="emit('send')">
                 {{ direct ? 'Emitir presupuesto' : 'Enviar presupuesto' }}
             </B>
         </template>
@@ -46,16 +79,67 @@ const emit = defineEmits(['close', 'save-draft', 'send']);
 </template>
 
 <style scoped>
-/* La vista ampliada concentra la lectura en el presupuesto y mantiene su documento centrado. */
+/* La previsualización conserva el espacio de lectura y fija las acciones fuera del documento desplazable. */
+.budget-preview-fixed {
+    position: sticky;
+    top: calc(var(--navbar-height, 76px) + 16px);
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: calc(100dvh - var(--navbar-height, 76px) - 32px);
+    min-height: 480px;
+    max-height: 900px;
+    overflow: hidden;
+    border: 1px solid #1f6f7f26;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: var(--card-shadow);
+}
+
+.budget-preview-fixed > .preview-heading {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 14px 16px;
+    border-bottom: 1px solid #1f6f7f22;
+    background: #f5f9fa;
+}
+
+.budget-preview-fixed .preview-heading h2 {
+    font-size: 1rem;
+}
+
+.preview-document-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 12px;
+    overflow: auto;
+    overscroll-behavior: contain;
+    background: #f5f9fa;
+}
+
+.preview-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    flex: 0 0 auto;
+    padding: 10px 12px;
+    border-top: 1px solid #1f6f7f26;
+    background: #fff;
+}
+
+.preview-actions > :only-child {
+    grid-column: 1 / -1;
+}
+
 .budget-preview-panel {
     min-height: 100%;
     background: #f5f9fa;
 }
 
 .budget-preview-content {
-    width: min(100%, 760px);
+    width: 100%;
     margin-inline: auto;
-    padding: clamp(18px, 3vw, 28px);
+    padding: 12px;
 }
 
 .preview-heading {
@@ -75,7 +159,7 @@ const emit = defineEmits(['close', 'save-draft', 'send']);
     margin: 0;
     color: #153b64;
     font-family: 'Space Grotesk', sans-serif;
-    font-size: clamp(1.15rem, 2vw, 1.4rem);
+    font-size: clamp(1rem, 1.4vw, 1.15rem);
     font-weight: 700;
 }
 
@@ -102,20 +186,20 @@ const emit = defineEmits(['close', 'save-draft', 'send']);
 }
 
 .budget-preview-content :deep(.budget-document) {
-    border-radius: 14px;
-    box-shadow: 0 8px 24px #153b6410;
+    border-radius: 10px;
+    box-shadow: 0 3px 12px #153b6410;
 }
 
 .budget-preview-content :deep(.document-heading) {
-    padding: clamp(22px, 3vw, 32px);
+    padding: 16px;
 }
 
 .budget-preview-content :deep(.document-heading .brand-logo) {
-    width: 124px;
+    width: 88px;
 }
 
 .budget-preview-content :deep(.document-label) {
-    font-size: 1.55rem;
+    font-size: 1.1rem;
 }
 
 .budget-preview-content :deep(.document-number),
@@ -124,23 +208,23 @@ const emit = defineEmits(['close', 'save-draft', 'send']);
 .budget-preview-content :deep(.document-items table),
 .budget-preview-content :deep(.document-totals),
 .budget-preview-content :deep(.document-conditions > div) {
-    font-size: .9rem;
+    font-size: .78rem;
 }
 
 .budget-preview-content :deep(.document-content) {
-    padding: clamp(18px, 2.5vw, 26px);
+    padding: 14px;
 }
 
 .budget-preview-content :deep(.document-title) {
-    font-size: 1.35rem;
+    font-size: 1.05rem;
 }
 
 .budget-preview-content :deep(.document-items td),
 .budget-preview-content :deep(.document-items th) {
-    padding: 10px 8px;
+    padding: 7px 6px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 1180px) {
     .preview-heading {
         align-items: flex-start;
         flex-direction: column;

@@ -66,7 +66,7 @@ function textoPrecio({min, max}, moneda) {
         <section v-if="source" class="request-context" aria-label="Información de la solicitud">
             <div class="request-detail-layout">
                 <div class="request-detail-main">
-                    <section class="request-detail-card">
+                    <section class="card request-detail-card">
                         <h3>Alcance de la solicitud</h3>
                         <p class="preserve-lines request-description">{{ source.description || 'Sin descripción adicional.' }}</p>
                         <dl class="request-facts">
@@ -76,7 +76,7 @@ function textoPrecio({min, max}, moneda) {
                         </dl>
                         <p v-if="source.skills?.length" class="request-skills"><strong>Habilidades solicitadas</strong><br>{{ source.skills.join(' · ') }}</p>
                     </section>
-                    <section class="request-detail-card">
+                    <section class="card request-detail-card">
                         <h3>Servicios solicitados</h3>
                         <article v-for="(item, index) in serviciosSolicitud" :key="item.service_id || index" class="request-service">
                             <div class="request-service-heading">
@@ -95,7 +95,7 @@ function textoPrecio({min, max}, moneda) {
                     </section>
                 </div>
                 <aside class="request-detail-aside">
-                    <section class="request-detail-card request-estimate-card">
+                    <section class="card request-detail-card request-estimate-card">
                         <h3>{{ estimacion.hasPrice && estimacion.pending ? 'Subtotal orientativo' : 'Estimación orientativa' }}</h3>
                         <strong v-if="estimacion.hasPrice">{{ textoPrecio(estimacion, serviciosSolicitud[0].moneda) }}</strong>
                         <strong v-else>Pendiente de cotización</strong>
@@ -103,7 +103,7 @@ function textoPrecio({min, max}, moneda) {
                         <p v-else-if="!estimacion.hasPrice">El importe se define al preparar el presupuesto.</p>
                         <p v-else>El importe final se confirma en el presupuesto formal.</p>
                     </section>
-                    <section v-if="source.contact" class="request-detail-card request-contact-card">
+                    <section v-if="source.contact" class="card request-detail-card request-contact-card">
                         <h3>Contacto del cliente</h3>
                         <strong>{{ source.contact.name }}</strong>
                         <p v-if="source.contact.company">{{ source.contact.company }}</p>
@@ -174,10 +174,11 @@ function textoPrecio({min, max}, moneda) {
 
 .request-detail-card {
     min-width: 0;
-    padding: 16px;
+    padding: clamp(18px, 3vw, 28px);
     border: 1px solid #1f6f7f22;
-    border-radius: 12px;
+    border-radius: 14px;
     background: #fff;
+    overflow-wrap: anywhere;
 }
 
 .request-detail-card h3 {
