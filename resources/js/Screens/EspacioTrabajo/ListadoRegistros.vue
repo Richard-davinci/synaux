@@ -18,10 +18,10 @@ const seccion = computed(() => props.data.section);
 const listados = {
     estimaciones: {
         coleccion: 'estimates', titulo: 'Mis estimaciones', prefijo: 'EST',
-        descripcion: 'Consultá y retomá las estimaciones que guardaste.',
+        descripcion: 'Consultá tus cálculos orientativos. Para iniciar una nueva, prepará una solicitud y revisá la estimación antes de enviarla.',
         vacio: 'Guardá una estimación para continuar con tu solicitud más adelante.',
         estados: [['calculated', 'Calculada'], ['manual', 'Revisión profesional']],
-        crear: {href: '/estimador', etiqueta: 'Nueva estimación'},
+        crear: {href: '/solicitudes/nueva', etiqueta: 'Nueva solicitud'},
     },
     solicitudes: {
         coleccion: 'requests', titulo: 'Mis solicitudes', prefijo: 'SOL', aviso: 'solicitud',
