@@ -10,15 +10,18 @@ defineProps({
     disabled: Boolean,
     saving: Boolean,
 });
-const emit = defineEmits(['expand', 'save']);
+const emit = defineEmits(['save']);
 </script>
 
 <template>
-    <!-- La vista previa usa el documento compartido y refleja los cambios del formulario. -->
-    <aside class="budget-summary" aria-label="Vista previa del presupuesto">
+    <!-- El documento completo queda a la vista mientras se editan los pasos del presupuesto. -->
+    <aside class="budget-summary" aria-label="Documento del presupuesto actualizado en vivo">
         <div class="preview-toolbar">
-            <h2>Vista previa</h2>
-            <B variant="ghost" @click="emit('expand')">Ampliar</B>
+            <div>
+                <p class="eyebrow">Documento en vivo</p>
+                <h2>{{ direct ? 'Presupuesto para emitir' : 'Presupuesto para enviar' }}</h2>
+            </div>
+            <span class="preview-live"><span aria-hidden="true"></span> Se actualiza al editar</span>
         </div>
         <div class="document-preview-scroll">
             <BudgetDocument :budget="budget" :client="client" :issuer="issuer"/>
@@ -38,7 +41,7 @@ const emit = defineEmits(['expand', 'save']);
     position: sticky;
     top: calc(var(--navbar-height, 76px) + var(--workspace-bar-height, 0px) + 68px);
     height: calc(100dvh - var(--navbar-height, 76px) - var(--workspace-bar-height, 0px) - 84px);
-    min-height: 320px;
+    min-height: 420px;
     display: flex;
     flex-direction: column;
     overflow-wrap: anywhere;
@@ -56,22 +59,49 @@ const emit = defineEmits(['expand', 'save']);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 12px;
-    padding: 10px 16px;
+    gap: 16px;
+    padding: 14px 20px;
     border-bottom: 1px solid #1f6f7f22;
+}
+
+.preview-toolbar .eyebrow {
+    margin: 0 0 3px;
+    font-size: .7rem;
 }
 
 .preview-toolbar h2 {
     margin: 0;
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     font-weight: 700;
+}
+
+.preview-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    flex: none;
+    padding: 6px 10px;
+    border: 1px solid #1f6f7f2e;
+    border-radius: 999px;
+    background: #f5f9fa;
+    color: #446075;
+    font-size: .75rem;
+    font-weight: 700;
+}
+
+.preview-live span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #26b4a2;
+    box-shadow: 0 0 0 3px #26b4a21c;
 }
 
 .document-preview-scroll {
     flex: 1 1 auto;
     min-height: 0;
     overflow: auto;
-    padding: 12px;
+    padding: clamp(16px, 1.5vw, 24px);
     background: #f5f9fa;
 }
 
@@ -92,9 +122,16 @@ const emit = defineEmits(['expand', 'save']);
     color: #446075;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1200px) {
     .budget-summary {
         display: none;
+    }
+}
+
+@media (max-width: 600px) {
+    .preview-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
     }
 }
 </style>

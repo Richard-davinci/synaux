@@ -248,7 +248,7 @@ function save(send) {
         </div>
 
         <div class="budget-preview-mobile">
-            <B variant="secondary" @click="preview = true">Ver vista previa del presupuesto</B>
+            <B variant="secondary" @click="preview = true">Abrir documento ampliado</B>
         </div>
         <!-- El formulario valida el paso visible y conserva los datos al volver a editar. -->
         <form class="budget-editor-grid" @submit.prevent="advance">
@@ -275,9 +275,9 @@ function save(send) {
             <BudgetPreviewSidebar :budget="documentPreview" :client="client" :issuer="issuer" :direct="direct"
                                   :disabled="!canPrepare || needsIssuer || quote.processing"
                                   :saving="quote.processing && !quote.send"
-                                  @expand="preview = true" @save="save(false)"/>
+                                  @save="save(false)"/>
         </form>
-        <SidePanel title="Vista previa del presupuesto" v-model="preview" max-width="800"
+        <SidePanel title="Documento ampliado del presupuesto" v-model="preview" max-width="960"
                    :persistent="quote.processing">
             <div class="synaux-app">
                 <v-card class="card modal-card budget-preview">
@@ -301,6 +301,8 @@ function save(send) {
 <style scoped>
 /* La grilla, las tarjetas y los pasos siguen el recorrido del cliente sin comprimir los conceptos. */
 .budget-editor {
+    width: min(1680px, calc(100% - 48px));
+    max-width: none;
     padding-block: clamp(24px, 4vw, 48px) 64px;
 }
 
@@ -369,8 +371,8 @@ function save(send) {
 
 .budget-editor-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
-    gap: 16px;
+    grid-template-columns: minmax(0, 1.08fr) minmax(560px, .92fr);
+    gap: clamp(20px, 2vw, 32px);
     align-items: start;
 }
 
@@ -409,12 +411,45 @@ function save(send) {
     margin: 0;
 }
 
-.budget-preview {
-    max-height: 90vh;
-    overflow-y: auto;
+.budget-preview :deep(.budget-document) {
+    border-radius: 14px;
 }
 
-@media (max-width: 900px) {
+.budget-preview :deep(.document-heading) {
+    padding: clamp(22px, 2vw, 32px);
+}
+
+.budget-preview :deep(.document-heading .brand-logo) {
+    width: 124px;
+}
+
+.budget-preview :deep(.document-label) {
+    font-size: 1.65rem;
+}
+
+.budget-preview :deep(.document-number),
+.budget-preview :deep(.document-dates),
+.budget-preview :deep(.party-content),
+.budget-preview :deep(.document-items table),
+.budget-preview :deep(.document-totals),
+.budget-preview :deep(.document-conditions > div) {
+    font-size: .95rem;
+}
+
+.budget-preview :deep(.document-content) {
+    padding: clamp(22px, 2vw, 32px);
+}
+
+.budget-preview :deep(.document-title) {
+    font-size: 1.5rem;
+}
+
+.budget-preview :deep(.document-items td),
+.budget-preview :deep(.document-items th) {
+    padding: 12px 10px;
+}
+
+@media (max-width: 1200px) {
     .budget-editor-grid {
         grid-template-columns: 1fr;
     }
@@ -427,6 +462,10 @@ function save(send) {
 }
 
 @media (max-width: 600px) {
+    .budget-editor {
+        width: min(100% - 28px, 1180px);
+    }
+
     .budget-steps {
         gap: 6px;
     }
