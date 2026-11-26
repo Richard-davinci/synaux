@@ -40,6 +40,7 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
                             client?.company || client?.name || (estimacion ? 'Datos por completar' : 'Cliente por definir')
                         }}</strong>
                         <p v-if="client?.company && client?.name">{{ client.name }}</p>
+                        <p v-if="client?.cuit">CUIT {{ client.cuit }}</p>
                         <p v-for="field in ['email','phone','address']" :key="field">{{ client?.[field] }}</p></div>
                 </section>
                 <section><h3><I name="folder"/>Proveedor</h3>

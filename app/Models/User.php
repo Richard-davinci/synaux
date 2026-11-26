@@ -96,7 +96,8 @@ class User extends Authenticatable
             $address['country'] ?? null,
         ], ', ');
 
-        return [...$contact, 'address' => $formatted !== '' ? $formatted : ($contact['address'] ?? null)];
+        return [...$contact, 'address' => $formatted !== '' ? $formatted : ($contact['address'] ?? null),
+            'cuit' => $this->profile_details['cuit'] ?? null];
     }
 
     // Los presupuestos de Gestión toman el emisor del espacio de synaux. Cada versión guarda sus propios datos.

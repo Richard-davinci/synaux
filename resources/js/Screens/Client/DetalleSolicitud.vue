@@ -55,7 +55,7 @@ function closeRequest() {
                     <section v-if="record.contact">
                         <h3>Contacto del pedido</h3>
                         <dl class="data-list">
-                            <template v-for="[campo, etiqueta] in [['name', 'Nombre'], ['email', 'Correo'], ['company', 'Organización'], ['phone', 'Teléfono'], ['address', 'Domicilio']]" :key="campo">
+                            <template v-for="[campo, etiqueta] in [['name', 'Nombre'], ['email', 'Correo'], ['company', 'Organización'], ['cuit', 'CUIT de facturación'], ['phone', 'Teléfono'], ['address', 'Domicilio']]" :key="campo">
                                 <div v-if="record.contact[campo]">
                                     <dt>{{ etiqueta }}</dt>
                                     <dd>{{ record.contact[campo] }}</dd>

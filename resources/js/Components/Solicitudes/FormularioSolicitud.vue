@@ -67,6 +67,7 @@ const form = useForm({
         company: contact.company ?? '',
         phone: contact.phone ?? '',
         address: contact.address ?? '',
+        cuit: contact.cuit ?? '',
     },
     additional_services: (pending.additional_services ?? old?.additional_services ?? []).map(item => ({
         service_id: item.service_id, quantity: item.quantity, notes: item.notes ?? '',
@@ -102,6 +103,20 @@ const pricing = reactive(useRequestPricing(toRef(props, 'data'), form, {
 const textoEnvio = computed(() => form.visibility === 'public' ? 'Publicar solicitud' : 'Solicitar presupuesto');
 
 const canSaveDraft = computed(() => form.title.trim().length >= 5 && form.description.trim().length >= 10);
+
+// El CUIT admite hasta once dígitos y se muestra con el formato habitual al salir del campo.
+function limitarCuit(valor) {
+    let cantidad = 0;
+    return [...String(valor ?? '')].filter(caracter => {
+        if (/\d/.test(caracter)) return ++cantidad <= 11;
+        return caracter === '-' && cantidad > 0 && cantidad < 11;
+    }).join('');
+}
+
+function formatearCuit(valor) {
+    const digitos = String(valor ?? '').replace(/\D/g, '');
+    return digitos.length === 11 ? `${digitos.slice(0, 2)}-${digitos.slice(2, 10)}-${digitos.slice(10)}` : valor;
+}
 
 // La categoría se deriva del servicio y un mismo servicio no se repite como adicional.
 watch(selectedService, (service, previous) => {
@@ -266,6 +281,12 @@ function save(publish) {
                                autocomplete="organization" maxlength="255" :error="form.errors['contact.company']"/>
                             <F v-model="form.contact.phone" label="Teléfono (opcional)" type="tel" autocomplete="tel"
                                maxlength="50" :error="form.errors['contact.phone']"/>
+                            <F :model-value="form.contact.cuit" label="CUIT de facturación (opcional)" inputmode="numeric"
+                               placeholder="30-12345678-9" maxlength="13"
+                               @update:model-value="form.contact.cuit = limitarCuit($event)"
+                               @blur="form.contact.cuit = formatearCuit(form.contact.cuit)"
+                               hint="11 dígitos. Se completa con el CUIT de Mi perfil."
+                               :error="form.errors['contact.cuit']"/>
                         </div>
                         <F v-model="form.contact.address" label="Domicilio para este pedido (opcional)" autocomplete="street-address"
                            hint="Se completa con el domicilio guardado en Mi perfil. Podés editarlo para este pedido."

@@ -130,6 +130,7 @@ function changeStatus(status) {
                     <h2 id="review-contact-title">Contacto</h2>
                     <strong>{{ request.contact.name }}</strong>
                     <p v-if="request.contact.company">{{ request.contact.company }}</p>
+                    <p v-if="request.contact.cuit">CUIT {{ request.contact.cuit }}</p>
                     <p v-if="request.contact.email">{{ request.contact.email }}</p>
                     <p v-if="request.contact.phone">{{ request.contact.phone }}</p>
                     <p v-if="request.contact.address">{{ request.contact.address }}</p>
