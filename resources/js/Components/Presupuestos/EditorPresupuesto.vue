@@ -2,6 +2,7 @@
 import {computed, ref, watch} from 'vue';
 import {useForm} from '@inertiajs/vue3';
 import B from '../UI/AppButton.vue';
+import I from '../UI/AppIcon.vue';
 import BudgetLines from './ConceptosPresupuesto.vue';
 import BudgetPreviewPanel from './VistaPreviaPresupuesto.vue';
 import BudgetSourceFields from './OrigenPresupuesto.vue';
@@ -225,10 +226,18 @@ function save(send) {
             <h1>{{ selected.budget_id && selected.status !== 'draft' ? 'Prepará la próxima versión' : 'Prepará el presupuesto' }}</h1>
             <p>{{
                     direct ? 'Cargá los datos del cliente, definí los servicios y prepará el PDF.' : 'Revisá el pedido del cliente, definí los servicios y comprobá el documento antes de enviarlo.'
-                }}</p>
-            <p v-if="selected.budget_id" class="editor-note">Los documentos enviados se conservan. {{
-                    selected.status === 'draft' ? 'Estás editando el borrador de la versión' : 'Se guardará una nueva versión:'
-                }} {{ version }}.</p></div>
+                }}</p></div>
+        <div v-if="selected.budget_id" class="editor-budget-state"
+             :class="selected.status === 'draft' ? 'editor-budget-state--draft' : 'editor-budget-state--new-version'"
+             role="status">
+            <I :name="selected.status === 'draft' ? 'edit' : 'file'"/>
+            <div>
+                <strong v-if="selected.status === 'draft'">Borrador interno · Versión {{ version }}</strong>
+                <strong v-else>Preparación de versión {{ version }}</strong>
+                <p v-if="selected.status === 'draft'">Este documento todavía no fue enviado al cliente. Estás editando el borrador actual.</p>
+                <p v-else>Las versiones enviadas se conservan. Esta será una nueva versión del presupuesto.</p>
+            </div>
+        </div>
         <div class="budget-stepper">
             <ol class="budget-steps" aria-label="Pasos para preparar presupuesto">
                 <li v-for="(label, index) in labels" :key="label">
@@ -310,6 +319,47 @@ function save(send) {
     font-weight: 700;
     line-height: 1.15;
     margin: 0 0 8px;
+}
+
+/* El estado del borrador usa la misma tarjeta informativa de las versiones de presupuesto. */
+.editor-budget-state {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 16px 0 20px;
+    padding: 16px 20px;
+    border: 1px solid #1f6f7f33;
+    border-radius: 12px;
+    color: #153b64;
+}
+
+.editor-budget-state--draft {
+    border-color: #c9dce2;
+    border-left: 4px solid #153b64;
+    background: #f5f9fa;
+}
+
+.editor-budget-state--new-version {
+    border-left: 4px solid #1f6f7f;
+    background: #eef6f7;
+}
+
+.editor-budget-state > .icon {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    margin-top: 2px;
+    color: #153b64;
+}
+
+.editor-budget-state strong {
+    display: block;
+    font-weight: 800;
+}
+
+.editor-budget-state p {
+    margin: 4px 0 0;
+    color: #446075;
 }
 
 .budget-panel :deep(h2) {

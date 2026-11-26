@@ -1,9 +1,12 @@
 <script setup>
+import {computed} from 'vue';
 import B from '../UI/AppButton.vue';
 import F from '../UI/FormField.vue';
+import {money} from '../../support/formatters';
+import {referenceLine, summarizePrices} from '../../support/calculoPreciosSolicitud';
 
 // Los campos editan el mismo formulario, tanto para una solicitud como para un presupuesto directo.
-defineProps({
+const props = defineProps({
     quote: {type: Object, required: true},
     selected: {type: Object, required: true},
     data: {type: Object, required: true},
@@ -11,6 +14,25 @@ defineProps({
     source: Object,
     requestOptions: {type: Array, required: true},
 });
+// La ficha reutiliza los importes orientativos de la solicitud y los agrupa sin volver a calcular tarifas.
+const serviciosSolicitud = computed(() => {
+    if (!props.source) return [];
+    const extras = props.source.additional_services ?? [];
+    const moneda = props.source.pricing_reference?.currency
+        ?? extras.find(item => item.pricing_reference)?.pricing_reference.currency ?? 'ARS';
+    return [
+        {name: props.source.service_name, quantity: 1, answers: props.source.answers,
+            pricing_reference: props.source.pricing_reference},
+        ...extras,
+    ].map((item, index) => ({...item, principal: index === 0,
+        price: referenceLine(item.pricing_reference, item.quantity ?? 1, null, moneda), moneda}));
+});
+const estimacion = computed(() => summarizePrices(serviciosSolicitud.value.map(item => item.price),
+    serviciosSolicitud.value[0]?.moneda ?? 'ARS'));
+
+function textoPrecio({min, max}, moneda) {
+    return min === max ? money(min, moneda) : `${money(min, moneda)} a ${money(max, moneda)}`;
+}
 </script>
 
 <template>
@@ -52,22 +74,17 @@ defineProps({
                             <div><dt>Presupuesto indicado</dt><dd>{{ source.budget_reference || 'Sin indicar' }}</dd></div>
                             <div><dt>Visibilidad</dt><dd>{{ source.visibility === 'public' ? 'Pública' : 'Privada' }}</dd></div>
                         </dl>
+                        <p v-if="source.skills?.length" class="request-skills"><strong>Habilidades solicitadas</strong><br>{{ source.skills.join(' · ') }}</p>
                     </section>
                     <section class="request-detail-card">
                         <h3>Servicios solicitados</h3>
-                        <article class="request-service">
-                            <p class="request-service-type">Servicio principal</p>
-                            <strong>{{ source.service_name }}</strong>
-                            <dl v-if="source.answers?.length" class="request-answers">
-                                <div v-for="(answer, index) in source.answers" :key="answer.id || index">
-                                    <dt>{{ answer.question }}</dt><dd>{{ answer.label }}</dd>
-                                </div>
-                            </dl>
-                        </article>
-                        <article v-for="(item, index) in source.additional_services ?? []" :key="item.service_id || index"
-                                 class="request-service">
-                            <p class="request-service-type">Servicio adicional<span v-if="item.quantity && item.quantity !== 1"> · {{ item.quantity }} ud.</span></p>
-                            <strong>{{ item.name }}</strong>
+                        <article v-for="(item, index) in serviciosSolicitud" :key="item.service_id || index" class="request-service">
+                            <div class="request-service-heading">
+                                <div><p class="request-service-type">{{ item.principal ? 'Principal' : 'Adicional' }}<span v-if="!item.principal && item.quantity && item.quantity !== 1"> · {{ item.quantity }} ud.</span></p>
+                                    <strong>{{ item.name }}</strong></div>
+                                <strong v-if="item.price.priced" class="request-service-price">{{ textoPrecio(item.price, item.moneda) }}</strong>
+                                <small v-else>Pendiente de cotización</small>
+                            </div>
                             <p v-if="item.notes" class="preserve-lines request-description">{{ item.notes }}</p>
                             <dl v-if="item.answers?.length" class="request-answers">
                                 <div v-for="(answer, answerIndex) in item.answers" :key="answer.id || answerIndex">
@@ -77,14 +94,24 @@ defineProps({
                         </article>
                     </section>
                 </div>
-                <aside v-if="source.contact" class="request-detail-card request-contact-card">
-                    <h3>Contacto del cliente</h3>
-                    <strong>{{ source.contact.name }}</strong>
-                    <p v-if="source.contact.company">{{ source.contact.company }}</p>
-                    <p v-if="source.contact.cuit">CUIT {{ source.contact.cuit }}</p>
-                    <p v-if="source.contact.email">{{ source.contact.email }}</p>
-                    <p v-if="source.contact.phone">{{ source.contact.phone }}</p>
-                    <p v-if="source.contact.address">{{ source.contact.address }}</p>
+                <aside class="request-detail-aside">
+                    <section class="request-detail-card request-estimate-card">
+                        <h3>{{ estimacion.hasPrice && estimacion.pending ? 'Subtotal orientativo' : 'Estimación orientativa' }}</h3>
+                        <strong v-if="estimacion.hasPrice">{{ textoPrecio(estimacion, serviciosSolicitud[0].moneda) }}</strong>
+                        <strong v-else>Pendiente de cotización</strong>
+                        <p v-if="estimacion.hasPrice && estimacion.pending">Hay servicios pendientes que no están incluidos en este importe.</p>
+                        <p v-else-if="!estimacion.hasPrice">El importe se define al preparar el presupuesto.</p>
+                        <p v-else>El importe final se confirma en el presupuesto formal.</p>
+                    </section>
+                    <section v-if="source.contact" class="request-detail-card request-contact-card">
+                        <h3>Contacto del cliente</h3>
+                        <strong>{{ source.contact.name }}</strong>
+                        <p v-if="source.contact.company">{{ source.contact.company }}</p>
+                        <p v-if="source.contact.cuit">CUIT {{ source.contact.cuit }}</p>
+                        <p v-if="source.contact.email">{{ source.contact.email }}</p>
+                        <p v-if="source.contact.phone">{{ source.contact.phone }}</p>
+                        <p v-if="source.contact.address">{{ source.contact.address }}</p>
+                    </section>
                 </aside>
             </div>
         </section>
@@ -165,19 +192,35 @@ defineProps({
     overflow-wrap: anywhere;
 }
 
-.request-facts {
+.request-detail-aside {
     display: grid;
-    gap: 8px;
-    margin: 14px 0 0;
+    gap: 14px;
 }
 
-.request-facts > div,
-.request-answers > div {
+.request-estimate-card > strong {
+    color: #153b64;
+    font: 700 1.35rem/1.25 'Space Grotesk', sans-serif;
+}
+
+.request-facts {
     display: grid;
-    grid-template-columns: minmax(130px, .8fr) minmax(0, 1.2fr);
-    gap: 10px;
-    padding-top: 8px;
-    border-top: 1px solid #1f6f7f22;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin: 14px 0 0;
+    padding: 14px;
+    border-radius: 10px;
+    background: #f5f9fa;
+}
+
+.request-facts > div {
+    display: grid;
+    align-content: start;
+    gap: 3px;
+    min-width: 0;
+}
+
+.request-skills {
+    margin: 14px 0 0 !important;
 }
 
 .request-facts dt,
@@ -197,6 +240,23 @@ defineProps({
 .request-service {
     padding-top: 10px;
     border-top: 1px solid #1f6f7f22;
+}
+
+.request-service-heading > div > strong {
+    color: #153b64;
+}
+
+.request-service-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+}
+
+.request-service-price {
+    color: #153b64;
+    font: 700 1rem/1.25 'Space Grotesk', sans-serif;
 }
 
 .request-service + .request-service {
@@ -219,28 +279,17 @@ defineProps({
 
 .request-answers {
     display: grid;
-    gap: 8px;
+    gap: 6px;
     margin: 10px 0 0;
 }
 
-.request-contact-card {
-    position: sticky;
-    top: 12px;
-}
-
-.context-heading h3, .context-heading h2 {
-    margin: 0;
-}
-
-.request-context dl > div {
-    padding: 10px 0;
-    border-bottom: 1px solid #1f6f7f22;
-}
-
-.request-context dd {
-    margin: 4px 0 0;
-    font-weight: 700;
-    overflow-wrap: anywhere;
+.request-answers > div {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #f5f9fa;
 }
 
 .editor-hint {
@@ -258,14 +307,12 @@ defineProps({
         grid-template-columns: minmax(0, 1fr);
     }
 
-    .request-contact-card {
+    .request-detail-aside {
         position: static;
     }
 
-    .request-facts > div,
-    .request-answers > div {
+    .request-facts {
         grid-template-columns: minmax(0, 1fr);
-        gap: 3px;
     }
 }
 </style>
