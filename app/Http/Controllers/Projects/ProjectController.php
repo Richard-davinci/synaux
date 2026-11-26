@@ -28,6 +28,9 @@ class ProjectController extends Controller
 
             return Inertia::render('EspacioTrabajo', [
                 'screen' => 'proyecto', 'area' => 'profesional', 'selected' => $proyecto,
+                'tareas' => DB::table('project_tasks as tarea')->leftJoin('users as alta', 'alta.id', '=', 'tarea.created_by')
+                    ->leftJoin('users as cierre', 'cierre.id', '=', 'tarea.completed_by')->where('tarea.project_id', $id)->orderBy('tarea.id')
+                    ->get(['tarea.id', 'tarea.title', 'tarea.completed', 'tarea.completed_at', 'alta.name as agregada_por', 'cierre.name as completada_por']),
                 'alcanceAsignado' => [
                     'entrega' => DB::table('budget_versions')->where('id', $version)->value('estimated_delivery_days'),
                     'entregables' => DB::table('budget_items')->where('budget_version_id', $version)
@@ -84,6 +87,9 @@ class ProjectController extends Controller
             'screen' => 'proyecto',
             'area' => $gestion ? 'gestion' : 'cliente',
             'selected' => $selected,
+            'tareas' => DB::table('project_tasks as tarea')->leftJoin('users as alta', 'alta.id', '=', 'tarea.created_by')
+                ->leftJoin('users as cierre', 'cierre.id', '=', 'tarea.completed_by')->where('tarea.project_id', $id)->orderBy('tarea.id')
+                ->get(['tarea.id', 'tarea.title', 'tarea.completed', 'tarea.completed_at', 'alta.name as agregada_por', 'cierre.name as completada_por']),
             'pagos' => $pagos,
             'puedePresentarComprobante' => $esTitular,
             'puedeRevisarComprobante' => $gestion,
@@ -101,6 +107,42 @@ class ProjectController extends Controller
         $asignaciones->guardar($request->user(), $id, (int)$datos['responsable_id']);
 
         return back()->with('notice', 'Responsable del proyecto actualizado.');
+    }
+
+    // El responsable y Gestión agregan tareas sin borrar el historial cuando una tarea se marca completa.
+    public function agregarTarea(Request $request, int $id)
+    {
+        $datos = $request->validate(['title' => 'required|string|max:180']);
+        $proyecto = DB::table('projects')->where('id', $id)->firstOrFail();
+        $this->autorizarEdicion($request, $proyecto);
+        abort_unless(in_array($proyecto->status, ['pending', 'in_progress'], true), 409);
+        DB::table('project_tasks')->insert([
+            'project_id' => $id, 'created_by' => $request->user()->id, 'title' => $datos['title'],
+            'completed' => false, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        return back()->with('notice', 'Tarea agregada al proyecto.');
+    }
+
+    // Cada cambio de estado queda asociado a la persona y la fecha que lo registró.
+    public function completarTarea(Request $request, int $id, int $tarea)
+    {
+        $proyecto = DB::table('projects')->where('id', $id)->firstOrFail();
+        $this->autorizarEdicion($request, $proyecto);
+        abort_unless(in_array($proyecto->status, ['pending', 'in_progress'], true), 409);
+        $registro = DB::table('project_tasks')->where('project_id', $id)->where('id', $tarea)->firstOrFail();
+        $completada = !$registro->completed;
+        DB::table('project_tasks')->where('id', $tarea)->update([
+            'completed' => $completada, 'completed_by' => $completada ? $request->user()->id : null,
+            'completed_at' => $completada ? now() : null, 'updated_at' => now(),
+        ]);
+        return back()->with('notice', $completada ? 'Tarea completada.' : 'Tarea reabierta.');
+    }
+
+    // La misma regla autoriza a Gestión y al profesional responsable vigente.
+    private function autorizarEdicion(Request $request, object $proyecto): void
+    {
+        abort_unless($request->user()->puedeGestionarSynaux()
+            || ($request->user()->esProfesionalInterno() && (int)$proyecto->responsable_id === (int)$request->user()->id), 403);
     }
 
     // Cada avance se valida y conserva en una transacción; el cliente solo puede consultarlo.

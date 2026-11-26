@@ -7,6 +7,7 @@ import I from '../UI/AppIcon.vue';
 import ProjectUpdate from './ProjectUpdate.vue';
 import PagoProyecto from './PagoProyecto.vue';
 import AsignacionProyecto from './AsignacionProyecto.vue';
+import ListaTareasProyecto from './ListaTareasProyecto.vue';
 import HistorialPresupuesto from '../Presupuestos/HistorialPresupuesto.vue';
 import {date, money} from '../../support/formatters';
 
@@ -20,6 +21,8 @@ const listadoProyectos = computed(() => props.data.area === 'profesional' ? '/pr
 // La entrega y los pagos describen etapas distintas y se resumen por separado en el proyecto.
 const entregaRealizada = computed(() => project.value.status === 'completed');
 const saldoPendiente = computed(() => props.data.pagos?.find(pago => pago.concepto === 'saldo' && pago.estado !== 'confirmado'));
+const puedeEditarTareas = computed(() => props.data.area === 'gestion'
+    || (props.data.area === 'profesional' && project.value.status !== 'completed' && project.value.status !== 'cancelled'));
 // Gestión reutiliza el formulario de seguimiento desde el detalle del proyecto.
 const updating = ref(false);
 const guidance = computed(() => ({
@@ -55,6 +58,8 @@ const guidance = computed(() => ({
                 <div class="project-main">
                     <AsignacionProyecto v-if="data.asignacion" :proyecto-id="project.id" :asignacion="data.asignacion"
                                         :usuario-id="data.auth?.id"/>
+                    <ListaTareasProyecto :proyecto-id="project.id" :tareas="data.tareas ?? []"
+                                         :editable="puedeEditarTareas && ['pending', 'in_progress'].includes(project.status)"/>
                     <v-card class="card">
                         <h2>Avance del proyecto</h2>
                         <div class="section-head"><span>Progreso informado</span><strong

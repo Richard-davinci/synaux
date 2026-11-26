@@ -87,6 +87,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/presupuestos/{id}', [PresupuestoController::class, 'show'])->whereNumber('id');
     Route::get('/proyectos/{id}', [ProjectController::class, 'show'])->whereNumber('id');
     Route::patch('/proyectos/{id}/responsable', [ProjectController::class, 'asignar'])->whereNumber('id')->middleware('throttle:30,1');
+    Route::post('/proyectos/{id}/tareas', [ProjectController::class, 'agregarTarea'])->whereNumber('id')->middleware('throttle:60,1');
+    Route::patch('/proyectos/{id}/tareas/{tarea}', [ProjectController::class, 'completarTarea'])
+        ->whereNumber(['id', 'tarea'])->middleware('throttle:60,1');
     // Cada operación verifica la asociación entre el proyecto, el comprobante y la cuenta.
     Route::prefix('/proyectos/{proyecto}/pagos/{pago}')->whereNumber(['proyecto', 'pago'])->middleware('throttle:30,1')->group(function () {
         Route::post('/comprobante', [PagoProyectoController::class, 'presentar']);
