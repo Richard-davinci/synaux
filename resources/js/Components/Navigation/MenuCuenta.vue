@@ -45,14 +45,20 @@ function cerrarSesion() {
             max-width="calc(100vw - 24px)">
         <template #activator="{props: activador}">
             <button v-bind="activador" type="button" class="cuenta-activador" aria-label="Menú de cuenta">
-                <span class="cuenta-avatar" aria-hidden="true">{{ initials(nombre) }}</span>
+                <span class="cuenta-avatar" :class="{'cuenta-avatar-con-foto': page.props.auth?.foto_perfil}">
+                    <img v-if="page.props.auth?.foto_perfil" :src="page.props.auth.foto_perfil" alt=""/>
+                    <span v-else aria-hidden="true">{{ initials(nombre) }}</span>
+                </span>
                 <span v-if="rol" class="cuenta-rol-navbar">{{ rol }}</span>
                 <I name="chevron-down"/>
             </button>
         </template>
         <v-card class="menu-cuenta" aria-label="Opciones de la cuenta">
             <header class="cuenta-identidad">
-                <span class="cuenta-avatar" aria-hidden="true">{{ initials(nombre) }}</span>
+                <span class="cuenta-avatar" :class="{'cuenta-avatar-con-foto': page.props.auth?.foto_perfil}">
+                    <img v-if="page.props.auth?.foto_perfil" :src="page.props.auth.foto_perfil" alt=""/>
+                    <span v-else aria-hidden="true">{{ initials(nombre) }}</span>
+                </span>
                 <div>
                     <strong>{{ nombre }}</strong>
                     <p v-if="rol">{{ rol }}</p>
@@ -102,6 +108,12 @@ function cerrarSesion() {
     color: #fff;
     font-size: .78rem;
     font-weight: 700;
+    overflow: hidden;
+}
+.cuenta-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 .cuenta-activador .icon, .cuenta-opciones .icon {
     fill: none;

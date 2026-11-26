@@ -1,5 +1,5 @@
 <script setup>
-import {computed, reactive} from 'vue';
+import {computed, reactive, ref} from 'vue';
 import {Head, useForm} from '@inertiajs/vue3';
 import PublicLayout from '../Layouts/PublicLayout.vue';
 import B from '../Components/UI/AppButton.vue';
@@ -36,7 +36,8 @@ function limitarCuit(valor) {
 }
 
 const valores = {
-    contacto: () => ({...valoresCampos(props.profile, ['name', 'email', 'phone']), current_password: ''}),
+    contacto: () => ({...valoresCampos(props.profile, ['name', 'email', 'phone']), current_password: '',
+        foto_perfil_archivo: null, quitar_foto_perfil: false}),
     organizacion: () => ({company: props.profile.company ?? '', details: valoresCampos(props.profile.details, ['position', 'website', 'cuit'])}),
     ubicacion: () => ({details: {location: valoresCampos(props.profile.details?.location, clavesUbicacion)}}),
     domicilio: () => ({
@@ -51,6 +52,9 @@ const {
     domicilio: domicilioForm, clave: passwordForm,
 } = formularios;
 const editando = reactive({});
+const selectorFoto = ref(null);
+const fotoTemporal = ref(null);
+const fotoPerfilVisible = computed(() => fotoTemporal.value || (contactoForm.quitar_foto_perfil ? null : props.profile.foto_perfil));
 const emailChanged = computed(() => contactoForm.email.trim().toLowerCase() !== props.profile.email);
 const {accountRole, panelCuenta} = useNavigationContext();
 // Los integrantes del equipo administran aquí su cuenta personal. La ficha de la empresa tiene su propia sección.
@@ -85,8 +89,31 @@ function copiarUbicacion() {
     Object.assign(domicilioForm.details.billing_address, valoresCampos(props.profile.details?.location, clavesUbicacion));
 }
 
+function liberarFotoTemporal() {
+    if (fotoTemporal.value?.startsWith('blob:')) URL.revokeObjectURL(fotoTemporal.value);
+    fotoTemporal.value = null;
+}
+
+function elegirFoto(evento) {
+    const archivo = evento.target.files?.[0];
+    if (!archivo) return;
+    liberarFotoTemporal();
+    contactoForm.foto_perfil_archivo = archivo;
+    contactoForm.quitar_foto_perfil = false;
+    fotoTemporal.value = URL.createObjectURL(archivo);
+    evento.target.value = '';
+}
+
+function quitarFoto() {
+    liberarFotoTemporal();
+    contactoForm.foto_perfil_archivo = null;
+    contactoForm.quitar_foto_perfil = true;
+    if (selectorFoto.value) selectorFoto.value.value = '';
+}
+
 // Al abrir o cancelar se parte de los datos guardados y se descarta solo el borrador de esa tarjeta.
 function cambiarEdicion(seccion, estado) {
+    if (seccion === 'contacto') liberarFotoTemporal();
     formularios[seccion].defaults(valores[seccion]());
     formularios[seccion].resetAndClearErrors();
     editando[seccion] = estado;
@@ -121,7 +148,10 @@ function guardar(seccion) {
                 <aside class="account-sidebar">
                     <v-card class="card account-summary">
                         <div class="account-identity">
-                            <span class="account-avatar" aria-hidden="true">{{ initials(profile.name) }}</span>
+                            <span class="account-avatar" :class="{'account-avatar-con-foto': profile.foto_perfil}">
+                                <img v-if="profile.foto_perfil" :src="profile.foto_perfil" :alt="'Foto de ' + profile.name"/>
+                                <span v-else aria-hidden="true">{{ initials(profile.name) }}</span>
+                            </span>
                             <h2>{{ profile.name }}</h2>
                         </div>
                         <p class="account-email">{{ profile.email }}</p>
@@ -145,6 +175,28 @@ function guardar(seccion) {
                                    @editar="cambiarEdicion('contacto', true)" @cancelar="cambiarEdicion('contacto', false)"
                                    @guardar="guardar('contacto')">
                         <div class="account-fields">
+                            <div class="account-photo-editor account-field-wide">
+                                <span class="account-photo-preview" :class="{'account-avatar-con-foto': fotoPerfilVisible}">
+                                    <img v-if="fotoPerfilVisible" :src="fotoPerfilVisible" alt="Vista previa de la foto de perfil"/>
+                                    <span v-else aria-hidden="true">{{ initials(profile.name) }}</span>
+                                </span>
+                                <div class="account-photo-controls">
+                                    <strong>Foto de perfil</strong>
+                                    <p>JPG, PNG o WebP · hasta 2 MB</p>
+                                    <div class="account-photo-actions">
+                                        <B type="button" variant="secondary" compact :disabled="contactoForm.processing"
+                                           @click="selectorFoto?.click()">{{ fotoPerfilVisible ? 'Cambiar foto' : 'Elegir foto' }}</B>
+                                        <B v-if="fotoPerfilVisible" type="button" variant="neutro" compact
+                                           :disabled="contactoForm.processing" @click="quitarFoto">Quitar foto</B>
+                                        <input ref="selectorFoto" class="account-file-input" type="file"
+                                               accept="image/jpeg,image/png,image/webp" aria-label="Elegir foto de perfil"
+                                               :disabled="contactoForm.processing" @change="elegirFoto"/>
+                                    </div>
+                                    <small v-if="contactoForm.errors.foto_perfil_archivo" class="error" role="alert">
+                                        {{ contactoForm.errors.foto_perfil_archivo }}
+                                    </small>
+                                </div>
+                            </div>
                             <F v-model="contactoForm.name" label="Nombre y apellido" autocomplete="name" maxlength="255"
                                required :error="contactoForm.errors.name"/>
                             <!-- El correo del equipo se puede leer y copiar mientras se editan los demás datos. -->
@@ -279,6 +331,14 @@ function guardar(seccion) {
     color: #fff;
     font-size: 1rem;
     font-weight: 700;
+    overflow: hidden;
+}
+
+.account-avatar img,
+.account-photo-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .account-profile .account-identity h2 {
@@ -372,6 +432,70 @@ function guardar(seccion) {
     grid-column: 1 / -1;
 }
 
+.account-photo-editor {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 8px;
+    padding: 16px;
+    border: 1px solid #d4e3e8;
+    border-radius: 10px;
+    background: #f5f9fa;
+}
+
+.account-photo-preview {
+    display: grid;
+    flex: 0 0 76px;
+    width: 76px;
+    height: 76px;
+    place-items: center;
+    overflow: hidden;
+    border: 2px solid #d4e3e8;
+    border-radius: 50%;
+    background: #153b64;
+    color: #fff;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.account-photo-preview.account-avatar-con-foto {
+    background: #fff;
+}
+
+.account-photo-controls {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.account-photo-controls > p {
+    margin: 0;
+    color: #446075;
+    font-size: .85rem;
+}
+
+.account-photo-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+.account-file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    clip-path: inset(50%);
+}
+
+.account-photo-controls .error {
+    color: #a23c46;
+    font-size: .85rem;
+}
+
 .account-copy-location {
     margin-bottom: 14px;
 }
@@ -411,6 +535,17 @@ function guardar(seccion) {
 @media (max-width: 600px) {
     .account-fields {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .account-photo-editor {
+        align-items: flex-start;
+        padding: 12px;
+    }
+
+    .account-photo-preview {
+        flex-basis: 60px;
+        width: 60px;
+        height: 60px;
     }
 }
 </style>

@@ -25,7 +25,9 @@ class HandleInertiaRequests extends Middleware
 
         return [...parent::share($request), 'appName' => 'synaux',
             'stageTwo' => (bool)(config('synaux.stage_two_enabled') || $user?->is_admin), 'homeUrl' => '/', 'platformUrl' => '/plataforma', 'year' => (int)date('Y'),
-            'auth' => $user ? ['id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'is_admin' => (bool)$user->is_admin, 'professional' => $professional, 'rol_organizacion' => $rolOrganizacion,
+            'auth' => $user ? ['id' => $user->id, 'name' => $user->name, 'email' => $user->email,
+                'foto_perfil' => $user->foto_perfil ? '/mi-perfil/foto?v=' . $user->updated_at?->format('Uu') : null,
+                'is_admin' => (bool)$user->is_admin, 'professional' => $professional, 'rol_organizacion' => $rolOrganizacion,
                 'es_cuenta_interna' => $conEquipo ? $user->esCuentaInterna() : (bool)$user->is_admin,
                 'puede_gestionar' => $conEquipo ? $user->puedeGestionarSynaux() : (bool)$user->is_admin,
                 'puede_administrar' => $conEquipo ? $user->puedeAdministrarSynaux() : (bool)$user->is_admin,
