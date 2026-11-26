@@ -17,6 +17,7 @@ const props = defineProps({
     min: [String, Number],
     max: [String, Number],
     step: [String, Number],
+    inputmode: String,
     placeholder: String,
     disabled: Boolean,
     readonly: Boolean,
@@ -87,7 +88,7 @@ function invalidSelection() {
                     :type="type === 'password' ? (passwordVisible ? 'text' : 'password') : type" :required="required"
                     :readonly="readonly"
                     :autocomplete="autocomplete" :minlength="minlength" :maxlength="maxlength" :min="min" :max="max"
-                    :step="step" :placeholder="placeholder" @update:model-value="update">
+                    :step="step" :inputmode="inputmode" :placeholder="placeholder" @update:model-value="update">
             <template v-if="type === 'password'" #append-inner>
                 <button type="button" class="password-toggle" :disabled="disabled"
                         :aria-label="passwordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'"

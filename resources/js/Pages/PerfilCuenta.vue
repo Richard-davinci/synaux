@@ -20,7 +20,7 @@ const valoresCampos = (datos, claves) => Object.fromEntries(claves.map(clave => 
 const clavesUbicacion = ['country', 'region', 'city'];
 const valores = {
     contacto: () => ({...valoresCampos(props.profile, ['name', 'email', 'phone']), current_password: ''}),
-    organizacion: () => ({company: props.profile.company ?? '', details: valoresCampos(props.profile.details, ['position', 'website'])}),
+    organizacion: () => ({company: props.profile.company ?? '', details: valoresCampos(props.profile.details, ['position', 'website', 'cuit'])}),
     ubicacion: () => ({details: {location: valoresCampos(props.profile.details?.location, clavesUbicacion)}}),
     domicilio: () => ({
         address: props.profile.address ?? '',
@@ -50,7 +50,7 @@ const datosContacto = computed(() => conDatos([
 ]));
 const datosOrganizacion = computed(() => conDatos([
     ['Empresa u organización', props.profile.company], ['Cargo', props.profile.details?.position],
-    ['Sitio web', props.profile.details?.website],
+    ['CUIT de la organización', props.profile.details?.cuit], ['Sitio web', props.profile.details?.website],
 ]));
 const datosUbicacion = computed(() => conDatos(filasUbicacion(props.profile.details?.location)));
 const datosDomicilio = computed(() => {
@@ -155,6 +155,10 @@ function guardar(seccion) {
                                autocomplete="organization" maxlength="255" :error="organizacionForm.errors.company"/>
                             <F v-model="organizacionForm.details.position" label="Cargo" autocomplete="organization-title"
                                maxlength="120" :error="organizacionForm.errors['details.position']"/>
+                            <F v-model="organizacionForm.details.cuit" label="CUIT de la organización" inputmode="numeric"
+                               placeholder="30-12345678-9" maxlength="13"
+                               hint="11 dígitos, con o sin guiones."
+                               :error="organizacionForm.errors['details.cuit']"/>
                             <F v-model="organizacionForm.details.website" class="account-field-wide" label="Sitio web"
                                type="url" autocomplete="url" placeholder="https://ejemplo.com" maxlength="255"
                                :error="organizacionForm.errors['details.website']"/>
