@@ -24,7 +24,7 @@ const props = defineProps({
     minlength: [String, Number],
     maxlength: [String, Number]
 });
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue', 'blur']);
 const inputId = useId();
 const helpId = `${inputId}-help`;
 const selectControl = ref(null);
@@ -88,7 +88,8 @@ function invalidSelection() {
                     :type="type === 'password' ? (passwordVisible ? 'text' : 'password') : type" :required="required"
                     :readonly="readonly"
                     :autocomplete="autocomplete" :minlength="minlength" :maxlength="maxlength" :min="min" :max="max"
-                    :step="step" :inputmode="inputmode" :placeholder="placeholder" @update:model-value="update">
+                    :step="step" :inputmode="inputmode" :placeholder="placeholder" @blur="emit('blur', $event)"
+                    @update:model-value="update">
             <template v-if="type === 'password'" #append-inner>
                 <button type="button" class="password-toggle" :disabled="disabled"
                         :aria-label="passwordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'"

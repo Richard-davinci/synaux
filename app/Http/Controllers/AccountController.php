@@ -62,6 +62,8 @@ class AccountController extends Controller
                 'details.billing_address.region' => 'nullable|string|max:80',
                 'details.billing_address.city' => 'nullable|string|max:80',
                 'current_password' => $emailChanged ? ['required', 'current_password:web'] : ['nullable'],
+            ], [
+                'details.cuit.regex' => 'Ingresá 11 dígitos con el formato XX-XXXXXXXX-X.',
             ]);
             foreach (['name', 'email', 'phone', 'company', 'address'] as $field) {
                 if (array_key_exists($field, $data)) $user->$field = $data[$field];

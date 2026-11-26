@@ -18,6 +18,14 @@ import '../../css/ajustes-panel.css';
 const props = defineProps({profile: Object, preview: Boolean});
 const valoresCampos = (datos, claves) => Object.fromEntries(claves.map(clave => [clave, datos?.[clave] ?? '']));
 const clavesUbicacion = ['country', 'region', 'city'];
+// El CUIT admite escritura libre y se presenta con los separadores habituales al salir del campo.
+function formatearCuit(valor) {
+    const digitos = String(valor ?? '').replace(/\D/g, '');
+    return digitos.length === 11
+        ? `${digitos.slice(0, 2)}-${digitos.slice(2, 10)}-${digitos.slice(10)}`
+        : String(valor ?? '');
+}
+
 const valores = {
     contacto: () => ({...valoresCampos(props.profile, ['name', 'email', 'phone']), current_password: ''}),
     organizacion: () => ({company: props.profile.company ?? '', details: valoresCampos(props.profile.details, ['position', 'website', 'cuit'])}),
@@ -50,7 +58,8 @@ const datosContacto = computed(() => conDatos([
 ]));
 const datosOrganizacion = computed(() => conDatos([
     ['Empresa u organización', props.profile.company], ['Cargo', props.profile.details?.position],
-    ['CUIT de la organización', props.profile.details?.cuit], ['Sitio web', props.profile.details?.website],
+    ['CUIT de la organización', props.profile.details?.cuit ? formatearCuit(props.profile.details.cuit) : null],
+    ['Sitio web', props.profile.details?.website],
 ]));
 const datosUbicacion = computed(() => conDatos(filasUbicacion(props.profile.details?.location)));
 const datosDomicilio = computed(() => {
@@ -156,7 +165,7 @@ function guardar(seccion) {
                             <F v-model="organizacionForm.details.position" label="Cargo" autocomplete="organization-title"
                                maxlength="120" :error="organizacionForm.errors['details.position']"/>
                             <F v-model="organizacionForm.details.cuit" label="CUIT de la organización" inputmode="numeric"
-                               placeholder="30-12345678-9" maxlength="13"
+                               placeholder="30-12345678-9" maxlength="13" @blur="organizacionForm.details.cuit = formatearCuit(organizacionForm.details.cuit)"
                                hint="11 dígitos, con o sin guiones."
                                :error="organizacionForm.errors['details.cuit']"/>
                             <F v-model="organizacionForm.details.website" class="account-field-wide" label="Sitio web"
