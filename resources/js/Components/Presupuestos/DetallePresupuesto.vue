@@ -103,7 +103,7 @@ function decide() {
 <template>
     <section class="page shell" :class="{ 'workspace-view': data.area === 'cliente' }">
         <div class="client-budget">
-            <MigasNavegacion :niveles="migas" class="budget-breadcrumbs"/>
+            <MigasNavegacion :niveles="migas" dentro-de-contenedor class="budget-breadcrumbs"/>
             <T :eyebrow="data.area === 'cliente' ? undefined : 'Presupuesto formal'" :title="record.title">
                 <S :status="record.display_status ?? record.status"/></T>
             <div class="budget-state" :class="'budget-state--' + record.status" role="status"><I :name="state.icon"/>

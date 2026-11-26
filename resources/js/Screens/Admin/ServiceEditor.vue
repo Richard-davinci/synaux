@@ -73,7 +73,7 @@ function guardar() {
 
 <template>
     <section class="page shell catalog-admin workspace-view catalog-editor">
-        <MigasNavegacion class="editor-migas" :niveles="migas"/>
+        <MigasNavegacion class="editor-migas" :niveles="migas" dentro-de-contenedor/>
         <T :title="selected ? selected.name : 'Nuevo servicio'"
            :description="selected ? 'Editá la ficha pública, las preguntas y los precios de este servicio.' : 'Guardá la ficha para configurar sus preguntas y precios.'"/>
         <!-- Vuetify gestiona el teclado y el desplazamiento de la barra en pantallas angostas. -->

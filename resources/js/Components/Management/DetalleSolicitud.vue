@@ -86,7 +86,7 @@ function changeStatus(status) {
 
 <template>
     <section class="page shell workspace-view">
-        <MigasNavegacion :niveles="migas" class="review-breadcrumbs"/>
+        <MigasNavegacion :niveles="migas" dentro-de-contenedor class="review-breadcrumbs"/>
         <T eyebrow="Revisión de solicitud" :title="request.title">
             <div class="review-heading-meta">
                 <S :status="estadoRevision?.status ?? request.status" :request="!presupuesto"
@@ -148,9 +148,9 @@ function changeStatus(status) {
                     <p>{{ textoRevision }}</p>
                     <div v-if="open" class="review-actions">
                         <B v-if="budgetAction" :href="budgetAction.href" arrow>{{ budgetAction.label }}</B>
-                        <B v-if="!request.reviewed_at" variant="secondary" :disabled="state.processing"
+                        <B v-if="!request.reviewed_at" :disabled="state.processing"
                            @click="changeStatus('review')">Marcar revisada</B>
-                        <B variant="ghost" :disabled="state.processing" @click="closing = true">Cerrar solicitud</B>
+                        <B variant="danger" :disabled="state.processing" @click="closing = true">Cerrar solicitud</B>
                     </div>
                     <div v-else-if="budgetAction" class="review-actions">
                         <B :href="budgetAction.href" arrow>{{ budgetAction.label }}</B>
@@ -187,7 +187,7 @@ function changeStatus(status) {
                 <p>La solicitud dejará de estar disponible para preparar un presupuesto.</p>
                 <div class="form-actions">
                     <B variant="secondary" :disabled="state.processing" @click="closing = false">Cancelar</B>
-                    <B :disabled="state.processing" @click="changeStatus('closed')">Cerrar solicitud</B>
+                    <B variant="danger" :disabled="state.processing" @click="changeStatus('closed')">Cerrar solicitud</B>
                 </div>
             </section>
         </SidePanel>
@@ -197,14 +197,7 @@ function changeStatus(status) {
 <style scoped>
 /* La descripción, los servicios y la revisión tienen sus propios encabezados y orden de lectura. */
 .review-breadcrumbs {
-    width: 100%;
-    max-width: 100%;
-    margin-inline: 0;
     margin-bottom: 14px;
-}
-
-.page .review-breadcrumbs {
-    padding-inline: 0;
 }
 
 .review-heading-meta {

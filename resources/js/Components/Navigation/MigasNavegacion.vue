@@ -3,12 +3,12 @@ import {usePage} from '@inertiajs/vue3';
 import {referenceHref} from '../../support/prototype';
 
 // Solo los niveles anteriores son enlaces; la página actual queda identificada para lectores de pantalla.
-defineProps({niveles: {type: Array, required: true}});
+defineProps({niveles: {type: Array, required: true}, dentroDeContenedor: Boolean});
 const page = usePage();
 </script>
 
 <template>
-    <nav class="shell migas-navegacion" aria-label="Migas de pan">
+    <nav :class="['migas-navegacion', {'migas-navegacion-anidada': dentroDeContenedor}]" aria-label="Migas de pan">
         <ol>
             <li v-for="([nombre, href], indice) in niveles" :key="href || nombre">
                 <span v-if="indice" class="migas-separador" aria-hidden="true">/</span>
@@ -23,9 +23,15 @@ const page = usePage();
 /* La ruta conserva el margen del contenido y puede pasar a otra línea en pantallas angostas. */
 .migas-navegacion {
     width: min(1180px, calc(100% - 48px));
+    margin-inline: auto;
     padding-top: clamp(18px, 2.5vw, 30px);
     color: #446075;
     font-size: .875rem;
+}
+
+.migas-navegacion-anidada {
+    width: 100%;
+    margin-inline: 0;
 }
 
 .migas-navegacion ol,

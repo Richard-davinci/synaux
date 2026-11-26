@@ -65,6 +65,22 @@ const destination = computed(() => referenceHref(props.href, page.props));
     background: #f5f9fa;
 }
 
+/* El rojo queda reservado para acciones que cierran o descartan un flujo sin retorno directo. */
+.btn-danger.v-btn,
+.btn-danger.v-btn:hover,
+.btn-danger.v-btn:focus-visible {
+    color: #fff;
+    background: #a13b42;
+}
+
+.btn-danger.v-btn {
+    box-shadow: var(--button-shadow);
+}
+
+.btn-danger.v-btn:hover {
+    background: #842f36;
+}
+
 /* El tamaño compacto se reserva para tarjetas y accesos secundarios; en pantallas táctiles mantiene área de toque. */
 .btn.v-btn.btn-compact {
     min-height: 36px;
