@@ -283,13 +283,17 @@ function save(publish) {
 
                 <!-- El reinicio se ofrece en el flujo nuevo, con confirmación si hay datos para descartar. -->
                 <div class="acciones-borrador" v-if="(step >= 2 && authenticated) || puedeReiniciar">
-                    <B v-if="step >= 2 && authenticated" variant="ghost"
-                       :disabled="form.processing || handoff.processing || !canSaveDraft"
-                       @click="save(false)">{{ form.processing && !form.publish ? 'Guardando…' : 'Guardar en Estimaciones' }}</B>
-                    <ReiniciarEstimacion v-if="puedeReiniciar"
-                                         :deshabilitado="form.processing || handoff.processing"/>
+                    <p v-if="step >= 2 && authenticated" class="draft-help">
+                        Si guardás ahora, vas a encontrar la preparación en Estimaciones. Al enviarla a synaux, pasará a Solicitudes.
+                    </p>
+                    <div class="acciones-borrador-botones">
+                        <B v-if="step >= 2 && authenticated" variant="secondary"
+                           :disabled="form.processing || handoff.processing || !canSaveDraft"
+                           @click="save(false)">{{ form.processing && !form.publish ? 'Guardando…' : 'Guardar en Estimaciones' }}</B>
+                        <ReiniciarEstimacion v-if="puedeReiniciar"
+                                             :deshabilitado="form.processing || handoff.processing"/>
+                    </div>
                 </div>
-                <p v-if="step >= 2 && authenticated" class="draft-help">Si guardás ahora, vas a encontrar la preparación en Estimaciones. Al enviarla a synaux, pasará a Solicitudes.</p>
                 <p v-if="step >= 2 && authenticated && !canSaveDraft" class="draft-help">Completá el título y la
                     descripción para guardar el borrador.</p>
             </v-card>
@@ -423,10 +427,22 @@ function save(publish) {
 }
 
 .acciones-borrador {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+    padding: 14px 16px;
+    border: 1px solid #1f6f7f2e;
+    border-left: 3px solid #1f6f7f;
+    border-radius: 10px;
+    background: #f5f9fa;
+}
+
+.acciones-borrador-botones {
     display: flex;
+    align-items: center;
+    justify-content: flex-end;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 8px;
 }
 
 @media (max-width: 900px) {
@@ -488,7 +504,17 @@ function save(publish) {
 
 .draft-help {
     font-size: .9rem;
-    margin: 8px 0 0;
+    margin: 0;
+}
+
+@media (max-width: 520px) {
+    .acciones-borrador-botones {
+        justify-content: stretch;
+    }
+
+    .acciones-borrador-botones :deep(.btn) {
+        flex: 1 1 auto;
+    }
 }
 
 @media (max-width: 600px) {
