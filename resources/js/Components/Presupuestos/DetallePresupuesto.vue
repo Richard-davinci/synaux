@@ -145,9 +145,12 @@ function decide() {
                                 <dd>{{ record.estimated_delivery_days }} días desde el inicio acordado</dd>
                             </div>
                         </dl>
-                        <div class="button-stack"><B v-if="!data.preview" :href="'/presupuestos/' + record.id + '/pdf'"
-                                                     variant="secondary">Descargar PDF · versión
-                            {{ record.version_number }}</B>
+                        <div class="button-stack">
+                            <B v-if="canEdit && record.status === 'draft'" :href="'/editor/presupuesto/' + record.id">
+                                Continuar borrador
+                            </B>
+                            <B v-if="!data.preview" :href="'/presupuestos/' + record.id + '/pdf'"
+                               variant="secondary">Descargar PDF · versión {{ record.version_number }}</B>
                             <p v-else class="budget-help">La descarga del PDF está disponible en tu cuenta con el
                                 presupuesto real.</p>
                             <template v-if="canDecide"><B arrow @click="decision = 'accepted'">Aceptar presupuesto</B><B
@@ -156,9 +159,9 @@ function decide() {
                                 proyecto</B>
                             <B v-else-if="record.status === 'accepted'" href="/cliente/proyectos" arrow>Ir a mis
                                 proyectos</B>
-                            <B v-if="canEdit" :href="'/editor/presupuesto/' + record.id">{{
-                                    record.status === 'draft' ? 'Continuar borrador' : 'Preparar nueva versión'
-                                }}</B>
+                            <B v-if="canEdit && record.status !== 'draft'" :href="'/editor/presupuesto/' + record.id">
+                                Preparar nueva versión
+                            </B>
                         </div>
                         <p v-if="canDecide" class="budget-help">La aceptación crea el proyecto con esta versión. Antes
                             de confirmar podrás revisar tu decisión.</p>
@@ -167,16 +170,26 @@ function decide() {
                     </v-card>
                     <v-card class="card"><h2>Historial de versiones</h2>
                         <p class="budget-help">Cada versión conserva sus importes y condiciones.</p>
-                        <ol class="budget-history">
+                        <!-- La línea temporal hace evidente el orden y permite abrir cualquier versión con toda la fila. -->
+                        <ol class="budget-history" aria-label="Versiones del presupuesto, de la más reciente a la más antigua">
                             <li v-for="item in versions" :key="item.id"
-                                :class="{ 'history-selected': item.id === record.id }"><a :href="historyHref(item)"
-                                                                                          :aria-current="item.id === record.id ? 'page' : undefined">Versión
-                                {{ item.version_number }}<span v-if="item.id === record.id"> · En pantalla</span></a><S
-                                :status="item.display_status ?? item.status"/><small>{{
-                                    date(item.sent_at ?? item.created_at)
-                                }}</small><small v-if="item.current">{{
-                                    record.external ? 'Última versión emitida' : 'Última versión enviada'
-                                }}</small></li>
+                                :class="{ 'history-draft': item.status === 'draft' }">
+                                <a class="budget-history-link" :href="historyHref(item)"
+                                   :aria-current="item.id === record.id ? 'page' : undefined"
+                                   :aria-label="'Abrir versión ' + item.version_number">
+                                    <span class="history-marker" aria-hidden="true"></span>
+                                    <span class="history-version-content">
+                                        <span class="history-version-heading">
+                                            <strong>Versión {{ item.version_number }}<small v-if="item.id === record.id">En pantalla</small></strong>
+                                            <S :status="item.display_status ?? item.status"/>
+                                        </span>
+                                        <time :datetime="item.sent_at ?? item.created_at">{{ date(item.sent_at ?? item.created_at) }}</time>
+                                        <small v-if="item.current">{{ record.external ? 'Última versión emitida' : 'Última versión enviada' }}</small>
+                                        <small v-else-if="item.status === 'draft'">Borrador actual</small>
+                                    </span>
+                                    <I class="history-arrow" name="arrow"/>
+                                </a>
+                            </li>
                         </ol>
                     </v-card>
                 </aside>
@@ -310,8 +323,10 @@ function decide() {
 }
 
 .budget-side .button-stack {
-    /* Las acciones de versión comparten alto y ancho máximo; no se estiran a toda la tarjeta. */
-    justify-items: start;
+    /* Las acciones mantienen su medida y quedan centradas con aire respecto de los datos del resumen. */
+    justify-items: center;
+    margin-top: 16px;
+    padding: 10px 8px 0;
 }
 
 .budget-side .button-stack .btn {
@@ -447,32 +462,121 @@ function decide() {
 }
 
 .budget-history {
+    /* El eje vertical ayuda a recorrer las versiones en orden sin convertir cada hito en una tarjeta pesada. */
     padding: 0;
-    margin: 0;
+    margin: 8px 0 0;
     list-style: none;
 }
 
 .budget-history li {
+    position: relative;
+    padding: 0 0 12px 18px;
+}
+
+.budget-history li::before {
+    position: absolute;
+    top: 19px;
+    bottom: -1px;
+    left: 5px;
+    width: 1px;
+    background: #c9dce2;
+    content: '';
+}
+
+.budget-history li:last-child::before {
+    display: none;
+}
+
+.history-marker {
+    position: absolute;
+    top: 17px;
+    left: 0;
+    width: 11px;
+    height: 11px;
+    border: 2px solid #1f6f7f;
+    border-radius: 50%;
+    background: #fff;
+}
+
+.history-draft .history-marker {
+    border-color: #2db3a3;
+    background: #e7f7f4;
+}
+
+.budget-history-link {
     display: grid;
-    gap: 8px;
-    padding: 16px 12px;
-    border-bottom: 1px solid #1f6f7f22;
-}
-
-.budget-history a {
+    grid-template-columns: minmax(0, 1fr) 18px;
+    align-items: center;
+    gap: 8px 12px;
+    min-height: 72px;
+    padding: 12px 14px;
+    border: 1px solid #d4e3e8;
+    border-radius: 10px;
+    background: #fff;
     color: #153b64;
-    font-weight: 700;
-    padding: 8px 0;
+    text-decoration: none;
+    transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease;
 }
 
-.budget-history a:focus-visible {
+.budget-history-link:hover {
+    border-color: #1f6f7f66;
+    background: #f5f9fa;
+    box-shadow: 0 3px 10px #153b640c;
+}
+
+.budget-history-link:focus-visible {
     outline: 3px solid #1f6f7f;
     outline-offset: 3px;
 }
 
-.history-selected {
-    border-radius: 10px;
+.budget-history-link[aria-current='page'] {
+    border-color: #1f6f7f66;
     background: #f5f9fa;
+    box-shadow: inset 3px 0 #1f6f7f;
+}
+
+.history-version-content {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+}
+
+.history-version-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.history-version-heading > strong {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    color: #153b64;
+}
+
+.history-version-heading > strong small {
+    color: #1f6f7f;
+    font-size: .75rem;
+    font-weight: 700;
+}
+
+.history-version-content time,
+.history-version-content > small {
+    color: #446075;
+    font-size: .82rem;
+}
+
+.history-arrow {
+    width: 18px;
+    height: 18px;
+    color: #1f6f7f;
+}
+
+.budget-history-link[aria-current='page'] .history-arrow {
+    color: #153b64;
 }
 
 .budget-history small {
