@@ -33,7 +33,7 @@ defineProps({
                             <strong>{{ money(version.total, version.currency_code) }}</strong>
                         </span>
                     </span>
-                    <span class="historial-abrir">Ver <I name="arrow"/></span>
+                    <I class="historial-flecha" name="arrow"/>
                 </a>
             </li>
         </ol>
@@ -153,7 +153,7 @@ defineProps({
 
 .historial-encabezado {
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 8px 14px;
 }
 
@@ -175,19 +175,10 @@ defineProps({
     font-weight: 700;
 }
 
-.historial-abrir {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
+.historial-flecha {
+    width: 18px;
+    height: 18px;
     color: #1f6f7f;
-    font-size: .875rem;
-    font-weight: 700;
-    white-space: nowrap;
-}
-
-.historial-abrir :deep(.icon) {
-    width: 16px;
-    height: 16px;
 }
 
 @media (max-width: 520px) {
