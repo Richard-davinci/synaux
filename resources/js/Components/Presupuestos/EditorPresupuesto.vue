@@ -311,9 +311,12 @@ function save(send) {
                                 Anterior
                             </B>
                             <span v-else/>
-                            <B type="submit" :disabled="!canPrepare || needsIssuer || quote.processing" arrow>
-                                {{ step === 3 ? 'Revisar documento' : 'Continuar' }}
-                            </B>
+                            <div class="budget-next-actions">
+                                <B variant="neutro" compact :disabled="quote.processing" :href="cancelarHref">Cancelar</B>
+                                <B type="submit" :disabled="!canPrepare || needsIssuer || quote.processing" arrow>
+                                    {{ step === 3 ? 'Revisar documento' : 'Continuar' }}
+                                </B>
+                            </div>
                         </div>
                     </v-card>
                 </form>
@@ -321,11 +324,10 @@ function save(send) {
                     <B variant="secondary" compact :disabled="!canPrepare || needsIssuer || quote.processing" @click="save(false)">
                         Guardar borrador
                     </B>
-                    <B variant="neutro" compact :disabled="quote.processing" :href="cancelarHref">Cancelar</B>
                 </div>
             </div>
             <BudgetPreviewPanel ref="panelVistaPrevia" :visible="preview" :vista-previa-visible="vistaPreviaVisible"
-                                :url-cancelar="cancelarHref" :budget="documentPreview" :client="client" :issuer="issuer"
+                                :budget="documentPreview" :client="client" :issuer="issuer"
                                 :direct="direct" :step="step" :disabled="!canPrepare || needsIssuer || quote.processing"
                                 :saving="quote.processing && !quote.send" :persistent="quote.processing"
                                 @close="preview = false" @ocultar-vista="vistaPreviaVisible = false"
@@ -341,7 +343,7 @@ function save(send) {
 }
 
 .budget-editor {
-    --budget-preview-width: clamp(360px, 30vw, 440px);
+    --budget-preview-width: clamp(380px, 32vw, 460px);
     width: calc(100% - var(--budget-preview-width) - 48px);
     max-width: none;
     margin: 0 0 0 24px;
@@ -498,6 +500,13 @@ function save(send) {
     border-top: 1px solid #1f6f7f22;
 }
 
+.budget-next-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
 .budget-editor-grid > * {
     min-width: 0;
 }
@@ -571,6 +580,12 @@ function save(send) {
 
     .form-actions .btn {
         flex: 1 1 100%;
+    }
+
+    .budget-next-actions {
+        flex: 1 1 100%;
+        justify-content: flex-end;
+        flex-wrap: wrap;
     }
 }
 </style>

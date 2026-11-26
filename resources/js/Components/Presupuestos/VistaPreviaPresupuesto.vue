@@ -10,7 +10,6 @@ import BudgetDocument from './DocumentoPresupuesto.vue';
 defineProps({
     visible: Boolean,
     vistaPreviaVisible: Boolean,
-    urlCancelar: {type: String, required: true},
     budget: {type: Object, required: true},
     client: Object,
     issuer: Object,
@@ -54,7 +53,6 @@ defineExpose({irAVista});
             <B variant="secondary" compact :disabled="disabled || saving" @click="emit('save-draft')">
                 {{ saving ? 'Guardando…' : 'Guardar borrador' }}
             </B>
-            <B variant="neutro" compact :disabled="persistent" :href="urlCancelar">Cancelar</B>
             <B v-if="step === 3" compact :disabled="disabled || persistent" arrow @click="emit('send')">
                 {{ direct ? 'Emitir presupuesto' : 'Enviar presupuesto' }}
             </B>
@@ -79,7 +77,6 @@ defineExpose({irAVista});
                 <B variant="secondary" compact :disabled="disabled || saving" @click="emit('save-draft')">
                     {{ saving ? 'Guardando…' : 'Guardar borrador' }}
                 </B>
-                <B variant="neutro" compact :disabled="persistent" :href="urlCancelar">Cancelar</B>
                 <B variant="ghost" compact :disabled="persistent" @click="emit('close')">Seguir editando</B>
                 <B v-if="step === 3" compact :disabled="disabled || persistent" arrow @click="emit('send')">
                     {{ direct ? 'Emitir presupuesto' : 'Enviar presupuesto' }}
@@ -96,7 +93,7 @@ defineExpose({irAVista});
     inset: var(--navbar-height, 76px) 0 0 auto;
     display: flex;
     flex-direction: column;
-    width: var(--budget-preview-width, clamp(360px, 30vw, 440px));
+    width: var(--budget-preview-width, clamp(380px, 32vw, 460px));
     min-height: 0;
     overflow: hidden;
     border: 1px solid #1f6f7f26;
@@ -172,7 +169,7 @@ defineExpose({irAVista});
     background: #fff;
 }
 
-.preview-actions > :nth-child(3) {
+.preview-actions > :only-child {
     grid-column: 1 / -1;
 }
 
