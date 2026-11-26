@@ -1,7 +1,6 @@
 <script setup>
 import {computed} from 'vue';
 import RequestsTable from '../../Components/Management/TablaSolicitudes.vue';
-import B from '../../Components/UI/AppButton.vue';
 import IndicadoresPanel from '../../Components/Navigation/IndicadoresPanel.vue';
 import T from '../../Components/UI/PageTitle.vue';
 import {presupuestosSinProyecto} from '../../support/agrupacionPresupuestos';
@@ -26,10 +25,7 @@ const summary = computed(() => [
 
         <IndicadoresPanel :indicadores="summary" ruta-base="/gestion" :contexto="data"/>
         <section class="card management-queue" aria-labelledby="management-queue-title">
-            <div class="section-head">
-                <h2 id="management-queue-title">Solicitudes por revisar</h2>
-                <B compact variant="secondary" href="/gestion/solicitudes">Ver solicitudes</B>
-            </div>
+            <h2 id="management-queue-title">Solicitudes por revisar</h2>
             <RequestsTable v-if="pendingRequests.length" :rows="pendingRequests.slice(0, 5)"
                            label="Solicitudes por revisar" :preview="Boolean(data.preview)"/>
             <p v-if="!pendingRequests.length">No hay solicitudes pendientes de revisión.</p>
