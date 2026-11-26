@@ -180,24 +180,24 @@ function changeStatus(status) {
         </div>
 
         <SidePanel v-model="closing" title="Cerrar solicitud" max-width="460" :persistent="state.processing">
-            <section class="card modal-card">
+            <section class="solicitud-confirmacion">
                 <h2>¿Querés cerrar esta solicitud?</h2>
                 <p>La solicitud dejará de estar disponible para preparar un presupuesto.</p>
-                <div class="form-actions">
-                    <B variant="secondary" :disabled="state.processing" @click="closing = false">Cancelar</B>
-                    <B variant="danger" :disabled="state.processing" @click="changeStatus('closed')">Cerrar solicitud</B>
-                </div>
             </section>
+            <template #footer>
+                <B variant="secondary" :disabled="state.processing" @click="closing = false">Cancelar</B>
+                <B variant="danger" :disabled="state.processing" @click="changeStatus('closed')">Cerrar solicitud</B>
+            </template>
         </SidePanel>
         <SidePanel v-model="markingReviewed" title="Marcar revisada" max-width="460" :persistent="state.processing">
-            <section class="card modal-card">
+            <section class="solicitud-confirmacion">
                 <h2>¿Confirmás que la solicitud está revisada?</h2>
                 <p>La solicitud quedará marcada como revisada y seguirá disponible para avanzar con el presupuesto.</p>
-                <div class="form-actions">
-                    <B variant="secondary" :disabled="state.processing" @click="markingReviewed = false">Cancelar</B>
-                    <B :disabled="state.processing" @click="changeStatus('review')">Confirmar revisión</B>
-                </div>
             </section>
+            <template #footer>
+                <B variant="secondary" :disabled="state.processing" @click="markingReviewed = false">Cancelar</B>
+                <B :disabled="state.processing" @click="changeStatus('review')">Confirmar revisión</B>
+            </template>
         </SidePanel>
     </section>
 </template>
@@ -329,6 +329,24 @@ function changeStatus(status) {
     border-top: 3px solid #2db3a3;
 }
 
+/* Las dos decisiones mantienen la misma jerarquía y dejan las acciones fijas al pie del panel. */
+.solicitud-confirmacion {
+    padding: 24px;
+}
+
+.solicitud-confirmacion h2 {
+    margin: 0 0 10px;
+    font: 600 1.35rem/1.3 'Space Grotesk', sans-serif;
+}
+
+.solicitud-confirmacion p {
+    max-width: 42ch;
+    margin: 0;
+    color: #446075;
+    font-size: .95rem;
+    line-height: 1.55;
+}
+
 .review-actions {
     display: grid;
     gap: 8px;
@@ -353,6 +371,10 @@ function changeStatus(status) {
 @media (max-width: 480px) {
     .review-facts {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .solicitud-confirmacion {
+        padding: 20px 16px;
     }
 }
 </style>

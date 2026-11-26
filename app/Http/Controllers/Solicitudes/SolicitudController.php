@@ -153,6 +153,13 @@ class SolicitudController extends Controller
             DB::table('project_requests')->where('id', $r->id)->update(['status' => $d['status'], 'updated_at' => now()]);
         }
 
-        return back()->with('notice', 'Estado actualizado.');
+        // El aviso confirma la acción concreta en la notificación visual compartida del sitio.
+        $notice = match ($d['status']) {
+            'review' => 'Solicitud marcada como revisada.',
+            'closed' => 'Solicitud cerrada.',
+            'cancelled' => 'Solicitud cancelada.',
+        };
+
+        return back()->with('notice', $notice);
     }
 }

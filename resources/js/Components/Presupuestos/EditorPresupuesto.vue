@@ -219,7 +219,8 @@ function save(send) {
 </script>
 
 <template>
-    <section class="page shell budget-editor">
+    <section class="budget-editor-page">
+      <div class="page shell budget-editor">
         <B href="/gestion/presupuestos" variant="secondary">← Volver a presupuestos</B>
         <div class="budget-heading"><p class="eyebrow">Gestión · Presupuesto formal</p>
             <h1>{{ selected.budget_id && selected.status !== 'draft' ? 'Prepará la próxima versión' : 'Prepará el presupuesto' }}</h1>
@@ -288,11 +289,17 @@ function save(send) {
                             :saving="quote.processing && !quote.send" :persistent="quote.processing"
                             @close="preview = false" @save-draft="save(false)" @send="save(true)"
                             @change-view="previewView = $event"/>
+      </div>
     </section>
 </template>
 
 <style scoped>
 /* La grilla, las tarjetas y los pasos siguen el recorrido del cliente sin comprimir los conceptos. */
+.budget-editor-page {
+    min-height: calc(100vh - var(--navbar-height, 76px));
+    background: #f5f9fa;
+}
+
 .budget-editor {
     width: min(1680px, calc(100% - 48px));
     max-width: none;
