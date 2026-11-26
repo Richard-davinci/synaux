@@ -42,7 +42,7 @@ const emit = defineEmits(['ver-pedido']);
         <section v-if="source" class="request-context" aria-label="Pedido del cliente">
             <div class="context-heading">
                 <div><p class="request-id">Pedido original · SOL-{{ source.id }}</p><h3>{{ source.title }}</h3></div>
-                <B variant="secondary" @click="emit('ver-pedido')">Ver pedido original</B>
+                <B variant="secondary" @click="emit('ver-pedido')">Abrir ficha completa</B>
             </div>
             <p class="preserve-lines request-description">{{ source.description }}</p>
             <dl>
@@ -62,9 +62,11 @@ const emit = defineEmits(['ver-pedido']);
             <p class="request-services"><strong>Servicios:</strong> {{ [source.service_name, ...(source.additional_services ?? []).map(item => item.name)].filter(Boolean).join(' · ') }}</p>
         </section>
     </template>
-    <F v-model="quote.title" label="Título del presupuesto" maxlength="255" :error="quote.errors.title" required/>
-    <F v-model="quote.currency_code" label="Moneda del presupuesto" type="select" :options="['ARS', 'USD', 'EUR']"
-       :error="quote.errors.currency_code" required/>
+    <div class="budget-identification-fields">
+        <F v-model="quote.title" label="Título del presupuesto" maxlength="255" :error="quote.errors.title" required/>
+        <F v-model="quote.currency_code" label="Moneda del presupuesto" type="select" :options="['ARS', 'USD', 'EUR']"
+           :error="quote.errors.currency_code" required/>
+    </div>
     <p class="editor-hint">Los importes se ingresan en la moneda elegida. Cambiarla no convierte los precios.</p>
 </template>
 
@@ -75,6 +77,14 @@ const emit = defineEmits(['ver-pedido']);
     padding: 16px;
     border-radius: 12px;
     margin: 16px 0;
+}
+
+.budget-identification-fields {
+    /* Título y moneda comparten una fila en escritorio y se apilan en móvil. */
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 16px;
+    align-items: start;
 }
 
 .request-id {
@@ -122,5 +132,12 @@ const emit = defineEmits(['ver-pedido']);
 .editor-hint {
     font-size: .9rem;
     color: #446075;
+}
+
+@media (max-width: 600px) {
+    .budget-identification-fields {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0;
+    }
 }
 </style>

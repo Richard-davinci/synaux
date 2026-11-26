@@ -2,6 +2,10 @@
 import SidePanel from '../UI/SidePanel.vue';
 import B from '../UI/AppButton.vue';
 import BudgetDocument from './DocumentoPresupuesto.vue';
+import S from '../UI/StatusBadge.vue';
+import {computed} from 'vue';
+import {date, money} from '../../support/formatters';
+import {referenceLine, summarizePrices} from '../../support/calculoPreciosSolicitud';
 
 const props = defineProps({
     visible: Boolean,
@@ -17,6 +21,22 @@ const props = defineProps({
     persistent: Boolean,
 });
 const emit = defineEmits(['close', 'save-draft', 'send', 'change-view']);
+// Reutiliza los importes orientativos guardados en la solicitud para que la ficha conserve el contenido de su detalle.
+const serviciosSolicitud = computed(() => {
+    if (!props.solicitud) return [];
+    const extras = props.solicitud.additional_services ?? [];
+    const currency = props.solicitud.pricing_reference?.currency
+        ?? extras.find(item => item.pricing_reference)?.pricing_reference.currency ?? 'ARS';
+    return [
+        {name: props.solicitud.service_name, quantity: 1, pricing_reference: props.solicitud.pricing_reference},
+        ...extras,
+    ].map(item => ({...item, price: referenceLine(item.pricing_reference, item.quantity, null, currency), currency}));
+});
+const resumenImportes = computed(() => summarizePrices(serviciosSolicitud.value.map(item => item.price), serviciosSolicitud.value[0]?.currency ?? 'ARS'));
+
+function textoPrecio({min, max}, currency) {
+    return min === max ? money(min, currency) : `${money(min, currency)} a ${money(max, currency)}`;
+}
 
 function moverPestana(event) {
     if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
@@ -49,8 +69,14 @@ function moverPestana(event) {
                     <div>
                         <p class="eyebrow">Solicitud original · SOL-{{ solicitud.id }}</p>
                         <h2>{{ solicitud.title }}</h2>
+                        <div class="request-heading-meta">
+                            <S :status="solicitud.status" request/>
+                            <span>Registrada el {{ date(solicitud.created_at) }}</span>
+                        </div>
                     </div>
                 </div>
+                <div class="request-preview-layout">
+                    <div class="request-preview-main">
                 <section class="request-preview-card">
                     <h3>Qué necesita el cliente</h3>
                     <p class="preserve-lines">{{ solicitud.description || 'Sin descripción adicional.' }}</p>
@@ -62,11 +88,29 @@ function moverPestana(event) {
                     </dl>
                     <p v-if="solicitud.skills?.length" class="request-skills"><strong>Habilidades solicitadas</strong><br>{{ solicitud.skills.join(' · ') }}</p>
                 </section>
-                <section v-if="solicitud.additional_services?.length" class="request-preview-card">
-                    <h3>Servicios adicionales</h3>
+                <section class="request-preview-card" aria-labelledby="request-preview-services">
+                    <h3 id="request-preview-services">Servicios solicitados</h3>
+                    <article class="request-service">
+                        <p class="request-service-type">Servicio principal</p>
+                        <div class="request-service-heading">
+                            <h4>{{ solicitud.service_name || 'Servicio por definir' }}</h4>
+                            <strong v-if="serviciosSolicitud[0]?.price.priced">{{ textoPrecio(serviciosSolicitud[0].price, serviciosSolicitud[0].currency) }}</strong>
+                            <small v-else>Pendiente de cotización</small>
+                        </div>
+                        <dl v-if="solicitud.answers?.length" class="request-answers">
+                            <div v-for="(answer, index) in solicitud.answers" :key="answer.id || index">
+                                <dt>{{ answer.question }}</dt><dd>{{ answer.label }}</dd>
+                            </div>
+                        </dl>
+                    </article>
                     <article v-for="(item, index) in solicitud.additional_services" :key="item.service_id || index"
                              class="request-service">
-                        <h4>{{ item.name }}<span v-if="item.quantity && item.quantity !== 1"> · {{ item.quantity }}</span></h4>
+                        <p class="request-service-type">Adicional<span v-if="item.quantity && item.quantity !== 1"> · {{ item.quantity }} ud.</span></p>
+                        <div class="request-service-heading">
+                            <h4>{{ item.name }}</h4>
+                            <strong v-if="serviciosSolicitud[index + 1]?.price.priced">{{ textoPrecio(serviciosSolicitud[index + 1].price, serviciosSolicitud[index + 1].currency) }}</strong>
+                            <small v-else>Pendiente de cotización</small>
+                        </div>
                         <p v-if="item.notes" class="preserve-lines">{{ item.notes }}</p>
                         <dl v-if="item.answers?.length" class="request-answers">
                             <div v-for="(answer, answerIndex) in item.answers" :key="answer.id || answerIndex">
@@ -74,23 +118,22 @@ function moverPestana(event) {
                             </div>
                         </dl>
                     </article>
+                    <div class="request-total" v-if="resumenImportes.hasPrice && serviciosSolicitud.length > 1">
+                        <span>{{ resumenImportes.pending ? 'Subtotal orientativo' : 'Estimación orientativa' }}</span>
+                        <strong>{{ textoPrecio(resumenImportes, serviciosSolicitud[0].currency) }}</strong>
+                    </div>
                 </section>
-                <section v-if="solicitud.answers?.length" class="request-preview-card">
-                    <h3>Respuestas del pedido</h3>
-                    <dl class="request-answers">
-                        <div v-for="(answer, index) in solicitud.answers" :key="answer.id || index">
-                            <dt>{{ answer.question }}</dt><dd>{{ answer.label }}</dd>
-                        </div>
-                    </dl>
-                </section>
-                <section v-if="solicitud.contact" class="request-preview-card">
-                    <h3>Datos de contacto</h3>
-                    <p><strong>{{ solicitud.contact.name }}</strong></p>
-                    <p>{{ solicitud.contact.email }}</p>
+                    </div>
+                <aside v-if="solicitud.contact" class="request-preview-card request-contact-card">
+                    <h3>Contacto del cliente</h3>
+                    <strong>{{ solicitud.contact.name }}</strong>
                     <p v-if="solicitud.contact.company">{{ solicitud.contact.company }}</p>
+                    <p>{{ solicitud.contact.email }}</p>
                     <p v-if="solicitud.contact.phone">{{ solicitud.contact.phone }}</p>
                     <p v-if="solicitud.contact.address">{{ solicitud.contact.address }}</p>
-                </section>
+                    <p v-if="solicitud.contact.cuit">CUIT {{ solicitud.contact.cuit }}</p>
+                </aside>
+                </div>
             </section>
             <section v-else-if="vistaActiva === 'presupuesto' || direct" id="panel-presupuesto"
                      class="budget-preview-content" role="tabpanel"
@@ -174,12 +217,45 @@ function moverPestana(event) {
     padding: clamp(18px, 3vw, 30px);
 }
 
+.request-preview-content .request-preview-card {
+    padding: clamp(18px, 2.4vw, 26px);
+}
+
+.request-preview-layout {
+    /* La ficha conserva la jerarquía del detalle: alcance y servicios a la izquierda, contacto a la derecha. */
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(220px, .9fr);
+    align-items: start;
+    gap: 16px;
+}
+
+.request-preview-main {
+    display: grid;
+    gap: 16px;
+    min-width: 0;
+}
+
+.request-contact-card {
+    position: sticky;
+    top: 76px;
+}
+
 .request-preview-content .preview-heading {
     align-items: flex-start;
 }
 
 .request-preview-content .preview-heading h2 {
     overflow-wrap: anywhere;
+}
+
+.request-heading-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+    color: #446075;
+    font-size: .85rem;
 }
 
 .request-preview-card {
@@ -201,6 +277,54 @@ function moverPestana(event) {
     margin: 0 0 6px;
     color: #153b64;
     font-size: .95rem;
+}
+
+.request-service-type {
+    margin: 0 0 4px !important;
+    color: #1f6f7f !important;
+    font-size: .75rem;
+    font-weight: 800;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+
+.request-service-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+}
+
+.request-service-heading strong {
+    color: #153b64;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1rem;
+}
+
+.request-service-heading small {
+    color: #446075;
+}
+
+.request-total {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin-top: 16px;
+    padding: 14px 16px;
+    border: 1px solid #d4e3e8;
+    border-radius: 10px;
+    background: #f5f9fa;
+    color: #153b64;
+}
+
+.request-total strong {
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+.request-contact-card strong {
+    color: #153b64;
 }
 
 .request-preview-card p {
@@ -335,6 +459,14 @@ function moverPestana(event) {
     .request-facts > div, .request-answers > div {
         grid-template-columns: 1fr;
         gap: 3px;
+    }
+
+    .request-preview-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .request-contact-card {
+        position: static;
     }
 }
 </style>

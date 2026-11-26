@@ -31,7 +31,9 @@ const state = computed(() => {
     };
     if (record.value.status === 'rejected') return {
         title: 'Presupuesto rechazado',
-        text: 'El rechazo quedó registrado. La versión sigue disponible en el historial.',
+        text: latest.value && latest.value.id !== record.value.id
+            ? `El rechazo quedó registrado. La versión ${latest.value.version_number} está disponible en el historial.`
+            : 'El rechazo quedó registrado. Esta versión permanece disponible en el historial.',
         icon: 'info'
     };
     if (record.value.status === 'draft') return {
@@ -102,19 +104,24 @@ function decide() {
             <T :eyebrow="data.area === 'cliente' ? undefined : 'PRE-' + record.budget_id + ' · Presupuesto formal'" :title="record.title"
                :description="'Versión ' + record.version_number + ' · Emitida el ' + date(record.sent_at ?? record.created_at)">
                 <S :status="record.display_status ?? record.status"/></T>
-            <div class="budget-state" role="status"><I :name="state.icon"/>
+            <div class="budget-state" :class="'budget-state--' + record.status" role="status"><I :name="state.icon"/>
                 <div><strong>{{ state.title }}</strong>
                     <p>{{ state.text }}</p>
-                    <template v-if="record.status === 'rejected' && record.motivo_rechazo">
-                        <h3 class="motivo-rechazo">Motivo del rechazo</h3>
-                        <p class="preserve-lines">{{ record.motivo_rechazo }}</p>
-                    </template>
                     <B v-if="latest && latest.id !== record.id"
                                               :href="data.preview ? '/prototipo/presupuesto' : '/presupuestos/' + latest.id"
                                               variant="secondary">Ver versión {{ latest.version_number }}</B></div>
             </div>
+            <section v-if="record.status === 'rejected'" class="rejection-reason" aria-labelledby="rejection-reason-title">
+                <div class="rejection-reason-heading">
+                    <I name="info"/><h2 id="rejection-reason-title">Motivo del rechazo · Versión {{ record.version_number }}</h2>
+                </div>
+                <p v-if="record.motivo_rechazo" class="preserve-lines">{{ record.motivo_rechazo }}</p>
+                <p v-else class="rejection-reason-empty">No se registró un motivo para esta versión.</p>
+            </section>
             <div class="client-budget-grid">
-                <BudgetDocument :budget="record" :client="record.client" :issuer="record.issuer"/>
+                <div class="budget-document-stage">
+                    <BudgetDocument :budget="record" :client="record.client" :issuer="record.issuer"/>
+                </div>
                 <aside class="budget-side">
                     <v-card class="card">
                         <p class="eyebrow">Versión {{ record.version_number }}</p>
@@ -235,6 +242,55 @@ function decide() {
     min-width: 0;
 }
 
+.budget-document-stage {
+    /* El documento se lee como una pieza sobre un fondo suave, separado del resumen lateral. */
+    min-width: 0;
+    padding: clamp(12px, 2vw, 22px);
+    border: 1px solid #d4e3e8;
+    border-radius: 16px;
+    background: #f5f9fa;
+}
+
+.budget-document-stage :deep(.budget-document) {
+    box-shadow: 0 5px 16px #153b6410;
+}
+
+.budget-document-stage :deep(.document-heading) {
+    padding: 20px 22px;
+}
+
+.budget-document-stage :deep(.document-heading .brand-logo) {
+    width: 88px;
+}
+
+.budget-document-stage :deep(.document-label) {
+    margin-bottom: 5px;
+    font-size: 1.25rem;
+}
+
+.budget-document-stage :deep(.document-content) {
+    padding: 20px 22px;
+}
+
+.budget-document-stage :deep(.document-title) {
+    margin-bottom: 16px;
+    font-size: 1.12rem;
+}
+
+.budget-document-stage :deep(.document-parties) {
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.budget-document-stage :deep(.party-content) {
+    padding: 10px 12px;
+    font-size: .8rem;
+}
+
+.budget-document-stage :deep(.document-conditions) {
+    padding: 16px 22px;
+}
+
 .budget-side {
     display: grid;
     gap: 20px;
@@ -258,6 +314,56 @@ function decide() {
     background: #f5f9fa;
 }
 
+.budget-state--rejected {
+    /* El estado se distingue con la paleta institucional sin competir con el motivo escrito. */
+    border-color: #1f6f7f66;
+    border-left: 4px solid #1f6f7f;
+    background: #eef6f7;
+}
+
+.budget-state--rejected > .icon {
+    color: #1f6f7f;
+}
+
+.rejection-reason {
+    /* El motivo tiene una tarjeta independiente para que el cliente lo encuentre sin confundirlo con el estado. */
+    margin: -8px 0 24px;
+    padding: 18px 20px;
+    border: 1px solid #c9dce2;
+    border-left: 4px solid #1f6f7f;
+    border-radius: 12px;
+    background: #f5f9fa;
+}
+
+.rejection-reason-heading {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: #153b64;
+}
+
+.rejection-reason-heading .icon {
+    width: 18px;
+    height: 18px;
+    color: #1f6f7f;
+}
+
+.rejection-reason h2 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.rejection-reason > p {
+    margin: 10px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid #1f6f7f26;
+    color: #446075;
+}
+
+.rejection-reason-empty {
+    font-style: italic;
+}
+
 .budget-state > .icon {
     width: 26px;
     height: 26px;
@@ -271,11 +377,6 @@ function decide() {
 
 .budget-state p {
     margin: 6px 0 0;
-}
-
-.motivo-rechazo {
-    margin: 12px 0 0;
-    font-size: 1rem;
 }
 
 .budget-state .preserve-lines { overflow-wrap: anywhere; }
@@ -381,6 +482,15 @@ function decide() {
 @media (max-width: 600px) {
     .budget-state {
         padding: 16px;
+    }
+
+    .budget-document-stage :deep(.document-heading),
+    .budget-document-stage :deep(.document-content) {
+        padding: 16px;
+    }
+
+    .budget-document-stage :deep(.document-conditions) {
+        padding: 14px 16px;
     }
 
     .budget-decision .form-actions {
