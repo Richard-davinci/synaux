@@ -251,58 +251,67 @@ function save(send) {
                 <p v-else>Las versiones enviadas se conservan. Esta será una nueva versión del presupuesto.</p>
             </div>
         </div>
-        <div class="budget-stepper">
-            <ol class="budget-steps" aria-label="Pasos para preparar presupuesto">
-                <li v-for="(label, index) in labels" :key="label">
-                    <button type="button" :disabled="index + 1 > step || quote.processing"
-                            :aria-current="step === index + 1 ? 'step' : undefined" @click="step = index + 1">{{
-                            index + 1
-                        }}. {{ label }}
-                    </button>
-                </li>
-            </ol>
-            <B v-if="vistaPreviaMovil" variant="secondary" :disabled="quote.processing" @click="openBudgetPreview">Vista previa ampliada</B>
-        </div>
-        <div v-if="Object.keys(quote.errors).length" class="notice" role="alert">
-            <div><strong>Revisá los datos del presupuesto</strong>
-                <ul>
-                    <li v-for="(error, field) in quote.errors" :key="field">{{ error }}</li>
-                </ul>
-            </div>
-        </div>
-        <div v-if="needsIssuer" class="editor-note" role="status">
-            <template v-if="emiteOrganizacion">
-                <p>Faltan los datos de emisión de synaux. Se administran en Datos de la organización.</p>
-                <B v-if="data.auth?.puede_administrar" href="/admin/organizacion#emision" variant="secondary">Completar datos de la organización</B>
-                <p v-else>Pedile a un administrador que los complete.</p>
-            </template>
-            <template v-else>
-                <p>Completá tu perfil profesional antes de guardar o enviar el presupuesto.</p>
-                <B v-if="data.stageTwo" href="/profesional/perfil" variant="secondary">Completar perfil profesional</B>
-            </template>
-        </div>
-
-        <!-- El formulario valida el paso visible y conserva los datos al volver a editar. -->
         <div class="budget-workspace">
-            <form class="budget-editor-grid" @submit.prevent="advance">
-                <v-card class="card budget-panel">
-                    <BudgetSourceFields v-if="step === 1" :quote="quote" :selected="selected" :data="data"
-                                        :direct="direct" :source="source" :request-options="requestOptions"/>
-                    <BudgetLines v-else-if="step === 2" :quote="quote" :line-cents="lineCents" :price-hint="priceHint"
-                                 @add-item="quote.items.push(emptyItem())"/>
-                    <BudgetTerms v-else :quote="quote" :direct="direct" :configura-pago="configuraPago" :requiere-transferencia="total > 0"/>
-                    <!-- Una sola tasa de IVA se comparte entre servicios, condiciones y documento. -->
-                    <BudgetVatFields v-if="step > 1" v-model="includeVat" :quote="quote"/>
-                    <p v-if="source && !canPrepare" class="editor-note" role="status">Esta solicitud ya no está abierta.
-                        Consultá el presupuesto y el estado del proyecto antes de continuar.</p>
-                    <div class="form-actions"><B v-if="step > 1" variant="secondary" :disabled="quote.processing"
-                                                 @click="step -= 1">Anterior</B><span v-else/><B type="submit"
-                                                                                                 :disabled="!canPrepare || needsIssuer || quote.processing"
-                                                                                                 arrow>{{
-                            step === 3 ? 'Revisar documento' : 'Continuar'
-                        }}</B></div>
-                </v-card>
-            </form>
+            <div class="budget-editor-flow">
+                <div class="budget-stepper">
+                    <ol class="budget-steps" aria-label="Pasos para preparar presupuesto">
+                        <li v-for="(label, index) in labels" :key="label">
+                            <button type="button" :disabled="index + 1 > step || quote.processing"
+                                    :aria-current="step === index + 1 ? 'step' : undefined" @click="step = index + 1">{{
+                                    index + 1
+                                }}. {{ label }}
+                            </button>
+                        </li>
+                    </ol>
+                    <B v-if="vistaPreviaMovil" variant="secondary" :disabled="quote.processing" @click="openBudgetPreview">
+                        Vista previa ampliada
+                    </B>
+                </div>
+                <div v-if="Object.keys(quote.errors).length" class="notice" role="alert">
+                    <div><strong>Revisá los datos del presupuesto</strong>
+                        <ul>
+                            <li v-for="(error, field) in quote.errors" :key="field">{{ error }}</li>
+                        </ul>
+                    </div>
+                </div>
+                <div v-if="needsIssuer" class="editor-note" role="status">
+                    <template v-if="emiteOrganizacion">
+                        <p>Faltan los datos de emisión de synaux. Se administran en Datos de la organización.</p>
+                        <B v-if="data.auth?.puede_administrar" href="/admin/organizacion#emision" variant="secondary">Completar datos de la organización</B>
+                        <p v-else>Pedile a un administrador que los complete.</p>
+                    </template>
+                    <template v-else>
+                        <p>Completá tu perfil profesional antes de guardar o enviar el presupuesto.</p>
+                        <B v-if="data.stageTwo" href="/profesional/perfil" variant="secondary">Completar perfil profesional</B>
+                    </template>
+                </div>
+
+                <!-- El formulario valida el paso visible y conserva los datos al volver a editar. -->
+                <form class="budget-editor-grid" @submit.prevent="advance">
+                    <v-card class="card budget-panel">
+                        <BudgetSourceFields v-if="step === 1" :quote="quote" :selected="selected" :data="data"
+                                            :direct="direct" :source="source" :request-options="requestOptions"/>
+                        <BudgetLines v-else-if="step === 2" :quote="quote" :line-cents="lineCents" :price-hint="priceHint"
+                                     @add-item="quote.items.push(emptyItem())"/>
+                        <BudgetTerms v-else :quote="quote" :direct="direct" :configura-pago="configuraPago"
+                                     :requiere-transferencia="total > 0"/>
+                        <!-- Una sola tasa de IVA se comparte entre servicios, condiciones y documento. -->
+                        <BudgetVatFields v-if="step > 1" v-model="includeVat" :quote="quote"/>
+                        <p v-if="source && !canPrepare" class="editor-note" role="status">
+                            Esta solicitud ya no está abierta. Consultá el presupuesto y el estado del proyecto antes de continuar.
+                        </p>
+                        <div class="form-actions">
+                            <B v-if="step > 1" variant="secondary" :disabled="quote.processing" @click="step -= 1">
+                                Anterior
+                            </B>
+                            <span v-else/>
+                            <B type="submit" :disabled="!canPrepare || needsIssuer || quote.processing" arrow>
+                                {{ step === 3 ? 'Revisar documento' : 'Continuar' }}
+                            </B>
+                        </div>
+                    </v-card>
+                </form>
+            </div>
             <BudgetPreviewPanel ref="previewPanel" :visible="preview" :budget="documentPreview" :client="client" :issuer="issuer"
                                 :direct="direct" :step="step" :disabled="!canPrepare || needsIssuer || quote.processing"
                                 :saving="quote.processing && !quote.send" :persistent="quote.processing"
@@ -456,12 +465,18 @@ function save(send) {
 
 .budget-workspace {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(360px, 410px);
+    grid-template-columns: minmax(0, 2fr) minmax(360px, 1fr);
     align-items: start;
     gap: 24px;
 }
 
 .budget-workspace > * {
+    min-width: 0;
+}
+
+.budget-editor-flow {
+    display: grid;
+    align-content: start;
     min-width: 0;
 }
 
