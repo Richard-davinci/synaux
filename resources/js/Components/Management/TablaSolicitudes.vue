@@ -88,7 +88,10 @@ function detailHref(item) {
                     <S :status="etapa(item).status" :request="!presupuestoDe(item)" :etiqueta="etapa(item).etiqueta"/>
                 </td>
                 <td class="request-table-secondary">
-                    <B v-if="accion(item)" compact :variant="accion(item).principal ? 'primary' : 'secondary'"
+                    <B v-if="porRevisar(item)" compact :href="detailHref(item)" arrow>
+                        Revisar solicitud
+                    </B>
+                    <B v-else-if="accion(item)" compact :variant="accion(item).principal ? 'primary' : 'secondary'"
                        :href="props.preview ? detailHref(item) : accion(item).href" arrow>
                         {{ props.preview ? 'Revisar solicitud' : accion(item).texto }}
                     </B>

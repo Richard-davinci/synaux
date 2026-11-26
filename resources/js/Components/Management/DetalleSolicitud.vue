@@ -197,7 +197,14 @@ function changeStatus(status) {
 <style scoped>
 /* La descripción, los servicios y la revisión tienen sus propios encabezados y orden de lectura. */
 .review-breadcrumbs {
+    width: 100%;
+    max-width: 100%;
+    margin-inline: 0;
     margin-bottom: 14px;
+}
+
+.page .review-breadcrumbs {
+    padding-inline: 0;
 }
 
 .review-heading-meta {
