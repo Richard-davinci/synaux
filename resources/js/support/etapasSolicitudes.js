@@ -4,19 +4,21 @@ export function etapaSolicitud(solicitud, presupuestos = []) {
         .filter(version => Number(version.request_id) === Number(solicitud.id))
         .sort((a, b) => Number(b.version_number) - Number(a.version_number) || Number(b.id) - Number(a.id))[0] ?? null;
 
+    // El estado propio de la solicitud prevalece sobre el historial de presupuestos asociado.
+    if (solicitud.status === 'closed' || solicitud.status === 'cancelled') {
+        return {presupuesto, estadoVisual: solicitud.status, filtro: solicitud.status,
+            etiqueta: solicitud.status === 'closed' ? 'Cerrada' : 'Cancelada'};
+    }
+
     if (presupuesto) {
         const estado = presupuesto.display_status ?? presupuesto.status;
-        const etiquetas = {
-            draft: 'Presupuesto en preparación',
-            sent: 'Presupuesto enviado',
-            issued: 'Presupuesto emitido',
-            accepted: 'Presupuesto aceptado',
-            rejected: 'Presupuesto rechazado',
-            expired: 'Presupuesto vencido',
-        };
+        // La lista de solicitudes indica si hay un borrador o un presupuesto vinculado;
+        // el estado comercial detallado se consulta en Presupuestos.
+        if (estado === 'draft') return {presupuesto, estado, estadoVisual: 'review',
+            filtro: 'presupuesto_en_preparacion', etiqueta: 'Presupuesto en preparación'};
 
-        return {presupuesto, estado, estadoVisual: estado === 'draft' ? 'review' : estado,
-            filtro: estado, etiqueta: etiquetas[estado] ?? estado};
+        return {presupuesto, estado, estadoVisual: 'pending', filtro: 'con_presupuesto',
+            etiqueta: 'Con presupuesto asociado'};
     }
 
     if (solicitud.status === 'open' && solicitud.reviewed_at) {

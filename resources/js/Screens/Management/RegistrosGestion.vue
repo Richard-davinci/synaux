@@ -23,12 +23,8 @@ const sections = {
         statuses: [
             ['pendiente_revision', 'Pendiente de revisión'],
             ['pendiente_presupuesto', 'Pendiente de presupuesto'],
-            ['draft', 'Presupuesto en preparación'],
-            ['sent', 'Presupuesto enviado'],
-            ['issued', 'Presupuesto emitido'],
-            ['accepted', 'Presupuesto aceptado'],
-            ['rejected', 'Presupuesto rechazado'],
-            ['expired', 'Presupuesto vencido'],
+            ['presupuesto_en_preparacion', 'Presupuesto en preparación'],
+            ['con_presupuesto', 'Con presupuesto asociado'],
             ['closed', 'Cerrada'],
             ['cancelled', 'Cancelada'],
         ],
@@ -115,7 +111,7 @@ function canRevise(budget) {
         <div class="filters workspace-filters" :class="{ 'workspace-filters-single': statusOptions.length === 1 }">
             <F v-model="query" label="Buscar" type="search" :placeholder="listing.search"/>
             <F v-if="statusOptions.length > 1" v-model="status"
-               :label="section === 'solicitudes' ? 'Etapa actual' : section === 'presupuestos' ? 'Estado actual' : 'Estado'"
+               :label="section === 'solicitudes' ? 'Etapa de solicitud' : section === 'presupuestos' ? 'Estado actual' : 'Estado'"
                type="select" :options="statusOptions"/>
             <B compact variant="secondary" :disabled="!hasFilters" @click="clearFilters">Limpiar filtros</B>
         </div>
