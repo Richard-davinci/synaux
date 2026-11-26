@@ -41,26 +41,52 @@ defineProps({
         </div>
         <p v-if="!selected.budget_id" class="editor-hint">Elegí el pedido original del cliente. El presupuesto se prepara y se guarda por separado.</p>
         <p v-if="!requestOptions.length">Todavía no hay pedidos disponibles para presupuestar.</p>
-        <section v-if="source" class="request-context" aria-label="Pedido del cliente">
-            <div class="context-heading">
-                <div><p class="request-id">Detalle del pedido original</p><h3 v-if="!selected.budget_id">{{ source.title }}</h3></div>
+        <section v-if="source" class="request-context" aria-label="Información de la solicitud">
+            <div class="request-detail-layout">
+                <div class="request-detail-main">
+                    <section class="request-detail-card">
+                        <h3>Alcance de la solicitud</h3>
+                        <p class="preserve-lines request-description">{{ source.description || 'Sin descripción adicional.' }}</p>
+                        <dl class="request-facts">
+                            <div><dt>Plazo solicitado</dt><dd>{{ source.desired_deadline || 'A coordinar' }}</dd></div>
+                            <div><dt>Presupuesto indicado</dt><dd>{{ source.budget_reference || 'Sin indicar' }}</dd></div>
+                            <div><dt>Visibilidad</dt><dd>{{ source.visibility === 'public' ? 'Pública' : 'Privada' }}</dd></div>
+                        </dl>
+                    </section>
+                    <section class="request-detail-card">
+                        <h3>Servicios solicitados</h3>
+                        <article class="request-service">
+                            <p class="request-service-type">Servicio principal</p>
+                            <strong>{{ source.service_name }}</strong>
+                            <dl v-if="source.answers?.length" class="request-answers">
+                                <div v-for="(answer, index) in source.answers" :key="answer.id || index">
+                                    <dt>{{ answer.question }}</dt><dd>{{ answer.label }}</dd>
+                                </div>
+                            </dl>
+                        </article>
+                        <article v-for="(item, index) in source.additional_services ?? []" :key="item.service_id || index"
+                                 class="request-service">
+                            <p class="request-service-type">Servicio adicional<span v-if="item.quantity && item.quantity !== 1"> · {{ item.quantity }} ud.</span></p>
+                            <strong>{{ item.name }}</strong>
+                            <p v-if="item.notes" class="preserve-lines request-description">{{ item.notes }}</p>
+                            <dl v-if="item.answers?.length" class="request-answers">
+                                <div v-for="(answer, answerIndex) in item.answers" :key="answer.id || answerIndex">
+                                    <dt>{{ answer.question }}</dt><dd>{{ answer.label }}</dd>
+                                </div>
+                            </dl>
+                        </article>
+                    </section>
+                </div>
+                <aside v-if="source.contact" class="request-detail-card request-contact-card">
+                    <h3>Contacto del cliente</h3>
+                    <strong>{{ source.contact.name }}</strong>
+                    <p v-if="source.contact.company">{{ source.contact.company }}</p>
+                    <p v-if="source.contact.cuit">CUIT {{ source.contact.cuit }}</p>
+                    <p v-if="source.contact.email">{{ source.contact.email }}</p>
+                    <p v-if="source.contact.phone">{{ source.contact.phone }}</p>
+                    <p v-if="source.contact.address">{{ source.contact.address }}</p>
+                </aside>
             </div>
-            <p class="preserve-lines request-description">{{ source.description }}</p>
-            <dl>
-                <div>
-                    <dt>Servicio principal</dt>
-                    <dd>{{ source.service_name }}</dd>
-                </div>
-                <div>
-                    <dt>Plazo solicitado</dt>
-                    <dd>{{ source.desired_deadline || 'A coordinar' }}</dd>
-                </div>
-                <div>
-                    <dt>Presupuesto disponible</dt>
-                    <dd>{{ source.budget_reference || 'Sin indicar' }}</dd>
-                </div>
-            </dl>
-            <p class="request-services"><strong>Servicios:</strong> {{ [source.service_name, ...(source.additional_services ?? []).map(item => item.name)].filter(Boolean).join(' · ') }}</p>
         </section>
     </template>
     <div class="budget-identification-fields">
@@ -73,11 +99,7 @@ defineProps({
 
 <style scoped>
 .request-context {
-    background: #f5f9fa;
-    border: 1px solid #1f6f7f22;
-    padding: 16px;
-    border-radius: 12px;
-    margin: 16px 0;
+    margin: 16px 0 20px;
 }
 
 /* Un borrador vinculado conserva la referencia del pedido como dato, no como control deshabilitado. */
@@ -110,31 +132,100 @@ defineProps({
     align-items: start;
 }
 
-.request-id {
-    margin: 0 0 4px;
-    color: #1f6f7f;
+.request-detail-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(220px, .9fr);
+    align-items: start;
+    gap: 14px;
+}
+
+.request-detail-main {
+    display: grid;
+    min-width: 0;
+    gap: 14px;
+}
+
+.request-detail-card {
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid #1f6f7f22;
+    border-radius: 12px;
+    background: #fff;
+}
+
+.request-detail-card h3 {
+    margin: 0 0 10px;
+    color: #153b64;
+    font-size: 1.05rem;
+}
+
+.request-detail-card p {
+    margin: 5px 0;
+    color: #446075;
+    overflow-wrap: anywhere;
+}
+
+.request-facts {
+    display: grid;
+    gap: 8px;
+    margin: 14px 0 0;
+}
+
+.request-facts > div,
+.request-answers > div {
+    display: grid;
+    grid-template-columns: minmax(130px, .8fr) minmax(0, 1.2fr);
+    gap: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #1f6f7f22;
+}
+
+.request-facts dt,
+.request-answers dt {
+    color: #446075;
+    font-size: .85rem;
+}
+
+.request-facts dd,
+.request-answers dd {
+    margin: 0;
+    color: #153b64;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.request-service {
+    padding-top: 10px;
+    border-top: 1px solid #1f6f7f22;
+}
+
+.request-service + .request-service {
+    margin-top: 12px;
+}
+
+.request-service > strong,
+.request-contact-card > strong {
+    color: #153b64;
+}
+
+.request-service-type {
+    margin: 0 0 4px !important;
+    color: #1f6f7f !important;
     font-size: .75rem;
     font-weight: 800;
-    letter-spacing: .06em;
+    letter-spacing: .05em;
     text-transform: uppercase;
 }
 
-.request-description {
-    margin: 0 0 10px;
+.request-answers {
+    display: grid;
+    gap: 8px;
+    margin: 10px 0 0;
 }
 
-.request-services {
-    margin: 14px 0 0;
-    color: #446075;
-}
-
-.context-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-bottom: 14px;
+.request-contact-card {
+    position: sticky;
+    top: 12px;
 }
 
 .context-heading h3, .context-heading h2 {
@@ -161,6 +252,20 @@ defineProps({
     .budget-identification-fields {
         grid-template-columns: minmax(0, 1fr);
         gap: 0;
+    }
+
+    .request-detail-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .request-contact-card {
+        position: static;
+    }
+
+    .request-facts > div,
+    .request-answers > div {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 3px;
     }
 }
 </style>

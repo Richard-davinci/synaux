@@ -18,7 +18,6 @@ const selected = props.data.selected ?? {};
 const submit = useSubmit();
 const step = ref(1);
 const preview = ref(false);
-const previewView = ref('presupuesto');
 // El presupuesto directo solicita solo los datos del destinatario y comienza con un concepto editable.
 const direct = Boolean(props.data.directBudget);
 const configuraPago = props.data.area === 'gestion' && !props.data.preview;
@@ -200,9 +199,8 @@ function advance() {
     else preview.value = true;
 }
 
-// El único acceso a la revisión abre el panel con sus pestañas de pedido original y presupuesto.
+// El paso inicial ya contiene la ficha del pedido; la vista ampliada se reserva al documento presupuestario.
 function openBudgetPreview() {
-    previewView.value = 'presupuesto';
     preview.value = true;
 }
 
@@ -282,12 +280,11 @@ function save(send) {
                     }}</B></div>
             </v-card>
         </form>
-        <BudgetPreviewPanel :visible="preview" :budget="documentPreview" :solicitud="source"
-                            :vista-activa="previewView" :client="client" :issuer="issuer"
+        <BudgetPreviewPanel :visible="preview" :budget="documentPreview" :client="client" :issuer="issuer"
                             :direct="direct" :step="step" :disabled="!canPrepare || needsIssuer || quote.processing"
                             :saving="quote.processing && !quote.send" :persistent="quote.processing"
                             @close="preview = false" @save-draft="save(false)" @send="save(true)"
-                            @change-view="previewView = $event"/>
+                            />
     </section>
 </template>
 
