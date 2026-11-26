@@ -4,6 +4,7 @@ import B from '../UI/AppButton.vue';
 import S from '../UI/StatusBadge.vue';
 import NewBadge from '../Notifications/NewBadge.vue';
 import {date} from '../../support/formatters';
+import {etapaSolicitud} from '../../support/etapasSolicitudes';
 
 // El resumen y el listado usan las mismas columnas para comparar solicitudes.
 const props = defineProps({rows: Array, quotes: {type: Array, default: () => []}, label: String, preview: Boolean});
@@ -11,30 +12,12 @@ const props = defineProps({rows: Array, quotes: {type: Array, default: () => []}
 // Las filas por revisar y las ya revisadas abren el mismo detalle con acciones diferenciadas.
 const porRevisar = item => item.status === 'open' && !item.reviewed_at;
 
-// El estado visible sigue el siguiente paso real: revisar, preparar el presupuesto o continuar su borrador.
-function presupuestoDe(item) {
-    return props.quotes.filter(quote => Number(quote.request_id) === Number(item.id))
-        .sort((a, b) => Number(b.version_number) - Number(a.version_number) || Number(b.id) - Number(a.id))[0] ?? null;
-}
-
-function etapa(item) {
-    const presupuesto = presupuestoDe(item);
-    if (presupuesto) {
-        const estado = presupuesto.display_status ?? presupuesto.status;
-        const etiquetas = {
-            draft: 'Presupuesto en preparación', sent: 'Presupuesto enviado', issued: 'Presupuesto emitido',
-            accepted: 'Presupuesto aceptado', rejected: 'Presupuesto rechazado', expired: 'Presupuesto vencido',
-        };
-        return {status: estado === 'draft' ? 'review' : estado, etiqueta: etiquetas[estado] ?? estado};
-    }
-    if (item.status === 'open' && item.reviewed_at) return {status: 'pending', etiqueta: 'Pendiente de presupuesto'};
-    if (item.status === 'open') return {status: 'pending', etiqueta: 'Pendiente de revisión'};
-    return {status: item.status};
-}
+// La tabla y el filtro consultan la misma etapa para mantener iguales sus nombres y colores.
+const etapa = item => etapaSolicitud(item, props.quotes);
 
 // La acción conduce al paso vigente y evita crear un segundo presupuesto si ya existe uno.
 function accion(item) {
-    const presupuesto = presupuestoDe(item);
+    const presupuesto = etapa(item).presupuesto;
     if (presupuesto?.status === 'draft') return {
         href: '/editor/presupuesto/' + presupuesto.id, texto: 'Continuar borrador', principal: true,
     };
@@ -85,7 +68,8 @@ function detailHref(item) {
                 </td>
                 <td class="request-table-secondary request-table-date">{{ date(item.created_at) }}</td>
                 <td>
-                    <S :status="etapa(item).status" :request="!presupuestoDe(item)" :etiqueta="etapa(item).etiqueta"/>
+                    <S :status="etapa(item).estadoVisual" :request="!etapa(item).presupuesto"
+                       :etiqueta="etapa(item).etiqueta"/>
                 </td>
                 <td class="request-table-secondary">
                     <B v-if="porRevisar(item)" compact :href="detailHref(item)" arrow>

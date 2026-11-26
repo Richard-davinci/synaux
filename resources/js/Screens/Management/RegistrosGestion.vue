@@ -9,6 +9,7 @@ import B from '../../Components/UI/AppButton.vue';
 import E from '../../Components/UI/EmptyState.vue';
 import F from '../../Components/UI/FormField.vue';
 import T from '../../Components/UI/PageTitle.vue';
+import {etapaSolicitud} from '../../support/etapasSolicitudes';
 
 const props = defineProps({data: {type: Object, required: true}});
 const section = computed(() => props.data.section);
@@ -19,7 +20,18 @@ const sections = {
         key: 'requests', title: 'Solicitudes recibidas',
         description: 'Revisá el alcance de cada pedido y prepará su presupuesto.',
         search: 'Título, servicio o cliente', empty: 'Las solicitudes enviadas por clientes aparecerán acá.',
-        statuses: [['open', 'Enviada'], ['closed', 'Cerrada'], ['cancelled', 'Cancelada']],
+        statuses: [
+            ['pendiente_revision', 'Pendiente de revisión'],
+            ['pendiente_presupuesto', 'Pendiente de presupuesto'],
+            ['draft', 'Presupuesto en preparación'],
+            ['sent', 'Presupuesto enviado'],
+            ['issued', 'Presupuesto emitido'],
+            ['accepted', 'Presupuesto aceptado'],
+            ['rejected', 'Presupuesto rechazado'],
+            ['expired', 'Presupuesto vencido'],
+            ['closed', 'Cerrada'],
+            ['cancelled', 'Cancelada'],
+        ],
     },
     presupuestos: {
         key: 'quotes',
@@ -72,7 +84,10 @@ const rows = computed(() => {
             item.budget_id && 'PRE-' + item.budget_id, item.budget_id, item.id,
             section.value === 'solicitudes' ? 'SOL-' + item.id : item.request_id && 'SOL-' + item.request_id,
         ]).filter(Boolean).join(' ').toLocaleLowerCase('es');
-        return searchText.includes(needle) && (!status.value || (row.display_status ?? row.status) === status.value);
+        const estadoVisible = section.value === 'solicitudes'
+            ? etapaSolicitud(row, props.data.quotes ?? []).filtro
+            : (row.display_status ?? row.status);
+        return searchText.includes(needle) && (!status.value || estadoVisible === status.value);
     });
 });
 
@@ -99,7 +114,9 @@ function canRevise(budget) {
 
         <div class="filters workspace-filters" :class="{ 'workspace-filters-single': statusOptions.length === 1 }">
             <F v-model="query" label="Buscar" type="search" :placeholder="listing.search"/>
-            <F v-if="statusOptions.length > 1" v-model="status" :label="section === 'presupuestos' ? 'Estado actual' : 'Estado'" type="select" :options="statusOptions"/>
+            <F v-if="statusOptions.length > 1" v-model="status"
+               :label="section === 'solicitudes' ? 'Etapa actual' : section === 'presupuestos' ? 'Estado actual' : 'Estado'"
+               type="select" :options="statusOptions"/>
             <B compact variant="secondary" :disabled="!hasFilters" @click="clearFilters">Limpiar filtros</B>
         </div>
         <RequestsTable v-if="section === 'solicitudes' && rows.length" :rows="rows"

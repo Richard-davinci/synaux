@@ -9,6 +9,7 @@ import MigasNavegacion from '../Navigation/MigasNavegacion.vue';
 import {date, money} from '../../support/formatters';
 import {useSubmit} from '../../support/useSubmit';
 import {referenceLine, summarizePrices} from '../../support/calculoPreciosSolicitud';
+import {etapaSolicitud} from '../../support/etapasSolicitudes';
 
 // Gestión recibe el pedido autorizado y lee los importes que quedaron guardados con la solicitud.
 const props = defineProps({data: Object});
@@ -20,19 +21,11 @@ const migas = computed(() => [
     ['SOL-' + request.value.id],
 ]);
 // El detalle y la tabla comparten la etapa real de gestión, tomando primero el presupuesto más reciente.
-const presupuesto = computed(() => [...(props.data.quotes ?? [])]
-    .sort((a, b) => Number(b.version_number) - Number(a.version_number) || Number(b.id) - Number(a.id))[0] ?? null);
+const etapa = computed(() => etapaSolicitud(request.value, props.data.quotes ?? []));
+const presupuesto = computed(() => etapa.value.presupuesto);
 const estadoRevision = computed(() => {
     if (props.data.area !== 'gestion') return null;
-    if (presupuesto.value) {
-        const estado = presupuesto.value.display_status ?? presupuesto.value.status;
-        return {status: estado === 'draft' ? 'review' : estado, etiqueta: ({draft: 'Presupuesto en preparación', sent: 'Presupuesto enviado', issued: 'Presupuesto emitido',
-            accepted: 'Presupuesto aceptado', rejected: 'Presupuesto rechazado', expired: 'Presupuesto vencido'})[estado] ?? estado};
-    }
-    if (request.value.status === 'open') return request.value.reviewed_at
-        ? {status: 'pending', etiqueta: 'Pendiente de presupuesto'}
-        : {status: 'pending', etiqueta: 'Pendiente de revisión'};
-    return null;
+    return {status: etapa.value.estadoVisual, etiqueta: etapa.value.etiqueta};
 });
 const extras = computed(() => request.value.additional_services ?? []);
 const currency = computed(() => request.value.pricing_reference?.currency
@@ -70,6 +63,7 @@ const textoRevision = computed(() => {
     return open.value ? 'Pendiente de revisión' : 'La solicitud está cerrada.';
 });
 const closing = ref(false);
+const markingReviewed = ref(false);
 const submit = useSubmit();
 const state = useForm({id: request.value.id, status: ''});
 
@@ -78,9 +72,13 @@ function changeStatus(status) {
     submit(state, 'estado-solicitud', {
         onSuccess: () => {
             closing.value = false;
+            markingReviewed.value = false;
         }
     });
-    if (props.data.preview) closing.value = false;
+    if (props.data.preview) {
+        closing.value = false;
+        markingReviewed.value = false;
+    }
 }
 </script>
 
@@ -148,8 +146,8 @@ function changeStatus(status) {
                     <p>{{ textoRevision }}</p>
                     <div v-if="open" class="review-actions">
                         <B v-if="budgetAction" :href="budgetAction.href" arrow>{{ budgetAction.label }}</B>
-                        <B v-if="!request.reviewed_at" :disabled="state.processing"
-                           @click="changeStatus('review')">Marcar revisada</B>
+                        <B v-if="data.area === 'gestion' && !request.reviewed_at" :disabled="state.processing"
+                           @click="markingReviewed = true">Marcar revisada</B>
                         <B variant="danger" :disabled="state.processing" @click="closing = true">Cerrar solicitud</B>
                     </div>
                     <div v-else-if="budgetAction" class="review-actions">
@@ -188,6 +186,16 @@ function changeStatus(status) {
                 <div class="form-actions">
                     <B variant="secondary" :disabled="state.processing" @click="closing = false">Cancelar</B>
                     <B variant="danger" :disabled="state.processing" @click="changeStatus('closed')">Cerrar solicitud</B>
+                </div>
+            </section>
+        </SidePanel>
+        <SidePanel v-model="markingReviewed" title="Marcar revisada" max-width="460" :persistent="state.processing">
+            <section class="card modal-card">
+                <h2>¿Confirmás que la solicitud está revisada?</h2>
+                <p>La solicitud quedará marcada como revisada y seguirá disponible para avanzar con el presupuesto.</p>
+                <div class="form-actions">
+                    <B variant="secondary" :disabled="state.processing" @click="markingReviewed = false">Cancelar</B>
+                    <B :disabled="state.processing" @click="changeStatus('review')">Confirmar revisión</B>
                 </div>
             </section>
         </SidePanel>
