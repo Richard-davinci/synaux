@@ -5,6 +5,7 @@ import B from '../UI/AppButton.vue';
 import S from '../UI/StatusBadge.vue';
 import T from '../UI/PageTitle.vue';
 import SidePanel from '../UI/SidePanel.vue';
+import MigasNavegacion from '../Navigation/MigasNavegacion.vue';
 import {date, money} from '../../support/formatters';
 import {useSubmit} from '../../support/useSubmit';
 import {referenceLine, summarizePrices} from '../../support/calculoPreciosSolicitud';
@@ -12,6 +13,15 @@ import {referenceLine, summarizePrices} from '../../support/calculoPreciosSolici
 // Gestión recibe el pedido autorizado y lee los importes que quedaron guardados con la solicitud.
 const props = defineProps({data: Object});
 const request = computed(() => props.data.selected);
+// La ruta muestra que la solicitud pertenece a Gestión y deja volver al listado sin un botón aislado.
+const migas = computed(() => [
+    ['Gestión', '/gestion'],
+    ['Solicitudes', '/gestion/solicitudes'],
+    ['SOL-' + request.value.id],
+]);
+const estadoRevision = computed(() => request.value.reviewed_at
+    ? 'Revisada'
+    : request.value.status === 'open' ? 'Pendiente de revisión' : undefined);
 const extras = computed(() => request.value.additional_services ?? []);
 const currency = computed(() => request.value.pricing_reference?.currency
     ?? extras.value.find(item => item.pricing_reference)?.pricing_reference.currency ?? 'ARS');
@@ -44,10 +54,10 @@ function changeStatus(status) {
 
 <template>
     <section class="page shell workspace-view">
-        <B compact variant="ghost" href="/gestion/solicitudes" class="review-back">← Volver a solicitudes</B>
-        <T :eyebrow="'Gestión · SOL-' + request.id" :title="request.title">
+        <MigasNavegacion :niveles="migas" class="review-breadcrumbs"/>
+        <T eyebrow="Revisión de solicitud" :title="request.title">
             <div class="review-heading-meta">
-                <S :status="request.status" request/>
+                <S :status="request.status" request :etiqueta="estadoRevision"/>
                 <span>Registrada el {{ date(request.created_at) }}</span>
             </div>
         </T>
@@ -101,7 +111,7 @@ function changeStatus(status) {
 
             <aside class="review-content" aria-label="Acciones y datos del cliente">
                 <section class="card review-card review-action-card" aria-labelledby="review-action">
-                    <h2 id="review-action">Revisión</h2>
+                    <h2 id="review-action">Revisión y acciones</h2>
                     <p>{{
                             request.reviewed_at ? 'Revisada el ' + date(request.reviewed_at) : 'Pendiente de revisión'
                         }}</p>
@@ -153,7 +163,7 @@ function changeStatus(status) {
 
 <style scoped>
 /* La descripción, los servicios y la revisión tienen sus propios encabezados y orden de lectura. */
-.review-back {
+.review-breadcrumbs {
     margin-bottom: 14px;
 }
 
