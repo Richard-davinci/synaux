@@ -1,77 +1,79 @@
 <script setup>
+import SidePanel from '../UI/SidePanel.vue';
 import B from '../UI/AppButton.vue';
 import BudgetDocument from './DocumentoPresupuesto.vue';
 
 defineProps({
+    visible: Boolean,
     budget: {type: Object, required: true},
     client: Object,
     issuer: Object,
     direct: Boolean,
+    step: Number,
     disabled: Boolean,
     saving: Boolean,
+    persistent: Boolean,
 });
-const emit = defineEmits(['save']);
+const emit = defineEmits(['close', 'save-draft', 'send']);
 </script>
 
 <template>
-    <!-- El documento completo queda a la vista mientras se editan los pasos del presupuesto. -->
-    <aside class="budget-summary" aria-label="Documento del presupuesto actualizado en vivo">
-        <div class="preview-toolbar">
-            <div>
-                <p class="eyebrow">Documento en vivo</p>
-                <h2>{{ direct ? 'Presupuesto para emitir' : 'Presupuesto para enviar' }}</h2>
-            </div>
-            <span class="preview-live"><span aria-hidden="true"></span> Se actualiza al editar</span>
+    <SidePanel title="Vista previa del presupuesto" :model-value="visible" :persistent="persistent" :max-width="960"
+               @update:model-value="value => !value && emit('close')">
+        <div class="synaux-app budget-preview-panel">
+            <section class="budget-preview-content" aria-label="Documento completo actualizado en vivo">
+                <div class="preview-heading">
+                    <div>
+                        <p class="eyebrow">Documento en vivo</p>
+                        <h2>{{ direct ? 'Revisá el presupuesto para emitir' : 'Revisá el presupuesto para enviar' }}</h2>
+                    </div>
+                    <span class="preview-live"><span aria-hidden="true"></span> Se actualiza al editar</span>
+                </div>
+                <BudgetDocument :budget="budget" :client="client" :issuer="issuer"/>
+            </section>
         </div>
-        <div class="document-preview-scroll">
-            <BudgetDocument :budget="budget" :client="client" :issuer="issuer"/>
-        </div>
-        <div class="preview-save">
-            <B variant="secondary" :disabled="disabled"
-               @click="emit('save')">{{ saving ? 'Guardando…' : 'Guardar borrador' }}</B>
-            <p class="editor-hint">{{
-                    direct ? 'El borrador queda disponible en Gestión.' : 'El borrador queda en Gestión. El cliente lo verá cuando lo envíes.'
-                }}</p>
-        </div>
-    </aside>
+        <template #footer>
+            <B variant="secondary" :disabled="disabled || saving" @click="emit('save-draft')">
+                {{ saving ? 'Guardando…' : 'Guardar borrador' }}
+            </B>
+            <B variant="ghost" :disabled="persistent" @click="emit('close')">Seguir editando</B>
+            <B v-if="step === 3" :disabled="disabled || persistent" arrow @click="emit('send')">
+                {{ direct ? 'Emitir presupuesto' : 'Enviar presupuesto' }}
+            </B>
+        </template>
+    </SidePanel>
 </template>
 
 <style scoped>
-.budget-summary {
-    position: sticky;
-    top: calc(var(--navbar-height, 76px) + var(--workspace-bar-height, 0px) + 68px);
-    height: calc(100dvh - var(--navbar-height, 76px) - var(--workspace-bar-height, 0px) - 84px);
-    min-height: 420px;
-    display: flex;
-    flex-direction: column;
-    overflow-wrap: anywhere;
-    border: 1px solid #1f6f7f22;
-    border-radius: 12px;
-    background: #fff;
-    box-shadow: 0 8px 22px #153b6410;
+.budget-preview-panel {
+    min-height: 100%;
+    background: #f5f9fa;
 }
 
-.budget-summary > .btn {
-    width: 100%;
+.budget-preview-content {
+    width: min(100%, 860px);
+    margin-inline: auto;
+    padding: clamp(18px, 3vw, 32px);
 }
 
-.preview-toolbar {
+.preview-heading {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
     gap: 16px;
-    padding: 14px 20px;
-    border-bottom: 1px solid #1f6f7f22;
+    margin-bottom: 18px;
 }
 
-.preview-toolbar .eyebrow {
-    margin: 0 0 3px;
-    font-size: .7rem;
+.preview-heading .eyebrow {
+    margin: 0 0 4px;
+    font-size: .72rem;
 }
 
-.preview-toolbar h2 {
+.preview-heading h2 {
     margin: 0;
-    font-size: 1.15rem;
+    color: #153b64;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(1.15rem, 2vw, 1.4rem);
     font-weight: 700;
 }
 
@@ -80,10 +82,10 @@ const emit = defineEmits(['save']);
     align-items: center;
     gap: 7px;
     flex: none;
-    padding: 6px 10px;
+    padding: 7px 11px;
     border: 1px solid #1f6f7f2e;
     border-radius: 999px;
-    background: #f5f9fa;
+    background: #fff;
     color: #446075;
     font-size: .75rem;
     font-weight: 700;
@@ -97,39 +99,47 @@ const emit = defineEmits(['save']);
     box-shadow: 0 0 0 3px #26b4a21c;
 }
 
-.document-preview-scroll {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow: auto;
-    padding: clamp(16px, 1.5vw, 24px);
-    background: #f5f9fa;
+.budget-preview-content :deep(.budget-document) {
+    border-radius: 14px;
+    box-shadow: 0 8px 24px #153b6410;
 }
 
-.preview-save {
-    padding: 16px;
+.budget-preview-content :deep(.document-heading) {
+    padding: clamp(22px, 3vw, 32px);
 }
 
-.preview-save > .btn {
-    width: 100%;
+.budget-preview-content :deep(.document-heading .brand-logo) {
+    width: 124px;
 }
 
-.preview-save p {
-    margin: 10px 0 0;
+.budget-preview-content :deep(.document-label) {
+    font-size: 1.65rem;
 }
 
-.editor-hint {
-    font-size: .9rem;
-    color: #446075;
+.budget-preview-content :deep(.document-number),
+.budget-preview-content :deep(.document-dates),
+.budget-preview-content :deep(.party-content),
+.budget-preview-content :deep(.document-items table),
+.budget-preview-content :deep(.document-totals),
+.budget-preview-content :deep(.document-conditions > div) {
+    font-size: .95rem;
 }
 
-@media (max-width: 1200px) {
-    .budget-summary {
-        display: none;
-    }
+.budget-preview-content :deep(.document-content) {
+    padding: clamp(22px, 3vw, 32px);
+}
+
+.budget-preview-content :deep(.document-title) {
+    font-size: 1.5rem;
+}
+
+.budget-preview-content :deep(.document-items td),
+.budget-preview-content :deep(.document-items th) {
+    padding: 12px 10px;
 }
 
 @media (max-width: 600px) {
-    .preview-toolbar {
+    .preview-heading {
         align-items: flex-start;
         flex-direction: column;
     }

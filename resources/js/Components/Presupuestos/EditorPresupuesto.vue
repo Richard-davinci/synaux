@@ -1,11 +1,9 @@
 <script setup>
-import SidePanel from '../UI/SidePanel.vue';
 import {computed, ref, watch} from 'vue';
 import {useForm} from '@inertiajs/vue3';
 import B from '../UI/AppButton.vue';
-import BudgetDocument from './DocumentoPresupuesto.vue';
 import BudgetLines from './ConceptosPresupuesto.vue';
-import BudgetPreviewSidebar from './VistaPreviaPresupuesto.vue';
+import BudgetPreviewPanel from './VistaPreviaPresupuesto.vue';
 import BudgetSourceFields from './OrigenPresupuesto.vue';
 import BudgetTerms from './CondicionesPresupuesto.vue';
 import BudgetVatFields from './CamposIva.vue';
@@ -219,15 +217,18 @@ function save(send) {
             <p v-if="selected.budget_id" class="editor-note">Los documentos enviados se conservan. {{
                     selected.status === 'draft' ? 'Estás editando el borrador de la versión' : 'Se guardará una nueva versión:'
                 }} {{ version }}.</p></div>
-        <ol class="budget-steps" aria-label="Pasos para preparar presupuesto">
-            <li v-for="(label, index) in labels" :key="label">
-                <button type="button" :disabled="index + 1 > step || quote.processing"
-                        :aria-current="step === index + 1 ? 'step' : undefined" @click="step = index + 1">{{
-                        index + 1
-                    }}. {{ label }}
-                </button>
-            </li>
-        </ol>
+        <div class="budget-stepper">
+            <ol class="budget-steps" aria-label="Pasos para preparar presupuesto">
+                <li v-for="(label, index) in labels" :key="label">
+                    <button type="button" :disabled="index + 1 > step || quote.processing"
+                            :aria-current="step === index + 1 ? 'step' : undefined" @click="step = index + 1">{{
+                            index + 1
+                        }}. {{ label }}
+                    </button>
+                </li>
+            </ol>
+            <B variant="secondary" :disabled="quote.processing" @click="preview = true">Vista previa ampliada</B>
+        </div>
         <div v-if="Object.keys(quote.errors).length" class="notice" role="alert">
             <div><strong>Revisá los datos del presupuesto</strong>
                 <ul>
@@ -247,9 +248,6 @@ function save(send) {
             </template>
         </div>
 
-        <div class="budget-preview-mobile">
-            <B variant="secondary" @click="preview = true">Abrir documento ampliado</B>
-        </div>
         <!-- El formulario valida el paso visible y conserva los datos al volver a editar. -->
         <form class="budget-editor-grid" @submit.prevent="advance">
             <v-card class="card budget-panel">
@@ -271,30 +269,11 @@ function save(send) {
                         step === 3 ? 'Revisar documento' : 'Continuar'
                     }}</B></div>
             </v-card>
-
-            <BudgetPreviewSidebar :budget="documentPreview" :client="client" :issuer="issuer" :direct="direct"
-                                  :disabled="!canPrepare || needsIssuer || quote.processing"
-                                  :saving="quote.processing && !quote.send"
-                                  @save="save(false)"/>
         </form>
-        <SidePanel title="Documento ampliado del presupuesto" v-model="preview" max-width="960"
-                   :persistent="quote.processing">
-            <div class="synaux-app">
-                <v-card class="card modal-card budget-preview">
-                    <div class="context-heading"><h2>{{
-                            direct ? 'Revisá antes de emitir' : 'Revisá antes de enviar'
-                        }}</h2></div>
-                    <BudgetDocument :budget="documentPreview" :client="client" :issuer="issuer"/>
-                    <div class="form-actions"><B variant="secondary" :disabled="quote.processing"
-                                                 @click="preview = false">Volver a editar</B><B v-if="step === 3"
-                                                                                                :disabled="quote.processing || !canPrepare || needsIssuer"
-                                                                                                arrow
-                                                                                                @click="save(true)">{{
-                            direct ? (quote.processing ? 'Emitiendo…' : 'Emitir presupuesto') : (quote.processing ? 'Enviando…' : 'Enviar presupuesto al cliente')
-                        }}</B></div>
-                </v-card>
-            </div>
-        </SidePanel>
+        <BudgetPreviewPanel :visible="preview" :budget="documentPreview" :client="client" :issuer="issuer"
+                            :direct="direct" :step="step" :disabled="!canPrepare || needsIssuer || quote.processing"
+                            :saving="quote.processing && !quote.send" :persistent="quote.processing"
+                            @close="preview = false" @save-draft="save(false)" @send="save(true)"/>
     </section>
 </template>
 
@@ -329,21 +308,33 @@ function save(send) {
 }
 
 .budget-steps {
-    position: sticky;
-    top: calc(var(--navbar-height, 76px) + var(--workspace-bar-height, 0px));
-    z-index: 20;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
+    gap: 14px;
     padding: 0;
-    margin: 0 0 20px;
+    margin: 0;
     list-style: none;
+    min-width: 0;
+}
+
+.budget-stepper {
+    position: sticky;
+    top: calc(var(--navbar-height, 76px) + var(--workspace-bar-height, 0px) + 10px);
+    z-index: 20;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+    margin: 0 0 28px;
+    padding: 12px 14px;
+    border: 1px solid #1f6f7f22;
+    border-radius: 14px;
     background: #fff;
-    box-shadow: 0 5px 12px #153b6410;
+    box-shadow: 0 5px 14px #153b6410;
 }
 
 .budget-steps button {
-    min-height: 48px;
+    min-height: 54px;
     width: 100%;
     border: 1px solid #1f6f7f33;
     border-radius: 10px;
@@ -351,6 +342,7 @@ function save(send) {
     background: white;
     font: inherit;
     font-weight: 700;
+    padding: 10px 14px;
     cursor: pointer;
 }
 
@@ -371,17 +363,13 @@ function save(send) {
 
 .budget-editor-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.08fr) minmax(560px, .92fr);
-    gap: clamp(20px, 2vw, 32px);
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
     align-items: start;
 }
 
 .budget-editor-grid > * {
     min-width: 0;
-}
-
-.budget-preview-mobile {
-    display: none;
 }
 
 .editor-note {
@@ -411,56 +399,6 @@ function save(send) {
     margin: 0;
 }
 
-.budget-preview :deep(.budget-document) {
-    border-radius: 14px;
-}
-
-.budget-preview :deep(.document-heading) {
-    padding: clamp(22px, 2vw, 32px);
-}
-
-.budget-preview :deep(.document-heading .brand-logo) {
-    width: 124px;
-}
-
-.budget-preview :deep(.document-label) {
-    font-size: 1.65rem;
-}
-
-.budget-preview :deep(.document-number),
-.budget-preview :deep(.document-dates),
-.budget-preview :deep(.party-content),
-.budget-preview :deep(.document-items table),
-.budget-preview :deep(.document-totals),
-.budget-preview :deep(.document-conditions > div) {
-    font-size: .95rem;
-}
-
-.budget-preview :deep(.document-content) {
-    padding: clamp(22px, 2vw, 32px);
-}
-
-.budget-preview :deep(.document-title) {
-    font-size: 1.5rem;
-}
-
-.budget-preview :deep(.document-items td),
-.budget-preview :deep(.document-items th) {
-    padding: 12px 10px;
-}
-
-@media (max-width: 1200px) {
-    .budget-editor-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .budget-preview-mobile {
-        display: flex;
-        justify-content: flex-end;
-        margin: 0 0 12px;
-    }
-}
-
 @media (max-width: 600px) {
     .budget-editor {
         width: min(100% - 28px, 1180px);
@@ -470,8 +408,20 @@ function save(send) {
         gap: 6px;
     }
 
+    .budget-stepper {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-bottom: 20px;
+        padding: 10px;
+    }
+
+    .budget-stepper > :deep(.btn) {
+        width: 100%;
+    }
+
     .budget-steps button {
-        font-size: .85rem;
+        min-height: 48px;
+        font-size: .8rem;
         padding: 8px 4px;
     }
 

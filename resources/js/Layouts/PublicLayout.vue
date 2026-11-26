@@ -129,7 +129,8 @@ watch(() => page.url, () => {
                 </WorkspaceNavigation>
             </div>
         </v-dialog>
-        <SiteFooter :year="year" :landing="landing"/>
+        <!-- El área privada conserva su espacio de trabajo continuo; el pie público queda en páginas abiertas. -->
+        <SiteFooter v-if="!mostrarPanel" :year="year" :landing="landing"/>
     </v-app>
 </template>
 
