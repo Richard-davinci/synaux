@@ -9,9 +9,9 @@ defineProps({
     data: {type: Object, required: true},
     direct: Boolean,
     source: Object,
-    client: Object,
     requestOptions: {type: Array, required: true},
 });
+const emit = defineEmits(['ver-pedido']);
 </script>
 
 <template>
@@ -33,17 +33,18 @@ defineProps({
         </div>
     </template>
     <template v-else>
-        <h2>Revisá la solicitud</h2>
-        <F v-model="quote.request_id" label="Solicitud relacionada" type="select"
+        <h2>Pedido original</h2>
+        <F v-model="quote.request_id" label="Pedido que vas a presupuestar" type="select"
            :disabled="!!selected.budget_id || quote.processing" :options="requestOptions"
            :error="quote.errors.request_id" required/>
-        <p v-if="!selected.budget_id" class="editor-hint">Si cambiás la solicitud, se reemplazan el título y los
-            conceptos por los del pedido elegido.</p>
-        <p v-if="!requestOptions.length">Todavía no hay solicitudes disponibles para presupuestar.</p>
+        <p v-if="!selected.budget_id" class="editor-hint">Elegí el pedido original del cliente. El presupuesto se prepara y se guarda por separado.</p>
+        <p v-if="!requestOptions.length">Todavía no hay pedidos disponibles para presupuestar.</p>
         <section v-if="source" class="request-context" aria-label="Pedido del cliente">
-            <div class="context-heading"><h3>SOL-{{ source.id }} · {{ source.title }}</h3><B
-                :href="'/solicitudes/' + source.id" variant="ghost">Ver solicitud</B></div>
-            <p class="preserve-lines">{{ source.description }}</p>
+            <div class="context-heading">
+                <div><p class="request-id">Pedido original · SOL-{{ source.id }}</p><h3>{{ source.title }}</h3></div>
+                <B variant="secondary" @click="emit('ver-pedido')">Ver pedido original</B>
+            </div>
+            <p class="preserve-lines request-description">{{ source.description }}</p>
             <dl>
                 <div>
                     <dt>Servicio principal</dt>
@@ -58,32 +59,8 @@ defineProps({
                     <dd>{{ source.budget_reference || 'Sin indicar' }}</dd>
                 </div>
             </dl>
-            <div v-if="source.additional_services?.length">
-                <h3>Servicios adicionales</h3>
-                <div v-for="item in source.additional_services" :key="item.service_id">
-                    <p><strong>{{ item.name }} × {{ item.quantity }}</strong><br v-if="item.notes">{{ item.notes }}</p>
-                    <dl v-if="item.answers?.length">
-                        <div v-for="answer in item.answers" :key="answer.id">
-                            <dt>{{ answer.question }}</dt>
-                            <dd>{{ answer.label }}</dd>
-                        </div>
-                    </dl>
-                </div>
-            </div>
-            <div v-if="source.answers?.length"><h3>Respuestas de la estimación</h3>
-                <dl>
-                    <div v-for="answer in source.answers" :key="answer.id">
-                        <dt>{{ answer.question }}</dt>
-                        <dd>{{ answer.label }}</dd>
-                    </div>
-                </dl>
-            </div>
+            <p class="request-services"><strong>Servicios:</strong> {{ [source.service_name, ...(source.additional_services ?? []).map(item => item.name)].filter(Boolean).join(' · ') }}</p>
         </section>
-        <section v-if="client" class="client-context"><h3>Contacto del pedido</h3><strong>{{ client.name }}</strong>
-            <p>{{ client.email }}</p>
-            <p v-if="client.company">{{ client.company }}</p>
-            <p v-if="client.phone">{{ client.phone }}</p>
-            <p v-if="client.address">{{ client.address }}</p></section>
     </template>
     <F v-model="quote.title" label="Título del presupuesto" maxlength="255" :error="quote.errors.title" required/>
     <F v-model="quote.currency_code" label="Moneda del presupuesto" type="select" :options="['ARS', 'USD', 'EUR']"
@@ -92,12 +69,30 @@ defineProps({
 </template>
 
 <style scoped>
-.request-context, .client-context {
+.request-context {
     background: #f5f9fa;
     border: 1px solid #1f6f7f22;
     padding: 16px;
     border-radius: 12px;
     margin: 16px 0;
+}
+
+.request-id {
+    margin: 0 0 4px;
+    color: #1f6f7f;
+    font-size: .75rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.request-description {
+    margin: 0 0 10px;
+}
+
+.request-services {
+    margin: 14px 0 0;
+    color: #446075;
 }
 
 .context-heading {
@@ -121,11 +116,6 @@ defineProps({
 .request-context dd {
     margin: 4px 0 0;
     font-weight: 700;
-    overflow-wrap: anywhere;
-}
-
-.client-context p {
-    margin: 4px 0;
     overflow-wrap: anywhere;
 }
 

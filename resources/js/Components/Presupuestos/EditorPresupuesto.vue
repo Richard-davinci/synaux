@@ -17,6 +17,7 @@ const selected = props.data.selected ?? {};
 const submit = useSubmit();
 const step = ref(1);
 const preview = ref(false);
+const previewView = ref('presupuesto');
 // El presupuesto directo solicita solo los datos del destinatario y comienza con un concepto editable.
 const direct = Boolean(props.data.directBudget);
 const configuraPago = props.data.area === 'gestion' && !props.data.preview;
@@ -192,6 +193,17 @@ function advance() {
     else preview.value = true;
 }
 
+// La consulta del pedido abre el mismo panel de revisión sin abandonar el borrador actual.
+function openRequestPreview() {
+    previewView.value = 'pedido';
+    preview.value = true;
+}
+
+function openBudgetPreview() {
+    previewView.value = 'presupuesto';
+    preview.value = true;
+}
+
 function save(send) {
     quote.send = send;
     submit(quote, 'presupuesto', {
@@ -208,9 +220,9 @@ function save(send) {
 
 <template>
     <section class="page shell budget-editor">
-        <B href="/gestion/presupuestos" variant="ghost">← Volver a presupuestos</B>
+        <B href="/gestion/presupuestos" variant="secondary">← Volver a presupuestos</B>
         <div class="budget-heading"><p class="eyebrow">Gestión · Presupuesto formal</p>
-            <h1>{{ selected.budget_id ? 'Prepará la próxima versión' : 'Prepará el presupuesto' }}</h1>
+            <h1>{{ selected.budget_id && selected.status !== 'draft' ? 'Prepará la próxima versión' : 'Prepará el presupuesto' }}</h1>
             <p>{{
                     direct ? 'Cargá los datos del cliente, definí los servicios y prepará el PDF.' : 'Revisá el pedido del cliente, definí los servicios y comprobá el documento antes de enviarlo.'
                 }}</p>
@@ -227,7 +239,7 @@ function save(send) {
                     </button>
                 </li>
             </ol>
-            <B variant="secondary" :disabled="quote.processing" @click="preview = true">Vista previa ampliada</B>
+            <B variant="secondary" :disabled="quote.processing" @click="openBudgetPreview">Vista previa ampliada</B>
         </div>
         <div v-if="Object.keys(quote.errors).length" class="notice" role="alert">
             <div><strong>Revisá los datos del presupuesto</strong>
@@ -253,8 +265,8 @@ function save(send) {
             <v-card class="card budget-panel">
                 <p class="eyebrow">Paso {{ step }} de 3</p>
                 <BudgetSourceFields v-if="step === 1" :quote="quote" :selected="selected" :data="data"
-                                    :direct="direct" :source="source" :client="client"
-                                    :request-options="requestOptions"/>
+                                    :direct="direct" :source="source"
+                                    :request-options="requestOptions" @ver-pedido="openRequestPreview"/>
                 <BudgetLines v-else-if="step === 2" :quote="quote" :line-cents="lineCents" :price-hint="priceHint"
                              @add-item="quote.items.push(emptyItem())"/>
                 <BudgetTerms v-else :quote="quote" :direct="direct" :configura-pago="configuraPago" :requiere-transferencia="total > 0"/>
@@ -270,10 +282,12 @@ function save(send) {
                     }}</B></div>
             </v-card>
         </form>
-        <BudgetPreviewPanel :visible="preview" :budget="documentPreview" :client="client" :issuer="issuer"
+        <BudgetPreviewPanel :visible="preview" :budget="documentPreview" :solicitud="source"
+                            :vista-activa="previewView" :client="client" :issuer="issuer"
                             :direct="direct" :step="step" :disabled="!canPrepare || needsIssuer || quote.processing"
                             :saving="quote.processing && !quote.send" :persistent="quote.processing"
-                            @close="preview = false" @save-draft="save(false)" @send="save(true)"/>
+                            @close="preview = false" @save-draft="save(false)" @send="save(true)"
+                            @change-view="previewView = $event"/>
     </section>
 </template>
 
