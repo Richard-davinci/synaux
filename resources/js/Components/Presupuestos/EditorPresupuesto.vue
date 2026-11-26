@@ -7,6 +7,7 @@ import BudgetPreviewPanel from './VistaPreviaPresupuesto.vue';
 import BudgetSourceFields from './OrigenPresupuesto.vue';
 import BudgetTerms from './CondicionesPresupuesto.vue';
 import BudgetVatFields from './CamposIva.vue';
+import BrandPatternFragment from '../Brand/BrandPatternFragment.vue';
 import {money} from '../../support/formatters';
 import {useSubmit} from '../../support/useSubmit';
 import {referenceLine, requestBudgetLines} from '../../support/calculoPreciosSolicitud';
@@ -215,6 +216,7 @@ function save(send) {
 
 <template>
     <section class="budget-editor-page">
+      <BrandPatternFragment class="budget-editor-pattern"/>
       <div class="page shell budget-editor">
         <B href="/gestion/presupuestos" variant="secondary">← Volver a presupuestos</B>
         <div class="budget-heading"><p class="eyebrow">Gestión · Presupuesto formal</p>
@@ -289,11 +291,28 @@ function save(send) {
 <style scoped>
 /* La grilla, las tarjetas y los pasos siguen el recorrido del cliente sin comprimir los conceptos. */
 .budget-editor-page {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
     min-height: calc(100vh - var(--navbar-height, 76px));
     background: #f5f9fa;
 }
 
+/* La trama aprobada acompaña el encabezado y deja libres las zonas interactivas del editor. */
+.budget-editor-pattern {
+    position: absolute;
+    z-index: 0;
+    top: 8px;
+    right: max(24px, calc((100vw - 1680px) / 2));
+    width: min(380px, 34vw);
+    height: 180px;
+    opacity: .3;
+    pointer-events: none;
+}
+
 .budget-editor {
+    position: relative;
+    z-index: 1;
     width: min(1680px, calc(100% - 48px));
     max-width: none;
     padding-block: clamp(24px, 4vw, 48px) 64px;
@@ -416,6 +435,12 @@ function save(send) {
 @media (max-width: 600px) {
     .budget-editor {
         width: min(100% - 28px, 1180px);
+    }
+
+    .budget-editor-pattern {
+        right: 0;
+        width: min(260px, 55vw);
+        opacity: .2;
     }
 
     .budget-steps {
