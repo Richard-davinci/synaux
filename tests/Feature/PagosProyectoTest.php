@@ -62,9 +62,11 @@ class PagosProyectoTest extends TestCase
         Storage::disk('local')->assertMissing($primero);
         $this->actingAs($supervisor)->patch("$ruta/revision", ['decision' => 'confirmado', 'intento' => 1])->assertSessionHasErrors('decision');
         $this->patch("$ruta/revision", ['decision' => 'confirmado', 'intento' => 2])->assertSessionHasNoErrors();
+        $this->actingAs($supervisor)->post('/acciones/proyecto', ['id' => $proyecto, 'status' => 'in_progress', 'progress' => 10])
+            ->assertSessionHasNoErrors();
         $this->assertDatabaseHas('proyecto_pagos', ['id' => $sena->id, 'estado' => 'confirmado', 'revisado_por' => $supervisor->id]);
         $this->assertDatabaseHas('synaux_notifications', ['user_id' => $cliente->id, 'title' => 'Pago confirmado', 'entity_id' => $proyecto]);
-        $this->assertDatabaseHas('projects', ['id' => $proyecto, 'status' => 'pending']);
+        $this->assertDatabaseHas('projects', ['id' => $proyecto, 'status' => 'in_progress']);
     }
 
     // Una versión sin anticipo genera un solo pago. Un presupuesto anterior conserva sus condiciones.
@@ -88,6 +90,11 @@ class PagosProyectoTest extends TestCase
         ])->assertSessionHasNoErrors();
         $this->assertDatabaseCount('proyecto_pagos', 1);
         $this->assertDatabaseHas('proyecto_pagos', ['concepto' => 'saldo', 'importe_centavos' => 1211, 'estado' => 'pendiente']);
+        $proyecto = DB::table('projects')->where('accepted_budget_version_id', $version)->firstOrFail();
+        $this->actingAs($supervisor)->post('/acciones/proyecto', ['id' => $proyecto->id, 'status' => 'in_progress', 'progress' => 10])->assertSessionHasNoErrors();
+        $this->post('/acciones/proyecto', ['id' => $proyecto->id, 'status' => 'completed', 'progress' => 100])->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('projects', ['id' => $proyecto->id, 'status' => 'completed']);
+        $this->assertDatabaseHas('proyecto_pagos', ['project_id' => $proyecto->id, 'concepto' => 'saldo', 'estado' => 'pendiente']);
     }
 
     // El responsable interno puede consultar el alcance acordado mientras conserva la asignación.
@@ -121,6 +128,7 @@ class PagosProyectoTest extends TestCase
         $this->get($ruta)->assertInertia(fn(Assert $pagina) => $pagina->where('area', 'profesional')
             ->where('alcanceAsignado.entrega', 30)->where('alcanceAsignado.entregables.0.description', 'Servicio digital')
             ->missing('alcanceAsignado.entregables.0.unit_price')->missing('quotes')->missing('pagos')->missing('asignacion'));
+        $this->post('/acciones/proyecto', ['id' => $proyecto, 'status' => 'in_progress', 'progress' => 10])->assertSessionHasNoErrors();
         $this->post('/acciones/proyecto')->assertForbidden();
 
         $this->actingAs($supervisor)->patch("$ruta/responsable", ['responsable_id' => $supervisor->id])->assertSessionHasNoErrors();

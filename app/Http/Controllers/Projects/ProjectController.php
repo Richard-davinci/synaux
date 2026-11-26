@@ -116,9 +116,11 @@ class ProjectController extends Controller
         ]);
         DB::transaction(function () use ($request, $d, $budgetQueries, $notifications) {
             $project = DB::table('projects')->where('id', $d['id'])->lockForUpdate()->firstOrFail();
-            $version = $budgetQueries->quotes($request->user()->id, $request->user()->puedeGestionarSynaux(), id: $project->accepted_budget_version_id)[0] ?? null;
             $gestion = $request->user()->puedeGestionarSynaux();
             $responsable = $request->user()->esProfesionalInterno() && (int)$project->responsable_id === (int)$request->user()->id;
+            $version = $gestion || $responsable
+                ? ['issuer_id' => null]
+                : ($budgetQueries->quotes($request->user()->id, false, id: $project->accepted_budget_version_id)[0] ?? null);
             abort_unless($version && ($gestion || $responsable || $version['issuer_id'] === $request->user()->id), 403);
             // Estado y porcentaje deben comunicar el mismo avance.
             if (($d['status'] === 'completed' && (int)$d['progress'] !== 100)
