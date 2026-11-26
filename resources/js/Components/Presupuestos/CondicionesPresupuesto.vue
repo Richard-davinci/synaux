@@ -1,6 +1,7 @@
 <script setup>
 import F from '../UI/FormField.vue';
 import I from '../UI/AppIcon.vue';
+import CampoFecha from '../UI/CampoFecha.vue';
 
 defineProps({
     quote: {type: Object, required: true},
@@ -15,7 +16,7 @@ defineProps({
     <div class="form-grid">
         <F v-model="quote.estimated_delivery_days" label="Entrega estimada (días desde el inicio)" type="number" min="1"
            max="3650" step="1" :error="quote.errors.estimated_delivery_days" required/>
-        <F v-model="quote.valid_until" label="Presupuesto válido hasta" type="date"
+        <CampoFecha v-model="quote.valid_until" label="Presupuesto válido hasta"
            :min="new Date().toLocaleDateString('en-CA')" :error="quote.errors.valid_until" required/>
     </div>
 
@@ -37,7 +38,7 @@ defineProps({
                :error="quote.errors.momento_hito_intermedio" required/>
             <F v-model="quote.momento_pago_final" label="Cuándo se abona el pago final" type="text" maxlength="180"
                :error="quote.errors.momento_pago_final" required/>
-            <p class="editor-note hito-ayuda">El saldo restante se divide en dos importes iguales. Si el total tiene un centavo impar, se suma al pago final.</p>
+            <p class="editor-note hito-ayuda">El saldo se divide en dos pagos iguales; si el redondeo deja un centavo, se suma al pago final.</p>
         </div>
         <F v-if="requiereTransferencia" v-model="quote.instrucciones_transferencia" label="Datos para la transferencia"
            type="textarea" maxlength="1000" hint="Indicá el titular y el alias o CBU de la cuenta que recibirá el pago."
@@ -64,5 +65,12 @@ defineProps({
     width: 20px;
     vertical-align: middle;
     margin-right: 6px;
+}
+
+.hito-ayuda {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 10px 12px;
+    font-size: .875rem;
 }
 </style>

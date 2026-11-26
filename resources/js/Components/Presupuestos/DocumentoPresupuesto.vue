@@ -7,6 +7,8 @@ import {date, money} from '../../support/formatters';
 // El editor y el documento recibido comparten los datos de una versión, sin consultar perfiles actuales.
 const props = defineProps({budget: Object, client: Object, issuer: Object, compact: Boolean, example: Boolean, estimacion: Object});
 const pending = computed(() => (props.budget.items ?? []).some(item => item.unit_price === '' || item.unit_price == null));
+// Los documentos anteriores conservan cantidad y precio unitario solo si el concepto los necesitaba.
+const mostrarCantidad = computed(() => (props.budget.items ?? []).some(item => Number(item.quantity) !== 1));
 const tax = computed(() => Math.round((Number(props.budget.total ?? 0) - Number(props.budget.subtotal ?? 0)) * 100) / 100);
 const scope = description => String(description ?? '').split('\n').slice(1).join('\n');
 const concept = description => String(description ?? '').split('\n')[0] || 'Servicio por definir';
@@ -59,9 +61,9 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
                     <thead>
                     <tr>
                         <th>Concepto y alcance</th>
-                        <th v-if="!compact">Cant.</th>
-                        <th v-if="!compact">Precio unit.</th>
-                        <th>{{ estimacion ? 'Estimado' : compact ? 'Importe' : 'Subtotal' }}</th>
+                        <th v-if="!compact && mostrarCantidad">Cant.</th>
+                        <th v-if="!compact && mostrarCantidad">Precio unit.</th>
+                        <th>{{ estimacion ? 'Estimado' : compact || !mostrarCantidad ? 'Importe' : 'Subtotal' }}</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -69,8 +71,8 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
                         <td><strong>{{ concept(item.description) }}</strong>
                             <p v-if="(!compact || example || estimacion) && scope(item.description)" class="preserve-lines">
                                 {{ scope(item.description) }}</p></td>
-                        <td v-if="!compact">{{ item.quantity }}</td>
-                        <td v-if="!compact">{{
+                        <td v-if="!compact && mostrarCantidad">{{ item.quantity }}</td>
+                        <td v-if="!compact && mostrarCantidad">{{
                                 item.unit_price === '' || item.unit_price == null ? 'A cotizar' : money(item.unit_price, budget.currency_code)
                             }}
                         </td>
@@ -81,7 +83,7 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
                         </td>
                     </tr>
                     <tr v-if="!budget.items?.length">
-                        <td :colspan="compact ? 2 : 4">{{ estimacion ? 'Elegí un servicio para ver su referencia.' : 'Agregá los servicios para preparar el presupuesto.' }}</td>
+                        <td :colspan="compact || !mostrarCantidad ? 2 : 4">{{ estimacion ? 'Elegí un servicio para ver su referencia.' : 'Agregá los servicios para preparar el presupuesto.' }}</td>
                     </tr>
                     </tbody>
                 </table>

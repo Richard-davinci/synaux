@@ -36,11 +36,16 @@ const emit = defineEmits(['expand', 'save']);
 <style scoped>
 .budget-summary {
     position: sticky;
-    top: calc(var(--navbar-height, 108px) + var(--workspace-bar-height, 0px) + 16px);
+    top: calc(var(--navbar-height, 76px) + var(--workspace-bar-height, 0px) + 68px);
+    height: calc(100dvh - var(--navbar-height, 76px) - var(--workspace-bar-height, 0px) - 84px);
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
     overflow-wrap: anywhere;
     border: 1px solid #1f6f7f22;
     border-radius: 12px;
     background: #fff;
+    box-shadow: 0 8px 22px #153b6410;
 }
 
 .budget-summary > .btn {
@@ -63,7 +68,8 @@ const emit = defineEmits(['expand', 'save']);
 }
 
 .document-preview-scroll {
-    max-height: 65dvh;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow: auto;
     padding: 12px;
     background: #f5f9fa;
@@ -88,7 +94,7 @@ const emit = defineEmits(['expand', 'save']);
 
 @media (max-width: 900px) {
     .budget-summary {
-        position: static;
+        display: none;
     }
 }
 </style>

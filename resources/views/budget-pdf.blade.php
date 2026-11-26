@@ -203,6 +203,8 @@
     $issuer = $budget['issuer'] ?? [];
     $transfer = $budget['plan_pago']['instrucciones'] ?? '';
     $transferInColumns = $transfer !== '' && mb_strlen($transfer) <= 240 && substr_count($transfer, "\n") <= 4;
+    // Las nuevas propuestas muestran un importe por concepto; las versiones históricas retienen sus cantidades.
+    $mostrarCantidad = collect($budget['items'])->contains(fn ($item) => (float) $item->quantity !== 1.0);
 @endphp
 <div class="header">
     <img src="{{ $logo }}" alt="synaux">
@@ -243,19 +245,27 @@
 <table class="items">
     <thead>
     <tr>
-        <th style="width:46%">Concepto y alcance</th>
-        <th class="quantity" style="width:10%">Cant.</th>
-        <th class="amount" style="width:22%">Precio unitario</th>
-        <th class="amount" style="width:22%">Subtotal</th>
+        <th style="width:{{ $mostrarCantidad ? '46%' : '72%' }}">Concepto y alcance</th>
+        @if($mostrarCantidad)
+            <th class="quantity" style="width:10%">Cant.</th>
+            <th class="amount" style="width:22%">Precio unitario</th>
+            <th class="amount" style="width:22%">Subtotal</th>
+        @else
+            <th class="amount" style="width:28%">Importe</th>
+        @endif
     </tr>
     </thead>
     <tbody>
     @foreach($budget['items'] as $item)
         <tr>
             <td class="terms">{{ $item->description }}</td>
-            <td class="quantity">{{ $item->quantity }}</td>
-            <td class="amount">{{ $money($item->unit_price) }}</td>
-            <td class="amount">{{ $money($item->quantity * $item->unit_price) }}</td>
+            @if($mostrarCantidad)
+                <td class="quantity">{{ $item->quantity }}</td>
+                <td class="amount">{{ $money($item->unit_price) }}</td>
+                <td class="amount">{{ $money($item->quantity * $item->unit_price) }}</td>
+            @else
+                <td class="amount">{{ $money($item->unit_price) }}</td>
+            @endif
         </tr>
     @endforeach
     </tbody>

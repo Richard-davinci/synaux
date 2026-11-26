@@ -24,6 +24,13 @@ const direct = Boolean(props.data.directBudget);
 const configuraPago = props.data.area === 'gestion' && !props.data.preview;
 const labels = [direct ? 'Cliente' : 'Solicitud', 'Servicios', 'Condiciones'];
 const emptyItem = () => ({description: '', quantity: 1, unit_price: ''});
+// Un renglón del presupuesto representa un concepto completo; al editar se integra cualquier cantidad previa al importe.
+const itemComoConcepto = item => ({
+    description: item.description,
+    quantity: 1,
+    unit_price: item.unit_price === '' || item.unit_price == null ? ''
+        : Math.round(Number(item.quantity || 1) * Number(item.unit_price) * 100) / 100,
+});
 const quote = useForm({
     budget_id: selected.budget_id ?? null,
     direct,
@@ -44,11 +51,7 @@ const quote = useForm({
             ?? 'Al aprobar la tienda terminada, antes de publicarla y entregar los accesos',
         instrucciones_transferencia: selected.plan_pago?.instrucciones ?? '',
     } : {}),
-    items: selected.items?.map(item => ({
-        description: item.description,
-        quantity: item.quantity,
-        unit_price: item.unit_price
-    })) ?? (direct ? [emptyItem()] : []),
+    items: selected.items?.map(itemComoConcepto) ?? (direct ? [emptyItem()] : []),
     send: false,
 });
 // El interruptor aplica IVA a todo el presupuesto; desactivarlo conserva la tasa para volver a incluirlo.
@@ -132,7 +135,16 @@ function suggestedPrice(reference, currency) {
 }
 
 function newItem(description, quantity, reference) {
-    return {description, quantity, unit_price: suggestedPrice(reference, quote.currency_code), reference};
+    const importe = suggestedPrice(reference, quote.currency_code);
+    const unidades = Number(quantity || 1);
+    const referenciaCompleta = reference && unidades !== 1 ? {
+        ...reference, min: Number(reference.min) * unidades, max: Number(reference.max) * unidades,
+    } : reference;
+    return {
+        description, quantity: 1,
+        unit_price: importe === '' ? '' : Math.round(Number(importe) * unidades * 100) / 100,
+        reference: referenciaCompleta,
+    };
 }
 
 function priceHint(reference) {
@@ -235,6 +247,9 @@ function save(send) {
             </template>
         </div>
 
+        <div class="budget-preview-mobile">
+            <B variant="secondary" @click="preview = true">Ver vista previa del presupuesto</B>
+        </div>
         <!-- El formulario valida el paso visible y conserva los datos al volver a editar. -->
         <form class="budget-editor-grid" @submit.prevent="advance">
             <v-card class="card budget-panel">
@@ -285,35 +300,44 @@ function save(send) {
 
 <style scoped>
 /* La grilla, las tarjetas y los pasos siguen el recorrido del cliente sin comprimir los conceptos. */
+.budget-editor {
+    padding-block: clamp(24px, 4vw, 48px) 64px;
+}
+
 .budget-heading {
-    margin: 26px 0;
+    margin: 0 0 20px;
     max-width: 860px;
 }
 
 .budget-heading h1 {
-    font-size: clamp(2rem, 4vw, 3.2rem);
+    font-size: clamp(1.75rem, 3vw, 2.3rem);
     font-weight: 700;
-    line-height: 1.12;
-    margin-bottom: 16px;
+    line-height: 1.15;
+    margin: 0 0 8px;
 }
 
 .budget-panel :deep(h2) {
-    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    font-size: 1.35rem;
     font-weight: 700;
 }
 
 .budget-panel :deep(h3) {
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 700;
 }
 
 .budget-steps {
+    position: sticky;
+    top: calc(var(--navbar-height, 76px) + var(--workspace-bar-height, 0px));
+    z-index: 20;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
     padding: 0;
-    margin: 0 0 24px;
+    margin: 0 0 20px;
     list-style: none;
+    background: #fff;
+    box-shadow: 0 5px 12px #153b6410;
 }
 
 .budget-steps button {
@@ -345,13 +369,17 @@ function save(send) {
 
 .budget-editor-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 24px;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+    gap: 16px;
     align-items: start;
 }
 
 .budget-editor-grid > * {
     min-width: 0;
+}
+
+.budget-preview-mobile {
+    display: none;
 }
 
 .editor-note {
@@ -389,6 +417,12 @@ function save(send) {
 @media (max-width: 900px) {
     .budget-editor-grid {
         grid-template-columns: 1fr;
+    }
+
+    .budget-preview-mobile {
+        display: flex;
+        justify-content: flex-end;
+        margin: 0 0 12px;
     }
 }
 

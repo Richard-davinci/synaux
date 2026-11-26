@@ -4,7 +4,7 @@ import {VDatePicker, VMenu} from 'vuetify/components';
 import B from './AppButton.vue';
 import I from './AppIcon.vue';
 
-const props = defineProps({label: String, error: String, min: String});
+const props = defineProps({label: String, error: String, min: String, required: Boolean});
 const valor = defineModel({type: String, default: ''});
 const abierto = ref(false);
 const id = useId();
@@ -22,11 +22,12 @@ function seleccionar(fecha) {
 
 <template>
     <div class="field campo-fecha">
-        <label :for="id">{{ label }}</label>
+        <label :for="id">{{ label }}<span v-if="required" aria-hidden="true"> *</span></label>
         <VMenu v-model="abierto" :close-on-content-click="false" :offset="6" location="bottom start">
             <template #activator="{props: activador}">
                 <button v-bind="activador" :id="id" type="button" class="fecha-activador"
                         :aria-label="label + ', ' + texto" :aria-invalid="Boolean(error)"
+                        :aria-required="required || undefined"
                         :aria-describedby="error ? id + '-error' : undefined">
                     {{ texto }}<I name="calendar"/>
                 </button>

@@ -14,7 +14,7 @@ const emit = defineEmits(['add-item']);
 
 <template>
     <h2>Definí los servicios</h2>
-    <p>Completá el alcance, la cantidad y el precio de cada concepto.</p>
+    <p>Describí el alcance y definí el importe de cada concepto.</p>
     <div v-for="(item, index) in quote.items" :key="index" class="quote-item">
         <div class="context-heading"><h3>Concepto {{ index + 1 }}</h3><B variant="ghost"
                                                                          :disabled="quote.items.length === 1 || quote.processing"
@@ -23,14 +23,10 @@ const emit = defineEmits(['add-item']);
         </div>
         <F v-model="item.description" label="Servicio y entregables" type="textarea" maxlength="2000"
            :error="quote.errors['items.' + index + '.description']" required/>
-        <div class="form-grid">
-            <F v-model="item.quantity" label="Cantidad" type="number" min="0.001" max="10000" step="0.001"
-               :error="quote.errors['items.' + index + '.quantity']" required/>
-            <F v-model="item.unit_price" :label="'Precio unitario · ' + quote.currency_code" type="number" min="0"
-               max="100000000" step="0.01" :error="quote.errors['items.' + index + '.unit_price']"
-               :hint="priceHint(item.reference)" required/>
-        </div>
-        <p class="item-subtotal">Subtotal del concepto <strong>{{
+        <F v-model="item.unit_price" :label="'Importe del concepto · ' + quote.currency_code" type="number" min="0"
+           max="100000000" step="0.01" :error="quote.errors['items.' + index + '.unit_price']"
+           :hint="priceHint(item.reference)" required/>
+        <p class="item-subtotal">Importe del concepto <strong>{{
                 item.unit_price === '' ? 'Pendiente de cotizar' : money(lineCents(item) / 100, quote.currency_code)
             }}</strong></p>
     </div>
