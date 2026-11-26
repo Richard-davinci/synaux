@@ -117,13 +117,24 @@ class ProjectController extends Controller
         DB::transaction(function () use ($request, $d, $budgetQueries, $notifications) {
             $project = DB::table('projects')->where('id', $d['id'])->lockForUpdate()->firstOrFail();
             $version = $budgetQueries->quotes($request->user()->id, $request->user()->puedeGestionarSynaux(), id: $project->accepted_budget_version_id)[0] ?? null;
-            abort_unless($version && ($request->user()->puedeGestionarSynaux() || $version['issuer_id'] === $request->user()->id), 403);
+            $gestion = $request->user()->puedeGestionarSynaux();
+            $responsable = $request->user()->esProfesionalInterno() && (int)$project->responsable_id === (int)$request->user()->id;
+            abort_unless($version && ($gestion || $responsable || $version['issuer_id'] === $request->user()->id), 403);
             // Estado y porcentaje deben comunicar el mismo avance.
             if (($d['status'] === 'completed' && (int)$d['progress'] !== 100)
                 || ($d['status'] === 'pending' && (int)$d['progress'] !== 0)) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
                     'progress' => 'Usá 0% para pendiente y 100% para un proyecto completado.',
                 ]);
+            }
+            if ($d['status'] === 'in_progress' && $project->status !== 'in_progress') {
+                $senaPendiente = DB::table('proyecto_pagos')->where('project_id', $project->id)
+                    ->where('concepto', 'sena')->where('estado', '!=', 'confirmado')->exists();
+                if ($senaPendiente) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'status' => 'Confirmá el pago de la seña antes de iniciar el proyecto.',
+                    ]);
+                }
             }
             $values = [
                 'start_date' => $project->start_date, 'end_date' => $project->end_date,

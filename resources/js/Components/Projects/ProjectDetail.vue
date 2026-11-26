@@ -143,7 +143,7 @@ const guidance = computed(() => ({
                 </aside>
             </div>
         </div>
-        <ProjectUpdate v-if="updating" :project="project" @close="updating = false"/>
+        <ProjectUpdate v-if="updating"  :project="{...project, pagos: data.pagos}" @close="updating = false"/>
     </section>
 </template>
 

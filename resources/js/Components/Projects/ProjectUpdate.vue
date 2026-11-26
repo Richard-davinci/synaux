@@ -9,6 +9,7 @@ import {useSubmit} from '../../support/useSubmit';
 
 // El formulario parte del proyecto elegido y conserva sus campos ante errores de validación.
 const props = defineProps({project: Object});
+const tieneSenaPendiente = props.project.pagos?.some(pago => pago.concepto === 'sena' && pago.estado !== 'confirmado') ?? false;
 const emit = defineEmits(['close']);
 const submit = useSubmit();
 const form = useForm({
@@ -46,7 +47,7 @@ function save() {
                 <form @submit.prevent="save">
                     <div class="form-grid">
                         <F v-model="form.status" label="Estado del proyecto" type="select"
-                           :options="[{value:'pending',label:'Pendiente de inicio'},{value:'in_progress',label:'En desarrollo'},{value:'completed',label:'Completado'},{value:'cancelled',label:'Cancelado'}]"
+                           :options="[{value:'pending',label:'Pendiente de inicio'},{value:'in_progress',label:tieneSenaPendiente ? 'En desarrollo · requiere seña confirmada' : 'En desarrollo'},{value:'completed',label:'Completado'},{value:'cancelled',label:'Cancelado'}]"
                            :error="form.errors.status" required/>
                         <F v-model="form.completion" label="Avance (%)" type="number" min="0" max="100" step="1"
                            :disabled="['pending', 'completed'].includes(form.status)" :error="form.errors.progress"
@@ -54,6 +55,7 @@ function save() {
                     </div>
                     <p class="tracking-help">Pendiente corresponde a 0% y completado a 100%. El porcentaje representa el
                         avance informado por Gestión.</p>
+                    <p v-if="tieneSenaPendiente" class="tracking-help">La seña debe estar confirmada antes de iniciar el proyecto.</p>
                     <div class="form-grid">
                         <CampoFecha v-model="form.start_date" label="Fecha de inicio (opcional)"
                            :error="form.errors.start_date"/>
