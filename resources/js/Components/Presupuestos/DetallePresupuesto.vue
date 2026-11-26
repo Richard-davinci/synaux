@@ -7,6 +7,7 @@ import F from '../UI/FormField.vue';
 import T from '../UI/PageTitle.vue';
 import S from '../UI/StatusBadge.vue';
 import I from '../UI/AppIcon.vue';
+import MigasNavegacion from '../Navigation/MigasNavegacion.vue';
 import BudgetDocument from './DocumentoPresupuesto.vue';
 import {date, money} from '../../support/formatters';
 import {useSubmit} from '../../support/useSubmit';
@@ -15,8 +16,16 @@ import {useSubmit} from '../../support/useSubmit';
 const props = defineProps({data: Object});
 const record = computed(() => props.data.selected ?? {});
 const versions = computed(() => (props.data.quotes ?? []).filter(item => item.budget_id === record.value.budget_id).sort((a, b) => b.version_number - a.version_number));
-const latest = computed(() => versions.value.find(item => item.current));
 const source = computed(() => props.data.requests?.find(item => item.id === record.value.request_id));
+const migas = computed(() => {
+    const cliente = props.data.area === 'cliente';
+    const raiz = cliente ? ['Mi espacio', '/cliente'] : ['Gestión', '/gestion'];
+    const destino = cliente ? '/cliente/presupuestos' : '/gestion/presupuestos';
+    return [raiz, ['Presupuestos', destino], ['PRE-' + record.value.budget_id, destino], ['Versión ' + record.value.version_number]];
+});
+const descripcionRegistro = computed(() => record.value.status === 'draft'
+    ? `Versión ${record.value.version_number} · Borrador creado el ${date(record.value.created_at)}`
+    : `Versión ${record.value.version_number} · Emitida el ${date(record.value.sent_at ?? record.value.created_at)}`);
 const project = computed(() => props.data.projects?.find(item => item.accepted_budget_version_id === record.value.id));
 const isOwner = computed(() => props.data.preview || record.value.request_owner === props.data.auth?.id || record.value.client_user_id === props.data.auth?.id);
 const canDecide = computed(() => isOwner.value && record.value.status === 'sent' && record.value.display_status !== 'expired'
@@ -31,9 +40,7 @@ const state = computed(() => {
     };
     if (record.value.status === 'rejected') return {
         title: 'Presupuesto rechazado',
-        text: latest.value && latest.value.id !== record.value.id
-            ? `El rechazo quedó registrado. La versión ${latest.value.version_number} está disponible en el historial.`
-            : 'El rechazo quedó registrado. Esta versión permanece disponible en el historial.',
+        text: 'El rechazo quedó registrado. Consultá el historial para revisar otras versiones.',
         icon: 'info'
     };
     if (record.value.status === 'draft') return {
@@ -99,17 +106,14 @@ function decide() {
 <template>
     <section class="page shell" :class="{ 'workspace-view': data.area === 'cliente' }">
         <div class="client-budget">
-            <B v-if="data.area !== 'cliente'" :href="data.area === 'gestion' ? '/gestion/presupuestos' : '/cliente/presupuestos'"
-               variant="ghost">← Volver a presupuestos</B>
+            <MigasNavegacion :niveles="migas" class="budget-breadcrumbs"/>
             <T :eyebrow="data.area === 'cliente' ? undefined : 'PRE-' + record.budget_id + ' · Presupuesto formal'" :title="record.title"
-               :description="'Versión ' + record.version_number + ' · Emitida el ' + date(record.sent_at ?? record.created_at)">
+               :description="descripcionRegistro">
                 <S :status="record.display_status ?? record.status"/></T>
             <div class="budget-state" :class="'budget-state--' + record.status" role="status"><I :name="state.icon"/>
                 <div><strong>{{ state.title }}</strong>
                     <p>{{ state.text }}</p>
-                    <B v-if="latest && latest.id !== record.id"
-                                              :href="data.preview ? '/prototipo/presupuesto' : '/presupuestos/' + latest.id"
-                                              variant="secondary">Ver versión {{ latest.version_number }}</B></div>
+                </div>
             </div>
             <section v-if="record.status === 'rejected'" class="rejection-reason" aria-labelledby="rejection-reason-title">
                 <div class="rejection-reason-heading">
@@ -152,7 +156,7 @@ function decide() {
                                 proyecto</B>
                             <B v-else-if="record.status === 'accepted'" href="/cliente/proyectos" arrow>Ir a mis
                                 proyectos</B>
-                            <B v-if="canEdit" :href="'/editor/presupuesto/' + record.id" variant="secondary">{{
+                            <B v-if="canEdit" :href="'/editor/presupuesto/' + record.id">{{
                                     record.status === 'draft' ? 'Continuar borrador' : 'Preparar nueva versión'
                                 }}</B>
                         </div>
@@ -242,6 +246,13 @@ function decide() {
     min-width: 0;
 }
 
+.budget-breadcrumbs {
+    width: 100%;
+    max-width: none;
+    margin-bottom: 12px;
+    padding-top: 0;
+}
+
 .budget-document-stage {
     /* El documento se lee como una pieza sobre un fondo suave, separado del resumen lateral. */
     min-width: 0;
@@ -299,9 +310,18 @@ function decide() {
 }
 
 .client-budget h2, .budget-decision h2 {
-    font-size: clamp(1.4rem, 2vw, 1.8rem);
+    font-size: clamp(1.2rem, 1.7vw, 1.5rem);
     font-weight: 700;
     line-height: 1.25;
+}
+
+.client-budget :deep(.page-title h1) {
+    font-size: clamp(1.7rem, 2.6vw, 2.15rem);
+    line-height: 1.18;
+}
+
+.client-budget :deep(.page-title > div > p:last-child) {
+    margin-top: 6px;
 }
 
 .budget-state {
@@ -323,6 +343,16 @@ function decide() {
 
 .budget-state--rejected > .icon {
     color: #1f6f7f;
+}
+
+.budget-state--draft {
+    border-color: #c9dce2;
+    border-left: 4px solid #153b64;
+    background: #f5f9fa;
+}
+
+.budget-state--draft > .icon {
+    color: #153b64;
 }
 
 .rejection-reason {
@@ -372,7 +402,7 @@ function decide() {
 }
 
 .budget-state strong {
-    font-size: 1.1rem;
+    font-size: 1rem;
 }
 
 .budget-state p {
