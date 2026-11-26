@@ -22,7 +22,7 @@ defineProps({
 });
 const emit = defineEmits(['close', 'ocultar-vista', 'save-draft', 'send']);
 const {width} = useDisplay();
-const vistaMovil = computed(() => width.value <= 1180);
+const vistaMovil = computed(() => width.value <= 1260);
 const panelFijo = ref(null);
 
 function irAVista() {
@@ -92,19 +92,20 @@ defineExpose({irAVista});
 <style scoped>
 /* La previsualización conserva el espacio de lectura y fija las acciones fuera del documento desplazable. */
 .budget-preview-fixed {
-    position: sticky;
-    top: calc(var(--navbar-height, 76px) + 16px);
+    position: fixed;
+    inset: var(--navbar-height, 76px) 0 0 auto;
     display: flex;
     flex-direction: column;
-    width: 100%;
-    height: calc(100dvh - var(--navbar-height, 76px) - 32px);
-    min-height: 480px;
-    max-height: 900px;
+    width: var(--budget-preview-width, clamp(360px, 30vw, 440px));
+    min-height: 0;
     overflow: hidden;
     border: 1px solid #1f6f7f26;
-    border-radius: 14px;
+    border-right: 0;
+    border-bottom: 0;
+    border-radius: 14px 0 0 0;
     background: #fff;
     box-shadow: var(--card-shadow);
+    z-index: 80;
 }
 
 .budget-preview-fixed > .preview-heading {
@@ -243,6 +244,10 @@ defineExpose({irAVista});
     box-shadow: 0 3px 12px #153b6410;
 }
 
+.budget-preview-content :deep(.document-parties) {
+    grid-template-columns: minmax(0, 1fr);
+}
+
 .budget-preview-content :deep(.document-heading) {
     padding: 16px;
 }
@@ -277,7 +282,19 @@ defineExpose({irAVista});
     padding: 7px 6px;
 }
 
-@media (max-width: 1180px) {
+.budget-preview-content :deep(.document-items table) {
+    min-width: 0;
+}
+
+.budget-preview-content :deep(.document-column-concept) {
+    width: 72%;
+}
+
+.budget-preview-content :deep(.document-column-amount) {
+    width: 28%;
+}
+
+@media (max-width: 1260px) {
     .preview-heading {
         align-items: flex-start;
         flex-direction: column;

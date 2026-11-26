@@ -24,7 +24,7 @@ const preview = ref(false);
 const vistaPreviaVisible = ref(true);
 const panelVistaPrevia = ref(null);
 const {width} = useDisplay();
-const vistaPreviaMovil = computed(() => width.value <= 1180);
+const vistaPreviaMovil = computed(() => width.value <= 1260);
 // El presupuesto directo solicita solo los datos del destinatario y comienza con un concepto editable.
 const direct = Boolean(props.data.directBudget);
 const configuraPago = props.data.area === 'gestion' && !props.data.preview;
@@ -236,7 +236,7 @@ function save(send) {
 </script>
 
 <template>
-    <section class="page shell budget-editor">
+    <section class="page shell budget-editor" :class="{'budget-editor--wide': vistaPreviaMovil || !vistaPreviaVisible}">
         <MigasNavegacion :niveles="migas" dentro-de-contenedor class="budget-editor-breadcrumbs"/>
         <div class="budget-heading"><p class="eyebrow">Gestión · Presupuesto formal</p>
             <h1>{{ selected.budget_id && selected.status !== 'draft' ? 'Prepará la próxima versión' : 'Prepará el presupuesto' }}</h1>
@@ -254,7 +254,7 @@ function save(send) {
                 <p v-else>Las versiones enviadas se conservan. Esta será una nueva versión del presupuesto.</p>
             </div>
         </div>
-        <div class="budget-workspace" :class="{'budget-workspace--preview-hidden': !vistaPreviaMovil && !vistaPreviaVisible}">
+        <div class="budget-workspace">
             <div class="budget-editor-flow">
                 <div class="budget-stepper">
                     <ol class="budget-steps" aria-label="Pasos para preparar presupuesto">
@@ -341,9 +341,16 @@ function save(send) {
 }
 
 .budget-editor {
-    width: min(1540px, calc(100% - 48px));
+    --budget-preview-width: clamp(360px, 30vw, 440px);
+    width: calc(100% - var(--budget-preview-width) - 48px);
     max-width: none;
+    margin: 0 0 0 24px;
     padding-block: clamp(24px, 4vw, 48px) 64px;
+}
+
+.budget-editor--wide {
+    width: min(1680px, calc(100% - 48px));
+    margin-inline: auto;
 }
 
 .budget-heading {
@@ -471,18 +478,7 @@ function save(send) {
 }
 
 .budget-workspace {
-    display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(360px, 1fr);
-    align-items: start;
-    gap: 24px;
-}
-
-.budget-workspace > * {
     min-width: 0;
-}
-
-.budget-workspace--preview-hidden {
-    grid-template-columns: minmax(0, 1fr);
 }
 
 .budget-editor-flow {
@@ -533,15 +529,18 @@ function save(send) {
     margin: 0;
 }
 
-@media (max-width: 1180px) {
-    .budget-workspace {
-        grid-template-columns: minmax(0, 1fr);
+@media (max-width: 1260px) {
+    .budget-editor,
+    .budget-editor--wide {
+        width: min(1680px, calc(100% - 48px));
+        margin-inline: auto;
     }
 }
 
 @media (max-width: 600px) {
     .budget-editor {
         width: min(100% - 28px, 1180px);
+        margin-inline: auto;
     }
 
     .budget-steps {
