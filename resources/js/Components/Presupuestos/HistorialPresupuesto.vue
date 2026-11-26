@@ -27,9 +27,13 @@ defineProps({
                                 <NewBadge type="presupuesto" :id="version.id"/>
                             </span>
                         </span>
-                        <small>{{ date(version.sent_at ?? version.created_at) }} · {{ money(version.total, version.currency_code) }}</small>
+                        <span class="historial-detalle">
+                            <time :datetime="version.sent_at ?? version.created_at">{{ date(version.sent_at ?? version.created_at) }}</time>
+                            <span aria-hidden="true">·</span>
+                            <strong>{{ money(version.total, version.currency_code) }}</strong>
+                        </span>
                     </span>
-                    <I class="historial-flecha" name="arrow"/>
+                    <span class="historial-abrir">Ver <I name="arrow"/></span>
                 </a>
             </li>
         </ol>
@@ -107,11 +111,11 @@ defineProps({
 
 .historial-version {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 18px;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 8px 12px;
-    min-height: 64px;
-    padding: 10px 12px;
+    gap: 8px 16px;
+    min-height: 76px;
+    padding: 12px 14px;
     border: 1px solid #d4e3e8;
     border-radius: 9px;
     background: #fff;
@@ -132,8 +136,10 @@ defineProps({
 }
 
 .historial-contenido {
-    display: grid;
-    gap: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 7px;
     min-width: 0;
 }
 
@@ -146,18 +152,42 @@ defineProps({
 }
 
 .historial-encabezado {
+    width: 100%;
     justify-content: space-between;
+    gap: 8px 14px;
 }
 
-.historial-version small {
+.historial-detalle {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.historial-detalle time,
+.historial-detalle > strong {
     color: #446075;
     font-size: .82rem;
 }
 
-.historial-flecha {
-    width: 18px;
-    height: 18px;
+.historial-detalle > strong {
+    color: #153b64;
+    font-weight: 700;
+}
+
+.historial-abrir {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     color: #1f6f7f;
+    font-size: .875rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.historial-abrir :deep(.icon) {
+    width: 16px;
+    height: 16px;
 }
 
 @media (max-width: 520px) {
