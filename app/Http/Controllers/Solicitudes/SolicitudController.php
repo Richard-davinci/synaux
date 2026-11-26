@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Catalog\ServiceCatalog;
 use App\Services\Estimates\EstimateStore;
 use App\Services\Notifications\NotificationCenter;
+use App\Services\Presupuestos\ConsultasPresupuestos;
 use App\Services\Solicitudes\ConsultasSolicitudes;
 use App\Services\Solicitudes\GestionSolicitudes;
 use App\Services\Solicitudes\RecorridoSolicitud;
@@ -106,12 +107,13 @@ class SolicitudController extends Controller
     }
 
     // Los borradores se reabren con las preguntas y la estimación que usó el titular.
-    public function show(Request $request, ConsultasSolicitudes $requestQueries, ServiceCatalog $catalog, EstimateStore $estimates, RecorridoSolicitud $journey, NotificationCenter $notifications, int $id)
+    public function show(Request $request, ConsultasSolicitudes $requestQueries, ConsultasPresupuestos $budgetQueries, ServiceCatalog $catalog, EstimateStore $estimates, RecorridoSolicitud $journey, NotificationCenter $notifications, int $id)
     {
         $user = $request->user();
         $management = $user->puedeGestionarSynaux();
         $selected = $requestQueries->requests($user->id, $management, only: [$id])[0] ?? abort(404);
-        $data = ['screen' => 'solicitud', 'area' => $management ? 'gestion' : 'cliente', 'selected' => $selected];
+        $data = ['screen' => 'solicitud', 'area' => $management ? 'gestion' : 'cliente', 'selected' => $selected,
+            'quotes' => $management ? $budgetQueries->quotes($user->id, true, requestId: $id) : []];
 
         if ($selected['status'] === 'draft') {
             $data['services'] = $catalog->services($management);

@@ -1,14 +1,53 @@
 <script setup>
 import AccionIcono from '../UI/AccionIcono.vue';
+import B from '../UI/AppButton.vue';
 import S from '../UI/StatusBadge.vue';
 import NewBadge from '../Notifications/NewBadge.vue';
 import {date} from '../../support/formatters';
 
 // El resumen y el listado usan las mismas columnas para comparar solicitudes.
-const props = defineProps({rows: Array, label: String, preview: Boolean});
+const props = defineProps({rows: Array, quotes: {type: Array, default: () => []}, label: String, preview: Boolean});
 
 // Las filas por revisar y las ya revisadas abren el mismo detalle con acciones diferenciadas.
 const porRevisar = item => item.status === 'open' && !item.reviewed_at;
+
+// El estado visible sigue el siguiente paso real: revisar, preparar el presupuesto o continuar su borrador.
+function presupuestoDe(item) {
+    return props.quotes.filter(quote => Number(quote.request_id) === Number(item.id))
+        .sort((a, b) => Number(b.version_number) - Number(a.version_number) || Number(b.id) - Number(a.id))[0] ?? null;
+}
+
+function etapa(item) {
+    const presupuesto = presupuestoDe(item);
+    if (presupuesto) {
+        const estado = presupuesto.display_status ?? presupuesto.status;
+        const etiquetas = {
+            draft: 'Presupuesto en preparación', sent: 'Presupuesto enviado', issued: 'Presupuesto emitido',
+            accepted: 'Presupuesto aceptado', rejected: 'Presupuesto rechazado', expired: 'Presupuesto vencido',
+        };
+        return {status: estado, etiqueta: etiquetas[estado] ?? estado};
+    }
+    if (item.status === 'open' && item.reviewed_at) return {status: 'review', etiqueta: 'Pendiente de presupuesto'};
+    if (item.status === 'open') return {status: 'open', etiqueta: 'Pendiente de revisión'};
+    return {status: item.status};
+}
+
+// La acción conduce al paso vigente y evita crear un segundo presupuesto si ya existe uno.
+function accion(item) {
+    const presupuesto = presupuestoDe(item);
+    if (presupuesto?.status === 'draft') return {
+        href: '/editor/presupuesto/' + presupuesto.id, texto: 'Continuar borrador', principal: true,
+    };
+    const estadoPresupuesto = presupuesto?.display_status ?? presupuesto?.status;
+    if (presupuesto && ['rejected', 'expired'].includes(estadoPresupuesto)) return {
+        href: '/editor/presupuesto/' + presupuesto.id, texto: 'Preparar nueva versión', principal: true,
+    };
+    if (presupuesto) return {href: '/presupuestos/' + presupuesto.id, texto: 'Ver presupuesto'};
+    if (item.status === 'open' && item.reviewed_at) return {
+        href: '/editor/presupuesto?solicitud=' + item.id, texto: 'Preparar presupuesto', principal: true,
+    };
+    return null;
+}
 
 function detailHref(item) {
     return props.preview ? '/prototipo/gestion-solicitud' : '/solicitudes/' + item.id;
@@ -46,12 +85,14 @@ function detailHref(item) {
                 </td>
                 <td class="request-table-secondary request-table-date">{{ date(item.created_at) }}</td>
                 <td>
-                    <S :status="item.status" request
-                       :etiqueta="porRevisar(item) ? 'Pendiente de revisión' : undefined"/>
-                    <small v-if="item.reviewed_at">Revisada</small>
+                    <S :status="etapa(item).status" :request="!presupuestoDe(item)" :etiqueta="etapa(item).etiqueta"/>
                 </td>
                 <td class="request-table-secondary">
-                    <AccionIcono :href="detailHref(item)" :icono="porRevisar(item) ? 'file' : 'eye'"
+                    <B v-if="accion(item)" compact :variant="accion(item).principal ? 'primary' : 'secondary'"
+                       :href="props.preview ? detailHref(item) : accion(item).href" arrow>
+                        {{ props.preview ? 'Revisar solicitud' : accion(item).texto }}
+                    </B>
+                    <AccionIcono v-else :href="detailHref(item)" :icono="porRevisar(item) ? 'file' : 'eye'"
                                  :texto="porRevisar(item) ? 'Revisar solicitud' : 'Ver detalle'"
                                  :etiqueta="(porRevisar(item) ? 'Revisar solicitud ' : 'Ver detalle de ') + item.title"/>
                 </td>

@@ -26,7 +26,7 @@ const summary = computed(() => [
         <IndicadoresPanel :indicadores="summary" ruta-base="/gestion" :contexto="data"/>
         <section class="card management-queue" aria-labelledby="management-queue-title">
             <h2 id="management-queue-title">Solicitudes por revisar</h2>
-            <RequestsTable v-if="pendingRequests.length" :rows="pendingRequests.slice(0, 5)"
+            <RequestsTable v-if="pendingRequests.length" :rows="pendingRequests.slice(0, 5)" :quotes="data.quotes ?? []"
                            label="Solicitudes por revisar" :preview="Boolean(data.preview)"/>
             <p v-if="!pendingRequests.length">No hay solicitudes pendientes de revisión.</p>
         </section>

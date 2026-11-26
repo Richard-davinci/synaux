@@ -103,7 +103,7 @@ function canRevise(budget) {
             <B compact variant="secondary" :disabled="!hasFilters" @click="clearFilters">Limpiar filtros</B>
         </div>
         <RequestsTable v-if="section === 'solicitudes' && rows.length" :rows="rows"
-                       label="Solicitudes recibidas" :preview="Boolean(data.preview)"/>
+                       :quotes="data.quotes ?? []" label="Solicitudes recibidas" :preview="Boolean(data.preview)"/>
         <div v-else-if="rows.length" class="stack management-records">
             <RecordCard v-for="item in rows" :key="item.claveGrupo ?? item.id" :item="item" :section="section" :icon="listing.icon"
                         :can-revise="section === 'presupuestos' && canRevise(item)" @update-project="project = $event">

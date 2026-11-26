@@ -19,9 +19,21 @@ const migas = computed(() => [
     ['Solicitudes', '/gestion/solicitudes'],
     ['SOL-' + request.value.id],
 ]);
-const estadoRevision = computed(() => request.value.reviewed_at
-    ? 'Revisada'
-    : request.value.status === 'open' ? 'Pendiente de revisión' : undefined);
+// El detalle y la tabla comparten la etapa real de gestión, tomando primero el presupuesto más reciente.
+const presupuesto = computed(() => [...(props.data.quotes ?? [])]
+    .sort((a, b) => Number(b.version_number) - Number(a.version_number) || Number(b.id) - Number(a.id))[0] ?? null);
+const estadoRevision = computed(() => {
+    if (props.data.area !== 'gestion') return null;
+    if (presupuesto.value) {
+        const estado = presupuesto.value.display_status ?? presupuesto.value.status;
+        return {status: estado, etiqueta: ({draft: 'Presupuesto en preparación', sent: 'Presupuesto enviado', issued: 'Presupuesto emitido',
+            accepted: 'Presupuesto aceptado', rejected: 'Presupuesto rechazado', expired: 'Presupuesto vencido'})[estado] ?? estado};
+    }
+    if (request.value.status === 'open') return request.value.reviewed_at
+        ? {status: 'review', etiqueta: 'Pendiente de presupuesto'}
+        : {status: 'open', etiqueta: 'Pendiente de revisión'};
+    return null;
+});
 const extras = computed(() => request.value.additional_services ?? []);
 const currency = computed(() => request.value.pricing_reference?.currency
     ?? extras.value.find(item => item.pricing_reference)?.pricing_reference.currency ?? 'ARS');
@@ -36,7 +48,27 @@ function priceText({min, max}) {
 }
 
 const open = computed(() => request.value.status === 'open');
-const canPrepare = computed(() => open.value && (props.data.preview || request.value.user_id !== props.data.auth?.id));
+const canPrepare = computed(() => open.value && Boolean(request.value.reviewed_at)
+    && (props.data.preview || (props.data.area === 'gestion' && request.value.user_id !== props.data.auth?.id)));
+const budgetAction = computed(() => {
+    if (props.data.area !== 'gestion') return null;
+    const latest = presupuesto.value;
+    if (latest?.status === 'draft') return {href: '/editor/presupuesto/' + latest.id, label: 'Continuar borrador'};
+    const state = latest?.display_status ?? latest?.status;
+    if (latest && ['rejected', 'expired'].includes(state) && open.value) {
+        return {href: '/editor/presupuesto/' + latest.id, label: 'Preparar nueva versión'};
+    }
+    if (latest) return {href: '/presupuestos/' + latest.id, label: 'Ver presupuesto'};
+    if (canPrepare.value) return {href: '/editor/presupuesto?solicitud=' + request.value.id, label: 'Preparar presupuesto'};
+    return null;
+});
+const textoRevision = computed(() => {
+    const latest = presupuesto.value;
+    if (latest?.status === 'draft') return 'Hay un borrador interno. Todavía no fue enviado al cliente.';
+    if (latest) return 'Consultá el estado y las condiciones del presupuesto asociado.';
+    if (request.value.reviewed_at) return 'Revisión completada el ' + date(request.value.reviewed_at) + '. Falta preparar el presupuesto.';
+    return open.value ? 'Pendiente de revisión' : 'La solicitud está cerrada.';
+});
 const closing = ref(false);
 const submit = useSubmit();
 const state = useForm({id: request.value.id, status: ''});
@@ -57,7 +89,8 @@ function changeStatus(status) {
         <MigasNavegacion :niveles="migas" class="review-breadcrumbs"/>
         <T eyebrow="Revisión de solicitud" :title="request.title">
             <div class="review-heading-meta">
-                <S :status="request.status" request :etiqueta="estadoRevision"/>
+                <S :status="estadoRevision?.status ?? request.status" :request="!presupuesto"
+                   :etiqueta="estadoRevision?.etiqueta"/>
                 <span>Registrada el {{ date(request.created_at) }}</span>
             </div>
         </T>
@@ -112,15 +145,15 @@ function changeStatus(status) {
             <aside class="review-content" aria-label="Acciones y datos del cliente">
                 <section class="card review-card review-action-card" aria-labelledby="review-action">
                     <h2 id="review-action">Revisión y acciones</h2>
-                    <p>{{
-                            request.reviewed_at ? 'Revisada el ' + date(request.reviewed_at) : 'Pendiente de revisión'
-                        }}</p>
+                    <p>{{ textoRevision }}</p>
                     <div v-if="open" class="review-actions">
-                        <B v-if="canPrepare" :href="'/editor/presupuesto?solicitud=' + request.id" arrow>Preparar
-                            presupuesto</B>
+                        <B v-if="budgetAction" :href="budgetAction.href" arrow>{{ budgetAction.label }}</B>
                         <B v-if="!request.reviewed_at" variant="secondary" :disabled="state.processing"
                            @click="changeStatus('review')">Marcar revisada</B>
                         <B variant="ghost" :disabled="state.processing" @click="closing = true">Cerrar solicitud</B>
+                    </div>
+                    <div v-else-if="budgetAction" class="review-actions">
+                        <B :href="budgetAction.href" arrow>{{ budgetAction.label }}</B>
                     </div>
                     <p v-else class="review-muted">La solicitud ya no está abierta para cotizar.</p>
                 </section>
