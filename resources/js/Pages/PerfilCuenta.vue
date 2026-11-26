@@ -26,6 +26,15 @@ function formatearCuit(valor) {
         : String(valor ?? '');
 }
 
+// El límite cuenta solo números para permitir los dos guiones del formato visible.
+function limitarCuit(valor) {
+    let cantidad = 0;
+    return [...String(valor ?? '')].filter(caracter => {
+        if (/\d/.test(caracter)) return ++cantidad <= 11;
+        return caracter === '-' && cantidad > 0 && cantidad < 11;
+    }).join('');
+}
+
 const valores = {
     contacto: () => ({...valoresCampos(props.profile, ['name', 'email', 'phone']), current_password: ''}),
     organizacion: () => ({company: props.profile.company ?? '', details: valoresCampos(props.profile.details, ['position', 'website', 'cuit'])}),
@@ -164,7 +173,8 @@ function guardar(seccion) {
                                autocomplete="organization" maxlength="255" :error="organizacionForm.errors.company"/>
                             <F v-model="organizacionForm.details.position" label="Cargo" autocomplete="organization-title"
                                maxlength="120" :error="organizacionForm.errors['details.position']"/>
-                            <F v-model="organizacionForm.details.cuit" label="CUIT de la organización" inputmode="numeric"
+                            <F :model-value="organizacionForm.details.cuit" label="CUIT de la organización" inputmode="numeric"
+                               @update:model-value="organizacionForm.details.cuit = limitarCuit($event)"
                                placeholder="30-12345678-9" maxlength="13" @blur="organizacionForm.details.cuit = formatearCuit(organizacionForm.details.cuit)"
                                hint="11 dígitos, con o sin guiones."
                                :error="organizacionForm.errors['details.cuit']"/>
