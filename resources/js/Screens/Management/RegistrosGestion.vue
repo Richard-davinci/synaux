@@ -4,10 +4,10 @@ import RecordCard from '../../Components/Management/RecordCard.vue';
 import RequestsTable from '../../Components/Management/TablaSolicitudes.vue';
 import ProjectUpdate from '../../Components/Projects/ProjectUpdate.vue';
 import HistorialPresupuesto from '../../Components/Presupuestos/HistorialPresupuesto.vue';
+import FiltrosRegistros from '../../Components/Registros/FiltrosRegistros.vue';
 import {presupuestosSinProyecto} from '../../support/agrupacionPresupuestos';
 import B from '../../Components/UI/AppButton.vue';
 import E from '../../Components/UI/EmptyState.vue';
-import F from '../../Components/UI/FormField.vue';
 import T from '../../Components/UI/PageTitle.vue';
 import {etapaSolicitud} from '../../support/etapasSolicitudes';
 
@@ -87,11 +87,6 @@ const rows = computed(() => {
     });
 });
 
-function clearFilters() {
-    query.value = '';
-    status.value = '';
-}
-
 // Solo el emisor puede continuar el borrador actual o preparar la próxima versión si la solicitud sigue abierta.
 function canRevise(budget) {
     return budget.issuer_id === props.data.auth?.id && budget.status !== 'accepted'
@@ -108,13 +103,9 @@ function canRevise(budget) {
                 directo</B>
         </T>
 
-        <div class="filters workspace-filters" :class="{ 'workspace-filters-single': statusOptions.length === 1 }">
-            <F v-model="query" label="Buscar" type="search" :placeholder="listing.search"/>
-            <F v-if="statusOptions.length > 1" v-model="status"
-               :label="section === 'solicitudes' ? 'Etapa de solicitud' : section === 'presupuestos' ? 'Estado actual' : 'Estado'"
-               type="select" :options="statusOptions"/>
-            <B compact variant="secondary" :disabled="!hasFilters" @click="clearFilters">Limpiar filtros</B>
-        </div>
+        <FiltrosRegistros v-model:buscar="query" v-model:estado="status" :placeholder="listing.search"
+                          tipo-busqueda="search" :opciones-estado="statusOptions" compacto
+                          :etiqueta-estado="section === 'solicitudes' ? 'Etapa de solicitud' : section === 'presupuestos' ? 'Estado actual' : 'Estado'"/>
         <RequestsTable v-if="section === 'solicitudes' && rows.length" :rows="rows"
                        :quotes="data.quotes ?? []" label="Solicitudes recibidas" :preview="Boolean(data.preview)"/>
         <div v-else-if="rows.length" class="stack management-records">

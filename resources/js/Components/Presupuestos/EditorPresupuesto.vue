@@ -61,7 +61,7 @@ const quote = useForm({
     send: false,
 });
 // Vuetify crea sus etapas desde items y cada paso previo se puede volver a abrir.
-const stepperItems = computed(() => labels.map((title, index) => ({
+const pasosPresupuesto = computed(() => labels.map((title, index) => ({
     title,
     value: index + 1,
     complete: step.value > index + 1,
@@ -141,15 +141,15 @@ const planPago = computed(() => {
     return {cuotas, instrucciones: quote.instrucciones_transferencia};
 });
 // Si ya existe un borrador, Laravel reutiliza su número; solo las versiones enviadas generan otro.
-const version = computed(() => {
+const numeroVersion = computed(() => {
     if (!selected.budget_id) return 1;
-    const versions = (props.data.quotes ?? []).filter(item => item.budget_id === selected.budget_id);
-    const draft = versions.find(item => item.status === 'draft');
-    return draft?.version_number ?? (selected.status === 'draft' ? selected.version_number
-        : Math.max(selected.version_number ?? 0, ...versions.map(item => item.version_number)) + 1);
+    const versiones = (props.data.quotes ?? []).filter(item => item.budget_id === selected.budget_id);
+    const borrador = versiones.find(item => item.status === 'draft');
+    return borrador?.version_number ?? (selected.status === 'draft' ? selected.version_number
+        : Math.max(selected.version_number ?? 0, ...versiones.map(item => item.version_number)) + 1);
 });
 const documentPreview = computed(() => ({
-    ...quote.data(), subtotal: subtotal.value, total: total.value, version_number: version.value, plan_pago: planPago.value,
+    ...quote.data(), subtotal: subtotal.value, total: total.value, version_number: numeroVersion.value, plan_pago: planPago.value,
     created_at: selected.status === 'draft' ? selected.created_at : undefined, sent_at: null,
 }));
 
@@ -256,15 +256,15 @@ function save(send) {
              role="status">
             <I :name="selected.status === 'draft' ? 'edit' : 'file'"/>
             <div>
-                <strong v-if="selected.status === 'draft'">Borrador interno · Versión {{ version }}</strong>
-                <strong v-else>Preparación de versión {{ version }}</strong>
+                <strong v-if="selected.status === 'draft'">Borrador interno · Versión {{ numeroVersion }}</strong>
+                <strong v-else>Preparación de versión {{ numeroVersion }}</strong>
                 <p v-if="selected.status === 'draft'">Este documento todavía no fue enviado al cliente. Estás editando el borrador actual.</p>
                 <p v-else>Las versiones enviadas se conservan. Esta será una nueva versión del presupuesto.</p>
             </div>
         </div>
         <div class="budget-workspace">
             <div class="budget-editor-flow">
-                <v-stepper v-model="step" :items="stepperItems" item-title="title" item-value="value"
+                <v-stepper v-model="step" :items="pasosPresupuesto" item-title="title" item-value="value"
                            :item-props="true" class="budget-stepper" flat hide-actions non-linear>
                     <B v-if="vistaPreviaMovil" variant="secondary" compact :disabled="quote.processing" @click="openBudgetPreview">
                         Vista previa ampliada

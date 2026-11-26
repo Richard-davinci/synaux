@@ -1,11 +1,11 @@
 <script setup>
 import {computed, ref} from 'vue';
 import AppButton from '../../Components/UI/AppButton.vue';
-import FormField from '../../Components/UI/FormField.vue';
 import PageTitle from '../../Components/UI/PageTitle.vue';
 import StatusBadge from '../../Components/UI/StatusBadge.vue';
 import EmptyState from '../../Components/UI/EmptyState.vue';
 import HistorialPresupuesto from '../../Components/Presupuestos/HistorialPresupuesto.vue';
+import FiltrosRegistros from '../../Components/Registros/FiltrosRegistros.vue';
 import DeleteEstimateButton from '../../Components/Estimates/DeleteEstimateButton.vue';
 import NewBadge from '../../Components/Notifications/NewBadge.vue';
 import {date, money} from '../../support/formatters';
@@ -129,10 +129,6 @@ function destino(registro) {
     return '/' + seccion.value + '/' + registro.id;
 }
 
-function limpiarFiltros() {
-    busqueda.value = '';
-    estado.value = '';
-}
 </script>
 
 <template>
@@ -141,11 +137,9 @@ function limpiarFiltros() {
                    :title="listado.titulo" :description="listado.descripcion">
             <AppButton v-if="listado.crear" :href="listado.crear.href" arrow>{{ listado.crear.etiqueta }}</AppButton>
         </PageTitle>
-        <div v-if="registros.length || filtrosActivos" class="card filters workspace-filters filtros-registros">
-            <FormField v-model="busqueda" label="Buscar" placeholder="Título o identificador"/>
-            <FormField v-model="estado" :label="agrupaPresupuestos ? 'Estado actual' : 'Estado'" type="select" :options="opcionesEstado"/>
-            <AppButton variant="secondary" :disabled="!filtrosActivos" @click="limpiarFiltros">Limpiar filtros</AppButton>
-        </div>
+        <FiltrosRegistros v-if="registros.length || filtrosActivos" v-model:buscar="busqueda" v-model:estado="estado"
+                          :opciones-estado="opcionesEstado"
+                          :etiqueta-estado="agrupaPresupuestos ? 'Estado actual' : 'Estado'" tarjeta/>
 
         <ul v-if="filas.length" class="card filas-registros" :aria-label="listado.titulo">
             <li v-for="registro in filas" :key="registro.claveGrupo ?? registro.id" class="fila-registro">
@@ -182,16 +176,6 @@ function limpiarFiltros() {
 </template>
 
 <style scoped>
-/* Los filtros son compactos y todos los registros forman una sola lista, como en el resumen. */
-.listado-cliente .filtros-registros {
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
-    align-items: end;
-}
-
-.listado-cliente .filtros-registros > :deep(.field) {
-    margin-bottom: 0;
-}
-
 .filas-registros {
     list-style: none;
     margin: 0;
@@ -254,10 +238,6 @@ function limpiarFiltros() {
 .historial-en-lista { grid-column: 1 / -1; }
 
 @media (max-width: 700px) {
-
-    .listado-cliente .filtros-registros {
-        grid-template-columns: minmax(0, 1fr);
-    }
 
     .fila-registro {
         grid-template-columns: minmax(0, 1fr) auto;

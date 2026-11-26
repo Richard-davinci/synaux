@@ -5,10 +5,23 @@ import I from '../UI/AppIcon.vue';
 import {date, money} from '../../support/formatters';
 
 // Las versiones autorizadas se presentan como una línea de tiempo; cada hito abre su documento completo.
-defineProps({
+const props = defineProps({
     versiones: {type: Array, required: true},
     titulo: {type: String, default: 'Historial de versiones'},
+    idActual: {type: [Number, String], default: null},
+    enlaceVersion: Function,
+    notificaciones: {type: Boolean, default: true},
 });
+
+function destino(version) {
+    return props.enlaceVersion?.(version) ?? '/presupuestos/' + version.id;
+}
+
+function textoEstadoActual(version) {
+    if (String(version.id) === String(props.idActual)) return 'En pantalla';
+    if (version.current) return version.external ? 'Última versión emitida' : 'Última versión enviada';
+    return version.status === 'draft' ? 'Borrador actual' : '';
+}
 </script>
 
 <template>
@@ -19,7 +32,9 @@ defineProps({
         </summary>
         <ol>
             <li v-for="version in versiones" :key="version.id" :class="{'version-borrador': version.status === 'draft'}">
-                <a class="historial-version" :href="'/presupuestos/' + version.id"
+                <a class="historial-version" :href="destino(version)"
+                   :class="{'version-en-pantalla': String(version.id) === String(idActual)}"
+                   :aria-current="String(version.id) === String(idActual) ? 'page' : undefined"
                    :aria-label="'Ver versión ' + version.version_number + ', ' + (version.display_status ?? version.status)">
                     <span class="historial-marcador" aria-hidden="true"></span>
                     <span class="historial-contenido">
@@ -27,13 +42,14 @@ defineProps({
                             <strong>Versión {{ version.version_number }}</strong>
                             <span class="historial-estados">
                                 <S :status="version.display_status ?? version.status"/>
-                                <NewBadge type="presupuesto" :id="version.id"/>
+                                <NewBadge v-if="notificaciones" type="presupuesto" :id="version.id"/>
                             </span>
                         </span>
                         <span class="historial-detalle">
                             <time :datetime="version.sent_at ?? version.created_at">{{ date(version.sent_at ?? version.created_at) }}</time>
                             <span aria-hidden="true">·</span>
                             <strong>{{ money(version.total, version.currency_code) }}</strong>
+                            <small v-if="textoEstadoActual(version)">{{ textoEstadoActual(version) }}</small>
                         </span>
                     </span>
                     <I class="historial-flecha" name="arrow"/>
@@ -168,6 +184,12 @@ defineProps({
     box-shadow: 0 3px 10px #153b640c;
 }
 
+.historial-version.version-en-pantalla {
+    border-color: #1f6f7f66;
+    background: #f5f9fa;
+    box-shadow: inset 3px 0 #1f6f7f;
+}
+
 .historial-version:focus-visible {
     outline: 3px solid #1f6f7f;
     outline-offset: 3px;
@@ -206,6 +228,13 @@ defineProps({
 .historial-detalle > strong {
     color: #446075;
     font-size: .82rem;
+}
+
+.historial-detalle > small {
+    flex-basis: 100%;
+    color: #1f6f7f;
+    font-size: .78rem;
+    font-weight: 600;
 }
 
 .historial-detalle > strong {
