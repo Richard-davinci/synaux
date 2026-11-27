@@ -130,6 +130,9 @@ export function useNavigationContext() {
     });
 
     const adminView = computed(() => area.value === 'gestion' && currentSection.value === 'administracion');
+    // Las áreas operativas usan su menú lateral; las personas de esos roles conservan el navbar al visitar el sitio público.
+    const ocultarNavegacionPublica = computed(() => paginaDePanel.value
+        && ['gestion', 'profesional'].includes(area.value));
     // Las áreas privadas comparten migas; las fichas que ya las dibujan conservan un único encabezado de navegación.
     const migasPanel = computed(() => {
         if (!hasWorkspace.value || !paginaDePanel.value) return [];
@@ -199,6 +202,7 @@ export function useNavigationContext() {
         migasCliente,
         migasPanel,
         adminView,
+        ocultarNavegacionPublica,
         workspaceTitle,
         showAreaSwitch,
         panelCuenta

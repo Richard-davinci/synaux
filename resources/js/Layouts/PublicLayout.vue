@@ -69,6 +69,7 @@ const {
     currentSection,
     migasPanel,
     adminView,
+    ocultarNavegacionPublica,
     workspaceTitle,
     showAreaSwitch,
     panelCuenta
@@ -88,7 +89,8 @@ watch(() => page.url, () => {
         <template v-if="showSiteHeader">
             <div ref="fixedHeader" class="fixed-header">
                 <SiteHeader :gestion-active="paginaDePanel && area === 'gestion' && !adminView"
-                            :admin-view="adminView" :show-area-switch="showAreaSwitch"
+                            :admin-view="adminView" :ocultar-navegacion-publica="ocultarNavegacionPublica"
+                            :show-area-switch="showAreaSwitch"
                             :account-name="hasWorkspace ? accountName : ''" :account-role="accountRole"
                             :panel-cuenta="panelCuenta"/>
             </div>

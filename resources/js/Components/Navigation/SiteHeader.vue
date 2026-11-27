@@ -11,6 +11,7 @@ import {publicNav} from '../../support/useNavigationContext';
 defineProps({
     gestionActive: Boolean,
     adminView: Boolean,
+    ocultarNavegacionPublica: Boolean,
     showAreaSwitch: Boolean,
     panelCuenta: String,
     accountName: String,
@@ -46,10 +47,10 @@ watch(() => page.url, () => {
         <a :href="referenceHref('/inicio', page.props)" class="logo-button" aria-label="synaux: inicio">
             <img :src="navbarLogo" class="brand-logo" width="405" height="140" alt="synaux">
         </a>
-        <button v-if="!adminView" class="mobile-toggle" :aria-expanded="mobileOpen" aria-label="Abrir navegación"
+        <button v-if="!ocultarNavegacionPublica" class="mobile-toggle" :aria-expanded="mobileOpen" aria-label="Abrir navegación"
                 @click="mobileOpen = !mobileOpen">☰
         </button>
-        <nav v-if="!adminView" :class="['main-nav', { 'mobile-open': mobileOpen }]" aria-label="Navegación principal">
+        <nav v-if="!ocultarNavegacionPublica" :class="['main-nav', { 'mobile-open': mobileOpen }]" aria-label="Navegación principal">
             <a v-for="[label, href] in publicNav" :key="href" :href="referenceHref(href, page.props)"
                :aria-current="page.url.split('?')[0] === href ? 'page' : undefined">{{ label }}</a>
             <div v-if="!page.props.auth && !page.props.preview" class="nav-actions mobile-auth">
