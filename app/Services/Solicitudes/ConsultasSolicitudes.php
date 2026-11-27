@@ -18,7 +18,8 @@ class ConsultasSolicitudes
             ->when(!$public && !$management, fn($q) => $q->where('r.user_id', $owner))
             // Los borradores pertenecen al cliente hasta que se envía el pedido.
             ->when($management, fn($q) => $q->where(fn($drafts) => $drafts->where('r.status', '!=', 'draft')->orWhere('r.user_id', $owner)))
-            ->orderByDesc('r.created_at')->select('r.*', 's.name as service_name', 's.slug as service_slug', 'contact_owner.name as contact_name', 'contact_owner.email as contact_email',
+            ->orderByDesc('r.created_at')->select('r.*', DB::raw('COALESCE(s.name, r.service_name_snapshot) as service_name'),
+                DB::raw('COALESCE(s.slug, r.service_slug_snapshot) as service_slug'), 'contact_owner.name as contact_name', 'contact_owner.email as contact_email',
                 'e.price_min as estimate_min', 'e.price_max as estimate_max', 'e.currency_snapshot as estimate_currency', 'e.tariff_version_id',
                 'e.base_min_snapshot', 'e.base_max_snapshot', 'e.items_snapshot as estimate_items')->get()->map(function ($r) use ($public) {
                 $base = ['id' => $r->id, 'title' => $r->title, 'description' => $r->description,
@@ -28,15 +29,22 @@ class ConsultasSolicitudes
                     'desired_deadline' => $r->desired_deadline, 'published_at' => $r->published_at, 'created_at' => $r->created_at,
                     'proposal_count' => DB::table('proposals')->where('project_request_id', $r->id)->count()];
 
+                $estimateSnapshot = json_decode($r->estimate_snapshot ?? 'null', true) ?? [];
+                $estimateMin = $r->estimate_min ?? ($estimateSnapshot['price_min'] ?? null);
+                $estimateMax = $r->estimate_max ?? ($estimateSnapshot['price_max'] ?? null);
+                $baseMin = $r->base_min_snapshot ?? ($estimateSnapshot['base_min'] ?? null);
+                $baseMax = $r->base_max_snapshot ?? ($estimateSnapshot['base_max'] ?? null);
+                $estimateItems = $r->estimate_items ?? json_encode($estimateSnapshot['items'] ?? []);
+
                 return $public ? $base : [...$base, 'user_id' => $r->user_id, 'estimate_id' => $r->estimate_id,
-                    'pricing_reference' => $r->estimate_min === null ? null : [
-                        'min' => $r->estimate_min, 'max' => $r->estimate_max ?? $r->estimate_min,
-                        'currency' => $r->estimate_currency,
+                    'pricing_reference' => $estimateMin === null ? null : [
+                        'min' => $estimateMin, 'max' => $estimateMax ?? $estimateMin,
+                        'currency' => $r->estimate_currency ?? ($estimateSnapshot['currency'] ?? null),
                     ],
                     'tariff_version_id' => $r->tariff_version_id,
-                    'pricing_breakdown' => $r->base_min_snapshot === null ? null : [
-                        'base_min' => $r->base_min_snapshot, 'base_max' => $r->base_max_snapshot,
-                        'items' => json_decode($r->estimate_items ?? '[]', true),
+                    'pricing_breakdown' => $baseMin === null ? null : [
+                        'base_min' => $baseMin, 'base_max' => $baseMax,
+                        'items' => json_decode($estimateItems ?? '[]', true),
                     ],
                     // Las solicitudes antiguas sin instantánea usan el mismo contacto que el documento formal.
                     'contact' => json_decode($r->contact_snapshot ?? 'null', true) ?? ['name' => $r->contact_name, 'email' => $r->contact_email], 'additional_services' => json_decode($r->requested_services ?? '[]', true),

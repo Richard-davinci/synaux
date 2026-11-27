@@ -38,7 +38,7 @@ class GestionSolicitudes
             }
             // La categoría se deriva del catálogo. Un borrador antiguo conserva su servicio aunque se haya desactivado.
             $service = DB::table('services as s')->join('service_categories as c', 'c.id', '=', 's.service_category_id')
-                ->where('s.id', $d['service_id'])->select('s.id', 's.active', 'c.active as category_active', 'c.name as category')->firstOrFail();
+                ->where('s.id', $d['service_id'])->select('s.id', 's.name', 's.slug', 's.active', 'c.active as category_active', 'c.name as category')->firstOrFail();
             if ((!$existing || $existing->service_id !== (int)$d['service_id']) && (!$service->active || !$service->category_active)) {
                 throw ValidationException::withMessages(['service_id' => 'Elegí un servicio disponible en el catálogo.']);
             }
@@ -54,6 +54,14 @@ class GestionSolicitudes
             if ($estimate && $estimate->service_id !== (int)$d['service_id']) {
                 throw ValidationException::withMessages(['service_id' => 'El servicio debe coincidir con la estimación de origen.']);
             }
+            $estimateSnapshot = $estimate ? [
+                'price_min' => $estimate->price_min,
+                'price_max' => $estimate->price_max,
+                'base_min' => $estimate->base_min_snapshot,
+                'base_max' => $estimate->base_max_snapshot,
+                'currency' => $estimate->currency_snapshot,
+                'items' => json_decode($estimate->items_snapshot ?? '[]', true),
+            ] : (json_decode($existing?->estimate_snapshot ?? 'null', true));
             // Los servicios se identifican por registros del catálogo y sus nombres quedan en la instantánea del pedido.
             $additional = json_decode($existing?->requested_services ?? '[]', true);
             if (array_key_exists('additional_services', $d)) {
@@ -70,6 +78,8 @@ class GestionSolicitudes
                 ?? $usuario->contactDetails();
             $values = ['user_id' => $userId, 'service_id' => $d['service_id'], 'estimate_id' => $estimate?->id ?? $existing?->estimate_id,
                 'title' => $d['title'], 'description' => $d['description'], 'visibility' => $d['visibility'], 'category' => $d['category'] ?? null,
+                'service_name_snapshot' => $service->name, 'service_slug_snapshot' => $service->slug,
+                'estimate_snapshot' => $estimateSnapshot === null ? $existing?->estimate_snapshot : json_encode($estimateSnapshot),
                 'contact_snapshot' => json_encode($contact), 'requested_services' => json_encode($additional),
                 'skills' => json_encode($d['skills']), 'budget_reference' => $d['budget_reference'] ?? null,
                 'desired_deadline' => $d['desired_deadline'] ?? null, 'status' => $d['publish'] ? 'open' : 'draft',
