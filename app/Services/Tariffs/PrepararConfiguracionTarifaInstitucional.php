@@ -9,7 +9,8 @@ class PrepararConfiguracionTarifaInstitucional
 {
     private const SERVICIO = 'sitio-institucional';
     private const COMPONENTE = 'segmento-tarifario-2026-11';
-    private const PREGUNTA = '¿Para qué tipo de cliente es el sitio?';
+    private const PREGUNTA = '¿Para qué tipo de cliente?';
+    private const PREGUNTA_ANTERIOR = '¿Para qué tipo de cliente es el sitio?';
 
     // Crea o repara los segmentos al guardar el servicio; repetirlo no genera duplicados.
     public function preparar(int $serviceId): bool
@@ -37,21 +38,43 @@ class PrepararConfiguracionTarifaInstitucional
                 ]);
             }
 
-            // La pregunta específica permanece activa aun si la ficha comercial se guarda como borrador.
-            $question = DB::table('estimator_questions')->where('service_id', $serviceId)
+            // Reutiliza la pregunta general o convierte la versión anterior del servicio sin perder sus respuestas.
+            $question = DB::table('estimator_questions')->whereNull('service_id')
                 ->where('question', self::PREGUNTA)->lockForUpdate()->first();
+            $legacyQuestion = DB::table('estimator_questions')->where('service_id', $serviceId)
+                ->whereIn('question', [self::PREGUNTA, self::PREGUNTA_ANTERIOR])->lockForUpdate()->first();
+            if (!$question && $legacyQuestion) {
+                DB::table('estimator_questions')->where('id', $legacyQuestion->id)->update([
+                    'service_id' => null, 'question' => self::PREGUNTA,
+                ]);
+                $question = DB::table('estimator_questions')->where('id', $legacyQuestion->id)->first();
+            }
+
+            // Si ya había una pregunta general, apaga duplicados específicos sin borrar referencias históricas.
+            if ($question) {
+                $duplicadas = DB::table('estimator_questions')->where('service_id', $serviceId)
+                    ->whereIn('question', [self::PREGUNTA, self::PREGUNTA_ANTERIOR])
+                    ->where('id', '!=', $question->id)->pluck('id')->all();
+                foreach ($duplicadas as $duplicateId) {
+                    $optionIds = DB::table('estimator_options')->where('question_id', $duplicateId)->pluck('id')->all();
+                    if ($optionIds) {
+                        DB::table('estimation_rules')->whereIn('estimator_option_id', $optionIds)->update(['active' => false]);
+                        DB::table('estimator_options')->whereIn('id', $optionIds)->update(['active' => false]);
+                    }
+                    DB::table('estimator_questions')->where('id', $duplicateId)->update(['active' => false]);
+                }
+            }
+
             $questionValues = [
                 'quantity_component_id' => null, 'input_type' => 'single_choice',
-                'sort_order' => $question->sort_order ?? ((int)DB::table('estimator_questions')->where('service_id', $serviceId)->max('sort_order') + 1),
-                'active' => true, 'required' => true,
+                'sort_order' => $question->sort_order ?? ((int)(DB::table('estimator_questions')->whereNull('service_id')->max('sort_order') ?? -1) + 1),
+                'active' => true, 'required' => true, 'question' => self::PREGUNTA, 'service_id' => null,
             ];
             if ($question) {
                 DB::table('estimator_questions')->where('id', $question->id)->update($questionValues);
                 $questionId = (int)$question->id;
             } else {
-                $questionId = DB::table('estimator_questions')->insertGetId([
-                    ...$questionValues, 'service_id' => $serviceId, 'question' => self::PREGUNTA,
-                ]);
+                $questionId = DB::table('estimator_questions')->insertGetId($questionValues);
             }
 
             // Las tres opciones traducen los precios de la fuente a reglas de cantidad del componente.
