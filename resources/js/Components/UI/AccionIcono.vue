@@ -38,69 +38,69 @@ const varianteVisual = computed(() => props.variante || coloresPorIcono[props.ic
 </template>
 
 <style scoped>
-/* El tono suave identifica la función sin competir con el contenido de cada fila. */
+/* El relleno sólido diferencia cada acción y mantiene un contraste claro en filas compactas. */
 .accion-icono {
     display: inline-grid;
     place-items: center;
     width: 44px;
     height: 44px;
     padding: 0;
-    border: 1px solid #1f6f7f40;
+    border: 1px solid transparent;
     border-radius: 8px;
-    background: #fff;
-    color: #153b64;
-    box-shadow: var(--control-shadow);
+    background: #446075;
+    color: #fff;
+    box-shadow: 0 2px 5px #153b6433;
     cursor: pointer;
 }
 
 .accion-icono--consulta {
-    color: #1f6f7f;
-    background: #1f6f7f0d;
-    border-color: #1f6f7f55;
+    color: #fff;
+    background: #1f6f7f;
+    border-color: #1f6f7f;
 }
 
 .accion-icono--edicion {
-    color: #153b64;
-    background: #153b640d;
-    border-color: #153b644d;
+    color: #fff;
+    background: #153b64;
+    border-color: #153b64;
 }
 
 .accion-icono--eliminar {
-    color: #a13b42;
-    background: #a13b420d;
-    border-color: #a13b4255;
+    color: #fff;
+    background: #a13b42;
+    border-color: #a13b42;
 }
 
 .accion-icono--compartir,
 .accion-icono--duplicar {
-    color: #1f6f7f;
-    background: #2db3a314;
-    border-color: #2db3a355;
-}
-
-.accion-icono--consulta:hover:not(:disabled) {
-    background: #1f6f7f1a;
+    color: #fff;
+    background: #1f6f7f;
     border-color: #1f6f7f;
 }
 
-.accion-icono--edicion:hover:not(:disabled) {
-    background: #153b641a;
+.accion-icono--consulta:hover:not(:disabled) {
+    background: #153b64;
     border-color: #153b64;
 }
 
+.accion-icono--edicion:hover:not(:disabled) {
+    background: #1f6f7f;
+    border-color: #1f6f7f;
+}
+
 .accion-icono--eliminar:hover:not(:disabled) {
-    background: #a13b421a;
-    border-color: #a13b42;
+    background: #842f36;
+    border-color: #842f36;
 }
 
 .accion-icono--compartir:hover:not(:disabled),
 .accion-icono--duplicar:hover:not(:disabled) {
-    background: #2db3a326;
+    background: #153b64;
     border-color: #1f6f7f;
 }
 
 .accion-icono--base:hover:not(:disabled) {
-    background: #f5f9fa;
+    background: #1f6f7f;
     border-color: #1f6f7f;
 }
 
