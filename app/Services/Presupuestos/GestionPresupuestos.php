@@ -192,9 +192,23 @@ class GestionPresupuestos
                 DB::table('project_requests')->where('id', $record->id)->update(['status' => 'closed', 'updated_at' => now()]);
             }
 
+            // Si el presupuesto aceptado proviene de una propuesta, quien la presentó
+            // queda como responsable inicial de la ejecución.
+            $responsableInicial = $origin?->professional_profile_id
+                ? DB::table('professional_profiles')->where('id', $origin->professional_profile_id)->value('user_id')
+                : null;
             $projectId = DB::table('projects')->insertGetId(['accepted_budget_version_id' => $version->id, 'title' => $version->title,
                 'supervisor_id' => $this->asignaciones->supervisor($origin ? null : $budget),
+                'responsable_id' => $responsableInicial,
                 'status' => 'pending', 'progress' => 0, 'created_at' => now(), 'updated_at' => now()]);
+            if ($responsableInicial) {
+                DB::table('proyecto_asignaciones')->insert([
+                    'project_id' => $projectId,
+                    'responsable_id' => $responsableInicial,
+                    'asignado_por' => $request->user()->id,
+                    'created_at' => now(),
+                ]);
+            }
             // Las cuotas nacen de la versión aceptada y se guardan dentro de la misma transacción.
             $plan = json_decode($version->plan_pago ?? 'null', true);
             foreach ($plan['cuotas'] ?? [] as $cuota) {

@@ -96,6 +96,7 @@ class ProjectController extends Controller
             'quotes' => $quotes,
             'historialPresupuestos' => $historialPresupuestos,
             'asignacion' => $asignacion,
+            'responsableAsignado' => $gestion ? $proyecto->responsable_id !== null : true,
         ]);
     }
 
@@ -216,6 +217,11 @@ class ProjectController extends Controller
                 ]);
             }
             if ($d['status'] === 'in_progress' && $project->status !== 'in_progress') {
+                if (!$project->responsable_id) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'status' => 'Asigná a una persona responsable antes de iniciar el proyecto.',
+                    ]);
+                }
                 $senaPendiente = DB::table('proyecto_pagos')->where('project_id', $project->id)
                     ->where('concepto', 'sena')->where('estado', '!=', 'confirmado')->exists();
                 if ($senaPendiente) {

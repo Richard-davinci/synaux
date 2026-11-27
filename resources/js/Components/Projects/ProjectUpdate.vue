@@ -10,6 +10,13 @@ import {useSubmit} from '../../support/useSubmit';
 // El formulario parte del proyecto elegido y conserva sus campos ante errores de validación.
 const props = defineProps({project: Object});
 const tieneAnticipoPendiente = props.project.pagos?.some(pago => pago.concepto === 'sena' && pago.estado !== 'confirmado') ?? false;
+const tieneResponsable = computed(() => Boolean(props.project.responsableAsignado));
+const etiquetaInicio = computed(() => {
+    if (!tieneResponsable.value && tieneAnticipoPendiente) return 'En desarrollo · asigná responsable y confirmá la seña';
+    if (!tieneResponsable.value) return 'En desarrollo · asigná responsable';
+    if (tieneAnticipoPendiente) return 'En desarrollo · requiere seña confirmada';
+    return 'En desarrollo';
+});
 const tieneChecklist = computed(() => (props.project.tareas?.length ?? 0) > 0);
 const avanceChecklist = computed(() => {
     const tareas = props.project.tareas ?? [];
@@ -52,7 +59,7 @@ function save() {
                 <form @submit.prevent="save">
                     <div class="form-grid">
                         <F v-model="form.status" label="Estado del proyecto" type="select"
-                           :options="[{value:'pending',label:'Pendiente de inicio'},{value:'in_progress',label:tieneAnticipoPendiente ? 'En desarrollo · requiere anticipo confirmado' : 'En desarrollo'},{value:'completed',label:'Completado'},{value:'cancelled',label:'Cancelado'}]"
+                           :options="[{value:'pending',label:'Pendiente de inicio'},{value:'in_progress',label:etiquetaInicio},{value:'completed',label:'Completado'},{value:'cancelled',label:'Cancelado'}]"
                            :error="form.errors.status" required/>
                         <div v-if="tieneChecklist" class="avance-derivado">
                             <span>Avance del checklist</span>
@@ -64,8 +71,11 @@ function save() {
                     </div>
                     <p v-if="!tieneChecklist" class="tracking-help">Pendiente corresponde a 0% y completado a 100%. Si el proyecto tiene checklist, el porcentaje se calcula automáticamente.</p>
                     <p v-else class="tracking-help">El avance no se edita aquí porque se calcula automáticamente desde el checklist.</p>
-                    <p v-if="tieneAnticipoPendiente" class="tracking-help">El anticipo debe estar confirmado antes de
-                        iniciar el proyecto.</p>
+                    <p v-if="!tieneResponsable || tieneAnticipoPendiente" class="tracking-help">
+                        <template v-if="!tieneResponsable">Asigná una persona responsable antes de iniciar.</template>
+                        <template v-if="!tieneResponsable && tieneAnticipoPendiente">Además, </template>
+                        <template v-if="tieneAnticipoPendiente">la seña debe estar confirmada antes del inicio.</template>
+                    </p>
                     <div class="form-grid">
                         <CampoFecha v-model="form.start_date" label="Fecha de inicio (opcional)"
                                     :error="form.errors.start_date"/>
