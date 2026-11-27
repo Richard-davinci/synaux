@@ -97,3 +97,4 @@ Además de Administración, el administrador puede:
 
 - [Guía de carga de servicios](guia-carga-de-servicios.md): procedimiento, campos y configuración del estimador.
 - [Reglas del ciclo de proyecto](reglas-del-ciclo-de-proyecto.md): aceptación, pagos, asignación, inicio, checklist y cierre.
+- [Etapa 2 · Plataforma de empresas y profesionales](etapa-dos-plataforma.md): alcance futuro de los muros, catálogos por proveedor y oportunidades.
