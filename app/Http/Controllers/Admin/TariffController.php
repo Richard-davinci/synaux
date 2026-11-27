@@ -30,8 +30,13 @@ class TariffController extends Controller
             $prices = $tariff ? DB::table('component_prices')->where('tariff_version_id', $tariff->id)->get()->map(fn($p) => ['id' => $p->service_component_id, 'min' => $p->price_min, 'max' => $p->price_max])->keyBy('id') : collect();
             $services[$values['service_id']] = ['id' => $values['service_id'], 'min' => $values['min'], 'max' => $values['max']];
             foreach ($values['components'] as $price) $prices[$price['id']] = $price;
+            // Una edición puntual de precios también conserva referencias segmentadas importadas.
+            $segments = $tariff ? DB::table('tariff_segment_prices')->where('tariff_version_id', $tariff->id)->get()->map(fn($price) => [
+                'service_id' => $price->service_id, 'segment' => $price->segment,
+                'min' => $price->price_min, 'max' => $price->price_max,
+            ])->all() : [];
             $request->merge(['name' => $values['name'], 'currency_code' => $tariff->currency_code ?? 'ARS', 'active' => true,
-                'services' => $services->values()->all(), 'components' => $prices->values()->all()]);
+                'services' => $services->values()->all(), 'components' => $prices->values()->all(), 'segments' => $segments]);
             return $this->store($request);
         });
     }
@@ -43,8 +48,12 @@ class TariffController extends Controller
             'services' => 'present|array|max:100', 'services.*.id' => 'required|integer|distinct|exists:services,id',
             'services.*.min' => 'required|numeric|decimal:0,2|min:0|max:100000000', 'services.*.max' => 'required|numeric|decimal:0,2|min:0|max:100000000',
             'components' => 'present|array|max:1000', 'components.*.id' => 'required|integer|distinct|exists:service_components,id',
-            'components.*.min' => 'required|numeric|decimal:0,2|min:0|max:100000000', 'components.*.max' => 'required|numeric|decimal:0,2|min:0|max:100000000']);
-        foreach (['services', 'components'] as $type) {
+            'components.*.min' => 'required|numeric|decimal:0,2|min:0|max:100000000', 'components.*.max' => 'required|numeric|decimal:0,2|min:0|max:100000000',
+            'segments' => 'present|array|max:300', 'segments.*.service_id' => 'required|integer|exists:services,id',
+            'segments.*.segment' => 'required|string|in:Particular,PyME,Empresa',
+            'segments.*.min' => 'required|numeric|decimal:0,2|min:0|max:100000000',
+            'segments.*.max' => 'required|numeric|decimal:0,2|min:0|max:100000000']);
+        foreach (['services', 'components', 'segments'] as $type) {
             foreach ($data[$type] as $index => $price) {
                 if ($price['max'] < $price['min']) {
                     throw ValidationException::withMessages(["$type.$index.max" => 'El máximo debe ser mayor o igual al mínimo.']);
@@ -65,6 +74,13 @@ class TariffController extends Controller
                 foreach ($data[$type] as $price) {
                     DB::table($table)->insert(['tariff_version_id' => $id, $key => $price['id'], 'price_min' => $price['min'], 'price_max' => $price['max']]);
                 }
+            }
+            // Copia los importes segmentados del origen para no perder referencias A/B/C al versionar.
+            foreach ($data['segments'] as $price) {
+                DB::table('tariff_segment_prices')->insert([
+                    'tariff_version_id' => $id, 'service_id' => $price['service_id'], 'segment' => $price['segment'],
+                    'price_min' => $price['min'], 'price_max' => $price['max'],
+                ]);
             }
         });
 

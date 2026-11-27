@@ -91,6 +91,8 @@ En **Precios vigentes**, ingresar para cada servicio automático:
 
 El editor de un servicio toma la moneda de la tarifa vigente. Para crear una versión completa o cambiar la moneda, usar **Administración → Tarifarios**; se admiten ARS, USD y EUR. Cada publicación crea una versión nueva y conserva las anteriores. El cambio de precio de un servicio copia los precios vigentes de los demás para que la nueva versión sea completa.
 
+En **Administración → Tarifarios**, el botón **Consultar y actualizar precios** lee directamente la fila «Desarrollo de Web Site Institucional» de [Tarifario.org](https://tarifario.org/diseno-y-maquetacion-c43) y publica una nueva versión. Mapea Cliente A a Empresa, B a PyME y C a Particular, guardando cada importe por separado. La fila fuente contempla home y hasta cinco secciones y excluye programación; para más de cinco secciones el estimador deriva a revisión profesional. Esta integración solo actualiza el servicio institucional que coincide con esa referencia. No infiere precios de otros servicios por similitud de nombre y conserva sus importes vigentes. La fuente presenta los importes como orientativos y declara licencia CC BY-SA 4.0.
+
 Antes de activar un tarifario, el servidor exige una base para cada servicio activo de modalidad automática y un precio para cada concepto activo de esos servicios. El precio máximo no puede ser menor que el mínimo.
 
 ### 6. Publicar y revisar

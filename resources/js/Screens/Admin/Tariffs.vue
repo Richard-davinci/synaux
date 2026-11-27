@@ -14,9 +14,9 @@ import {useSubmit} from '../../support/useSubmit';
 // Cada edición prepara una versión nueva y permite tomar los importes de una versión anterior.
 const props = defineProps({data: Object});
 const tariffs = computed(() => props.data.administration.tariffs);
-const latestImport = computed(() => tariffs.value.find(item => item.source_url));
+const latestImport = computed(() => tariffs.value.find(item => item.source_url?.includes('tarifario.org')));
 const panelOpen = ref(false);
-const tariff = useForm({name: '', currency_code: 'ARS', active: false, services: [], components: []});
+const tariff = useForm({name: '', currency_code: 'ARS', active: false, services: [], components: [], segments: []});
 const importForm = useForm({});
 const submit = useSubmit();
 
@@ -33,6 +33,10 @@ function prepareVersion(source = {}) {
         const price = source.components?.find(item => item.service_component_id === component.id);
         return {id: component.id, name: component.name, min: price?.price_min ?? '', max: price?.price_max ?? ''};
     });
+    // Si se parte de una versión importada, mantiene sus importes A/B/C en la siguiente publicación.
+    tariff.segments = (source.segments ?? []).map(price => ({
+        service_id: price.service_id, segment: price.segment, min: price.price_min, max: price.price_max,
+    }));
     panelOpen.value = true;
 }
 
@@ -58,19 +62,22 @@ function saveTariff() {
                 <B @click="prepareVersion()">＋ Nueva versión</B>
             </div>
             <div class="card workspace-import">
-                <h3><I name="calculator"/> Referencia de Sitio institucional</h3>
-                <p>Actualizá los tres segmentos del paquete de hasta siete secciones con Tarifario.ar y la cotización
-                    CCL de venta.</p>
+                <h3><I name="calculator"/> Actualización directa desde Tarifario.org</h3>
+                <p>Consulta la tarifa de «Desarrollo de Web Site Institucional» y guarda una versión nueva para el
+                    servicio institucional. Los valores A, B y C se asignan a Empresa, PyME y Particular.</p>
+                <p>La referencia publicada incluye home y hasta 5 secciones, sin programación. Los demás servicios de
+                    prueba quedan sin cambios; revisá el alcance antes de usar estos importes en trabajos reales.</p>
                 <B :disabled="importForm.processing"
                    @click="importForm.post('/admin/tarifario/importar', { preserveScroll: true })">
-                    {{ importForm.processing ? 'Consultando precios…' : 'Actualizar desde Tarifario.ar' }}
+                    {{ importForm.processing ? 'Consultando Tarifario.org…' : 'Consultar y actualizar precios' }}
                 </B>
-                <p>Contenido adaptado de <a href="https://tarifario.ar/categoria/dev-web-app#service-pd-3"
-                                            target="_blank" rel="noopener">Tarifario Digital</a>, bajo <a
-                    href="https://tarifario.ar/licencia" target="_blank" rel="noopener">CC BY-NC 4.0</a>. Los importes
-                    se convierten a ARS para este proyecto académico.</p>
-                <p v-if="latestImport">Última importación: {{ date(latestImport.source_checked_at) }} · Base PyME: USD
-                    {{ latestImport.source_usd }} · CCL venta: {{ money(latestImport.source_rate, 'ARS') }}</p>
+                <p>Fuente: <a href="https://tarifario.org/diseno-y-maquetacion-c43" target="_blank" rel="noopener">Tarifario.org · Diseño y maquetación</a>.
+                    Importes orientativos publicados en ARS; la página atribuye la obra a CC BY-SA 4.0.</p>
+                <p v-if="latestImport">Consultado: {{ date(latestImport.source_checked_at) }} · Versión fuente:
+                    {{ latestImport.name.replace('Tarifario.org · Sitio institucional · ', '') }}</p>
+                <p v-if="latestImport?.segments?.length">Importes guardados: Empresa {{ money(latestImport.segments.find(item => item.segment === 'Empresa')?.price_min, 'ARS') }} ·
+                    PyME {{ money(latestImport.segments.find(item => item.segment === 'PyME')?.price_min, 'ARS') }} ·
+                    Particular {{ money(latestImport.segments.find(item => item.segment === 'Particular')?.price_min, 'ARS') }}</p>
             </div>
             <div class="table-scroll workspace-table">
                 <table>
@@ -123,6 +130,14 @@ function saveTariff() {
                                 <strong>{{ price.name }}</strong>
                                 <F v-model="price.min" label="Mínimo" type="number" min="0" step="0.01" required/>
                                 <F v-model="price.max" label="Máximo" type="number" min="0" step="0.01" required/>
+                            </div>
+                        </template>
+                        <template v-if="tariff.segments.length">
+                            <h3>Precios por tipo de cliente</h3>
+                            <div v-for="price in tariff.segments" :key="price.service_id + '-' + price.segment" class="tariff-row">
+                                <strong>{{ price.segment }}</strong>
+                                <F v-model="price.min" label="Importe" type="number" min="0" step="0.01" required/>
+                                <F v-model="price.max" label="Importe máximo" type="number" min="0" step="0.01" required/>
                             </div>
                         </template>
                         <label class="select-row"><input v-model="tariff.active" type="checkbox">Activar para nuevas
