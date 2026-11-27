@@ -32,9 +32,7 @@ class CatalogConfiguration
                 ->orderByDesc('effective_from')->orderByDesc('id')->value('id'),
             'rules' => DB::table('estimation_rules as r')->join('estimator_options as o', 'o.id', '=', 'r.estimator_option_id')->join('service_components as c', 'c.id', '=', 'r.service_component_id')->select('r.*', 'o.label', 'c.name')->get(),
             'tariffs' => DB::table('tariff_versions')->orderByDesc('id')->get()->map(fn($t) => [...((array)$t),
-                'services' => DB::table('service_prices')->where('tariff_version_id', $t->id)->get(),
-                'components' => DB::table('component_prices')->where('tariff_version_id', $t->id)->get(),
-                'segments' => DB::table('tariff_segment_prices')->where('tariff_version_id', $t->id)->get()]),
+                'services' => DB::table('service_prices')->where('tariff_version_id', $t->id)->get(), 'components' => DB::table('component_prices')->where('tariff_version_id', $t->id)->get()]),
         ];
     }
 }

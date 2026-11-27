@@ -6,105 +6,93 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
-// Importa una referencia pública de Tarifario.org y la publica como una versión histórica nueva.
+// Lee datos públicos sin ejecutar JavaScript remoto y publica una nueva versión solo cuando cambia la referencia.
 class TariffImport
 {
-    public const SOURCE = 'https://tarifario.org/diseno-y-maquetacion-c43';
+    public const SOURCE = 'https://tarifario.ar/categoria/dev-web-app#service-pd-3';
+    public const RATE = 'https://dolarapi.com/v1/dolares/contadoconliqui';
 
     public function sync(): array
     {
-        $html = $this->read(self::SOURCE);
-        $document = new \DOMDocument();
-        $previous = libxml_use_internal_errors(true);
-        $document->loadHTML('<?xml encoding="UTF-8">' . $html);
-        libxml_clear_errors();
-        libxml_use_internal_errors($previous);
+        $html = $this->read('https://tarifario.ar/');
+        preg_match_all('~<script[^>]+src="(/_next/static/chunks/[^"]+\.js)"~', $html, $scripts);
+        if (count($scripts[1]) > 30 || !$scripts[1]) {
+            throw new RuntimeException('Cambió la estructura de Tarifario.ar. Revisá la integración.');
+        }
 
-        // La importación se limita a la fila institucional y valida sus tres segmentos por separado.
-        $xpath = new \DOMXPath($document);
-        $rates = null;
-        foreach ($xpath->query('//tr') as $row) {
-            $cells = $xpath->query('./th|./td', $row);
-            if ($cells->length < 4) continue;
-            $label = trim(preg_replace('/\s+/u', ' ', $cells->item(0)->textContent));
-            if (!str_starts_with($label, 'Desarrollo de Web Site Institucional ')) continue;
-
-            $rates = [];
-            foreach (['Empresa' => 1, 'PyME' => 2, 'Particular' => 3] as $segment => $index) {
-                $digits = preg_replace('/\D+/', '', $cells->item($index)->textContent);
-                if ($digits === '' || (int)$digits <= 0) {
-                    throw new RuntimeException('Tarifario.org no publicó un importe válido para ' . $segment . '.');
-                }
-                $rates[$segment] = (int)$digits;
+        // Se acepta únicamente la ficha vinculada al alcance de hasta siete secciones.
+        $card = null;
+        foreach (array_unique($scripts[1]) as $path) {
+            $script = $this->read('https://tarifario.ar' . $path);
+            if (preg_match('~\{id:"pd-3",[^{}]+\}~u', $script, $match)) {
+                $card = $match[0];
+                break;
             }
-            break;
         }
-        if (!$rates || count($rates) !== 3) {
-            throw new RuntimeException('No se encontró la fila institucional A/B/C con el formato esperado.');
+        if (!$card || !str_contains($card, 'category:"dev-web-app"') || !str_contains($card, 'priceType:"minimum"')) {
+            throw new RuntimeException('No se encontró la ficha institucional con el formato esperado.');
         }
-        if (!str_contains($html, 'Home y hasta 5 secciones. No incluye tareas de programación')) {
-            throw new RuntimeException('Cambió el alcance del servicio en Tarifario.org. Revisalo antes de actualizar.');
+        preg_match('~description:("[^"]*")~u', $card, $description);
+        $scope = json_decode($description[1] ?? 'null', true, 512, JSON_THROW_ON_ERROR);
+        if ($scope !== 'Sitio (hasta 7 secciones). UI/UX. Form. Blog básico. Responsive. CMS (WP) básico. SEO on-page inicial. 2 rondas.') {
+            throw new RuntimeException('Cambió el alcance de la ficha. Revisalo antes de actualizar sus precios.');
         }
-        preg_match('/(?:Última|Ultima) actualización:\s*([^<]+)/iu', $html, $updated);
-        $sourceDate = trim($updated[1] ?? '');
-        if ($sourceDate === '') throw new RuntimeException('Tarifario.org no informa la fecha de actualización de esta tarifa.');
-        $fingerprint = hash('sha256', json_encode([$rates, $sourceDate], JSON_THROW_ON_ERROR));
+        preg_match('~priceUSD:([0-9]+(?:\.[0-9]+)?(?:e[+-]?[0-9]+)?)(?:,|\})~i', $card, $price);
+        $usd = (float)($price[1] ?? 0);
+        $rateData = Http::connectTimeout(5)->timeout(15)->get(self::RATE)->throw()->json();
+        $rate = $rateData['venta'] ?? null;
+        if ($usd <= 0 || $usd > 1000000 || !is_numeric($rate) || $rate <= 0 || $rate > 1000000
+            || ($rateData['casa'] ?? '') !== 'contadoconliqui') {
+            throw new RuntimeException('El precio o la cotización recibida no son válidos.');
+        }
+        $checked = \Carbon\Carbon::parse($rateData['fechaActualizacion'] ?? throw new RuntimeException('La cotización no informa fecha.'));
+        if ($checked->lt(now()->subDays(7)) || $checked->gt(now()->addHour())) {
+            throw new RuntimeException('La cotización recibida está fuera de fecha.');
+        }
+        $rate = (float)$rate;
+        $amount = (int)round($usd * $rate * 0.5);
+        // El esquema de componentes representa incrementos iguales entre los tres segmentos.
+        if ((int)round($usd * $rate) !== 2 * $amount || (int)round($usd * $rate * 1.5) !== 3 * $amount) {
+            throw new RuntimeException('Los redondeos requieren revisar el esquema de segmentos antes de importar.');
+        }
+        $fingerprint = hash('sha256', json_encode([$scope, $usd, $rate]));
 
-        return DB::transaction(function () use ($rates, $fingerprint, $sourceDate) {
-            // El bloqueo del servicio serializa las actualizaciones y evita publicar duplicados simultáneos.
+        return DB::transaction(function () use ($usd, $rate, $amount, $fingerprint) {
+            // El bloqueo del servicio serializa la publicación de dos actualizaciones concurrentes.
             $service = DB::table('services')->where('slug', 'sitio-institucional')->lockForUpdate()->firstOrFail();
+            $component = DB::table('service_components')->where('service_id', $service->id)
+                ->where('slug', 'segmento-tarifario-2026-11')->where('active', 1)->first();
+            if (!$component || DB::table('service_components')->where('service_id', $service->id)->where('active', 1)->count() !== 1) {
+                throw new RuntimeException('Prepará primero el paquete institucional con SynauxInstitutionalTariffSeeder.');
+            }
+            $existing = DB::table('tariff_versions')->where('source_fingerprint', $fingerprint)->first();
+            if ($existing) {
+                return ['created' => false, 'id' => $existing->id, 'pyme' => $amount * 2];
+            }
             $latest = DB::table('tariff_versions')->where('active', 1)->where('effective_from', '<=', now())
                 ->orderByDesc('effective_from')->orderByDesc('id')->first();
-            if ($latest && $latest->currency_code !== 'ARS') {
-                throw new RuntimeException('La versión activa usa otra moneda. Revisá la moneda antes de importar.');
-            }
-            if (!$latest) {
-                throw new RuntimeException('Primero cargá una versión completa del tarifario para los demás servicios.');
-            }
-            if ($latest?->source_url === self::SOURCE && $latest->source_fingerprint === $fingerprint) {
-                return ['created' => false, 'id' => $latest->id, 'sourceDate' => $sourceDate];
-            }
-            // No activa una referencia parcial si ya faltan precios ajenos al servicio importado.
-            $otherAutomatic = DB::table('services')->where('active', 1)->where('estimation_mode', 'automatic')
-                ->where('id', '!=', $service->id)->pluck('id');
-            $availableOtherServices = DB::table('service_prices')->where('tariff_version_id', $latest->id)->pluck('service_id');
-            $requiredComponents = DB::table('service_components as c')->join('services as s', 's.id', '=', 'c.service_id')
-                ->where('s.active', 1)->where('s.estimation_mode', 'automatic')->where('c.active', 1)->pluck('c.id');
-            $availableComponents = DB::table('component_prices')->where('tariff_version_id', $latest->id)->pluck('service_component_id');
-            if ($otherAutomatic->diff($availableOtherServices)->isNotEmpty() || $requiredComponents->diff($availableComponents)->isNotEmpty()) {
-                throw new RuntimeException('La versión vigente tiene precios pendientes. Completalos antes de publicar una importación parcial.');
-            }
             $id = DB::table('tariff_versions')->insertGetId([
-                'name' => 'Tarifario.org · Sitio institucional · Fuente ' . $sourceDate . ' · ' . now()->format('Y-m-d H:i'),
+                'name' => 'Tarifario.ar · Institucional · ' . now()->format('Y-m-d H:i'),
                 'currency_code' => 'ARS', 'active' => true, 'effective_from' => now(), 'created_at' => now(),
-                'source_url' => self::SOURCE, 'source_checked_at' => now(), 'source_fingerprint' => $fingerprint,
+                'source_url' => self::SOURCE, 'source_usd' => $usd, 'source_rate' => $rate,
+                'source_checked_at' => now(), 'source_fingerprint' => $fingerprint,
             ]);
-
-            // Copia los importes de los demás servicios y conceptos de la versión activa anterior.
-            foreach (['service_prices' => ['service_id', $service->id], 'component_prices' => ['service_component_id', null]] as $table => [$key, $replaced]) {
-                $rows = $latest ? DB::table($table)->where('tariff_version_id', $latest->id)
-                    ->when($replaced !== null, fn($query) => $query->where($key, '!=', $replaced))->get() : [];
+            // Conserva los precios de otros servicios cuando la versión anterior utiliza la misma moneda.
+            foreach (['service_prices' => ['service_id', $service->id], 'component_prices' => ['service_component_id', $component->id]] as $table => [$key, $replaced]) {
+                if ($latest && $latest->currency_code !== 'ARS') {
+                    throw new RuntimeException('La versión activa usa otra moneda. Revisá la conversión antes de importar.');
+                }
+                $rows = $latest ? DB::table($table)->where('tariff_version_id', $latest->id)->where($key, '!=', $replaced)->get() : [];
                 foreach ($rows as $row) {
                     DB::table($table)->insert(['tariff_version_id' => $id, $key => $row->$key, 'price_min' => $row->price_min, 'price_max' => $row->price_max]);
                 }
+                DB::table($table)->insert(['tariff_version_id' => $id, $key => $replaced, 'price_min' => $amount, 'price_max' => $amount]);
             }
-            $amounts = array_values($rates);
-            DB::table('service_prices')->insert([
-                'tariff_version_id' => $id, 'service_id' => $service->id,
-                'price_min' => min($amounts), 'price_max' => max($amounts),
-            ]);
-            foreach ($rates as $segment => $amount) {
-                DB::table('tariff_segment_prices')->insert([
-                    'tariff_version_id' => $id, 'service_id' => $service->id,
-                    'segment' => $segment, 'price_min' => $amount, 'price_max' => $amount,
-                ]);
-            }
-
-            return ['created' => true, 'id' => $id, 'sourceDate' => $sourceDate];
+            return ['created' => true, 'id' => $id, 'pyme' => $amount * 2];
         });
     }
 
-    // La URL viene fijada en el código y se limitan el tiempo de espera y el tamaño de respuesta.
+    // Los enlaces provienen exclusivamente del dominio fijo y las solicitudes tienen límites de espera.
     private function read(string $url): string
     {
         $response = Http::connectTimeout(5)->timeout(15)->get($url)->throw();

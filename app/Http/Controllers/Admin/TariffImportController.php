@@ -19,8 +19,6 @@ class TariffImportController extends Controller
             throw ValidationException::withMessages(['tarifario' => 'No se pudo actualizar el tarifario. Los precios anteriores siguen disponibles. Revisá el registro del servidor.']);
         }
 
-        return back()->with('notice', $result['created']
-            ? 'Se actualizó el precio del sitio institucional con una nueva versión de Tarifario.org.'
-            : 'Los precios del sitio institucional ya coinciden con Tarifario.org.');
+        return back()->with('notice', $result['created'] ? 'Se importó una nueva versión desde Tarifario.ar.' : 'El tarifario ya coincide con la fuente consultada.');
     }
 }

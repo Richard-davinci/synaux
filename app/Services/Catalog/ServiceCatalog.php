@@ -81,9 +81,6 @@ class ServiceCatalog
             }
             $min = (float)$base->price_min;
             $max = (float)$base->price_max;
-            // Tarifas A/B/C directas prevalecen sobre la aproximación lineal del componente heredado.
-            $sourceSegments = DB::table('tariff_segment_prices')->where('tariff_version_id', $tariff->id)
-                ->where('service_id', $service['database_id'])->get();
             foreach ($parts->where('is_default', 1) as $part) {
                 $min += $prices[$part->id]->price_min * $part->default_quantity;
                 $max += $prices[$part->id]->price_max * $part->default_quantity;
@@ -91,13 +88,7 @@ class ServiceCatalog
             // Cada segmento usa su opción y regla real; la tarjeta no calcula factores fijos en JavaScript.
             $segments = [];
             $segmentPart = $parts->firstWhere('slug', 'segmento-tarifario-2026-11');
-            if ($sourceSegments->isNotEmpty()) {
-                $segments = $sourceSegments->map(fn($item) => [
-                    'label' => $item->segment, 'min' => (float)$item->price_min, 'max' => (float)$item->price_max,
-                ])->all();
-                $min = min(array_column($segments, 'min'));
-                $max = max(array_column($segments, 'max'));
-            } elseif ($segmentPart) {
+            if ($segmentPart) {
                 $options = DB::table('estimator_options as o')
                     ->join('estimator_questions as q', 'q.id', '=', 'o.question_id')
                     ->join('estimation_rules as r', 'r.estimator_option_id', '=', 'o.id')
@@ -218,22 +209,12 @@ class ServiceCatalog
             }
         }
         $tariff = DB::table('tariff_versions')->where('active', 1)->where('effective_from', '<=', now())->orderByDesc('effective_from')->orderByDesc('id')->first();
-        // La referencia institucional de Tarifario.org solo cubre hasta cinco secciones.
-        $sourceSegment = null;
-        $answerLabels = collect($snapshot)->pluck('label');
-        if ($tariff && $answerLabels->contains('1 a 5')) {
-            $clientSegment = $answerLabels->first(fn($label) => in_array($label, ['Particular', 'PyME', 'Empresa'], true));
-            if ($clientSegment) {
-                $sourceSegment = DB::table('tariff_segment_prices')->where('service_id', $service['database_id'])
-                    ->where('tariff_version_id', $tariff->id)->where('segment', $clientSegment)->first();
-            }
-        }
         $base = $tariff ? DB::table('service_prices')->where('tariff_version_id', $tariff->id)->where('service_id', $service['database_id'])->first() : null;
         $available = !$incomplete && $service['estimation_mode'] === 'automatic' && $base !== null;
         $min = $base ? (int)round($base->price_min * 100) : 0;
         $max = $base ? (int)round($base->price_max * 100) : 0;
         $items = [];
-        foreach ($sourceSegment ? [] : $quantities as $id => $quantity) {
+        foreach ($quantities as $id => $quantity) {
             if ($quantity <= 0 || !$components->has($id)) {
                 continue;
             }
@@ -243,15 +224,6 @@ class ServiceCatalog
             $min += (int)round(($price?->price_min ?? 0) * 100 * $quantity);
             $max += (int)round(($price?->price_max ?? 0) * 100 * $quantity);
         }
-        // Si hay un importe publicado para el segmento elegido, usa el valor externo exacto.
-        if ($sourceSegment && $tariff && (int)$sourceSegment->tariff_version_id === (int)$tariff->id && $available) {
-            $min = (int)round($sourceSegment->price_min * 100);
-            $max = (int)round($sourceSegment->price_max * 100);
-        }
-        // Tarifario.org no da importes para más de cinco secciones ni para un segmento sin equivalencia.
-        $hasSourceSegments = $tariff && DB::table('tariff_segment_prices')->where('tariff_version_id', $tariff->id)
-            ->where('service_id', $service['database_id'])->exists();
-        if ($hasSourceSegments && !$sourceSegment) $available = false;
 
         // Sin configuración completa se informa revisión profesional, nunca un precio ficticio.
         return ['key' => (string)Str::uuid(), 'service' => $service, 'answers' => $snapshot, 'items' => $items,
