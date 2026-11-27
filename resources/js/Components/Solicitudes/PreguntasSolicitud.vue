@@ -1,5 +1,7 @@
 <script setup>
 import F from '../UI/FormField.vue';
+import SelectorSegmentado from '../UI/SelectorSegmentado.vue';
+import {esSelectorTipoCliente} from '../../support/visualizacionPregunta';
 
 // Las preguntas usan las mismas entradas para el servicio principal y cada adicional.
 defineProps({questions: Array, errors: Object, prefix: String});
@@ -17,6 +19,10 @@ const answers = defineModel({type: Object, required: true});
                     errors[prefix + question.id]
                 }}</small>
         </fieldset>
+        <SelectorSegmentado v-else-if="esSelectorTipoCliente(question)"
+                            v-model="answers[question.id]" :label="question.question"
+                            :options="question.options" :error="errors[prefix + question.id]"
+                            :required="Boolean(question.required ?? true)"/>
         <F v-else v-model="answers[question.id]" :label="question.question"
            :type="question.input_type === 'single_choice' ? 'select' : question.input_type === 'number' ? 'number' : 'textarea'"
            :options="question.options" :min="question.input_type === 'number' ? 1 : undefined"

@@ -4,11 +4,13 @@ import {router, useForm} from '@inertiajs/vue3';
 import ServicePicker from '../../Components/Catalog/ServicePicker.vue';
 import B from '../../Components/UI/AppButton.vue';
 import F from '../../Components/UI/FormField.vue';
+import SelectorSegmentado from '../../Components/UI/SelectorSegmentado.vue';
 import T from '../../Components/UI/PageTitle.vue';
 import ServiceReference from '../../Components/Estimates/ServiceReference.vue';
 import EstimateResult from '../../Components/Estimates/EstimateResult.vue';
 import ReiniciarEstimacion from '../../Components/Estimates/ReiniciarEstimacion.vue';
 import {useSubmit} from '../../support/useSubmit';
+import {esSelectorTipoCliente} from '../../support/visualizacionPregunta';
 
 // El formulario conserva sus respuestas al recorrer los pasos; Laravel valida y calcula los importes.
 const props = defineProps({data: {type: Object, required: true}});
@@ -120,6 +122,9 @@ function save(toRequest) {
                             <small v-if="form.errors['answers.' + question.id]" class="error"
                                    role="alert">{{ form.errors['answers.' + question.id] }}</small>
                         </fieldset>
+                        <SelectorSegmentado v-else-if="esSelectorTipoCliente(question)"
+                                            v-model="form.answers[question.id]" :label="question.question"
+                                            :options="question.options" :error="form.errors['answers.' + question.id]"/>
                         <F v-else v-model="form.answers[question.id]" :label="question.question"
                            :type="question.input_type === 'single_choice' ? 'select' : question.input_type === 'number' ? 'number' : 'textarea'"
                            :options="question.options?.map(option => ({ value: option.id, label: option.label }))"
