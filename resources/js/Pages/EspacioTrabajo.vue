@@ -41,7 +41,6 @@ import BudgetDetail from '../Components/Presupuestos/DetallePresupuesto.vue';
 import ProjectDetail from '../Components/Projects/ProjectDetail.vue';
 import ManagementRequestDetail from '../Components/Management/DetalleSolicitud.vue';
 import '../../css/panel.css';
-import '../../css/ajustes-panel.css';
 // La selección de pantalla vive en el punto de entrada y respeta el área autorizada por Laravel.
 const page = usePage();
 const data = computed(() => page.props);

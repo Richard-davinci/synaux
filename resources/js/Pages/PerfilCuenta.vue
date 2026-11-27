@@ -12,7 +12,6 @@ import {date, initials} from '../support/formatters';
 import {demoNotice} from '../support/prototype';
 import {useNavigationContext} from '../support/useNavigationContext';
 import '../../css/panel.css';
-import '../../css/ajustes-panel.css';
 
 // Cada tarjeta edita solo sus datos. Los valores de consulta provienen del perfil guardado.
 const props = defineProps({profile: Object, preview: Boolean});

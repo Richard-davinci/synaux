@@ -5,3 +5,11 @@
 @import './panel/account-and-projects.css';
 @import './panel/marketplace.css';
 @import './panel/responsive.css';
+@import './panel/appearance.css';
+@import './panel/catalog-and-accounts.css';
+@import './panel/registros-y-formularios.css';
+@import './panel/landing.css';
+@import './panel/responsive-overrides.css';
+@import './panel/footer.css';
+@import './panel/densidad-campos.css';
+@import './panel/management.css';

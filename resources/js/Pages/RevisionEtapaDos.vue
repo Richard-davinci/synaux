@@ -5,7 +5,6 @@ import B from '../Components/UI/AppButton.vue';
 import I from '../Components/UI/AppIcon.vue';
 import T from '../Components/UI/PageTitle.vue';
 import '../../css/panel.css';
-import '../../css/ajustes-panel.css';
 
 // Las rutas operativas mantienen sus permisos por registro. La galería usa datos aislados.
 const sections = [

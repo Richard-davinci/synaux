@@ -8,7 +8,6 @@ import I from '../Components/UI/AppIcon.vue';
 import EjemploPresupuesto from '../Components/Presupuestos/EjemploPresupuesto.vue';
 import {referenceHref} from '../support/prototype';
 import '../../css/panel.css';
-import '../../css/ajustes-panel.css';
 
 // Las cuatro áreas representan servicios de la primera etapa, sin anunciar el marketplace futuro.
 const areas = [

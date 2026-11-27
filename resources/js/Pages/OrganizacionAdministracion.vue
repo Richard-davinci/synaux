@@ -6,7 +6,6 @@ import PageTitle from '../Components/UI/PageTitle.vue';
 import F from '../Components/UI/FormField.vue';
 import TarjetaPerfil from '../Components/Cuenta/TarjetaPerfil.vue';
 import '../../css/panel.css';
-import '../../css/ajustes-panel.css';
 
 // El formulario comparte los datos del emisor entre las cuentas de Administración.
 const props = defineProps({organizacion: Object, equipo: Array});

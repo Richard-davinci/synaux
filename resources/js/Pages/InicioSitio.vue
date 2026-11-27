@@ -9,7 +9,6 @@ import EjemploPresupuesto from '../Components/Presupuestos/EjemploPresupuesto.vu
 import GrillaProyectos from '../Components/Portfolio/GrillaProyectos.vue';
 import PublicLayout from '../Layouts/PublicLayout.vue';
 import '../../css/panel.css';
-import '../../css/ajustes-panel.css';
 
 // La portada recibe una selección de servicios activos y proyectos publicados.
 defineProps({

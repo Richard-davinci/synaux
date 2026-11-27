@@ -7,7 +7,6 @@ import F from '../Components/UI/FormField.vue';
 
 // La activación se abre desde un enlace externo y carga por sí sola los estilos del sitio y de acceso.
 import '../../css/panel.css';
-import '../../css/ajustes-panel.css';
 
 const props = defineProps({token: String, vigente: Boolean});
 const form = useForm({password: '', password_confirmation: ''});
