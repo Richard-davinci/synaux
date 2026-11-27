@@ -28,10 +28,12 @@ const datos = computed(() => [
 // El dominio del equipo tiene su propio guardado, separado de los datos fiscales.
 const dominio = useForm({dominio_correo_equipo: props.organizacion.dominio_correo_equipo ?? ''});
 const editandoDominio = ref(false);
+
 function editarDominio(estado) {
     dominio.defaults('dominio_correo_equipo', props.organizacion.dominio_correo_equipo ?? '').resetAndClearErrors();
     editandoDominio.value = estado;
 }
+
 function guardarDominio() {
     dominio.patch('/admin/organizacion/dominio-equipo', {preserveScroll: true, onSuccess: () => editarDominio(false)});
 }
@@ -56,34 +58,43 @@ function guardar() {
                 <PageTitle eyebrow="Administración" :title="organizacion.nombre"
                            :description="organizacion.tipo === 'empresa' ? 'Empresa' : 'Profesional independiente'"/>
                 <div class="ficha-organizacion">
-                <TarjetaPerfil id="emision" titulo="Datos de emisión" icono="file" :datos="datos"
-                               vacio="Agregá los datos que se usarán en los próximos presupuestos."
-                               accion-guardar="Guardar datos de emisión" :editando="editando"
-                               :guardando="form.processing" :modificado="form.isDirty"
-                               @editar="cambiarEdicion(true)" @cancelar="cambiarEdicion(false)" @guardar="guardar">
-                    <F v-model="form.name" label="Nombre legal o razón social" maxlength="255" required :error="form.errors.name"/>
-                    <F v-model="form.cuit" label="CUIT (opcional)" maxlength="13" hint="11 dígitos, con o sin guiones." :error="form.errors.cuit"/>
-                    <F v-model="form.email" label="Correo comercial" type="email" maxlength="254" required :error="form.errors.email"/>
-                    <F v-model="form.phone" label="Teléfono comercial (opcional)" type="tel" maxlength="50" :error="form.errors.phone"/>
-                    <F v-model="form.address" label="Domicilio (opcional)" maxlength="500" :error="form.errors.address"/>
+                    <TarjetaPerfil id="emision" titulo="Datos de emisión" icono="file" :datos="datos"
+                                   vacio="Agregá los datos que se usarán en los próximos presupuestos."
+                                   accion-guardar="Guardar datos de emisión" :editando="editando"
+                                   :guardando="form.processing" :modificado="form.isDirty"
+                                   @editar="cambiarEdicion(true)" @cancelar="cambiarEdicion(false)" @guardar="guardar">
+                        <F v-model="form.name" label="Nombre legal o razón social" maxlength="255" required
+                           :error="form.errors.name"/>
+                        <F v-model="form.cuit" label="CUIT (opcional)" maxlength="13"
+                           hint="11 dígitos, con o sin guiones." :error="form.errors.cuit"/>
+                        <F v-model="form.email" label="Correo comercial" type="email" maxlength="254" required
+                           :error="form.errors.email"/>
+                        <F v-model="form.phone" label="Teléfono comercial (opcional)" type="tel" maxlength="50"
+                           :error="form.errors.phone"/>
+                        <F v-model="form.address" label="Domicilio (opcional)" maxlength="500"
+                           :error="form.errors.address"/>
 
-                </TarjetaPerfil>
-                <TarjetaPerfil id="correo-equipo" titulo="Correo del equipo" icono="user"
-                               :datos="organizacion.dominio_correo_equipo ? [['Dominio', organizacion.dominio_correo_equipo]] : []"
-                               vacio="Configurá el dominio que usarán las nuevas cuentas del equipo."
-                               accion-guardar="Guardar dominio" :editando="editandoDominio" :guardando="dominio.processing" :modificado="dominio.isDirty"
-                               @editar="editarDominio(true)" @cancelar="editarDominio(false)" @guardar="guardarDominio">
-                    <F v-model="dominio.dominio_correo_equipo" label="Dominio corporativo" maxlength="253" required
-                       placeholder="empresa.com" hint="Ingresá el dominio a la derecha de @." :error="dominio.errors.dominio_correo_equipo"/>
-                </TarjetaPerfil>
-                <v-card v-if="equipo.length" tag="section" class="card equipo-organizacion" aria-labelledby="titulo-equipo">
-                    <h2 id="titulo-equipo">Equipo</h2>
-                    <ul>
-                        <li v-for="miembro in equipo" :key="miembro.id">
-                            <strong>{{ miembro.nombre }}</strong><span>{{ roles[miembro.rol] }}</span>
-                        </li>
-                    </ul>
-                </v-card>
+                    </TarjetaPerfil>
+                    <TarjetaPerfil id="correo-equipo" titulo="Correo del equipo" icono="user"
+                                   :datos="organizacion.dominio_correo_equipo ? [['Dominio', organizacion.dominio_correo_equipo]] : []"
+                                   vacio="Configurá el dominio que usarán las nuevas cuentas del equipo."
+                                   accion-guardar="Guardar dominio" :editando="editandoDominio"
+                                   :guardando="dominio.processing" :modificado="dominio.isDirty"
+                                   @editar="editarDominio(true)" @cancelar="editarDominio(false)"
+                                   @guardar="guardarDominio">
+                        <F v-model="dominio.dominio_correo_equipo" label="Dominio corporativo" maxlength="253" required
+                           placeholder="empresa.com" hint="Ingresá el dominio a la derecha de @."
+                           :error="dominio.errors.dominio_correo_equipo"/>
+                    </TarjetaPerfil>
+                    <v-card v-if="equipo.length" tag="section" class="card equipo-organizacion"
+                            aria-labelledby="titulo-equipo">
+                        <h2 id="titulo-equipo">Equipo</h2>
+                        <ul>
+                            <li v-for="miembro in equipo" :key="miembro.id">
+                                <strong>{{ miembro.nombre }}</strong><span>{{ roles[miembro.rol] }}</span>
+                            </li>
+                        </ul>
+                    </v-card>
                 </div>
             </div>
         </section>
@@ -107,22 +118,45 @@ function guardar() {
 }
 
 /* La ficha conserva superficies limpias y reserva el turquesa para los íconos de sección. */
-.ficha-organizacion { display: grid; gap: 18px; }
+.ficha-organizacion {
+    display: grid;
+    gap: 18px;
+}
+
 .ficha-organizacion :deep(.tarjeta-perfil-encabezado) {
     padding-bottom: 12px;
     border-bottom: 1px solid #1f6f7f26;
 }
-.ficha-organizacion :deep(.tarjeta-perfil-encabezado .icon) { color: #1f6f7f; }
-.ficha-organizacion :deep(.tarjeta-perfil-datos > div:last-child:nth-child(odd)) { grid-column: 1 / -1; }
-.ficha-organizacion :deep(.tarjeta-perfil-datos > div:only-child) { grid-column: 1 / -1; }
-.equipo-organizacion { padding: 20px; }
+
+.ficha-organizacion :deep(.tarjeta-perfil-encabezado .icon) {
+    color: #1f6f7f;
+}
+
+.ficha-organizacion :deep(.tarjeta-perfil-datos > div:last-child:nth-child(odd)) {
+    grid-column: 1 / -1;
+}
+
+.ficha-organizacion :deep(.tarjeta-perfil-datos > div:only-child) {
+    grid-column: 1 / -1;
+}
+
+.equipo-organizacion {
+    padding: 20px;
+}
+
 .equipo-organizacion h2 {
     margin: 0 0 12px;
     padding-bottom: 12px;
     border-bottom: 1px solid #1f6f7f26;
     font-size: 1.2rem;
 }
-.equipo-organizacion ul { margin: 0; padding: 0; list-style: none; }
+
+.equipo-organizacion ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
 .equipo-organizacion li {
     display: flex;
     flex-wrap: wrap;
@@ -133,6 +167,8 @@ function guardar() {
 }
 
 @media (max-width: 760px) {
-    .organization-settings-view { padding-inline: 16px; }
+    .organization-settings-view {
+        padding-inline: 16px;
+    }
 }
 </style>

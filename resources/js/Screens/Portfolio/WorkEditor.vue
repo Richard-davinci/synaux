@@ -49,7 +49,7 @@ function saveWork() {
                 <F v-model="work.result" label="La solución y el resultado" type="textarea"/>
                 <F v-model="work.live_url" type="url" label="Enlace al proyecto (opcional)"/>
                 <EditorGaleria ref="galleryEditor" :images="selected.images" :cover-path="selected.cover_path"
-                                        :revision="data.galleryRevision" :errors="work.errors"/>
+                               :revision="data.galleryRevision" :errors="work.errors"/>
                 <label class="select-row"><input v-model="work.is_public" type="checkbox">Publicar este trabajo en el
                     portfolio</label>
                 <B type="submit" :disabled="work.processing">Guardar trabajo</B>

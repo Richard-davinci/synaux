@@ -122,7 +122,8 @@ watch(() => page.url, () => {
                   @after-leave="restoreWorkspaceFocus" aria-labelledby="workspace-mobile-title">
             <div id="workspace-mobile-panel" class="synaux-app workspace-panel-surface">
                 <WorkspaceNavigation :items="nav" :area="area" :current="currentSection"
-                                     :title="workspaceTitle" :show-area-switch="showAreaSwitch" titulo-id="workspace-mobile-title"
+                                     :title="workspaceTitle" :show-area-switch="showAreaSwitch"
+                                     titulo-id="workspace-mobile-title"
                                      @navigate="workspaceOpen = false">
                     <template #accion-encabezado>
                         <button type="button" class="workspace-close" aria-label="Cerrar menú del panel"

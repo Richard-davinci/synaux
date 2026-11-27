@@ -112,9 +112,11 @@ function decide() {
                     <p>{{ state.text }}</p>
                 </div>
             </div>
-            <section v-if="record.status === 'rejected'" class="rejection-reason" aria-labelledby="rejection-reason-title">
+            <section v-if="record.status === 'rejected'" class="rejection-reason"
+                     aria-labelledby="rejection-reason-title">
                 <div class="rejection-reason-heading">
-                    <I name="info"/><h2 id="rejection-reason-title">Motivo del rechazo · Versión {{ record.version_number }}</h2>
+                    <I name="info"/>
+                    <h2 id="rejection-reason-title">Motivo del rechazo · Versión {{ record.version_number }}</h2>
                 </div>
                 <p v-if="record.motivo_rechazo" class="preserve-lines">{{ record.motivo_rechazo }}</p>
                 <p v-else class="rejection-reason-empty">No se registró un motivo para esta versión.</p>
@@ -186,7 +188,8 @@ function decide() {
                             </dl>
                         </div>
                         <F v-if="decision === 'rejected'" v-model="form.motivo_rechazo" label="Motivo del rechazo"
-                           type="textarea" maxlength="1000" required :disabled="form.processing" :error="form.errors.motivo_rechazo"
+                           type="textarea" maxlength="1000" required :disabled="form.processing"
+                           :error="form.errors.motivo_rechazo"
                            hint="Por ejemplo, si necesitás ajustar el importe, el plazo o el alcance."/>
                         <div v-if="otrosErrores.length" role="alert" class="notice">
                             <ul>
@@ -425,7 +428,9 @@ function decide() {
     margin: 6px 0 0;
 }
 
-.budget-state .preserve-lines { overflow-wrap: anywhere; }
+.budget-state .preserve-lines {
+    overflow-wrap: anywhere;
+}
 
 .budget-state .btn {
     margin-top: 14px;

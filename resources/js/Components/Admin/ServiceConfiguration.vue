@@ -21,8 +21,18 @@ const formularios = {
 const questions = computed(() => props.administration.questions.filter(q => q.service_id == props.service.id || q.service_id == null));
 const components = computed(() => props.administration.components.filter(c => c.service_id == props.service.id));
 const gruposPreguntas = computed(() => [
-    {id: 'propias', titulo: 'Preguntas de este servicio', descripcion: 'Definen el alcance de este servicio.', registros: questions.value.filter(q => q.service_id != null)},
-    {id: 'generales', titulo: 'Preguntas generales', descripcion: 'Se aplican a todos los servicios. Los cambios afectan las solicitudes nuevas.', registros: questions.value.filter(q => q.service_id == null)},
+    {
+        id: 'propias',
+        titulo: 'Preguntas de este servicio',
+        descripcion: 'Definen el alcance de este servicio.',
+        registros: questions.value.filter(q => q.service_id != null)
+    },
+    {
+        id: 'generales',
+        titulo: 'Preguntas generales',
+        descripcion: 'Se aplican a todos los servicios. Los cambios afectan las solicitudes nuevas.',
+        registros: questions.value.filter(q => q.service_id == null)
+    },
 ]);
 const conceptosActivos = computed(() => components.value.filter(c => c.active));
 const rules = computed(() => props.administration.rules.filter(r => components.value.some(c => c.id == r.service_component_id)));
@@ -76,21 +86,27 @@ const categoriasOrigen = computed(() => {
 const serviciosOrigen = computed(() => opcionesPorNombre(serviciosConPlantillas.value.filter(s =>
     s.service_category_id == categoriaOrigen.value)));
 const plantillasDelServicio = computed(() => plantillas.value.filter(r => r.service_id == servicioOrigen.value));
-const opcionesPlantilla = computed(() => opcionesPorNombre(plantillasDelServicio.value.map(r => ({id: r.id, name: r.question ?? r.name}))));
+const opcionesPlantilla = computed(() => opcionesPorNombre(plantillasDelServicio.value.map(r => ({
+    id: r.id,
+    name: r.question ?? r.name
+}))));
 const plantillaElegida = computed(() => plantillasDelServicio.value.find(r => r.id == seleccionPlantilla.value));
 
 function elegirServicioOrigen(valor) {
     servicioOrigen.value = valor;
     seleccionPlantilla.value = '';
 }
+
 function elegirCategoriaOrigen(valor) {
     categoriaOrigen.value = valor;
     elegirServicioOrigen('');
 }
+
 function abrirReutilizacion(tipo) {
     elegirCategoriaOrigen('');
     reutilizar.value = tipo;
 }
+
 function copiarPlantilla() {
     const original = plantillaElegida.value;
     if (!original) return;
@@ -105,7 +121,9 @@ const form = useForm({});
 const puedeGeneralizar = ref(false);
 const alcance = computed({
     get: () => form.service_id == null ? 'general' : 'servicio',
-    set: valor => { form.service_id = valor === 'general' ? null : props.service.id; },
+    set: valor => {
+        form.service_id = valor === 'general' ? null : props.service.id;
+    },
 });
 const fields = {
     preguntas: ['id', 'service_id', 'question', 'input_type', 'sort_order', 'options_text', 'quantity_component_id', 'required', 'active'],
@@ -175,8 +193,16 @@ const coberturaCompleta = computed(() => Boolean(baseVigente.value) && conceptos
 const automatica = computed(() => props.service.estimation_mode === 'automatic');
 const gruposConceptos = computed(() => [
     {id: 'incluidos', titulo: 'Incluidos por defecto', registros: conceptosActivos.value.filter(c => c.is_default)},
-    {id: 'condicionales', titulo: 'Según las respuestas', registros: conceptosActivos.value.filter(c => !c.is_default && (activeRulesFor(c.id).length || quantityQuestionsFor(c.id).length))},
-    {id: 'pendientes', titulo: 'Sin condición configurada', registros: conceptosActivos.value.filter(c => !c.is_default && !activeRulesFor(c.id).length && !quantityQuestionsFor(c.id).length)},
+    {
+        id: 'condicionales',
+        titulo: 'Según las respuestas',
+        registros: conceptosActivos.value.filter(c => !c.is_default && (activeRulesFor(c.id).length || quantityQuestionsFor(c.id).length))
+    },
+    {
+        id: 'pendientes',
+        titulo: 'Sin condición configurada',
+        registros: conceptosActivos.value.filter(c => !c.is_default && !activeRulesFor(c.id).length && !quantityQuestionsFor(c.id).length)
+    },
     {id: 'inactivos', titulo: 'Inactivos', registros: components.value.filter(c => !c.active)},
 ].filter(grupo => grupo.registros.length));
 const opcionesActivas = computed(() => options.value.filter(opcion => {
@@ -195,6 +221,7 @@ function importe(precio) {
 // El formulario se prepara al abrirlo, con los importes ya publicados como punto de partida.
 const publicar = ref(false);
 const prices = useForm({service_id: props.service.id, name: '', min: '', max: '', components: []});
+
 function abrirPrecios() {
     prices.defaults({
         service_id: props.service.id,
@@ -209,8 +236,13 @@ function abrirPrecios() {
     prices.resetAndClearErrors();
     publicar.value = true;
 }
+
 function publishPrices() {
-    submit(prices, '/admin/guardar/precios-servicio', {onSuccess: () => { publicar.value = false; }});
+    submit(prices, '/admin/guardar/precios-servicio', {
+        onSuccess: () => {
+            publicar.value = false;
+        }
+    });
 }
 </script>
 
@@ -220,21 +252,31 @@ function publishPrices() {
         <template v-if="section === 'preguntas'">
             <v-card tag="section" v-for="grupo in gruposPreguntas" :key="grupo.id" class="card bloque-configuracion">
                 <div class="cabecera-configuracion">
-                    <div><h2>{{ grupo.titulo }}</h2><p>{{ grupo.descripcion }}</p></div>
+                    <div><h2>{{ grupo.titulo }}</h2>
+                        <p>{{ grupo.descripcion }}</p></div>
                     <div class="acciones-configuracion">
-                        <B v-if="grupo.id === 'propias'" compact variant="secondary" @click="abrirReutilizacion('preguntas')">Reutilizar pregunta</B>
+                        <B v-if="grupo.id === 'propias'" compact variant="secondary"
+                           @click="abrirReutilizacion('preguntas')">Reutilizar pregunta</B>
                         <B compact :variant="grupo.id === 'propias' ? 'primary' : 'secondary'"
-                           @click="edit('preguntas', {}, grupo.id === 'generales')">{{ grupo.id === 'generales' ? 'Agregar pregunta general' : 'Agregar pregunta' }}</B>
+                           @click="edit('preguntas', {}, grupo.id === 'generales')">{{
+                                grupo.id === 'generales' ? 'Agregar pregunta general' : 'Agregar pregunta'
+                            }}</B>
                     </div>
                 </div>
-                <p v-if="!grupo.registros.length" class="notice">{{ grupo.id === 'generales' ? 'Todavía no hay preguntas generales.' : 'Todavía no hay preguntas propias de este servicio.' }}</p>
+                <p v-if="!grupo.registros.length" class="notice">{{
+                        grupo.id === 'generales' ? 'Todavía no hay preguntas generales.' : 'Todavía no hay preguntas propias de este servicio.'
+                    }}</p>
                 <article v-for="question in grupo.registros" :key="question.id" class="configuration-row">
                     <div>
-                        <div class="estado-configuracion"><h3>{{ question.question }}</h3><S :value="question.active ? 'enabled' : 'disabled'"/></div>
-                        <p>{{ labelFor(question.input_type) }} · {{ question.required ? 'Obligatoria' : 'Opcional' }} · Orden {{ question.sort_order }}</p>
-                        <p v-if="question.options.some(o => o.active)">{{ question.options.filter(o => o.active).map(o => o.label).join(' · ') }}</p>
+                        <div class="estado-configuracion"><h3>{{ question.question }}</h3><S
+                            :value="question.active ? 'enabled' : 'disabled'"/></div>
+                        <p>{{ labelFor(question.input_type) }} · {{ question.required ? 'Obligatoria' : 'Opcional' }} ·
+                            Orden {{ question.sort_order }}</p>
+                        <p v-if="question.options.some(o => o.active)">
+                            {{ question.options.filter(o => o.active).map(o => o.label).join(' · ') }}</p>
                     </div>
-                    <B compact variant="secondary" :aria-label="'Editar pregunta ' + question.question" @click="edit('preguntas', question)">Editar</B>
+                    <B compact variant="secondary" :aria-label="'Editar pregunta ' + question.question"
+                       @click="edit('preguntas', question)">Editar</B>
                 </article>
             </v-card>
         </template>
@@ -243,48 +285,63 @@ function publishPrices() {
         <template v-else-if="section === 'estimacion'">
             <v-card tag="section" class="card bloque-configuracion">
                 <h2>Cómo se calcula la estimación</h2>
-                <p v-if="automatica">La estimación empieza con el precio base y suma los conceptos según sus cantidades.</p>
-                <p v-else>Este servicio se cotiza manualmente. Podés preparar sus conceptos y reglas para cuando actives la estimación automática.</p>
-                <div v-if="automatica" class="resumen-importe"><strong>Precio base vigente</strong><span>{{ importe(baseVigente) }}</span></div>
+                <p v-if="automatica">La estimación empieza con el precio base y suma los conceptos según sus
+                    cantidades.</p>
+                <p v-else>Este servicio se cotiza manualmente. Podés preparar sus conceptos y reglas para cuando actives
+                    la estimación automática.</p>
+                <div v-if="automatica" class="resumen-importe"><strong>Precio base
+                    vigente</strong><span>{{ importe(baseVigente) }}</span></div>
             </v-card>
             <v-card tag="section" class="card bloque-configuracion">
                 <div class="cabecera-configuracion">
-                    <div><h2>Conceptos de precio</h2><p>Definí qué se suma al precio base y en qué cantidad.</p></div>
+                    <div><h2>Conceptos de precio</h2>
+                        <p>Definí qué se suma al precio base y en qué cantidad.</p></div>
                     <div class="acciones-configuracion">
-                        <B compact variant="secondary" @click="abrirReutilizacion('componentes')">Reutilizar concepto</B>
+                        <B compact variant="secondary" @click="abrirReutilizacion('componentes')">Reutilizar
+                            concepto</B>
                         <B compact @click="edit('componentes')">Agregar concepto</B>
                     </div>
                 </div>
                 <p v-if="!components.length" class="notice">Todavía no hay conceptos de precio.</p>
                 <section v-for="grupo in gruposConceptos" :key="grupo.id" class="grupo-conceptos">
                     <h3>{{ grupo.titulo }}</h3>
-                    <article v-for="concepto in grupo.registros" :key="concepto.id" class="configuration-row concept-row">
+                    <article v-for="concepto in grupo.registros" :key="concepto.id"
+                             class="configuration-row concept-row">
                         <div>
                             <h4>{{ concepto.name }}</h4>
                             <p>{{ concepto.description }}</p>
                             <p>Unidad {{ concepto.unit_code }} · {{ importe(precioConcepto(concepto.id)) }}</p>
                             <p v-if="concepto.is_default">Cantidad por defecto {{ concepto.default_quantity }}</p>
-                            <p v-for="pregunta in quantityQuestionsFor(concepto.id)" :key="pregunta.id">Cantidad ingresada en «{{ pregunta.question }}».</p>
+                            <p v-for="pregunta in quantityQuestionsFor(concepto.id)" :key="pregunta.id">Cantidad
+                                ingresada en «{{ pregunta.question }}».</p>
                         </div>
-                        <B compact variant="secondary" :aria-label="'Editar concepto ' + concepto.name" @click="edit('componentes', concepto)">Editar</B>
+                        <B compact variant="secondary" :aria-label="'Editar concepto ' + concepto.name"
+                           @click="edit('componentes', concepto)">Editar</B>
                     </article>
                 </section>
             </v-card>
             <v-card tag="section" class="card bloque-configuracion">
                 <div class="cabecera-configuracion">
-                    <div><h2>Reglas de cálculo</h2><p>Cada regla indica cuántas unidades suma una respuesta a un concepto.</p></div>
-                    <B compact :disabled="!opcionesActivas.length || !conceptosActivos.length" @click="edit('reglas')">Agregar regla</B>
+                    <div><h2>Reglas de cálculo</h2>
+                        <p>Cada regla indica cuántas unidades suma una respuesta a un concepto.</p></div>
+                    <B compact :disabled="!opcionesActivas.length || !conceptosActivos.length" @click="edit('reglas')">Agregar
+                        regla</B>
                 </div>
-                <p v-if="!opcionesActivas.length || !conceptosActivos.length" class="notice">Para crear una regla necesitás una pregunta activa con opciones y un concepto activo.</p>
+                <p v-if="!opcionesActivas.length || !conceptosActivos.length" class="notice">Para crear una regla
+                    necesitás una pregunta activa con opciones y un concepto activo.</p>
                 <p v-else-if="!rules.length" class="notice">Todavía no hay reglas de cálculo.</p>
                 <article v-for="regla in rules" :key="regla.id" class="configuration-row">
                     <div>
-                        <div class="estado-configuracion"><h3>{{ optionLabel(regla.estimator_option_id) }} → {{ componentName(regla.service_component_id) }}</h3>
-                            <S :value="ruleIsCurrent(regla) && conceptosActivos.some(c => c.id == regla.service_component_id) ? 'enabled' : 'disabled'"/></div>
+                        <div class="estado-configuracion"><h3>{{ optionLabel(regla.estimator_option_id) }} →
+                            {{ componentName(regla.service_component_id) }}</h3>
+                            <S :value="ruleIsCurrent(regla) && conceptosActivos.some(c => c.id == regla.service_component_id) ? 'enabled' : 'disabled'"/>
+                        </div>
                         <p>{{ questionFor(regla.estimator_option_id)?.question }}</p>
                         <p>Unidades que suma {{ regla.quantity }}</p>
                     </div>
-                    <B compact variant="secondary" :aria-label="'Editar regla ' + optionLabel(regla.estimator_option_id) + ' a ' + componentName(regla.service_component_id)" @click="edit('reglas', regla)">Editar</B>
+                    <B compact variant="secondary"
+                       :aria-label="'Editar regla ' + optionLabel(regla.estimator_option_id) + ' a ' + componentName(regla.service_component_id)"
+                       @click="edit('reglas', regla)">Editar</B>
                 </article>
             </v-card>
         </template>
@@ -293,7 +350,8 @@ function publishPrices() {
         <v-card tag="section" v-else-if="section === 'precios'" class="card bloque-configuracion">
             <div class="cabecera-configuracion">
                 <div><h2>Precios vigentes</h2>
-                    <p v-if="automatica && currentTariff">{{ currentTariff.name }} · {{ moneda }} · Desde {{ date(currentTariff.effective_from) }}</p>
+                    <p v-if="automatica && currentTariff">{{ currentTariff.name }} · {{ moneda }} · Desde
+                        {{ date(currentTariff.effective_from) }}</p>
                     <p v-else-if="automatica">Todavía no hay un tarifario vigente.</p>
                 </div>
                 <div class="acciones-configuracion">
@@ -308,30 +366,40 @@ function publishPrices() {
                     · {{ conceptosConPrecio }} de {{ conceptosActivos.length }} conceptos activos con precio
                 </p>
                 <dl class="lista-precios">
-                    <div><dt>Precio base del servicio</dt><dd>{{ importe(baseVigente) }}</dd></div>
+                    <div>
+                        <dt>Precio base del servicio</dt>
+                        <dd>{{ importe(baseVigente) }}</dd>
+                    </div>
                     <div v-for="concepto in conceptosActivos" :key="concepto.id">
-                        <dt>{{ concepto.name }} <small>· Por unidad</small></dt><dd>{{ importe(precioConcepto(concepto.id)) }}</dd>
+                        <dt>{{ concepto.name }} <small>· Por unidad</small></dt>
+                        <dd>{{ importe(precioConcepto(concepto.id)) }}</dd>
                     </div>
                 </dl>
             </template>
             <p v-else class="notice"><strong>A cotizar.</strong> El precio se define en un presupuesto profesional.</p>
         </v-card>
 
-        <SidePanel :title="reutilizar ? 'Reutilizar ' + titulos[reutilizar] : 'Reutilizar'" :model-value="Boolean(reutilizar)"
+        <SidePanel :title="reutilizar ? 'Reutilizar ' + titulos[reutilizar] : 'Reutilizar'"
+                   :model-value="Boolean(reutilizar)"
                    @update:model-value="reutilizar = null">
-            <form v-if="reutilizar" :id="formularios.plantilla" class="form-configuracion" @submit.prevent="copiarPlantilla">
+            <form v-if="reutilizar" :id="formularios.plantilla" class="form-configuracion"
+                  @submit.prevent="copiarPlantilla">
                 <div class="contexto-configuracion">
                     <span>Servicio de destino</span>
                     <strong>{{ service.name }}</strong>
                 </div>
                 <template v-if="categoriasOrigen.length">
-                    <F :model-value="categoriaOrigen" label="Categoría de origen" type="select" :options="categoriasOrigen"
+                    <F :model-value="categoriaOrigen" label="Categoría de origen" type="select"
+                       :options="categoriasOrigen"
                        :menu-props="menuPlantillas" required @update:model-value="elegirCategoriaOrigen"/>
                     <F :model-value="servicioOrigen" label="Servicio de origen" type="select" :options="serviciosOrigen"
-                       :menu-props="menuPlantillas" :disabled="!categoriaOrigen" required @update:model-value="elegirServicioOrigen"/>
+                       :menu-props="menuPlantillas" :disabled="!categoriaOrigen" required
+                       @update:model-value="elegirServicioOrigen"/>
                     <F v-model="seleccionPlantilla" :label="reutilizar === 'preguntas' ? 'Pregunta' : 'Concepto'"
-                       type="select" :options="opcionesPlantilla" :menu-props="menuPlantillas" :disabled="!servicioOrigen" required/>
-                    <p class="ayuda-configuracion">Vas a poder editar la copia antes de guardarla. Las reglas y los precios se configuran por separado.</p>
+                       type="select" :options="opcionesPlantilla" :menu-props="menuPlantillas"
+                       :disabled="!servicioOrigen" required/>
+                    <p class="ayuda-configuracion">Vas a poder editar la copia antes de guardarla. Las reglas y los
+                        precios se configuran por separado.</p>
                 </template>
                 <p v-else class="notice">No hay registros activos de otros servicios disponibles para copiar.</p>
             </form>
@@ -351,7 +419,8 @@ function publishPrices() {
                 <div v-if="otrosErroresDePrecio.length" class="notice" role="alert">
                     <p v-for="(error, indice) in otrosErroresDePrecio" :key="indice">{{ error }}</p>
                 </div>
-                <F v-model="prices.name" label="Nombre de la nueva versión" required maxlength="255" :error="prices.errors.name"/>
+                <F v-model="prices.name" label="Nombre de la nueva versión" required maxlength="255"
+                   :error="prices.errors.name"/>
                 <h3>Base del servicio · {{ moneda }}</h3>
                 <div class="field-row">
                     <F v-model="prices.min" label="Precio mínimo" type="number" min="0" max="100000000" step="0.01"
@@ -362,9 +431,11 @@ function publishPrices() {
                 <div v-for="(component,index) in prices.components" :key="component.id" class="component-price"><h3>
                     {{ component.name }}</h3>
                     <div class="field-row">
-                        <F v-model="component.min" label="Precio mínimo por unidad" type="number" min="0" max="100000000" step="0.01"
+                        <F v-model="component.min" label="Precio mínimo por unidad" type="number" min="0"
+                           max="100000000" step="0.01"
                            required :error="prices.errors[`components.${index}.min`]"/>
-                        <F v-model="component.max" label="Precio máximo por unidad" type="number" min="0" max="100000000" step="0.01"
+                        <F v-model="component.max" label="Precio máximo por unidad" type="number" min="0"
+                           max="100000000" step="0.01"
                            required :error="prices.errors[`components.${index}.max`]"/>
                     </div>
                 </div>
@@ -373,11 +444,13 @@ function publishPrices() {
             </form>
             <template #footer>
                 <B variant="secondary" :disabled="prices.processing" @click="publicar = false">Cancelar</B>
-                <B type="submit" :form="formularios.precios" :disabled="prices.processing">{{ prices.processing ? 'Publicando…' : 'Publicar nueva versión' }}</B>
+                <B type="submit" :form="formularios.precios"
+                   :disabled="prices.processing">{{ prices.processing ? 'Publicando…' : 'Publicar nueva versión' }}</B>
             </template>
         </SidePanel>
 
-        <SidePanel :title="(form.id ? 'Editar ' : 'Agregar ') + titulos[resource]" v-model="dialog" :persistent="form.processing">
+        <SidePanel :title="(form.id ? 'Editar ' : 'Agregar ') + titulos[resource]" v-model="dialog"
+                   :persistent="form.processing">
             <form :id="formularios.configuracion" class="form-configuracion" @submit.prevent="save">
                 <div class="contexto-configuracion">
                     <span>Servicio</span>
@@ -388,12 +461,14 @@ function publishPrices() {
                 <template v-if="resource === 'preguntas'">
                     <F v-if="puedeGeneralizar" v-model="alcance" label="Alcance de la pregunta" type="select" required
                        :options="[{value: 'servicio', label: 'Solo este servicio'}, {value: 'general', label: 'Todos los servicios'}]"/>
-                    <p v-if="alcance === 'general'" class="notice">Pregunta general. Se aplica a todos los servicios.</p>
+                    <p v-if="alcance === 'general'" class="notice">Pregunta general. Se aplica a todos los
+                        servicios.</p>
                     <F v-model="form.question" label="Pregunta" required maxlength="1000"
                        :error="form.errors.question"/>
                     <div class="field-row">
                         <F v-model="form.input_type" label="Tipo de respuesta" type="select" :options="types" required/>
-                        <F v-model="form.sort_order" label="Orden de aparición" type="number" min="0" max="1000" required/>
+                        <F v-model="form.sort_order" label="Orden de aparición" type="number" min="0" max="1000"
+                           required/>
                     </div>
                     <F v-if="['single_choice','multiple_choice'].includes(form.input_type)"
                        v-model="form.options_text" label="Opciones (una por línea)" type="textarea" required
@@ -419,7 +494,9 @@ function publishPrices() {
                     <F v-model="form.estimator_option_id" label="Respuesta que activa la regla" type="select"
                        :options="form.id ? options : opcionesActivas" required/>
                     <F v-model="form.service_component_id" label="Concepto de precio de este servicio"
-                       type="select" :options="form.id ? componentOptions : componentOptions.filter(c => conceptosActivos.some(activo => activo.id == c.value))" required/>
+                       type="select"
+                       :options="form.id ? componentOptions : componentOptions.filter(c => conceptosActivos.some(activo => activo.id == c.value))"
+                       required/>
                     <F v-model="form.quantity" label="Cantidad que incorpora" type="number" min="0" max="10000"
                        step="0.001" required/>
                 </template>
@@ -432,14 +509,17 @@ function publishPrices() {
                         <input v-model="form.is_default" type="checkbox">Incluir por defecto en la estimación
                     </label>
                     <label class="select-row">
-                        <input v-model="form.active" type="checkbox">{{ resource === 'preguntas' ? 'Pregunta activa' : 'Activo' }}
+                        <input v-model="form.active"
+                               type="checkbox">{{ resource === 'preguntas' ? 'Pregunta activa' : 'Activo' }}
                     </label>
-                    <p v-if="form.id" class="ayuda-configuracion">Desactivar conserva las respuestas y estimaciones anteriores.</p>
+                    <p v-if="form.id" class="ayuda-configuracion">Desactivar conserva las respuestas y estimaciones
+                        anteriores.</p>
                 </fieldset>
             </form>
             <template #footer>
                 <B variant="secondary" :disabled="form.processing" @click="dialog = false">Cancelar</B>
-                <B type="submit" :form="formularios.configuracion" :disabled="form.processing">{{ form.processing ? 'Guardando…' : 'Guardar' }}</B>
+                <B type="submit" :form="formularios.configuracion"
+                   :disabled="form.processing">{{ form.processing ? 'Guardando…' : 'Guardar' }}</B>
             </template>
         </SidePanel>
     </div>

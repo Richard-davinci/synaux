@@ -33,7 +33,7 @@ return new class extends Migration {
 
     public function down(): void
     {
-        Schema::table('organizaciones', fn (Blueprint $table) => $table->dropColumn('dominio_correo_equipo'));
+        Schema::table('organizaciones', fn(Blueprint $table) => $table->dropColumn('dominio_correo_equipo'));
         Schema::dropIfExists('organizacion_clientes');
     }
 };

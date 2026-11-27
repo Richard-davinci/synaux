@@ -35,7 +35,7 @@ class DirectorioUsuariosTest extends TestCase
                 ->has('users.data.0', fn(Assert $row) => $row
                     ->where('id', $admin->id)->where('name', $admin->name)->where('email', $admin->email)
                     ->where('is_admin', true)->has('created_at')->where('rol_organizacion', 'administrador')->where('activacion_pendiente', false)));
-        $this->get('/gestion/clientes')->assertInertia(fn (Assert $page) => $page
+        $this->get('/gestion/clientes')->assertInertia(fn(Assert $page) => $page
             ->where('section', 'clientes')->has('users.data', 1)->where('users.data.0.id', $client->id));
     }
 
@@ -85,7 +85,7 @@ class DirectorioUsuariosTest extends TestCase
         $this->patch('/admin/usuarios/' . $usuario->id . '/rol', ['rol' => 'profesional'])
             ->assertSessionHasNoErrors();
         $this->assertDatabaseHas('organizacion_miembros', ['user_id' => $usuario->id, 'rol' => 'profesional']);
-        $this->get('/admin/usuarios?buscar=equipo%40example.test')->assertInertia(fn (Assert $page) => $page
+        $this->get('/admin/usuarios?buscar=equipo%40example.test')->assertInertia(fn(Assert $page) => $page
             ->where('users.data.0.rol_organizacion', 'profesional')->where('users.data.0.activacion_pendiente', true));
         // Únicamente Administración puede compartir, y cada enlace nuevo reemplaza al anterior.
         $ruta = '/admin/usuarios/' . $usuario->id . '/activacion';
@@ -95,7 +95,7 @@ class DirectorioUsuariosTest extends TestCase
         $vencido = parse_url($this->postJson($ruta)->assertOk()->json('enlace'), PHP_URL_PATH);
         $usuario->forceFill(['activacion_vence' => now()->subMinute()])->save();
         $this->post('/salir');
-        $this->get($vencido)->assertInertia(fn (Assert $page) => $page->where('vigente', false));
+        $this->get($vencido)->assertInertia(fn(Assert $page) => $page->where('vigente', false));
         $this->actingAs($admin);
         $vigente = parse_url($this->postJson($ruta)->assertOk()->json('enlace'), PHP_URL_PATH);
         $this->assertNotSame($anterior, $vigente);
@@ -106,11 +106,11 @@ class DirectorioUsuariosTest extends TestCase
         $clave = 'ClaveElegida123!';
         $usuario->forceFill(['password' => $clave])->save();
         $this->post('/ingresar', ['email' => $usuario->email, 'password' => $clave])->assertSessionHasErrors('email');
-        $this->get($anterior)->assertInertia(fn (Assert $page) => $page->where('vigente', false));
-        $this->get($vigente)->assertInertia(fn (Assert $page) => $page->where('vigente', true));
+        $this->get($anterior)->assertInertia(fn(Assert $page) => $page->where('vigente', false));
+        $this->get($vigente)->assertInertia(fn(Assert $page) => $page->where('vigente', true));
         $this->post($vigente, ['password' => $clave, 'password_confirmation' => 'distinta'])->assertSessionHasErrors('password');
         $this->post($vigente, ['password' => $clave, 'password_confirmation' => $clave])->assertRedirect('/ingresar');
-        $this->get($vigente)->assertInertia(fn (Assert $page) => $page->where('vigente', false));
+        $this->get($vigente)->assertInertia(fn(Assert $page) => $page->where('vigente', false));
         $this->post('/ingresar', ['email' => $usuario->email, 'password' => $clave])->assertRedirect('/profesional/proyectos');
         $this->get('/admin/usuarios')->assertForbidden();
         $this->patch('/mi-perfil', ['email' => 'otro@example.test', 'current_password' => $clave])->assertSessionHasErrors('email');

@@ -3,8 +3,16 @@ import BudgetDocument from './DocumentoPresupuesto.vue';
 
 // Los dos renglones ilustrativos reciben los conceptos e importes del ejemplo; la cantidad unitaria permite sumar sus precios sin depender del catálogo.
 const exampleItems = [
-    {description: 'Sitio institucional\nDiseño adaptable a celulares, desarrollo y carga inicial de hasta cinco secciones.', quantity: 1, unit_price: 676360},
-    {description: 'Identidad visual\nLogotipo y variantes, paleta, tipografías y guía básica de uso.', quantity: 1, unit_price: 537164},
+    {
+        description: 'Sitio institucional\nDiseño adaptable a celulares, desarrollo y carga inicial de hasta cinco secciones.',
+        quantity: 1,
+        unit_price: 676360
+    },
+    {
+        description: 'Identidad visual\nLogotipo y variantes, paleta, tipografías y guía básica de uso.',
+        quantity: 1,
+        unit_price: 537164
+    },
 ];
 // El subtotal suma los renglones y el total aplica el IVA del ejemplo en centavos para conservar los decimales del documento.
 const exampleSubtotal = exampleItems.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
@@ -24,8 +32,11 @@ const exampleBudget = {
 <template>
     <!-- La muestra reutiliza el documento de la plataforma con valores ilustrativos. -->
     <figure id="presupuesto-de-ejemplo" class="budget-example" tabindex="-1" aria-labelledby="budget-example-caption">
-        <figcaption id="budget-example-caption" class="example-label">Documento de ejemplo · Importes ilustrativos</figcaption>
-        <BudgetDocument compact example :budget="exampleBudget" :client="{ name: 'Cliente de ejemplo', company: 'Tu organización' }" :issuer="{ name: 'synaux' }" />
+        <figcaption id="budget-example-caption" class="example-label">Documento de ejemplo · Importes ilustrativos
+        </figcaption>
+        <BudgetDocument compact example :budget="exampleBudget"
+                        :client="{ name: 'Cliente de ejemplo', company: 'Tu organización' }"
+                        :issuer="{ name: 'synaux' }"/>
     </figure>
 </template>
 

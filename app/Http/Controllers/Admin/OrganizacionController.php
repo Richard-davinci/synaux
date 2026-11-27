@@ -19,7 +19,7 @@ class OrganizacionController extends Controller
             'area' => 'gestion',
             'organizacion' => $organizacion->only('nombre', 'tipo', 'razon_social', 'cuit', 'correo', 'telefono', 'domicilio', 'dominio_correo_equipo'),
             'equipo' => $organizacion->miembros()->orderBy('name')->get(['users.id', 'users.name'])
-                ->map(fn ($usuario) => ['id' => $usuario->id, 'nombre' => $usuario->name, 'rol' => $usuario->pivot->rol]),
+                ->map(fn($usuario) => ['id' => $usuario->id, 'nombre' => $usuario->name, 'rol' => $usuario->pivot->rol]),
         ]);
     }
 

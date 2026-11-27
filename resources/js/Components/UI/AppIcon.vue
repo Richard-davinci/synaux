@@ -67,7 +67,9 @@ defineProps({name: {type: String, default: 'arrow'}});
         </g>
         <!-- El icono de compartir distingue el enlace de activación de la edición del rol. -->
         <g v-else-if="name === 'share'">
-            <circle cx="5" cy="12" r="3"/><circle cx="19" cy="5" r="3"/><circle cx="19" cy="19" r="3"/>
+            <circle cx="5" cy="12" r="3"/>
+            <circle cx="19" cy="5" r="3"/>
+            <circle cx="19" cy="19" r="3"/>
             <path d="m7.7 10.7 8.6-4.4m-8.6 7 8.6 4.4"/>
         </g>
         <!-- Las dos hojas indican que la nueva versión toma los datos de una versión existente. -->

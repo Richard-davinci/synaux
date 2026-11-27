@@ -5,7 +5,14 @@ import I from '../UI/AppIcon.vue';
 import {referenceHref} from '../../support/prototype';
 
 // Este panel organiza enlaces ya autorizados; mostrar un enlace no concede permisos de acceso.
-const props = defineProps({items: Array, area: String, current: String, title: String, tituloId: String, showAreaSwitch: Boolean});
+const props = defineProps({
+    items: Array,
+    area: String,
+    current: String,
+    title: String,
+    tituloId: String,
+    showAreaSwitch: Boolean
+});
 const emit = defineEmits(['navigate']);
 const page = usePage();
 
@@ -48,7 +55,10 @@ const icons = {
 const administration = computed(() => [
     {title: 'Catálogo', items: [['Servicios', 'servicios', 'grid'], ['Categorías', 'categorias', 'tag']]},
     {title: 'Precios', items: [['Tarifarios', 'tarifario', 'calculator']]},
-    ...(page.props.preview ? [] : [{title: 'Organización', items: [['Datos de la organización', 'organizacion', 'file'], ['Equipo', 'usuarios', 'user']]}]),
+    ...(page.props.preview ? [] : [{
+        title: 'Organización',
+        items: [['Datos de la organización', 'organizacion', 'file'], ['Equipo', 'usuarios', 'user']]
+    }]),
 ]);
 const sectionFor = href => href.split('/').filter(Boolean).slice(1).join('/') || 'resumen';
 
@@ -92,7 +102,8 @@ function isActive(href) {
         <!-- El acceso se mantiene visible aunque la lista de secciones tenga desplazamiento. -->
         <nav v-if="area === 'gestion' && showAreaSwitch" class="workspace-area-switch" aria-label="Cambiar de área">
             <a :href="referenceHref(otraArea.ruta, page.props)" @click="emit('navigate')">
-                <I :name="otraArea.icono"/><span>{{ otraArea.nombre }}</span><I class="workspace-area-arrow" name="arrow"/>
+                <I :name="otraArea.icono"/><span>{{ otraArea.nombre }}</span><I class="workspace-area-arrow"
+                                                                                name="arrow"/>
             </a>
         </nav>
     </div>

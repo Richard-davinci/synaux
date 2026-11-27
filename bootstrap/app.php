@@ -42,8 +42,11 @@ return Application::configure(basePath: dirname(__DIR__))
             $page = Inertia::render('ErrorAcceso', [
                 'status' => $status,
                 'accountArea' => match ($user?->panelPrincipal()) {
-                    '/gestion' => 'management', '/cliente' => 'client',
-                    '/profesional', '/profesional/proyectos' => 'professional', '/mi-perfil' => 'profile', default => null,
+                    '/gestion' => 'management',
+                    '/cliente' => 'client',
+                    '/profesional', '/profesional/proyectos' => 'professional',
+                    '/mi-perfil' => 'profile',
+                    default => null,
                 },
             ])->toResponse($request)->setStatusCode($status);
 

@@ -45,7 +45,8 @@ defineExpose({irAVista});
 </script>
 
 <template>
-    <aside v-if="!vistaMovil && vistaPreviaVisible" ref="panelFijo" class="budget-preview-fixed" aria-label="Vista previa del presupuesto">
+    <aside v-if="!vistaMovil && vistaPreviaVisible" ref="panelFijo" class="budget-preview-fixed"
+           aria-label="Vista previa del presupuesto">
         <div class="preview-heading">
             <div>
                 <p class="eyebrow">Documento en vivo</p>
@@ -53,7 +54,8 @@ defineExpose({irAVista});
             </div>
             <div class="preview-heading-actions">
                 <span class="preview-live"><span aria-hidden="true"></span> Actualizada</span>
-                <button type="button" class="preview-toggle" title="Ocultar vista previa" aria-label="Ocultar vista previa"
+                <button type="button" class="preview-toggle" title="Ocultar vista previa"
+                        aria-label="Ocultar vista previa"
                         @click="emit('ocultar-vista')"><I name="panel-hide"/></button>
             </div>
         </div>
@@ -71,14 +73,17 @@ defineExpose({irAVista});
             </B>
         </footer>
     </aside>
-    <SidePanel v-if="vistaMovil" title="Vista previa del presupuesto" :model-value="visible" :persistent="persistent" :max-width="560"
+    <SidePanel v-if="vistaMovil" title="Vista previa del presupuesto" :model-value="visible" :persistent="persistent"
+               :max-width="560"
                @update:model-value="value => !value && emit('close')">
         <div class="synaux-app budget-preview-panel">
             <section class="budget-preview-content" aria-label="Documento completo actualizado en vivo">
                 <div class="preview-heading">
                     <div>
                         <p class="eyebrow">Documento en vivo</p>
-                        <h2>{{ direct ? 'Revisá el presupuesto para emitir' : 'Revisá el presupuesto para enviar' }}</h2>
+                        <h2>{{
+                                direct ? 'Revisá el presupuesto para emitir' : 'Revisá el presupuesto para enviar'
+                            }}</h2>
                     </div>
                     <span class="preview-live"><span aria-hidden="true"></span> Actualizada</span>
                 </div>
@@ -102,9 +107,11 @@ defineExpose({irAVista});
         <v-card class="card modal-card send-confirmation">
             <p class="eyebrow">Presupuesto · Versión {{ budget.version_number }}</p>
             <h2>{{ direct ? '¿Querés emitir este presupuesto?' : '¿Querés enviar este presupuesto al cliente?' }}</h2>
-            <p>{{ direct
-                ? 'Se guardará como presupuesto emitido y podrás descargar el PDF para compartirlo.'
-                : 'El cliente recibirá esta versión y podrá revisarla, aceptarla o rechazarla.' }}</p>
+            <p>{{
+                    direct
+                        ? 'Se guardará como presupuesto emitido y podrás descargar el PDF para compartirlo.'
+                        : 'El cliente recibirá esta versión y podrá revisarla, aceptarla o rechazarla.'
+                }}</p>
             <div class="send-confirmation-summary">
                 <strong>{{ budget.title }}</strong>
                 <span>Total · {{ money(budget.total, budget.currency_code) }}</span>

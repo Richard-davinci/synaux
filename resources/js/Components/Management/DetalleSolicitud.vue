@@ -52,7 +52,10 @@ const budgetAction = computed(() => {
         return {href: '/editor/presupuesto/' + latest.id, label: 'Preparar nueva versión'};
     }
     if (latest) return {href: '/presupuestos/' + latest.id, label: 'Ver presupuesto'};
-    if (canPrepare.value) return {href: '/editor/presupuesto?solicitud=' + request.value.id, label: 'Preparar presupuesto'};
+    if (canPrepare.value) return {
+        href: '/editor/presupuesto?solicitud=' + request.value.id,
+        label: 'Preparar presupuesto'
+    };
     return null;
 });
 const textoRevision = computed(() => {

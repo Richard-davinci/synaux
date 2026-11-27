@@ -22,6 +22,7 @@ const extrasId = useId();
 // Cada fila conserva su selector al quitar otro adicional, incluso si aún no eligió un servicio.
 const claves = new WeakMap();
 let ultimaClave = 0;
+
 function claveFila(item) {
     if (!claves.has(item)) claves.set(item, ++ultimaClave);
     return claves.get(item);
@@ -72,7 +73,9 @@ function addService() {
                     <span>
                         <!-- Solo las cantidades múltiples de borradores previos se muestran junto al servicio. -->
                         <strong v-if="item.service_id">
-                            {{ extraName(item.service_id) }}<template v-if="item.quantity > 1"> × {{ item.quantity }}</template>
+                            {{ extraName(item.service_id) }}<template v-if="item.quantity > 1"> × {{
+                                item.quantity
+                            }}</template>
                         </strong>
                         <strong v-else>Servicio adicional {{ index + 1 }}</strong>
                         <small v-if="!item.service_id">Elegí una categoría y un servicio</small>
@@ -103,7 +106,8 @@ function addService() {
                     <RequestQuestions v-model="item.answers" :questions="extraQuestions(item.service_id)"
                                       :errors="form.errors" :prefix="'additional_services.' + index + '.answers.'"/>
                 </fieldset>
-                <F v-model="item.notes" label="Qué necesitás de este servicio (opcional)" type="textarea" maxlength="2000"
+                <F v-model="item.notes" label="Qué necesitás de este servicio (opcional)" type="textarea"
+                   maxlength="2000"
                    :error="form.errors['additional_services.' + index + '.notes']"/>
             </div>
         </div>

@@ -17,6 +17,7 @@ import '../../css/panel.css';
 const props = defineProps({profile: Object, preview: Boolean});
 const valoresCampos = (datos, claves) => Object.fromEntries(claves.map(clave => [clave, datos?.[clave] ?? '']));
 const clavesUbicacion = ['country', 'region', 'city'];
+
 // El CUIT admite escritura libre y se presenta con los separadores habituales al salir del campo.
 function formatearCuit(valor) {
     const digitos = String(valor ?? '').replace(/\D/g, '');
@@ -35,9 +36,14 @@ function limitarCuit(valor) {
 }
 
 const valores = {
-    contacto: () => ({...valoresCampos(props.profile, ['name', 'email', 'phone']), current_password: '',
-        foto_perfil_archivo: null, quitar_foto_perfil: false}),
-    organizacion: () => ({company: props.profile.company ?? '', details: valoresCampos(props.profile.details, ['position', 'website', 'cuit'])}),
+    contacto: () => ({
+        ...valoresCampos(props.profile, ['name', 'email', 'phone']), current_password: '',
+        foto_perfil_archivo: null, quitar_foto_perfil: false
+    }),
+    organizacion: () => ({
+        company: props.profile.company ?? '',
+        details: valoresCampos(props.profile.details, ['position', 'website', 'cuit'])
+    }),
     ubicacion: () => ({details: {location: valoresCampos(props.profile.details?.location, clavesUbicacion)}}),
     domicilio: () => ({
         address: props.profile.address ?? '',
@@ -143,7 +149,8 @@ function guardar(seccion) {
     <PublicLayout>
         <section class="page shell workspace-view account-profile">
             <PageTitle eyebrow="Mi cuenta" title="Mi perfil" :description="accountDescription">
-                <B v-if="panelCuenta !== '/mi-perfil'" :href="panelCuenta" variant="secondary" compact>← Volver al panel</B>
+                <B v-if="panelCuenta !== '/mi-perfil'" :href="panelCuenta" variant="secondary" compact>← Volver al
+                    panel</B>
             </PageTitle>
             <div class="account-grid">
                 <!-- La ficha identifica la cuenta y da acceso directo a cada formulario. -->
@@ -151,14 +158,18 @@ function guardar(seccion) {
                     <v-card class="card account-summary">
                         <div class="account-identity">
                             <span class="account-avatar" :class="{'account-avatar-con-foto': profile.foto_perfil}">
-                                <img v-if="profile.foto_perfil" :src="profile.foto_perfil" :alt="'Foto de ' + profile.name"/>
+                                <img v-if="profile.foto_perfil" :src="profile.foto_perfil"
+                                     :alt="'Foto de ' + profile.name"/>
                                 <span v-else aria-hidden="true">{{ initials(profile.name) }}</span>
                             </span>
                             <h2>{{ profile.name }}</h2>
                         </div>
                         <p class="account-email">{{ profile.email }}</p>
-                        <span class="account-role"><I name="user"/>{{ accountRole || (profile.is_admin ? 'Administrador' : 'Cliente') }}</span>
-                        <p v-if="profile.created_at" class="account-help">Cuenta creada el {{ date(profile.created_at) }}</p>
+                        <span class="account-role"><I
+                            name="user"/>{{ accountRole || (profile.is_admin ? 'Administrador' : 'Cliente') }}</span>
+                        <p v-if="profile.created_at" class="account-help">Cuenta creada el {{
+                                date(profile.created_at)
+                            }}</p>
                         <nav aria-label="Secciones de Mi perfil">
                             <a href="#datos-personales">Datos personales</a>
                             <template v-if="!esCuentaEquipo">
@@ -173,13 +184,17 @@ function guardar(seccion) {
                 <div class="account-panels">
                     <TarjetaPerfil id="datos-personales" titulo="Datos personales y contacto" icono="user"
                                    :datos="datosContacto" accion-guardar="Guardar contacto"
-                                   :editando="editando.contacto" :guardando="contactoForm.processing" :modificado="contactoForm.isDirty"
-                                   @editar="cambiarEdicion('contacto', true)" @cancelar="cambiarEdicion('contacto', false)"
+                                   :editando="editando.contacto" :guardando="contactoForm.processing"
+                                   :modificado="contactoForm.isDirty"
+                                   @editar="cambiarEdicion('contacto', true)"
+                                   @cancelar="cambiarEdicion('contacto', false)"
                                    @guardar="guardar('contacto')">
                         <div class="account-fields">
                             <div class="account-photo-editor account-field-wide">
-                                <span class="account-photo-preview" :class="{'account-avatar-con-foto': fotoPerfilVisible}">
-                                    <img v-if="fotoPerfilVisible" :src="fotoPerfilVisible" alt="Vista previa de la foto de perfil"/>
+                                <span class="account-photo-preview"
+                                      :class="{'account-avatar-con-foto': fotoPerfilVisible}">
+                                    <img v-if="fotoPerfilVisible" :src="fotoPerfilVisible"
+                                         alt="Vista previa de la foto de perfil"/>
                                     <span v-else aria-hidden="true">{{ initials(profile.name) }}</span>
                                 </span>
                                 <div class="account-photo-controls">
@@ -187,11 +202,14 @@ function guardar(seccion) {
                                     <p>JPG, PNG o WebP · hasta 2 MB</p>
                                     <div class="account-photo-actions">
                                         <B type="button" variant="secondary" compact :disabled="contactoForm.processing"
-                                           @click="selectorFoto?.click()">{{ fotoPerfilVisible ? 'Cambiar foto' : 'Elegir foto' }}</B>
+                                           @click="selectorFoto?.click()">{{
+                                                fotoPerfilVisible ? 'Cambiar foto' : 'Elegir foto'
+                                            }}</B>
                                         <B v-if="fotoPerfilVisible" type="button" variant="neutro" compact
                                            :disabled="contactoForm.processing" @click="quitarFoto">Quitar foto</B>
                                         <input ref="selectorFoto" class="account-file-input" type="file"
-                                               accept="image/jpeg,image/png,image/webp" aria-label="Elegir foto de perfil"
+                                               accept="image/jpeg,image/png,image/webp"
+                                               aria-label="Elegir foto de perfil"
                                                :disabled="contactoForm.processing" @change="elegirFoto"/>
                                     </div>
                                     <small v-if="contactoForm.errors.foto_perfil_archivo" class="error" role="alert">
@@ -218,18 +236,24 @@ function guardar(seccion) {
                         </div>
                     </TarjetaPerfil>
                     <TarjetaPerfil v-if="!esCuentaEquipo" id="organizacion" titulo="Organización" icono="folder"
-                                   :datos="datosOrganizacion" vacio="Sin datos de organización." accion-guardar="Guardar organización"
-                                   :editando="editando.organizacion" :guardando="organizacionForm.processing" :modificado="organizacionForm.isDirty"
-                                   @editar="cambiarEdicion('organizacion', true)" @cancelar="cambiarEdicion('organizacion', false)"
+                                   :datos="datosOrganizacion" vacio="Sin datos de organización."
+                                   accion-guardar="Guardar organización"
+                                   :editando="editando.organizacion" :guardando="organizacionForm.processing"
+                                   :modificado="organizacionForm.isDirty"
+                                   @editar="cambiarEdicion('organizacion', true)"
+                                   @cancelar="cambiarEdicion('organizacion', false)"
                                    @guardar="guardar('organizacion')">
                         <div class="account-fields">
                             <F v-model="organizacionForm.company" label="Empresa u organización"
                                autocomplete="organization" maxlength="255" :error="organizacionForm.errors.company"/>
-                            <F v-model="organizacionForm.details.position" label="Cargo" autocomplete="organization-title"
+                            <F v-model="organizacionForm.details.position" label="Cargo"
+                               autocomplete="organization-title"
                                maxlength="120" :error="organizacionForm.errors['details.position']"/>
-                            <F :model-value="organizacionForm.details.cuit" label="CUIT de la organización" inputmode="numeric"
+                            <F :model-value="organizacionForm.details.cuit" label="CUIT de la organización"
+                               inputmode="numeric"
                                @update:model-value="organizacionForm.details.cuit = limitarCuit($event)"
-                               placeholder="30-12345678-9" maxlength="13" @blur="organizacionForm.details.cuit = formatearCuit(organizacionForm.details.cuit)"
+                               placeholder="30-12345678-9" maxlength="13"
+                               @blur="organizacionForm.details.cuit = formatearCuit(organizacionForm.details.cuit)"
                                hint="11 dígitos, con o sin guiones."
                                :error="organizacionForm.errors['details.cuit']"/>
                             <F v-model="organizacionForm.details.website" class="account-field-wide" label="Sitio web"
@@ -238,24 +262,32 @@ function guardar(seccion) {
                         </div>
                     </TarjetaPerfil>
                     <TarjetaPerfil v-if="!esCuentaEquipo" id="ubicacion" titulo="Ubicación" icono="location"
-                                   :datos="datosUbicacion" vacio="Sin ubicación guardada." accion-guardar="Guardar ubicación"
-                                   :editando="editando.ubicacion" :guardando="ubicacionForm.processing" :modificado="ubicacionForm.isDirty"
-                                   @editar="cambiarEdicion('ubicacion', true)" @cancelar="cambiarEdicion('ubicacion', false)"
+                                   :datos="datosUbicacion" vacio="Sin ubicación guardada."
+                                   accion-guardar="Guardar ubicación"
+                                   :editando="editando.ubicacion" :guardando="ubicacionForm.processing"
+                                   :modificado="ubicacionForm.isDirty"
+                                   @editar="cambiarEdicion('ubicacion', true)"
+                                   @cancelar="cambiarEdicion('ubicacion', false)"
                                    @guardar="guardar('ubicacion')">
                         <div class="account-fields">
                             <CamposUbicacion v-model="ubicacionForm.details.location" :errores="ubicacionForm.errors"
                                              prefijo="details.location"/>
                         </div>
                     </TarjetaPerfil>
-                    <TarjetaPerfil v-if="!esCuentaEquipo" id="facturacion" titulo="Domicilio de facturación" icono="receipt"
-                                   :datos="datosDomicilio" vacio="Sin domicilio de facturación guardado." accion-guardar="Guardar domicilio"
-                                   :editando="editando.domicilio" :guardando="domicilioForm.processing" :modificado="domicilioForm.isDirty"
-                                   @editar="cambiarEdicion('domicilio', true)" @cancelar="cambiarEdicion('domicilio', false)"
+                    <TarjetaPerfil v-if="!esCuentaEquipo" id="facturacion" titulo="Domicilio de facturación"
+                                   icono="receipt"
+                                   :datos="datosDomicilio" vacio="Sin domicilio de facturación guardado."
+                                   accion-guardar="Guardar domicilio"
+                                   :editando="editando.domicilio" :guardando="domicilioForm.processing"
+                                   :modificado="domicilioForm.isDirty"
+                                   @editar="cambiarEdicion('domicilio', true)"
+                                   @cancelar="cambiarEdicion('domicilio', false)"
                                    @guardar="guardar('domicilio')">
                         <B v-if="datosUbicacion.length" type="button" variant="secondary" compact
                            class="account-copy-location" @click="copiarUbicacion">Usar mi ubicación</B>
                         <div class="account-fields">
-                            <CamposUbicacion v-model="domicilioForm.details.billing_address" :errores="domicilioForm.errors"
+                            <CamposUbicacion v-model="domicilioForm.details.billing_address"
+                                             :errores="domicilioForm.errors"
                                              prefijo="details.billing_address" facturacion/>
                             <F v-model="domicilioForm.details.billing_address.postal_code" label="Código postal"
                                autocomplete="section-facturacion billing postal-code" maxlength="16"
@@ -275,11 +307,14 @@ function guardar(seccion) {
                         </div>
                     </TarjetaPerfil>
                     <TarjetaPerfil id="seguridad" titulo="Seguridad" icono="check"
-                                   accion-editar="Cambiar contraseña" accion-guardar="Cambiar contraseña" :guardado-deshabilitado="preview"
-                                   :editando="editando.clave" :guardando="passwordForm.processing" :modificado="passwordForm.isDirty"
+                                   accion-editar="Cambiar contraseña" accion-guardar="Cambiar contraseña"
+                                   :guardado-deshabilitado="preview"
+                                   :editando="editando.clave" :guardando="passwordForm.processing"
+                                   :modificado="passwordForm.isDirty"
                                    @editar="cambiarEdicion('clave', true)" @cancelar="cambiarEdicion('clave', false)"
                                    @guardar="guardar('clave')">
-                        <p v-if="preview" class="account-note">El cambio de contraseña no está disponible en esta vista.</p>
+                        <p v-if="preview" class="account-note">El cambio de contraseña no está disponible en esta
+                            vista.</p>
                         <F v-model="passwordForm.current_password" label="Contraseña actual" type="password"
                            autocomplete="current-password" :disabled="preview" required
                            :error="passwordForm.errors.current_password"/>

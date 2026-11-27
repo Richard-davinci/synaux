@@ -23,21 +23,29 @@ const budgetOpen = ref(false);
 
 <template>
     <Head title="Inicio">
-        <meta name="description" content="Conocé los servicios de diseño, desarrollo web y marketing digital de synaux. Explorá el catálogo, el portfolio y las formas de contacto.">
+        <meta name="description"
+              content="Conocé los servicios de diseño, desarrollo web y marketing digital de synaux. Explorá el catálogo, el portfolio y las formas de contacto.">
     </Head>
     <PublicLayout>
         <!-- La primera acción lleva al formulario de presupuesto; el catálogo queda como alternativa. -->
         <section class="shell site-home-hero" aria-labelledby="site-home-title">
             <div>
                 <h1 id="site-home-title">Sitios web, marcas y <em>campañas digitales</em></h1>
-                <p>Elegí los servicios que necesitás para tu organización. Podés preparar tu solicitud sin crear una cuenta.</p>
+                <p>Elegí los servicios que necesitás para tu organización. Podés preparar tu solicitud sin crear una
+                    cuenta.</p>
                 <div class="site-home-actions">
-                    <AppButton v-if="!$page.props.auth?.es_cuenta_interna" href="/solicitudes/nueva" arrow>Preparar presupuesto</AppButton>
-                    <AppButton href="/plataforma" :variant="$page.props.auth?.es_cuenta_interna ? 'primary' : 'secondary'">Explorar servicios</AppButton>
+                    <AppButton v-if="!$page.props.auth?.es_cuenta_interna" href="/solicitudes/nueva" arrow>Preparar
+                        presupuesto
+                    </AppButton>
+                    <AppButton href="/plataforma"
+                               :variant="$page.props.auth?.es_cuenta_interna ? 'primary' : 'secondary'">Explorar
+                        servicios
+                    </AppButton>
                 </div>
             </div>
             <img class="site-home-photo" src="/images/inicio/diseno-web-synaux.webp"
-                 alt="Notebook con el boceto de un sitio web en azul y turquesa." width="1536" height="1024" fetchpriority="high">
+                 alt="Notebook con el boceto de un sitio web en azul y turquesa." width="1536" height="1024"
+                 fetchpriority="high">
         </section>
 
         <!-- La muestra responde qué recibe el cliente y ofrece pedir presupuesto después de revisarla. -->
@@ -45,7 +53,8 @@ const budgetOpen = ref(false);
             <div class="shell site-home-section site-home-budget-layout">
                 <div class="site-home-budget-copy">
                     <h2 id="site-home-budget-title">Qué incluye tu presupuesto</h2>
-                    <p>Después de enviar tu solicitud, recibís una propuesta con el detalle del trabajo, el precio, el plazo de entrega y las condiciones.</p>
+                    <p>Después de enviar tu solicitud, recibís una propuesta con el detalle del trabajo, el precio, el
+                        plazo de entrega y las condiciones.</p>
                 </div>
                 <SidePanel v-model="budgetOpen" title="Presupuesto de ejemplo" max-width="680"
                            body-label="Documento de ejemplo" close-label="Cerrar presupuesto de ejemplo">
@@ -78,7 +87,7 @@ const budgetOpen = ref(false);
                 </div>
                 <div class="service-grid site-home-service-grid">
                     <TarjetaServicio v-for="service in featuredServices" :key="service.id" :service="service"
-                                        :reference="featuredReferences[service.id]" heading-tag="h3"/>
+                                     :reference="featuredReferences[service.id]" heading-tag="h3"/>
                 </div>
             </div>
         </section>
@@ -97,7 +106,8 @@ const budgetOpen = ref(false);
             <div class="site-home-contact">
                 <div>
                     <h2 id="site-home-contact-title">¿Por dónde empiezo?</h2>
-                    <p>Si todavía estás definiendo tu proyecto, conocé cómo trabajamos o contanos qué querés resolver.</p>
+                    <p>Si todavía estás definiendo tu proyecto, conocé cómo trabajamos o contanos qué querés
+                        resolver.</p>
                 </div>
                 <div class="site-home-actions">
                     <AppButton href="/contacto" arrow>Hacer una consulta</AppButton>
@@ -106,12 +116,14 @@ const budgetOpen = ref(false);
                 <!-- Las dos fotos muestran la definición del alcance y el diseño de la estructura. -->
                 <div class="site-home-process">
                     <figure>
-                        <img src="/images/inicio/colaboracion-synaux.webp" alt="Dos personas revisan el esquema de un sitio."
+                        <img src="/images/inicio/colaboracion-synaux.webp"
+                             alt="Dos personas revisan el esquema de un sitio."
                              width="1536" height="1024" loading="lazy" decoding="async">
                         <figcaption>Definimos el alcance</figcaption>
                     </figure>
                     <figure>
-                        <img src="/images/inicio/bocetos-synaux.webp" alt="Dos bocetos en papel organizan las secciones de un sitio web."
+                        <img src="/images/inicio/bocetos-synaux.webp"
+                             alt="Dos bocetos en papel organizan las secciones de un sitio web."
                              width="1536" height="1024" loading="lazy" decoding="async">
                         <figcaption>Diseñamos la estructura</figcaption>
                     </figure>

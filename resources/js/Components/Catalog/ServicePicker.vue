@@ -52,12 +52,15 @@ function invalidSelection() {
 <template>
     <div class="service-picker">
         <!-- Categoría y servicio comparten una fila; en móvil se apilan para conservar espacio de escritura. -->
-        <F :model-value="category" label="Categoría" type="select" :options="categories" :placeholder="categoryPlaceholder"
+        <F :model-value="category" label="Categoría" type="select" :options="categories"
+           :placeholder="categoryPlaceholder"
            :disabled="disabled" required
            @update:model-value="changeCategory"/>
-        <div class="service-picker-main"><label :for="serviceInputId">{{ label }} <span aria-hidden="true">*</span></label>
+        <div class="service-picker-main"><label :for="serviceInputId">{{ label }} <span
+            aria-hidden="true">*</span></label>
             <!-- La búsqueda consulta el catálogo y evita que el navegador sugiera búsquedas guardadas. -->
-            <VAutocomplete autocomplete="suppress" name="buscar-servicio-catalogo" ref="serviceControl" :id="serviceInputId" :model-value="modelValue" v-model:search="search" :items="available"
+            <VAutocomplete autocomplete="suppress" name="buscar-servicio-catalogo" ref="serviceControl"
+                           :id="serviceInputId" :model-value="modelValue" v-model:search="search" :items="available"
                            item-title="name" :item-value="valueKey" :aria-label="label" aria-required="true"
                            placeholder="Buscá o elegí un servicio"
                            variant="outlined" density="compact" color="primary" clearable
@@ -71,9 +74,11 @@ function invalidSelection() {
                 </template>
             </VAutocomplete>
             <input type="text" class="service-validity" tabindex="-1" aria-hidden="true" required
-                   :value="selected ? 'selected' : ''" :disabled="disabled || !available.length" @invalid.prevent="invalidSelection">
+                   :value="selected ? 'selected' : ''" :disabled="disabled || !available.length"
+                   @invalid.prevent="invalidSelection">
         </div>
-        <p v-if="category">{{ available.length }} {{ available.length === 1 ? 'servicio disponible' : 'servicios disponibles' }} · Podés
+        <p v-if="category">{{ available.length }}
+            {{ available.length === 1 ? 'servicio disponible' : 'servicios disponibles' }} · Podés
             buscar por nombre.</p>
     </div>
 </template>

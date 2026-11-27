@@ -68,7 +68,7 @@ const clear = () => {
         </div>
         <div v-if="services.length && data.referenceKey !== 'catalogo-vacio'" class="service-grid">
             <TarjetaServicio v-for="service in services" :key="service.id" v-model="catalogSegments[service.id]"
-                                :service="service" :reference="data.references?.[service.id]"/>
+                             :service="service" :reference="data.references?.[service.id]"/>
         </div>
         <Empty v-else title="No encontramos servicios con esos filtros."
                text="Probá otra búsqueda o volvé a ver todas las propuestas."><B @click="clear">Limpiar filtros</B>

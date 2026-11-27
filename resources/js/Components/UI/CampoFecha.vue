@@ -12,6 +12,7 @@ const id = useId();
 // Las fechas del servidor conservan el día local al pasar al calendario y al formulario.
 const fecha = computed(() => valor.value || null);
 const texto = computed(() => valor.value ? valor.value.split('-').reverse().join('/') : 'Seleccioná una fecha');
+
 function seleccionar(fecha) {
     valor.value = fecha instanceof Date
         ? [fecha.getFullYear(), String(fecha.getMonth() + 1).padStart(2, '0'), String(fecha.getDate()).padStart(2, '0')].join('-')
@@ -65,9 +66,21 @@ function seleccionar(fecha) {
     gap: 8px;
     cursor: pointer;
 }
-.fecha-activador:hover { border-color: #1f6f7f; }
-.fecha-activador[aria-invalid="true"] { border-color: #a13b42; }
-.fecha-activador .icon { width: 18px; height: 18px; flex-shrink: 0; }
+
+.fecha-activador:hover {
+    border-color: #1f6f7f;
+}
+
+.fecha-activador[aria-invalid="true"] {
+    border-color: #a13b42;
+}
+
+.fecha-activador .icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
 /* El encabezado define el contorno superior y el borde fino separa el menú del formulario. */
 .selector-fecha {
     width: 320px;
@@ -76,39 +89,48 @@ function seleccionar(fecha) {
     box-shadow: 0 6px 16px #153b6424;
     overflow: hidden;
 }
+
 .selector-fecha :deep(.v-date-picker) {
     width: 100%;
     max-width: 100%;
     color: #153b64;
 }
+
 .selector-fecha :deep(.v-date-picker-controls) {
     background: #153b64;
     color: #fff;
 }
+
 @media (max-width: 360px) {
     .selector-fecha :deep(.v-date-picker) {
         width: 100% !important;
     }
 }
+
 .selector-fecha :deep(.v-date-picker-controls .v-btn) {
     color: #fff;
     font-weight: 700;
 }
+
 .selector-fecha :deep(.v-date-picker-controls .v-btn:focus-visible) {
     outline-color: #fff;
     outline-offset: -2px;
 }
+
 .selector-fecha :deep(.v-date-picker-month__day--adjacent:not(.v-date-picker-month__day--hide-adjacent)) {
     opacity: 1;
     color: #446075;
 }
+
 .selector-fecha :deep(.v-date-picker-month__weekday) {
     color: #446075;
     font-weight: 700;
 }
+
 .selector-fecha :deep(.v-date-picker-month__day--selected .v-date-picker-month__day-btn) {
     font-weight: 700;
 }
+
 .selector-fecha-acciones {
     display: flex;
     justify-content: space-between;

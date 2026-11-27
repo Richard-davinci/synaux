@@ -86,7 +86,7 @@ defineExpose({payload});
                 <img :src="image.image_path" :alt="image.alt_text ?? ''" class="work-gallery-preview">
                 <div class="work-gallery-fields">
                     <OpcionPortada v-model="coverChoice" :value="'saved:' + image.id"
-                                 :accessible-label="'Usar como portada: imagen ' + (index + 1) + (image.alt_text ? ' · ' + image.alt_text : '')"/>
+                                   :accessible-label="'Usar como portada: imagen ' + (index + 1) + (image.alt_text ? ' · ' + image.alt_text : '')"/>
                     <F v-model="image.alt_text" :label="`Texto alternativo de la imagen ${index + 1}`" :maxlength="255"
                        :error="errors[`gallery_items.${index}.alt_text`]"/>
                     <label class="field">
@@ -120,7 +120,7 @@ defineExpose({payload});
                 <div class="work-gallery-fields">
                     <p class="upload-name">{{ image.file.name }}</p>
                     <OpcionPortada v-model="coverChoice" :value="'new:' + index"
-                                 :accessible-label="'Usar como portada: ' + image.file.name"/>
+                                   :accessible-label="'Usar como portada: ' + image.file.name"/>
                 </div>
             </li>
         </ol>

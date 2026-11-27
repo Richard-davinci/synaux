@@ -22,7 +22,9 @@ class AccountController extends Controller
                 'foto_perfil' => $user->foto_perfil ? '/mi-perfil/foto?v=' . $user->updated_at?->format('Uu') : null,
                 'correo_fijo' => $user->perteneceAEquipo(), 'is_admin' => (bool)$user->is_admin, 'created_at' => $user->created_at?->toDateString()],
             'area' => match ($panel) {
-                '/mi-perfil' => 'public', '/profesional/proyectos' => 'profesional', default => trim($panel, '/'),
+                '/mi-perfil' => 'public',
+                '/profesional/proyectos' => 'profesional',
+                default => trim($panel, '/'),
             },
         ]);
     }

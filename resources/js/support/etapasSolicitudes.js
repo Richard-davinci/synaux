@@ -6,30 +6,42 @@ export function etapaSolicitud(solicitud, presupuestos = []) {
 
     // El estado propio de la solicitud prevalece sobre el historial de presupuestos asociado.
     if (solicitud.status === 'closed' || solicitud.status === 'cancelled') {
-        return {presupuesto, estadoVisual: solicitud.status, filtro: solicitud.status,
-            etiqueta: solicitud.status === 'closed' ? 'Cerrada' : 'Cancelada'};
+        return {
+            presupuesto, estadoVisual: solicitud.status, filtro: solicitud.status,
+            etiqueta: solicitud.status === 'closed' ? 'Cerrada' : 'Cancelada'
+        };
     }
 
     if (presupuesto) {
         const estado = presupuesto.display_status ?? presupuesto.status;
         // La lista de solicitudes indica si hay un borrador o un presupuesto vinculado;
         // el estado comercial detallado se consulta en Presupuestos.
-        if (estado === 'draft') return {presupuesto, estado, estadoVisual: 'review',
-            filtro: 'presupuesto_en_preparacion', etiqueta: 'Presupuesto en preparación'};
+        if (estado === 'draft') return {
+            presupuesto, estado, estadoVisual: 'review',
+            filtro: 'presupuesto_en_preparacion', etiqueta: 'Presupuesto en preparación'
+        };
 
-        return {presupuesto, estado, estadoVisual: 'pending', filtro: 'con_presupuesto',
-            etiqueta: 'Con presupuesto asociado'};
+        return {
+            presupuesto, estado, estadoVisual: 'pending', filtro: 'con_presupuesto',
+            etiqueta: 'Con presupuesto asociado'
+        };
     }
 
     if (solicitud.status === 'open' && solicitud.reviewed_at) {
-        return {presupuesto: null, estado: 'pending', estadoVisual: 'pending',
-            filtro: 'pendiente_presupuesto', etiqueta: 'Pendiente de presupuesto'};
+        return {
+            presupuesto: null, estado: 'pending', estadoVisual: 'pending',
+            filtro: 'pendiente_presupuesto', etiqueta: 'Pendiente de presupuesto'
+        };
     }
     if (solicitud.status === 'open') {
-        return {presupuesto: null, estado: 'pending', estadoVisual: 'pending',
-            filtro: 'pendiente_revision', etiqueta: 'Pendiente de revisión'};
+        return {
+            presupuesto: null, estado: 'pending', estadoVisual: 'pending',
+            filtro: 'pendiente_revision', etiqueta: 'Pendiente de revisión'
+        };
     }
 
-    return {presupuesto: null, estado: solicitud.status, estadoVisual: solicitud.status,
-        filtro: solicitud.status, etiqueta: undefined};
+    return {
+        presupuesto: null, estado: solicitud.status, estadoVisual: solicitud.status,
+        filtro: solicitud.status, etiqueta: undefined
+    };
 }

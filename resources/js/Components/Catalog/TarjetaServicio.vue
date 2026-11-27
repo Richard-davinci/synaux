@@ -23,7 +23,7 @@ const detailHref = computed(() => {
 
 // La descripción común prioriza el beneficio y deja los límites del paquete en el alcance.
 const description = computed(() => props.service.id === 'sitio-institucional'
-    && props.service.summary === 'Sitio institucional en WordPress de hasta 7 secciones.'
+&& props.service.summary === 'Sitio institucional en WordPress de hasta 7 secciones.'
     ? 'Presentá tu organización y facilitá el contacto con tus clientes.'
     : props.service.summary);
 </script>
@@ -39,12 +39,14 @@ const description = computed(() => props.service.id === 'sitio-institucional'
         <p class="service-description">{{ description }}</p>
         <ul v-if="service.includes?.length" class="service-deliverables" aria-label="Incluye">
             <li v-for="item in service.includes.slice(0, 3)" :key="item">
-                <AppIcon name="check"/><span>{{ item }}</span>
+                <AppIcon name="check"/>
+                <span>{{ item }}</span>
             </li>
         </ul>
         <CatalogServicePrice v-model="segment" :reference="reference" :service-name="service.name"/>
         <div class="card-link">
-            <AppButton compact :href="detailHref" :aria-label="'Ver detalles de ' + service.name" arrow>Ver detalles</AppButton>
+            <AppButton compact :href="detailHref" :aria-label="'Ver detalles de ' + service.name" arrow>Ver detalles
+            </AppButton>
         </div>
     </v-card>
 </template>

@@ -6,7 +6,14 @@ import I from '../UI/AppIcon.vue';
 import {initials} from '../../support/formatters';
 import {demoNotice, referenceHref} from '../../support/prototype';
 
-const props = defineProps({nombre: String, rol: String, showAreaSwitch: Boolean, panelCuenta: String, gestionActive: Boolean, adminView: Boolean});
+const props = defineProps({
+    nombre: String,
+    rol: String,
+    showAreaSwitch: Boolean,
+    panelCuenta: String,
+    gestionActive: Boolean,
+    adminView: Boolean
+});
 const page = usePage();
 const abierto = ref(false);
 const salida = useForm({});
@@ -20,15 +27,26 @@ const areas = computed(() => {
         ] : [gestion];
     }
     if (props.panelCuenta === '/profesional/proyectos') return [
-        {nombre: 'Mis proyectos', ruta: props.panelCuenta, icono: 'folder', activa: page.url.split('?')[0] === props.panelCuenta},
+        {
+            nombre: 'Mis proyectos',
+            ruta: props.panelCuenta,
+            icono: 'folder',
+            activa: page.url.split('?')[0] === props.panelCuenta
+        },
     ];
     if (props.panelCuenta === '/cliente' || props.panelCuenta === '/profesional') return [
-        {nombre: props.panelCuenta === '/cliente' ? 'Mi espacio' : 'Área profesional', ruta: props.panelCuenta, icono: 'layout',
-            activa: page.url.split('?')[0] === props.panelCuenta},
+        {
+            nombre: props.panelCuenta === '/cliente' ? 'Mi espacio' : 'Área profesional',
+            ruta: props.panelCuenta,
+            icono: 'layout',
+            activa: page.url.split('?')[0] === props.panelCuenta
+        },
     ];
     return [];
 });
-watch(() => page.url, () => { abierto.value = false; });
+watch(() => page.url, () => {
+    abierto.value = false;
+});
 
 function cerrarSesion() {
     if (page.props.preview) {
@@ -42,7 +60,7 @@ function cerrarSesion() {
 
 <template>
     <VMenu v-model="abierto" location="bottom end" :offset="10" :close-on-content-click="false"
-            max-width="calc(100vw - 24px)">
+           max-width="calc(100vw - 24px)">
         <template #activator="{props: activador}">
             <button v-bind="activador" type="button" class="cuenta-activador" aria-label="Menú de cuenta">
                 <span class="cuenta-avatar" :class="{'cuenta-avatar-con-foto': page.props.auth?.foto_perfil}">
@@ -71,8 +89,11 @@ function cerrarSesion() {
                 </a>
             </nav>
             <div class="cuenta-opciones cuenta-opciones-personales">
-                <a :href="referenceHref('/mi-perfil', page.props)" @click="abierto = false"><I name="user"/>Mi perfil</a>
-                <button type="button" :disabled="salida.processing" @click="cerrarSesion"><I name="logout"/>{{ salida.processing ? 'Cerrando sesión…' : 'Cerrar sesión' }}</button>
+                <a :href="referenceHref('/mi-perfil', page.props)" @click="abierto = false"><I name="user"/>Mi
+                    perfil</a>
+                <button type="button" :disabled="salida.processing" @click="cerrarSesion"><I
+                    name="logout"/>{{ salida.processing ? 'Cerrando sesión…' : 'Cerrar sesión' }}
+                </button>
             </div>
         </v-card>
     </VMenu>
@@ -97,6 +118,7 @@ function cerrarSesion() {
     font-weight: 700;
     cursor: pointer;
 }
+
 .cuenta-avatar {
     display: inline-grid;
     flex: 0 0 auto;
@@ -110,11 +132,13 @@ function cerrarSesion() {
     font-weight: 700;
     overflow: hidden;
 }
+
 .cuenta-avatar img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
+
 .cuenta-activador .icon, .cuenta-opciones .icon {
     fill: none;
     stroke: currentColor;
@@ -122,8 +146,16 @@ function cerrarSesion() {
     stroke-linecap: round;
     stroke-linejoin: round;
 }
-.cuenta-activador .icon { width: 15px; height: 15px; }
-.cuenta-rol-navbar { white-space: nowrap; }
+
+.cuenta-activador .icon {
+    width: 15px;
+    height: 15px;
+}
+
+.cuenta-rol-navbar {
+    white-space: nowrap;
+}
+
 .menu-cuenta {
     width: min(300px, calc(100vw - 24px));
     border: 1px solid #1f6f7f33;
@@ -132,6 +164,7 @@ function cerrarSesion() {
     color: #153b64;
     font-family: 'Nunito', sans-serif;
 }
+
 .cuenta-identidad {
     display: flex;
     align-items: center;
@@ -140,9 +173,23 @@ function cerrarSesion() {
     background: #f5f9fa;
     overflow-wrap: anywhere;
 }
-.cuenta-identidad p { margin: 2px 0 0; color: #446075; font-size: .85rem; }
-.cuenta-opciones { display: grid; gap: 3px; padding: 7px; }
-.cuenta-opciones-personales { border-top: 1px solid #1f6f7f26; }
+
+.cuenta-identidad p {
+    margin: 2px 0 0;
+    color: #446075;
+    font-size: .85rem;
+}
+
+.cuenta-opciones {
+    display: grid;
+    gap: 3px;
+    padding: 7px;
+}
+
+.cuenta-opciones-personales {
+    border-top: 1px solid #1f6f7f26;
+}
+
 .cuenta-opciones a, .cuenta-opciones button {
     display: flex;
     align-items: center;
@@ -158,16 +205,34 @@ function cerrarSesion() {
     text-decoration: none;
     cursor: pointer;
 }
-.cuenta-opciones .icon { width: 19px; height: 19px; }
-.cuenta-opciones [aria-current='page'] { background: #2db3a31a; font-weight: 700; }
-.cuenta-activador:hover, .cuenta-opciones :is(a, button):hover { background: #e8f3f4; }
+
+.cuenta-opciones .icon {
+    width: 19px;
+    height: 19px;
+}
+
+.cuenta-opciones [aria-current='page'] {
+    background: #2db3a31a;
+    font-weight: 700;
+}
+
+.cuenta-activador:hover, .cuenta-opciones :is(a, button):hover {
+    background: #e8f3f4;
+}
+
 .cuenta-activador:focus-visible, .cuenta-opciones :is(a, button):focus-visible {
     outline: 2px solid #1f6f7f;
     outline-offset: 1px;
 }
-.cuenta-opciones button:disabled { opacity: .5; cursor: wait; }
+
+.cuenta-opciones button:disabled {
+    opacity: .5;
+    cursor: wait;
+}
 
 @media (max-width: 620px) {
-    .cuenta-rol-navbar { display: none; }
+    .cuenta-rol-navbar {
+        display: none;
+    }
 }
 </style>

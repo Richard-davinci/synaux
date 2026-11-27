@@ -34,7 +34,7 @@ class DirectorioUsuariosController extends Controller
         $search = $this->busqueda($request);
         $usuarios = $equipo ? $organizacion->miembros() : $organizacion->clientes();
         $users = $usuarios
-            ->when($search !== '', fn ($query) => $query->where(fn ($account) => $account
+            ->when($search !== '', fn($query) => $query->where(fn($account) => $account
                 ->whereLike('users.name', '%' . $search . '%')
                 ->orWhereLike('users.email', '%' . $search . '%')))
             ->latest('users.id')
@@ -42,7 +42,7 @@ class DirectorioUsuariosController extends Controller
             ->appends($search !== '' ? ['buscar' => $search] : []);
 
         // Solo se exponen los campos de la tabla, sin las claves de la relación.
-        $users->through(fn (User $usuario) => [
+        $users->through(fn(User $usuario) => [
             ...$usuario->only('id', 'name', 'email', 'is_admin', 'created_at', 'activacion_pendiente'),
             'rol_organizacion' => $equipo ? $usuario->pivot->rol : null,
         ]);
@@ -75,7 +75,7 @@ class DirectorioUsuariosController extends Controller
                     : 'Configurá primero el dominio de correo del equipo en Datos de la organización.']);
             }
 
-            $usuario = User::unguarded(fn () => User::query()->createOrFirst(['email' => $correo], [
+            $usuario = User::unguarded(fn() => User::query()->createOrFirst(['email' => $correo], [
                 'name' => $data['name'], 'password' => Str::random(64), 'activacion_pendiente' => true,
             ]));
             if (!$usuario->wasRecentlyCreated) {
@@ -154,7 +154,7 @@ class DirectorioUsuariosController extends Controller
         $solicitudes = DB::table('project_requests')->where('user_id', $user->id)->where('status', '<>', 'draft');
         $presupuestos = DB::table('budget_versions as v')->join('budgets as b', 'b.id', '=', 'v.budget_id')
             ->leftJoin('proposals as p', 'p.id', '=', 'b.proposal_id')
-            ->where(fn ($query) => $query->where('b.client_user_id', $user->id)
+            ->where(fn($query) => $query->where('b.client_user_id', $user->id)
                 ->orWhereIn(DB::raw('COALESCE(b.project_request_id, p.project_request_id)'), (clone $solicitudes)->select('id')))
             ->whereNotNull('v.sent_at');
 

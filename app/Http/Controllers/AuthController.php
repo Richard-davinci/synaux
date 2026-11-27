@@ -64,7 +64,7 @@ class AuthController extends Controller
         $intended = $request->session()->get('url.intended');
         $ruta = is_string($intended) ? parse_url($intended, PHP_URL_PATH) : null;
         if ($interna && is_string($ruta) && ($ruta === '/cliente' || str_starts_with($ruta, '/cliente/')
-            || in_array($ruta, ['/solicitudes/nueva', '/estimador'], true))) {
+                || in_array($ruta, ['/solicitudes/nueva', '/estimador'], true))) {
             $request->session()->forget('url.intended');
         }
         $destination = !$interna && $request->session()->has('pending_estimate')

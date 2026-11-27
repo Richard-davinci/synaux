@@ -55,12 +55,13 @@ function save() {
                     </div>
                     <p class="tracking-help">Pendiente corresponde a 0% y completado a 100%. El porcentaje representa el
                         avance informado por Gestión.</p>
-                    <p v-if="tieneAnticipoPendiente" class="tracking-help">El anticipo debe estar confirmado antes de iniciar el proyecto.</p>
+                    <p v-if="tieneAnticipoPendiente" class="tracking-help">El anticipo debe estar confirmado antes de
+                        iniciar el proyecto.</p>
                     <div class="form-grid">
                         <CampoFecha v-model="form.start_date" label="Fecha de inicio (opcional)"
-                           :error="form.errors.start_date"/>
+                                    :error="form.errors.start_date"/>
                         <CampoFecha v-model="form.end_date" label="Fecha de cierre (opcional)"
-                           :min="form.start_date || undefined" :error="form.errors.end_date"/>
+                                    :min="form.start_date || undefined" :error="form.errors.end_date"/>
                     </div>
                     <F v-model="form.notes" label="Qué se avanzó" type="textarea" maxlength="10000"
                        hint="Describí los avances y los acuerdos que el cliente necesita conocer."

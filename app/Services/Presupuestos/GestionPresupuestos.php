@@ -2,9 +2,9 @@
 
 namespace App\Services\Presupuestos;
 
+use App\Models\Organizacion;
 use App\Services\Notifications\NotificationCenter;
 use App\Services\Projects\AsignacionesProyecto;
-use App\Models\Organizacion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -96,10 +96,10 @@ class GestionPresupuestos
             // Un guardado de un borrador existente conserva su modalidad y recalcula el importe con los conceptos actuales.
             $planAnterior = json_decode($draft?->plan_pago ?? 'null', true);
             $datosPago = $data + [
-                'modalidad_pago' => $planAnterior['modalidad'] ?? null,
-                'porcentaje_sena' => $planAnterior['porcentaje_sena'] ?? null,
-                'instrucciones_transferencia' => $planAnterior['instrucciones'] ?? '',
-            ];
+                    'modalidad_pago' => $planAnterior['modalidad'] ?? null,
+                    'porcentaje_sena' => $planAnterior['porcentaje_sena'] ?? null,
+                    'instrucciones_transferencia' => $planAnterior['instrucciones'] ?? '',
+                ];
             [, $total] = ConsultasPresupuestos::importes($data['items'], (float)$data['tax_rate']);
             $plan = PlanPago::preparar($datosPago, $total);
 

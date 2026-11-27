@@ -40,7 +40,9 @@ watch(featuredOpen, open => {
 
 function saveFeatured() {
     submit(featuredForm, '/admin/guardar/servicios-destacados', {
-        onSuccess: () => { featuredOpen.value = false; },
+        onSuccess: () => {
+            featuredOpen.value = false;
+        },
     });
 }
 </script>
@@ -59,8 +61,11 @@ function saveFeatured() {
                 <B v-bind="activatorProps" compact variant="secondary">Elegir destacados</B>
             </template>
             <form class="featured-form" @submit.prevent="saveFeatured">
-                <p>Elegí hasta {{ featuredLimit }} servicios activos. Se muestran en el Inicio en el orden de selección.</p>
-                <p class="featured-count" aria-live="polite">{{ featuredForm.service_ids.length }} de {{ featuredLimit }} seleccionados</p>
+                <p>Elegí hasta {{ featuredLimit }} servicios activos. Se muestran en el Inicio en el orden de
+                    selección.</p>
+                <p class="featured-count" aria-live="polite">{{ featuredForm.service_ids.length }} de {{
+                        featuredLimit
+                    }} seleccionados</p>
                 <F v-if="featuredCategories.length" v-model="featuredCategory" label="Categoría" type="select"
                    :options="[{ value: '', label: 'Todas las categorías' }, ...featuredCategories]"
                    :disabled="featuredForm.processing"/>
@@ -69,7 +74,9 @@ function saveFeatured() {
                     <label v-for="service in visibleFeaturedOptions" :key="service.id">
                         <input v-model="featuredForm.service_ids" type="checkbox" :value="Number(service.id)"
                                :disabled="featuredForm.processing || (featuredForm.service_ids.length >= featuredLimit && !featuredForm.service_ids.includes(Number(service.id)))">
-                        <span>{{ service.name }}<small>{{ activeCategories.get(Number(service.service_category_id)) }}</small></span>
+                        <span>{{ service.name }}<small>{{
+                                activeCategories.get(Number(service.service_category_id))
+                            }}</small></span>
                         <span v-if="featuredForm.service_ids.includes(Number(service.id))" class="featured-position">
                             {{ featuredForm.service_ids.indexOf(Number(service.id)) + 1 }}
                         </span>
@@ -78,7 +85,8 @@ function saveFeatured() {
                 <p v-else>No hay servicios activos disponibles.</p>
                 <p v-if="featuredError" role="alert">{{ featuredError }}</p>
                 <div class="form-actions">
-                    <B variant="secondary" :disabled="featuredForm.processing" @click="featuredOpen = false">Cancelar</B>
+                    <B variant="secondary" :disabled="featuredForm.processing"
+                       @click="featuredOpen = false">Cancelar</B>
                     <B type="submit" :disabled="featuredForm.processing || !featuredForm.isDirty">
                         {{ featuredForm.processing ? 'Guardando…' : 'Guardar destacados' }}
                     </B>

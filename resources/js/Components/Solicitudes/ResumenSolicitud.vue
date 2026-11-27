@@ -103,7 +103,9 @@ const datosDocumento = computed(() => ({
                     <AppIcon name="arrow" aria-hidden="true"/>
                 </button>
             </template>
-            <div class="documento-en-panel"><DocumentoPresupuesto v-bind="datosDocumento"/></div>
+            <div class="documento-en-panel">
+                <DocumentoPresupuesto v-bind="datosDocumento"/>
+            </div>
         </SidePanel>
     </div>
     <aside v-else class="vista-previa-escritorio" aria-label="Vista previa de tu estimación" tabindex="0">

@@ -3,8 +3,8 @@
 namespace App\Services\Projects;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 
 class ProjectQueries
 {

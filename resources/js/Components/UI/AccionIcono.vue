@@ -23,7 +23,8 @@ const destino = computed(() => referenceHref(props.href, page.props));
     <VTooltip :text="texto" location="top" open-on-focus>
         <template #activator="{props: activador}">
             <component :is="href ? 'a' : 'button'" v-bind="activador" class="accion-icono"
-                       :href="destino" :type="href ? undefined : 'button'" :disabled="!href && deshabilitada ? true : undefined"
+                       :href="destino" :type="href ? undefined : 'button'"
+                       :disabled="!href && deshabilitada ? true : undefined"
                        :aria-label="etiqueta || texto" @click="emit('click', $event)">
                 <AppIcon :name="icono"/>
             </component>

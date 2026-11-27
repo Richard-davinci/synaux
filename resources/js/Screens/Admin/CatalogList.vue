@@ -50,7 +50,12 @@ const columnas = computed(() => [
         : {clave: 'categoria', titulo: 'Categoría', valor: row => categoryName(row.service_category_id)},
     ...(!categoriesView.value ? [{clave: 'modalidad', titulo: 'Modalidad', valor: modalidad}] : []),
     {clave: 'estado', titulo: 'Estado', valor: row => row.active ? 'Activo' : 'Inactivo'},
-    ...(!categoriesView.value ? [{clave: 'actualizacion', titulo: 'Última actualización', valor: row => row.updated_at, recientePrimero: true}] : []),
+    ...(!categoriesView.value ? [{
+        clave: 'actualizacion',
+        titulo: 'Última actualización',
+        valor: row => row.updated_at,
+        recientePrimero: true
+    }] : []),
 ]);
 const filasOrdenadas = computed(() => {
     const columna = columnas.value.find(item => item.clave === columnaOrden.value) ?? columnas.value[0];
@@ -78,8 +83,12 @@ function ordenarPor(clave) {
 const totalPaginas = computed(() => Math.max(1, Math.ceil(rows.value.length / porPagina)));
 const inicio = computed(() => (pagina.value - 1) * porPagina);
 const filasVisibles = computed(() => filasOrdenadas.value.slice(inicio.value, inicio.value + porPagina));
-watch([search, categoryFilter, stateFilter], () => { pagina.value = 1; });
-watch(totalPaginas, total => { pagina.value = Math.min(pagina.value, total); });
+watch([search, categoryFilter, stateFilter], () => {
+    pagina.value = 1;
+});
+watch(totalPaginas, total => {
+    pagina.value = Math.min(pagina.value, total);
+});
 watch(categoriesView, () => {
     columnaOrden.value = 'nombre';
     descendente.value = false;
@@ -110,6 +119,7 @@ const publicado = computed(() => Boolean(vistaPrevia.value?.active && catalog.va
 // La eliminación requiere confirmación y muestra los vínculos que detecta el servidor.
 const registroAEliminar = ref(null);
 const eliminacion = useForm({});
+
 function confirmarEliminacion(row) {
     eliminacion.clearErrors();
     registroAEliminar.value = row;
@@ -124,7 +134,9 @@ function eliminarRegistro() {
     const recurso = categoriesView.value ? 'categorias' : 'servicios';
     eliminacion.delete('/admin/catalogo/' + recurso + '/' + registroAEliminar.value.id, {
         preserveScroll: true,
-        onSuccess: () => { registroAEliminar.value = null; },
+        onSuccess: () => {
+            registroAEliminar.value = null;
+        },
     });
 }
 
@@ -169,8 +181,9 @@ function saveCategory() {
                 <B v-else compact href="/admin/servicios/nuevo">Nuevo servicio</B>
             </div>
         </T>
-        <ServiciosDestacados v-if="!categoriesView && ($page.props.auth?.puede_administrar ?? $page.props.auth?.is_admin) && !$page.props.preview"
-                          :catalog="catalog"/>
+        <ServiciosDestacados
+            v-if="!categoriesView && ($page.props.auth?.puede_administrar ?? $page.props.auth?.is_admin) && !$page.props.preview"
+            :catalog="catalog"/>
         <div class="filters workspace-filters catalog-filters" :class="{ 'catalog-category-filters': categoriesView }">
             <F v-model="search" type="search" label="Buscar por nombre"/>
             <F v-if="!categoriesView" v-model="categoryFilter" label="Categoría" type="select"
@@ -188,7 +201,9 @@ function saveCategory() {
                         :aria-sort="columnaOrden === columna.clave ? (descendente ? 'descending' : 'ascending') : undefined">
                         <button type="button" class="orden-catalogo" @click="ordenarPor(columna.clave)">
                             {{ columna.titulo }}
-                            <span aria-hidden="true">{{ columnaOrden === columna.clave ? (descendente ? '↓' : '↑') : '↕' }}</span>
+                            <span aria-hidden="true">{{
+                                    columnaOrden === columna.clave ? (descendente ? '↓' : '↑') : '↕'
+                                }}</span>
                         </button>
                     </th>
                     <th scope="col" class="celda-acciones-catalogo">Acciones</th>
@@ -213,10 +228,12 @@ function saveCategory() {
                                          :etiqueta="'Vista previa de ' + row.name" @click="vistaPrevia = row"/>
                             <AccionIcono v-if="categoriesView" icono="edit" texto="Editar categoría"
                                          :etiqueta="'Editar categoría ' + row.name" @click="editCategory(row)"/>
-                            <AccionIcono v-else icono="edit" texto="Editar servicio" :etiqueta="'Editar servicio ' + row.name"
+                            <AccionIcono v-else icono="edit" texto="Editar servicio"
+                                         :etiqueta="'Editar servicio ' + row.name"
                                          :href="'/admin/servicios/' + row.id + '/editar'"/>
                             <AccionIcono icono="trash" :texto="'Eliminar ' + entidad"
-                                         :etiqueta="'Eliminar ' + entidad + ' ' + row.name" @click="confirmarEliminacion(row)"/>
+                                         :etiqueta="'Eliminar ' + entidad + ' ' + row.name"
+                                         @click="confirmarEliminacion(row)"/>
                         </div>
                     </td>
                 </tr>
@@ -229,7 +246,8 @@ function saveCategory() {
 
         <!-- Los controles recorren la lista filtrada sin salir de la pantalla. -->
         <div v-if="rows.length" class="paginacion-catalogo">
-            <p aria-live="polite">{{ inicio + 1 }}–{{ inicio + filasVisibles.length }} de {{ rows.length }} {{ categoriesView ? 'categorías' : 'servicios' }}</p>
+            <p aria-live="polite">{{ inicio + 1 }}–{{ inicio + filasVisibles.length }} de {{ rows.length }}
+                {{ categoriesView ? 'categorías' : 'servicios' }}</p>
             <nav v-if="totalPaginas > 1" aria-label="Páginas del catálogo">
                 <B compact variant="secondary" :disabled="pagina <= 1" @click="pagina--">Anterior</B>
                 <span>Página {{ pagina }} de {{ totalPaginas }}</span>
@@ -258,7 +276,8 @@ function saveCategory() {
             </form>
             <template #footer>
                 <B variant="secondary" :disabled="category.processing" @click="categoryDialog = false">Cancelar</B>
-                <B type="submit" :form="formularioCategoria" :disabled="category.processing">{{ category.processing ? 'Guardando…' : 'Guardar categoría' }}</B>
+                <B type="submit" :form="formularioCategoria"
+                   :disabled="category.processing">{{ category.processing ? 'Guardando…' : 'Guardar categoría' }}</B>
             </template>
         </SidePanel>
 
@@ -268,8 +287,11 @@ function saveCategory() {
                 <div class="cabecera-panel-catalogo">
                     <S :status="vistaPrevia.active ? 'enabled' : 'disabled'"/>
                     <h2>{{ vistaPrevia.name }}</h2>
-                    <p v-if="!categoriesView">{{ categoryName(vistaPrevia.service_category_id) }} · {{ vistaPrevia.estimation_mode === 'automatic' ? 'Estimación automática' : 'Presupuesto profesional' }}</p>
-                    <p v-else>{{ serviciosVinculados.length }} {{ serviciosVinculados.length === 1 ? 'servicio vinculado' : 'servicios vinculados' }}</p>
+                    <p v-if="!categoriesView">{{ categoryName(vistaPrevia.service_category_id) }} · {{
+                            vistaPrevia.estimation_mode === 'automatic' ? 'Estimación automática' : 'Presupuesto profesional'
+                        }}</p>
+                    <p v-else>{{ serviciosVinculados.length }}
+                        {{ serviciosVinculados.length === 1 ? 'servicio vinculado' : 'servicios vinculados' }}</p>
                 </div>
                 <p v-if="!categoriesView && vistaPrevia.summary">{{ vistaPrevia.summary }}</p>
                 <div>
@@ -278,16 +300,22 @@ function saveCategory() {
                 </div>
                 <div v-if="!categoriesView && vistaPrevia.deliverables?.length">
                     <h3>Entregables</h3>
-                    <ul><li v-for="(entregable, indice) in vistaPrevia.deliverables" :key="indice">{{ entregable }}</li></ul>
+                    <ul>
+                        <li v-for="(entregable, indice) in vistaPrevia.deliverables" :key="indice">{{ entregable }}</li>
+                    </ul>
                 </div>
                 <div v-if="categoriesView && serviciosVinculados.length">
                     <h3>Servicios vinculados</h3>
-                    <ul><li v-for="servicio in serviciosVinculados" :key="servicio.id">{{ servicio.name }}</li></ul>
+                    <ul>
+                        <li v-for="servicio in serviciosVinculados" :key="servicio.id">{{ servicio.name }}</li>
+                    </ul>
                 </div>
             </div>
             <template #footer>
-                <B :variant="publicado && !categoriesView ? 'secondary' : 'primary'" @click="vistaPrevia = null">Cerrar</B>
-                <B v-if="publicado && !categoriesView" :href="'/servicios/' + encodeURIComponent(vistaPrevia.slug)" arrow>Ver ficha pública</B>
+                <B :variant="publicado && !categoriesView ? 'secondary' : 'primary'"
+                   @click="vistaPrevia = null">Cerrar</B>
+                <B v-if="publicado && !categoriesView" :href="'/servicios/' + encodeURIComponent(vistaPrevia.slug)"
+                   arrow>Ver ficha pública</B>
             </template>
         </SidePanel>
 
@@ -296,11 +324,13 @@ function saveCategory() {
             <div v-if="registroAEliminar" class="contenido-panel-catalogo">
                 <div class="cabecera-panel-catalogo"><h2>{{ registroAEliminar.name }}</h2></div>
                 <p>El borrado es definitivo y solo está disponible para registros sin datos asociados.</p>
-                <p v-if="eliminacion.errors.eliminar_catalogo" class="aviso-eliminacion" role="alert">{{ eliminacion.errors.eliminar_catalogo }}</p>
+                <p v-if="eliminacion.errors.eliminar_catalogo" class="aviso-eliminacion" role="alert">
+                    {{ eliminacion.errors.eliminar_catalogo }}</p>
             </div>
             <template #footer>
                 <B variant="secondary" :disabled="eliminacion.processing" @click="registroAEliminar = null">Cancelar</B>
-                <B variant="danger" :disabled="eliminacion.processing" @click="eliminarRegistro">{{ eliminacion.processing ? 'Eliminando…' : 'Eliminar ' + entidad }}</B>
+                <B variant="danger" :disabled="eliminacion.processing"
+                   @click="eliminarRegistro">{{ eliminacion.processing ? 'Eliminando…' : 'Eliminar ' + entidad }}</B>
             </template>
         </SidePanel>
     </section>
@@ -321,16 +351,39 @@ function saveCategory() {
     cursor: pointer;
 }
 
-.orden-catalogo:hover { text-decoration: underline; }
-.orden-catalogo:focus-visible { outline: 2px solid #1f6f7f; outline-offset: 3px; }
-.orden-catalogo span { color: #446075; }
-th[aria-sort] .orden-catalogo, th[aria-sort] .orden-catalogo span { color: #153b64; }
+.orden-catalogo:hover {
+    text-decoration: underline;
+}
+
+.orden-catalogo:focus-visible {
+    outline: 2px solid #1f6f7f;
+    outline-offset: 3px;
+}
+
+.orden-catalogo span {
+    color: #446075;
+}
+
+th[aria-sort] .orden-catalogo, th[aria-sort] .orden-catalogo span {
+    color: #153b64;
+}
 
 /* La columna de acciones queda a la derecha aunque cambie el ancho de la tabla. */
-.workspace-table .celda-acciones-catalogo { text-align: right; }
-.acciones-catalogo { justify-content: flex-end; }
-.fecha-catalogo time { white-space: nowrap; }
-.fecha-catalogo span { color: #446075; }
+.workspace-table .celda-acciones-catalogo {
+    text-align: right;
+}
+
+.acciones-catalogo {
+    justify-content: flex-end;
+}
+
+.fecha-catalogo time {
+    white-space: nowrap;
+}
+
+.fecha-catalogo span {
+    color: #446075;
+}
 
 /* La navegación queda debajo de la tabla. */
 .acciones-catalogo, .paginacion-catalogo, .paginacion-catalogo nav {
@@ -351,7 +404,9 @@ th[aria-sort] .orden-catalogo, th[aria-sort] .orden-catalogo span { color: #153b
     font-size: .875rem;
 }
 
-.paginacion-catalogo p { margin: 0; }
+.paginacion-catalogo p {
+    margin: 0;
+}
 
 /* El cuerpo del panel comparte márgenes con su encabezado y agrupa los datos relacionados. */
 .contenido-panel-catalogo {
@@ -361,13 +416,30 @@ th[aria-sort] .orden-catalogo, th[aria-sort] .orden-catalogo span { color: #153b
     overflow-wrap: anywhere;
 }
 
-.contenido-panel-catalogo :deep(.field) { margin: 0; }
+.contenido-panel-catalogo :deep(.field) {
+    margin: 0;
+}
 
-.contenido-panel-catalogo :is(h2, h3, p, ul) { margin: 0; }
-.contenido-panel-catalogo h2 { font-size: 1.25rem; }
-.contenido-panel-catalogo h3 { font-size: 1rem; margin-bottom: 6px; }
-.contenido-panel-catalogo ul { padding-inline-start: 20px; }
-.descripcion-catalogo { white-space: pre-line; }
+.contenido-panel-catalogo :is(h2, h3, p, ul) {
+    margin: 0;
+}
+
+.contenido-panel-catalogo h2 {
+    font-size: 1.25rem;
+}
+
+.contenido-panel-catalogo h3 {
+    font-size: 1rem;
+    margin-bottom: 6px;
+}
+
+.contenido-panel-catalogo ul {
+    padding-inline-start: 20px;
+}
+
+.descripcion-catalogo {
+    white-space: pre-line;
+}
 
 .cabecera-panel-catalogo, .estado-panel-catalogo {
     padding: 12px 14px;
@@ -382,10 +454,25 @@ th[aria-sort] .orden-catalogo, th[aria-sort] .orden-catalogo span { color: #153b
     gap: 6px;
 }
 
-.estado-panel-catalogo { margin: 0; min-width: 0; }
-.estado-panel-catalogo legend { padding-inline: 5px; font-weight: 700; }
-.estado-panel-catalogo .select-row { margin: 0 0 8px; cursor: pointer; }
-.estado-panel-catalogo p { color: #446075; font-size: .875rem; }
+.estado-panel-catalogo {
+    margin: 0;
+    min-width: 0;
+}
+
+.estado-panel-catalogo legend {
+    padding-inline: 5px;
+    font-weight: 700;
+}
+
+.estado-panel-catalogo .select-row {
+    margin: 0 0 8px;
+    cursor: pointer;
+}
+
+.estado-panel-catalogo p {
+    color: #446075;
+    font-size: .875rem;
+}
 
 .aviso-eliminacion {
     padding: 12px 14px;

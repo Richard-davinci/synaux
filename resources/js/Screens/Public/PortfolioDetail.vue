@@ -104,7 +104,8 @@ function restoreImageFocus() {
             <h2 id="case-gallery-title">Galería del trabajo</h2>
             <div class="case-gallery-grid">
                 <figure v-for="(image, indice) in galleryImages" :key="image.id">
-                    <button type="button" class="case-image" :aria-label="'Ampliar ' + (image.alt_text || 'imagen de la galería')"
+                    <button type="button" class="case-image"
+                            :aria-label="'Ampliar ' + (image.alt_text || 'imagen de la galería')"
                             @click="showImage(indice, $event)">
                         <img :src="image.image_path" :alt="image.alt_text ?? ''" loading="lazy">
                     </button>
@@ -132,11 +133,13 @@ function restoreImageFocus() {
                     <img :src="imagenActiva.image_path" :alt="tituloImagen" draggable="false">
                 </div>
                 <nav v-if="galleryImages.length > 1" class="case-viewer-navigation" aria-label="Navegación de imágenes">
-                    <button type="button" class="case-viewer-arrow" aria-label="Imagen anterior" @click="moverImagen(-1)">
+                    <button type="button" class="case-viewer-arrow" aria-label="Imagen anterior"
+                            @click="moverImagen(-1)">
                         <AppIcon name="arrow" class="case-viewer-arrow-back"/>
                     </button>
                     <span role="status">Imagen {{ indiceActivo + 1 }} de {{ galleryImages.length }}</span>
-                    <button type="button" class="case-viewer-arrow" aria-label="Imagen siguiente" @click="moverImagen(1)">
+                    <button type="button" class="case-viewer-arrow" aria-label="Imagen siguiente"
+                            @click="moverImagen(1)">
                         <AppIcon name="arrow"/>
                     </button>
                 </nav>
@@ -295,6 +298,7 @@ figcaption [aria-hidden="true"] {
     min-height: 0;
     object-fit: contain;
 }
+
 /* Las flechas quedan fuera de la imagen para que nunca tapen parte de la captura. */
 .case-viewer-navigation {
     display: flex;

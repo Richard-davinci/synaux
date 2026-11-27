@@ -27,7 +27,8 @@ function reiniciar() {
             <p v-if="form.errors.confirmed" class="error" role="alert">{{ form.errors.confirmed }}</p>
             <div class="acciones-reinicio">
                 <B variant="secondary" :disabled="form.processing" @click="abierto = false">Cancelar</B>
-                <B :disabled="form.processing" @click="reiniciar">{{ form.processing ? 'Reiniciando…' : 'Descartar y reiniciar' }}</B>
+                <B :disabled="form.processing"
+                   @click="reiniciar">{{ form.processing ? 'Reiniciando…' : 'Descartar y reiniciar' }}</B>
             </div>
         </section>
     </SidePanel>
@@ -35,8 +36,23 @@ function reiniciar() {
 
 <style scoped>
 /* Las acciones del panel mantienen espacio para envolver en pantallas angostas. */
-.reiniciar-estimacion { padding: 24px; }
-.reiniciar-estimacion h2 { margin: 0 0 12px; font-size: 1.25rem; }
-.reiniciar-estimacion p { margin: 0 0 20px; color: #446075; }
-.acciones-reinicio { display: flex; gap: 8px; flex-wrap: wrap; }
+.reiniciar-estimacion {
+    padding: 24px;
+}
+
+.reiniciar-estimacion h2 {
+    margin: 0 0 12px;
+    font-size: 1.25rem;
+}
+
+.reiniciar-estimacion p {
+    margin: 0 0 20px;
+    color: #446075;
+}
+
+.acciones-reinicio {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
 </style>

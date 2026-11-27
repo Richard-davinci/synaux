@@ -293,7 +293,9 @@
         <h2>Plan de pago</h2>
         <div class="payment-installments">
             @foreach($budget['plan_pago']['cuotas'] as $cuota)
-                <p><strong>{{ $cuota['titulo'] }}@if(isset($cuota['porcentaje'])) · {{ $cuota['porcentaje'] }}%@endif · {{ $money($cuota['importe_centavos'] / 100) }}</strong></p>
+                <p><strong>{{ $cuota['titulo'] }}@if(isset($cuota['porcentaje']))
+                            · {{ $cuota['porcentaje'] }}%
+                        @endif · {{ $money($cuota['importe_centavos'] / 100) }}</strong></p>
                 <p>{{ $cuota['momento'] }}</p>
             @endforeach
         </div>

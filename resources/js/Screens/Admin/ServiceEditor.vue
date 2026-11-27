@@ -57,10 +57,15 @@ watch(() => page.url, () => {
     configurationTab.value = tabs.some(([id]) => id === tab) ? tab : 'informacion';
     slugEdited.value = Boolean(row);
     service.defaults({
-        id: row?.id ?? null, name: row?.name ?? '', slug: row?.slug ?? '',
-        service_category_id: row?.service_category_id ?? '', summary: row?.summary ?? '',
-        description: row?.description ?? '', deliverables: Array.isArray(row?.deliverables) ? row.deliverables.join('\n') : '',
-        estimation_mode: row?.estimation_mode ?? 'manual', active: Boolean(row?.active),
+        id: row?.id ?? null,
+        name: row?.name ?? '',
+        slug: row?.slug ?? '',
+        service_category_id: row?.service_category_id ?? '',
+        summary: row?.summary ?? '',
+        description: row?.description ?? '',
+        deliverables: Array.isArray(row?.deliverables) ? row.deliverables.join('\n') : '',
+        estimation_mode: row?.estimation_mode ?? 'manual',
+        active: Boolean(row?.active),
     });
     service.resetAndClearErrors();
 }, {immediate: true});
@@ -80,7 +85,8 @@ function guardar() {
         <VTabs v-if="selected" v-model="configurationTab" class="service-tabs" color="primary"
                slider-color="#1f6f7f" show-arrows aria-label="Configuración del servicio">
             <VTab v-for="[key, label] in tabs" :id="idPestana(key)" :key="key" :value="key"
-                  :aria-controls="idContenido(key)">{{ label }}</VTab>
+                  :aria-controls="idContenido(key)">{{ label }}
+            </VTab>
         </VTabs>
         <template v-if="selected">
             <div v-for="[key] in tabs.slice(1)" v-show="configurationTab === key" :id="idContenido(key)"
@@ -96,24 +102,29 @@ function guardar() {
                 <v-card tag="section" class="card catalog-section" aria-labelledby="ficha-general">
                     <h2 id="ficha-general">Información general</h2>
                     <div class="catalog-fields">
-                        <F v-model="service.name" label="Nombre del servicio" required :error="service.errors.name" maxlength="255"/>
+                        <F v-model="service.name" label="Nombre del servicio" required :error="service.errors.name"
+                           maxlength="255"/>
                         <F v-model="service.service_category_id" label="Categoría" type="select"
                            :options="categoryOptions" required :error="service.errors.service_category_id"/>
-                        <p v-if="!categoryOptions.length" class="catalog-wide">Primero creá una categoría desde <a href="/admin/categorias">Catálogo → Categorías</a>.</p>
+                        <p v-if="!categoryOptions.length" class="catalog-wide">Primero creá una categoría desde <a
+                            href="/admin/categorias">Catálogo → Categorías</a>.</p>
                         <F v-model="service.summary" class="catalog-wide" label="Descripción breve" type="textarea"
                            required maxlength="1000" :error="service.errors.summary"/>
                         <F :model-value="service.slug" @update:model-value="service.slug = $event; slugEdited = true"
                            class="catalog-wide" label="Dirección del servicio (slug)" required maxlength="150"
-                           hint="Se genera desde el nombre. Podés ajustarla con letras, números y guiones." :error="service.errors.slug"/>
+                           hint="Se genera desde el nombre. Podés ajustarla con letras, números y guiones."
+                           :error="service.errors.slug"/>
                     </div>
                 </v-card>
                 <v-card tag="section" class="card catalog-section" aria-labelledby="ficha-alcance">
                     <h2 id="ficha-alcance">Alcance del servicio</h2>
                     <div class="catalog-fields">
                         <F v-model="service.description" label="Descripción completa" type="textarea"
-                           hint="Explicá el objetivo y los límites del servicio." required maxlength="10000" :error="service.errors.description"/>
+                           hint="Explicá el objetivo y los límites del servicio." required maxlength="10000"
+                           :error="service.errors.description"/>
                         <F v-model="service.deliverables" label="Entregables (uno por línea)" type="textarea"
-                           hint="Listá lo que recibe el cliente en «Qué incluye»." required maxlength="10000" :error="service.errors.deliverables"/>
+                           hint="Listá lo que recibe el cliente en «Qué incluye»." required maxlength="10000"
+                           :error="service.errors.deliverables"/>
                     </div>
                 </v-card>
                 <v-card tag="section" class="card catalog-section" aria-labelledby="ficha-modalidad">
@@ -124,12 +135,15 @@ function guardar() {
                 </v-card>
                 <v-card tag="section" class="card catalog-section" aria-labelledby="ficha-publicacion">
                     <h2 id="ficha-publicacion">Publicación</h2>
-                    <label class="select-row"><input v-model="service.active" type="checkbox">Mostrar en el catálogo</label>
+                    <label class="select-row"><input v-model="service.active" type="checkbox">Mostrar en el
+                        catálogo</label>
                     <p v-if="service.errors.active" role="alert">{{ service.errors.active }}</p>
-                    <p v-if="service.estimation_mode === 'automatic'">Revisá la cobertura de precios antes de publicar un servicio automático.</p>
+                    <p v-if="service.estimation_mode === 'automatic'">Revisá la cobertura de precios antes de publicar
+                        un servicio automático.</p>
                 </v-card>
                 <div class="form-actions">
-                    <B type="submit" :disabled="service.processing">{{ service.processing ? 'Guardando…' : 'Guardar servicio' }}</B>
+                    <B type="submit"
+                       :disabled="service.processing">{{ service.processing ? 'Guardando…' : 'Guardar servicio' }}</B>
                 </div>
             </form>
         </div>
@@ -138,7 +152,11 @@ function guardar() {
 
 <style scoped>
 /* La ficha usa una columna amplia con grupos de campos que se apilan en móvil. */
-.catalog-admin.catalog-editor { max-width: 1040px; margin-inline: auto; }
+.catalog-admin.catalog-editor {
+    max-width: 1040px;
+    margin-inline: auto;
+}
+
 .catalog-editor .editor-migas {
     width: 100%;
     padding: 0;
@@ -159,8 +177,13 @@ function guardar() {
     border-radius: 0;
 }
 
-.service-tabs :deep(.v-tab--selected) { font-weight: 700; }
-.service-tabs :deep(.v-tab__slider) { height: 3px; }
+.service-tabs :deep(.v-tab--selected) {
+    font-weight: 700;
+}
+
+.service-tabs :deep(.v-tab__slider) {
+    height: 3px;
+}
 
 /* Cada tarjeta separa una sección dentro del mismo formulario. */
 .catalog-form {
@@ -173,15 +196,43 @@ function guardar() {
     min-width: 0;
     padding: clamp(18px, 3vw, 28px);
 }
-.catalog-section h2 { margin-bottom: 14px; }
-.catalog-section p { margin: 8px 0 0; }
-.catalog-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 16px 20px; }
-.catalog-fields > :deep(.field), .catalog-section > :deep(.field) { margin-bottom: 0; }
-.catalog-wide { grid-column: 1 / -1; }
-.catalog-form .form-actions { justify-content: flex-end; margin: 4px 0 0; }
-.catalog-form a { color: #1f6f7f; text-decoration: underline; }
+
+.catalog-section h2 {
+    margin-bottom: 14px;
+}
+
+.catalog-section p {
+    margin: 8px 0 0;
+}
+
+.catalog-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 16px 20px;
+}
+
+.catalog-fields > :deep(.field), .catalog-section > :deep(.field) {
+    margin-bottom: 0;
+}
+
+.catalog-wide {
+    grid-column: 1 / -1;
+}
+
+.catalog-form .form-actions {
+    justify-content: flex-end;
+    margin: 4px 0 0;
+}
+
+.catalog-form a {
+    color: #1f6f7f;
+    text-decoration: underline;
+}
 
 @media (max-width: 680px) {
-    .catalog-fields { grid-template-columns: minmax(0, 1fr); }
+    .catalog-fields {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 </style>

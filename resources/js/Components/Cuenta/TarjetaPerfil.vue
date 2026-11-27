@@ -34,7 +34,10 @@ watch(() => props.editando, async (editando) => {
 <template>
     <v-card :id="id" tag="section" class="card tarjeta-perfil" :aria-labelledby="'titulo-' + id">
         <header class="tarjeta-perfil-encabezado">
-            <h2 :id="'titulo-' + id"><AppIcon :name="icono"/>{{ titulo }}</h2>
+            <h2 :id="'titulo-' + id">
+                <AppIcon :name="icono"/>
+                {{ titulo }}
+            </h2>
             <div v-if="!editando" ref="acciones" class="tarjeta-perfil-editar">
                 <AppButton variant="secondary" compact @click="emit('editar')">
                     {{ accionEditar || (datos.length ? 'Editar' : 'Agregar') }}

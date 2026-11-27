@@ -27,11 +27,14 @@ function textoEstadoActual(version) {
 <template>
     <details class="historial-presupuestos" :aria-label="titulo">
         <summary class="historial-resumen">
-            <span class="historial-titulo">{{ titulo }} <span>· {{ versiones.length }} {{ versiones.length === 1 ? 'versión' : 'versiones' }}</span></span>
+            <span class="historial-titulo">{{ titulo }} <span>· {{
+                    versiones.length
+                }} {{ versiones.length === 1 ? 'versión' : 'versiones' }}</span></span>
             <I class="historial-control" name="chevron-down"/>
         </summary>
         <ol>
-            <li v-for="version in versiones" :key="version.id" :class="{'version-borrador': version.status === 'draft'}">
+            <li v-for="version in versiones" :key="version.id"
+                :class="{'version-borrador': version.status === 'draft'}">
                 <a class="historial-version" :href="destino(version)"
                    :class="{'version-en-pantalla': String(version.id) === String(idActual)}"
                    :aria-current="String(version.id) === String(idActual) ? 'page' : undefined"
@@ -46,7 +49,9 @@ function textoEstadoActual(version) {
                             </span>
                         </span>
                         <span class="historial-detalle">
-                            <time :datetime="version.sent_at ?? version.created_at">{{ date(version.sent_at ?? version.created_at) }}</time>
+                            <time :datetime="version.sent_at ?? version.created_at">{{
+                                    date(version.sent_at ?? version.created_at)
+                                }}</time>
                             <span aria-hidden="true">·</span>
                             <strong>{{ money(version.total, version.currency_code) }}</strong>
                             <small v-if="textoEstadoActual(version)">{{ textoEstadoActual(version) }}</small>

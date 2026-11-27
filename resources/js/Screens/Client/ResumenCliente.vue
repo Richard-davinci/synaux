@@ -57,7 +57,8 @@ const recientes = computed(() => (props.data.requests ?? []).filter(request => r
                     </AppButton>
                 </li>
             </ul>
-            <p v-else class="sin-solicitudes">Todavía no enviaste solicitudes. Las preparaciones guardadas están en Estimaciones.</p>
+            <p v-else class="sin-solicitudes">Todavía no enviaste solicitudes. Las preparaciones guardadas están en
+                Estimaciones.</p>
         </section>
     </section>
 </template>

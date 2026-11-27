@@ -273,7 +273,8 @@ function save(publish) {
                     </template>
                     <template v-else-if="step === 3">
                         <div class="request-fields">
-                            <F v-model="form.contact.name" label="Nombre de contacto" autocomplete="name" maxlength="255"
+                            <F v-model="form.contact.name" label="Nombre de contacto" autocomplete="name"
+                               maxlength="255"
                                required :error="form.errors['contact.name']"/>
                             <F v-model="form.contact.email" label="Correo de contacto" type="email" autocomplete="email"
                                maxlength="254" required :error="form.errors['contact.email']"/>
@@ -281,14 +282,16 @@ function save(publish) {
                                autocomplete="organization" maxlength="255" :error="form.errors['contact.company']"/>
                             <F v-model="form.contact.phone" label="Teléfono (opcional)" type="tel" autocomplete="tel"
                                maxlength="50" :error="form.errors['contact.phone']"/>
-                            <F :model-value="form.contact.cuit" label="CUIT de facturación (opcional)" inputmode="numeric"
+                            <F :model-value="form.contact.cuit" label="CUIT de facturación (opcional)"
+                               inputmode="numeric"
                                placeholder="30-12345678-9" maxlength="13"
                                @update:model-value="form.contact.cuit = limitarCuit($event)"
                                @blur="form.contact.cuit = formatearCuit(form.contact.cuit)"
                                hint="11 dígitos. Se completa con el CUIT de Mi perfil."
                                :error="form.errors['contact.cuit']"/>
                         </div>
-                        <F v-model="form.contact.address" label="Domicilio para este pedido (opcional)" autocomplete="street-address"
+                        <F v-model="form.contact.address" label="Domicilio para este pedido (opcional)"
+                           autocomplete="street-address"
                            hint="Se completa con el domicilio guardado en Mi perfil. Podés editarlo para este pedido."
                            maxlength="500" :error="form.errors['contact.address']"/>
                     </template>
@@ -296,7 +299,10 @@ function save(publish) {
                         <B v-if="step > 1" variant="secondary" :disabled="form.processing || handoff.processing"
                            @click="step -= 1">Anterior</B>
                         <B type="submit" arrow :disabled="!selectedService || form.processing || handoff.processing">
-                            <template v-if="step === 3">{{ form.processing && form.publish ? 'Enviando…' : textoEnvio }}</template>
+                            <template v-if="step === 3">{{
+                                    form.processing && form.publish ? 'Enviando…' : textoEnvio
+                                }}
+                            </template>
                             <template v-else>Continuar</template>
                         </B>
                     </div>
@@ -305,12 +311,15 @@ function save(publish) {
                 <!-- El reinicio se ofrece en el flujo nuevo, con confirmación si hay datos para descartar. -->
                 <div class="acciones-borrador" v-if="(step >= 2 && authenticated) || puedeReiniciar">
                     <p v-if="step >= 2 && authenticated" class="draft-help">
-                        Si guardás ahora, vas a encontrar la preparación en Estimaciones. Al enviarla a synaux, pasará a Solicitudes.
+                        Si guardás ahora, vas a encontrar la preparación en Estimaciones. Al enviarla a synaux, pasará a
+                        Solicitudes.
                     </p>
                     <div class="acciones-borrador-botones">
                         <B v-if="step >= 2 && authenticated" variant="secondary"
                            :disabled="form.processing || handoff.processing || !canSaveDraft"
-                           @click="save(false)">{{ form.processing && !form.publish ? 'Guardando…' : 'Guardar en Estimaciones' }}</B>
+                           @click="save(false)">{{
+                                form.processing && !form.publish ? 'Guardando…' : 'Guardar en Estimaciones'
+                            }}</B>
                         <ReiniciarEstimacion v-if="puedeReiniciar"
                                              :deshabilitado="form.processing || handoff.processing"/>
                     </div>

@@ -86,7 +86,7 @@ class EliminarEstimacionTest extends TestCase
             ->assertSessionHas('pending_estimate')->assertSessionHas('pending_request');
         $this->post('/estimador/reiniciar', ['confirmed' => true])->assertRedirect('/estimador')
             ->assertSessionMissing('pending_estimate')->assertSessionMissing('pending_request');
-        $this->get('/estimador')->assertInertia(fn (Assert $page) => $page
+        $this->get('/estimador')->assertInertia(fn(Assert $page) => $page
             ->where('requestStep', 1)->where('requestDraft', null)->has('requestInitialAnswers', 0));
 
         $guardado = ['form' => ['id' => 19]];

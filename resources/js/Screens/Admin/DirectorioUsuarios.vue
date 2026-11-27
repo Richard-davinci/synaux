@@ -30,6 +30,7 @@ const roles = [
     {value: 'supervisor', label: 'Supervisor'},
     {value: 'profesional', label: 'Profesional interno'},
 ];
+
 function editarRol(user) {
     miembro.value = user;
     cambio.resetAndClearErrors();
@@ -39,10 +40,12 @@ function editarRol(user) {
 }
 
 function guardarEquipo() {
-    equipo.post('/admin/usuarios/equipo', {preserveScroll: true, onSuccess: () => {
-        equipo.resetAndClearErrors();
-        altaAbierta.value = false;
-    }});
+    equipo.post('/admin/usuarios/equipo', {
+        preserveScroll: true, onSuccess: () => {
+            equipo.resetAndClearErrors();
+            altaAbierta.value = false;
+        }
+    });
 }
 
 function guardarRol() {
@@ -153,18 +156,24 @@ function findUsers() {
                 </template>
                 <form class="formulario-equipo" @submit.prevent="guardarEquipo">
                     <template v-if="data.dominioEquipo">
-                        <F v-model="equipo.name" label="Nombre y apellido" maxlength="255" required :error="equipo.errors.name"/>
+                        <F v-model="equipo.name" label="Nombre y apellido" maxlength="255" required
+                           :error="equipo.errors.name"/>
                         <F v-model="equipo.email" label="Correo de la empresa" type="email" maxlength="254" required
-                           :hint="'El correo debe terminar en @' + data.dominioEquipo + '.'" :error="equipo.errors.email"/>
-                        <F v-model="equipo.rol" label="Rol en synaux" type="select" :options="roles" required :error="equipo.errors.rol"/>
+                           :hint="'El correo debe terminar en @' + data.dominioEquipo + '.'"
+                           :error="equipo.errors.email"/>
+                        <F v-model="equipo.rol" label="Rol en synaux" type="select" :options="roles" required
+                           :error="equipo.errors.rol"/>
                         <p class="detalle-activacion">La persona elegirá su contraseña con un enlace de activación.</p>
                         <div class="user-search-actions">
-                            <B type="submit" :disabled="equipo.processing">{{ equipo.processing ? 'Guardando…' : 'Crear cuenta' }}</B>
-                            <B variant="secondary" :disabled="equipo.processing" @click="altaAbierta = false">Cancelar</B>
+                            <B type="submit"
+                               :disabled="equipo.processing">{{ equipo.processing ? 'Guardando…' : 'Crear cuenta' }}</B>
+                            <B variant="secondary" :disabled="equipo.processing"
+                               @click="altaAbierta = false">Cancelar</B>
                         </div>
                     </template>
                     <template v-else>
-                        <p class="detalle-activacion">Configurá el dominio de correo del equipo para poder crear cuentas.</p>
+                        <p class="detalle-activacion">Configurá el dominio de correo del equipo para poder crear
+                            cuentas.</p>
                         <B href="/admin/organizacion#correo-equipo">Configurar correo del equipo</B>
                     </template>
                 </form>
@@ -172,7 +181,8 @@ function findUsers() {
         </T>
 
         <!-- El perfil elegido identifica a la cuenta. Solo el rol se envía al guardar. -->
-        <SidePanel v-if="esEquipo" v-model="rolAbierto" title="Cambiar rol" :persistent="cambio.processing || baja.processing">
+        <SidePanel v-if="esEquipo" v-model="rolAbierto" title="Cambiar rol"
+                   :persistent="cambio.processing || baja.processing">
             <div v-if="miembro" class="formulario-equipo">
                 <h2>{{ miembro.name }}</h2>
                 <p class="detalle-activacion">{{ miembro.email }}</p>
@@ -186,16 +196,22 @@ function findUsers() {
                     </fieldset>
                     <p v-if="cambio.errors.rol" class="error" role="alert">{{ cambio.errors.rol }}</p>
                     <div class="user-search-actions">
-                        <B type="submit" :disabled="cambio.processing || baja.processing || cambio.rol === miembro.rol_organizacion">Guardar rol</B>
-                        <B variant="secondary" :disabled="cambio.processing || baja.processing" @click="rolAbierto = false">Cancelar</B>
+                        <B type="submit"
+                           :disabled="cambio.processing || baja.processing || cambio.rol === miembro.rol_organizacion">Guardar
+                            rol</B>
+                        <B variant="secondary" :disabled="cambio.processing || baja.processing"
+                           @click="rolAbierto = false">Cancelar</B>
                     </div>
                 </form>
                 <div class="baja-equipo">
-                    <B v-if="!confirmarBaja" variant="ghost" :disabled="cambio.processing" @click="confirmarBaja = true">Quitar del equipo</B>
+                    <B v-if="!confirmarBaja" variant="ghost" :disabled="cambio.processing"
+                       @click="confirmarBaja = true">Quitar del equipo</B>
                     <template v-else>
-                        <p class="detalle-activacion">Se quitará el rol de esta cuenta y se revocará su enlace de activación pendiente.</p>
+                        <p class="detalle-activacion">Se quitará el rol de esta cuenta y se revocará su enlace de
+                            activación pendiente.</p>
                         <div class="user-search-actions">
-                            <B variant="secondary" :disabled="baja.processing" @click="quitarDelEquipo">Confirmar baja del equipo</B>
+                            <B variant="secondary" :disabled="baja.processing" @click="quitarDelEquipo">Confirmar baja
+                                del equipo</B>
                             <B variant="ghost" :disabled="baja.processing" @click="confirmarBaja = false">Volver</B>
                         </div>
                     </template>
@@ -206,9 +222,11 @@ function findUsers() {
         <!-- Se puede copiar el enlace incluso si el navegador no ofrece el menú nativo de compartir. -->
         <v-card v-if="enlace" tag="section" class="card alta-equipo" aria-labelledby="titulo-enlace">
             <h2 id="titulo-enlace">Enlace para {{ contacto }}</h2>
-            <p class="detalle-activacion">Compartilo por privado. Se puede usar una vez y vence en 48 horas. Si generás otro, el anterior queda invalidado.</p>
+            <p class="detalle-activacion">Compartilo por privado. Se puede usar una vez y vence en 48 horas. Si generás
+                otro, el anterior queda invalidado.</p>
             <label for="enlace-activacion">Enlace de activación</label>
-            <input id="enlace-activacion" ref="campoEnlace" class="enlace-activacion" type="text" :value="enlace" readonly/>
+            <input id="enlace-activacion" ref="campoEnlace" class="enlace-activacion" type="text" :value="enlace"
+                   readonly/>
             <div class="user-search-actions">
                 <B @click="copiarEnlace">Copiar enlace</B>
                 <B v-if="compartirNativo" variant="secondary" @click="compartirEnlace">Compartir enlace</B>
@@ -227,7 +245,8 @@ function findUsers() {
         </form>
 
         <!-- La tabla prioriza la identidad de la cuenta y conserva los encabezados al desplazarse en móvil. -->
-        <div class="table-scroll workspace-table users-table" role="region" :aria-label="esEquipo ? 'Miembros del equipo' : 'Clientes vinculados'" tabindex="0">
+        <div class="table-scroll workspace-table users-table" role="region"
+             :aria-label="esEquipo ? 'Miembros del equipo' : 'Clientes vinculados'" tabindex="0">
             <table>
                 <thead>
                 <tr>
@@ -246,31 +265,43 @@ function findUsers() {
                     </td>
                     <td v-if="esEquipo">
                         <span class="user-role" :class="{ 'user-role-admin': user.is_admin }">
-                            {{ user.is_admin ? 'Administrador de la plataforma' : roles.find(rol => rol.value === user.rol_organizacion)?.label }}
+                            {{
+                                user.is_admin ? 'Administrador de la plataforma' : roles.find(rol => rol.value === user.rol_organizacion)?.label
+                            }}
                         </span>
                     </td>
-                    <td><time v-if="user.created_at" :datetime="user.created_at">{{ date(user.created_at) }}</time><span v-else>—</span></td>
-                    <td><div class="user-search-actions">
-                        <AccionIcono v-if="!esEquipo" icono="eye" texto="Ver ficha" :href="profileHref(user.id)"
-                                     :etiqueta="'Ver ficha de ' + user.name"/>
-                        <AccionIcono v-if="user.activacion_pendiente && user.rol_organizacion" icono="share"
-                                     texto="Compartir enlace de activación" :deshabilitada="preparandoEnlace"
-                                     :etiqueta="'Compartir enlace de activación de ' + user.name" @click="prepararEnlace(user)"/>
-                        <AccionIcono v-if="esEquipo && !user.is_admin" icono="edit" texto="Cambiar rol"
-                                     :etiqueta="'Cambiar rol de ' + user.name" @click="editarRol(user)"/>
-                    </div></td>
+                    <td>
+                        <time v-if="user.created_at" :datetime="user.created_at">{{ date(user.created_at) }}</time>
+                        <span v-else>—</span></td>
+                    <td>
+                        <div class="user-search-actions">
+                            <AccionIcono v-if="!esEquipo" icono="eye" texto="Ver ficha" :href="profileHref(user.id)"
+                                         :etiqueta="'Ver ficha de ' + user.name"/>
+                            <AccionIcono v-if="user.activacion_pendiente && user.rol_organizacion" icono="share"
+                                         texto="Compartir enlace de activación" :deshabilitada="preparandoEnlace"
+                                         :etiqueta="'Compartir enlace de activación de ' + user.name"
+                                         @click="prepararEnlace(user)"/>
+                            <AccionIcono v-if="esEquipo && !user.is_admin" icono="edit" texto="Cambiar rol"
+                                         :etiqueta="'Cambiar rol de ' + user.name" @click="editarRol(user)"/>
+                        </div>
+                    </td>
                 </tr>
                 <tr v-if="!data.users.data.length">
-                    <td :colspan="esEquipo ? 4 : 3">{{ data.userSearch ? 'No encontramos resultados con esa búsqueda.' : esEquipo ? 'Todavía no hay miembros en el equipo.' : 'Todavía no hay clientes vinculados.' }}</td>
+                    <td :colspan="esEquipo ? 4 : 3">{{
+                            data.userSearch ? 'No encontramos resultados con esa búsqueda.' : esEquipo ? 'Todavía no hay miembros en el equipo.' : 'Todavía no hay clientes vinculados.'
+                        }}
+                    </td>
                 </tr>
                 </tbody>
             </table>
         </div>
 
         <div v-if="data.users.data.length || data.users.prev_page_url" class="users-results">
-            <p v-if="data.users.data.length">{{ data.users.from }}–{{ data.users.to }} de {{ data.users.total }} {{ esEquipo ? 'miembros' : 'clientes' }}</p>
+            <p v-if="data.users.data.length">{{ data.users.from }}–{{ data.users.to }} de {{ data.users.total }}
+                {{ esEquipo ? 'miembros' : 'clientes' }}</p>
             <nav v-if="data.users.prev_page_url || data.users.next_page_url" aria-label="Páginas de usuarios">
-                <B v-if="data.users.prev_page_url" :href="data.users.prev_page_url" compact variant="secondary">Anterior</B>
+                <B v-if="data.users.prev_page_url" :href="data.users.prev_page_url" compact
+                   variant="secondary">Anterior</B>
                 <B v-if="data.users.next_page_url" :href="data.users.next_page_url" compact variant="secondary">Siguiente</B>
             </nav>
         </div>
@@ -279,13 +310,46 @@ function findUsers() {
 
 <style scoped>
 /* La ficha de equipo comparte la grilla de los formularios del panel. */
-.alta-equipo { padding: 20px; margin-bottom: 20px; }
-.alta-equipo h2 { margin: 0 0 16px; }
-.detalle-activacion { margin: 0 0 14px; color: #446075; }
-.enlace-activacion { display: block; width: 100%; margin: 5px 0 14px; padding: 9px 12px; border: 1px solid #1f6f7f55; border-radius: 8px; }
-.estado-activacion { display: block; margin-top: 4px; color: #1f6f7f; font-size: .875rem; font-weight: 700; }
-.formulario-equipo { padding: 24px; }
-.formulario-equipo h2 { margin: 0 0 4px; font-size: 1.2rem; }
+.alta-equipo {
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.alta-equipo h2 {
+    margin: 0 0 16px;
+}
+
+.detalle-activacion {
+    margin: 0 0 14px;
+    color: #446075;
+}
+
+.enlace-activacion {
+    display: block;
+    width: 100%;
+    margin: 5px 0 14px;
+    padding: 9px 12px;
+    border: 1px solid #1f6f7f55;
+    border-radius: 8px;
+}
+
+.estado-activacion {
+    display: block;
+    margin-top: 4px;
+    color: #1f6f7f;
+    font-size: .875rem;
+    font-weight: 700;
+}
+
+.formulario-equipo {
+    padding: 24px;
+}
+
+.formulario-equipo h2 {
+    margin: 0 0 4px;
+    font-size: 1.2rem;
+}
+
 /* Cada rol ocupa una fila pulsable. El radio mantiene su medida frente a los estilos generales de inputs. */
 .roles-equipo {
     display: grid;
@@ -341,7 +405,12 @@ function findUsers() {
 .roles-equipo span {
     overflow-wrap: anywhere;
 }
-.baja-equipo { margin-top: 24px; padding-top: 16px; border-top: 1px solid #1f6f7f22; }
+
+.baja-equipo {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid #1f6f7f22;
+}
 
 /* La búsqueda y la paginación se adaptan a una línea nueva si falta ancho. */
 .user-search-actions,

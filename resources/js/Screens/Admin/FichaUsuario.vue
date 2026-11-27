@@ -50,7 +50,8 @@ defineProps({data: {type: Object, required: true}});
                 <h2>Presupuestos recientes</h2>
                 <ul v-if="data.presupuestosCliente.length">
                     <li v-for="presupuesto in data.presupuestosCliente" :key="presupuesto.id">
-                        <a :href="'/presupuestos/' + presupuesto.id">{{ presupuesto.title }} · V{{ presupuesto.version_number }}</a>
+                        <a :href="'/presupuestos/' + presupuesto.id">{{ presupuesto.title }} ·
+                            V{{ presupuesto.version_number }}</a>
                     </li>
                 </ul>
                 <p v-else>No hay presupuestos enviados.</p>
@@ -66,7 +67,8 @@ defineProps({data: {type: Object, required: true}});
                 </div>
             </div>
             <div v-if="data.clientProjects.data.length" class="stack">
-                <v-card v-for="project in data.clientProjects.data" :key="project.id" class="card list-row user-project">
+                <v-card v-for="project in data.clientProjects.data" :key="project.id"
+                        class="card list-row user-project">
                     <div>
                         <h3>{{ project.title }}</h3>
                         <div class="user-project-status">
@@ -80,8 +82,10 @@ defineProps({data: {type: Object, required: true}});
             <p v-else class="user-projects-empty">Esta cuenta todavía no tiene proyectos asociados.</p>
             <nav v-if="data.clientProjects.prev_page_url || data.clientProjects.next_page_url"
                  class="user-project-pages" aria-label="Páginas de proyectos">
-                <B v-if="data.clientProjects.prev_page_url" :href="data.clientProjects.prev_page_url" compact variant="secondary">Anterior</B>
-                <B v-if="data.clientProjects.next_page_url" :href="data.clientProjects.next_page_url" compact variant="secondary">Siguiente</B>
+                <B v-if="data.clientProjects.prev_page_url" :href="data.clientProjects.prev_page_url" compact
+                   variant="secondary">Anterior</B>
+                <B v-if="data.clientProjects.next_page_url" :href="data.clientProjects.next_page_url" compact
+                   variant="secondary">Siguiente</B>
             </nav>
         </section>
     </section>
@@ -103,11 +107,31 @@ defineProps({data: {type: Object, required: true}});
     overflow-wrap: anywhere;
 }
 
-.historial-cliente { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; margin-top: 18px; }
-.historial-seccion { padding: 20px; }
-.historial-seccion h2 { margin: 0 0 10px; font-size: 1.15rem; }
-.historial-seccion ul { margin: 0; padding-left: 20px; overflow-wrap: anywhere; }
-.historial-seccion li + li { margin-top: 8px; }
+.historial-cliente {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+    gap: 16px;
+    margin-top: 18px;
+}
+
+.historial-seccion {
+    padding: 20px;
+}
+
+.historial-seccion h2 {
+    margin: 0 0 10px;
+    font-size: 1.15rem;
+}
+
+.historial-seccion ul {
+    margin: 0;
+    padding-left: 20px;
+    overflow-wrap: anywhere;
+}
+
+.historial-seccion li + li {
+    margin-top: 8px;
+}
 
 .user-projects {
     margin-top: 28px;

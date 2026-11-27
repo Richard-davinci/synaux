@@ -46,8 +46,10 @@ const listados = {
 const listado = computed(() => {
     const configuracion = listados[seccion.value];
     if (props.data.area === 'profesional' && props.data.auth?.rol_organizacion === 'profesional' && seccion.value === 'proyectos') {
-        return {...configuracion, descripcion: 'Consultá los proyectos que te asignó Gestión.',
-            vacio: 'Los proyectos que te asigne Gestión aparecerán acá.'};
+        return {
+            ...configuracion, descripcion: 'Consultá los proyectos que te asignó Gestión.',
+            vacio: 'Los proyectos que te asigne Gestión aparecerán acá.'
+        };
     }
     return configuracion;
 });
@@ -159,15 +161,20 @@ function destino(registro) {
                 <StatusBadge :status="registro.display_status ?? registro.status" :request="seccion === 'solicitudes'"/>
                 <div class="fila-acciones">
                     <AppButton :href="destino(registro)" variant="ghost" compact>
-                        {{ registro.request_id ? 'Continuar preparación' : agrupaPresupuestos ? 'Ver presupuesto' : 'Ver detalle' }}
+                        {{
+                            registro.request_id ? 'Continuar preparación' : agrupaPresupuestos ? 'Ver presupuesto' : 'Ver detalle'
+                        }}
                     </AppButton>
-                    <DeleteEstimateButton v-if="seccion === 'estimaciones' && !registro.request_id" :estimate="registro" compact/>
+                    <DeleteEstimateButton v-if="seccion === 'estimaciones' && !registro.request_id" :estimate="registro"
+                                          compact/>
                 </div>
-                <HistorialPresupuesto v-if="registro.historial?.length" :versiones="registro.historial" class="historial-en-lista"/>
+                <HistorialPresupuesto v-if="registro.historial?.length" :versiones="registro.historial"
+                                      class="historial-en-lista"/>
             </li>
         </ul>
 
-        <EmptyState v-else-if="filtrosActivos" title="Sin resultados" text="Probá con otro título, identificador o estado."/>
+        <EmptyState v-else-if="filtrosActivos" title="Sin resultados"
+                    text="Probá con otro título, identificador o estado."/>
         <EmptyState v-else-if="tienePresupuestosEnProyectos" title="No hay presupuestos para revisar"
                     text="Consultá los presupuestos aceptados y sus versiones en Mis proyectos."
                     href="/cliente/proyectos" action="Ir a Mis proyectos"/>
@@ -235,7 +242,9 @@ function destino(registro) {
 }
 
 /* El historial ocupa el ancho completo debajo del resumen de la fila. */
-.historial-en-lista { grid-column: 1 / -1; }
+.historial-en-lista {
+    grid-column: 1 / -1;
+}
 
 @media (max-width: 700px) {
 

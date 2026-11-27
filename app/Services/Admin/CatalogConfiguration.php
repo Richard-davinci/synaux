@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\DB;
 
 class CatalogConfiguration
 {
-    public function __construct(private ServiceCatalog $catalog) {}
+    public function __construct(private ServiceCatalog $catalog)
+    {
+    }
 
     // Consulta la configuración del catálogo y sus relaciones para las pantallas administrativas.
     public function data(): array

@@ -100,8 +100,7 @@ class CatalogAdministrationTest extends TestCase
         $this->post('/admin/guardar/servicios', [...$values, 'id' => $service->id, 'active' => true])->assertSessionHasNoErrors();
         $this->assertDatabaseHas('services', ['id' => $service->id, 'active' => true, 'updated_at' => '2026-11-25 15:00:00']);
         $this->assertDatabaseHas('services', ['slug' => 'tienda-online', 'updated_at' => null]);
-        $this->get('/admin/servicios')->assertInertia(fn(Assert $page) => $page->where('administration.services', fn($services) =>
-            collect($services)->firstWhere('id', $service->id)['updated_at'] === '2026-11-25T15:00:00.000000Z'));
+        $this->get('/admin/servicios')->assertInertia(fn(Assert $page) => $page->where('administration.services', fn($services) => collect($services)->firstWhere('id', $service->id)['updated_at'] === '2026-11-25T15:00:00.000000Z'));
         $this->travelBack();
         foreach ($prices as $table => $snapshot) {
             $this->assertSame($snapshot, DB::table($table)->orderBy('id')->get()->toJson());

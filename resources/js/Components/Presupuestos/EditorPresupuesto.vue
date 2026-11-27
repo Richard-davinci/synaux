@@ -121,22 +121,31 @@ const planPago = computed(() => {
     const sena = Math.round(totalCentavos.value * porcentaje / 100);
     const cuotas = [];
     if (sena > 0) cuotas.push({
-        concepto: 'sena', titulo: 'Anticipo', porcentaje, momento: 'Al aceptar el presupuesto y antes de iniciar el proyecto',
+        concepto: 'sena',
+        titulo: 'Anticipo',
+        porcentaje,
+        momento: 'Al aceptar el presupuesto y antes de iniciar el proyecto',
         importe_centavos: sena,
     });
     if (quote.modalidad_pago === 'anticipo_dos_hitos' && totalCentavos.value > 0) {
         const restante = totalCentavos.value - sena;
         const intermedio = Math.floor(restante / 2);
-        cuotas.push({concepto: 'hito_intermedio', titulo: 'Segundo pago',
+        cuotas.push({
+            concepto: 'hito_intermedio', titulo: 'Segundo pago',
             porcentaje: Math.floor((100 - porcentaje) / 2),
-            momento: quote.momento_hito_intermedio, importe_centavos: intermedio});
-        cuotas.push({concepto: 'saldo_final', titulo: 'Pago final',
+            momento: quote.momento_hito_intermedio, importe_centavos: intermedio
+        });
+        cuotas.push({
+            concepto: 'saldo_final', titulo: 'Pago final',
             porcentaje: 100 - porcentaje - Math.floor((100 - porcentaje) / 2),
-            momento: quote.momento_pago_final, importe_centavos: restante - intermedio});
+            momento: quote.momento_pago_final, importe_centavos: restante - intermedio
+        });
     } else if (totalCentavos.value > 0) {
-        cuotas.push({concepto: sena ? 'saldo' : 'pago_total',
+        cuotas.push({
+            concepto: sena ? 'saldo' : 'pago_total',
             titulo: sena ? 'Saldo' : 'Pago total', porcentaje: 100 - porcentaje, momento: 'Al finalizar el trabajo',
-            importe_centavos: totalCentavos.value - sena});
+            importe_centavos: totalCentavos.value - sena
+        });
     }
     return {cuotas, instrucciones: quote.instrucciones_transferencia};
 });
@@ -149,8 +158,13 @@ const numeroVersion = computed(() => {
         : Math.max(selected.version_number ?? 0, ...versiones.map(item => item.version_number)) + 1);
 });
 const documentPreview = computed(() => ({
-    ...quote.data(), subtotal: subtotal.value, total: total.value, version_number: numeroVersion.value, plan_pago: planPago.value,
-    created_at: selected.status === 'draft' ? selected.created_at : undefined, sent_at: null,
+    ...quote.data(),
+    subtotal: subtotal.value,
+    total: total.value,
+    version_number: numeroVersion.value,
+    plan_pago: planPago.value,
+    created_at: selected.status === 'draft' ? selected.created_at : undefined,
+    sent_at: null,
 }));
 
 // Solo un importe fijo en la misma moneda se propone como precio editable del nuevo presupuesto.
@@ -247,7 +261,9 @@ function save(send) {
     <section class="page shell budget-editor" :class="{'budget-editor--wide': vistaPreviaMovil || !vistaPreviaVisible}">
         <MigasNavegacion :niveles="migas" dentro-de-contenedor class="budget-editor-breadcrumbs"/>
         <div class="budget-heading"><p class="eyebrow">Gestión · Presupuesto formal</p>
-            <h1>{{ selected.budget_id && selected.status !== 'draft' ? 'Prepará la próxima versión' : 'Prepará el presupuesto' }}</h1>
+            <h1>{{
+                    selected.budget_id && selected.status !== 'draft' ? 'Prepará la próxima versión' : 'Prepará el presupuesto'
+                }}</h1>
             <p>{{
                     direct ? 'Cargá los datos del cliente, definí los servicios y prepará el PDF.' : 'Revisá el pedido del cliente, definí los servicios y comprobá el documento antes de enviarlo.'
                 }}</p></div>
@@ -258,7 +274,8 @@ function save(send) {
             <div>
                 <strong v-if="selected.status === 'draft'">Borrador interno · Versión {{ numeroVersion }}</strong>
                 <strong v-else>Preparación de versión {{ numeroVersion }}</strong>
-                <p v-if="selected.status === 'draft'">Este documento todavía no fue enviado al cliente. Estás editando el borrador actual.</p>
+                <p v-if="selected.status === 'draft'">Este documento todavía no fue enviado al cliente. Estás editando
+                    el borrador actual.</p>
                 <p v-else>Las versiones enviadas se conservan. Esta será una nueva versión del presupuesto.</p>
             </div>
         </div>
@@ -266,7 +283,8 @@ function save(send) {
             <div class="budget-editor-flow">
                 <v-stepper v-model="step" :items="pasosPresupuesto" item-title="title" item-value="value"
                            :item-props="true" class="budget-stepper" flat hide-actions non-linear>
-                    <B v-if="vistaPreviaMovil" variant="secondary" compact :disabled="quote.processing" @click="openBudgetPreview">
+                    <B v-if="vistaPreviaMovil" variant="secondary" compact :disabled="quote.processing"
+                       @click="openBudgetPreview">
                         Vista previa ampliada
                     </B>
                     <B v-else-if="!vistaPreviaVisible" variant="secondary" compact @click="vistaPreviaVisible = true">
@@ -283,12 +301,14 @@ function save(send) {
                 <div v-if="needsIssuer" class="editor-note" role="status">
                     <template v-if="emiteOrganizacion">
                         <p>Faltan los datos de emisión de synaux. Se administran en Datos de la organización.</p>
-                        <B v-if="data.auth?.puede_administrar" href="/admin/organizacion#emision" variant="secondary" compact>Completar datos de la organización</B>
+                        <B v-if="data.auth?.puede_administrar" href="/admin/organizacion#emision" variant="secondary"
+                           compact>Completar datos de la organización</B>
                         <p v-else>Pedile a un administrador que los complete.</p>
                     </template>
                     <template v-else>
                         <p>Completá tu perfil profesional antes de guardar o enviar el presupuesto.</p>
-                        <B v-if="data.stageTwo" href="/profesional/perfil" variant="secondary" compact>Completar perfil profesional</B>
+                        <B v-if="data.stageTwo" href="/profesional/perfil" variant="secondary" compact>Completar perfil
+                            profesional</B>
                     </template>
                 </div>
 
@@ -297,23 +317,28 @@ function save(send) {
                     <v-card class="card budget-panel">
                         <BudgetSourceFields v-if="step === 1" :quote="quote" :selected="selected" :data="data"
                                             :direct="direct" :source="source" :request-options="requestOptions"/>
-                        <BudgetLines v-else-if="step === 2" :quote="quote" :line-cents="lineCents" :price-hint="priceHint"
+                        <BudgetLines v-else-if="step === 2" :quote="quote" :line-cents="lineCents"
+                                     :price-hint="priceHint"
                                      @add-item="quote.items.push(emptyItem())"/>
                         <BudgetTerms v-else :quote="quote" :direct="direct" :configura-pago="configuraPago"
                                      :requiere-transferencia="total > 0"/>
                         <!-- Una sola tasa de IVA se comparte entre servicios, condiciones y documento. -->
                         <BudgetVatFields v-if="step > 1" v-model="includeVat" :quote="quote"/>
                         <p v-if="source && !canPrepare" class="editor-note" role="status">
-                            Esta solicitud ya no está abierta. Consultá el presupuesto y el estado del proyecto antes de continuar.
+                            Esta solicitud ya no está abierta. Consultá el presupuesto y el estado del proyecto antes de
+                            continuar.
                         </p>
                         <div class="form-actions">
-                            <B v-if="step > 1" variant="secondary" compact :disabled="quote.processing" @click="step -= 1">
+                            <B v-if="step > 1" variant="secondary" compact :disabled="quote.processing"
+                               @click="step -= 1">
                                 Anterior
                             </B>
                             <span v-else/>
                             <div class="budget-next-actions">
-                                <B variant="neutro" compact :disabled="quote.processing" :href="cancelarHref">Cancelar</B>
-                                <B type="submit" compact :disabled="!canPrepare || needsIssuer || quote.processing" arrow>
+                                <B variant="neutro" compact :disabled="quote.processing"
+                                   :href="cancelarHref">Cancelar</B>
+                                <B type="submit" compact :disabled="!canPrepare || needsIssuer || quote.processing"
+                                   arrow>
                                     {{ step === 3 ? 'Revisar documento' : 'Continuar' }}
                                 </B>
                             </div>
@@ -321,7 +346,8 @@ function save(send) {
                     </v-card>
                 </form>
                 <div v-if="!vistaPreviaVisible" class="budget-hidden-actions">
-                    <B variant="secondary" compact :disabled="!canPrepare || needsIssuer || quote.processing" @click="save(false)">
+                    <B variant="secondary" compact :disabled="!canPrepare || needsIssuer || quote.processing"
+                       @click="save(false)">
                         Guardar borrador
                     </B>
                 </div>

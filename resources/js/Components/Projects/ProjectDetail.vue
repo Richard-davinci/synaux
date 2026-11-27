@@ -47,7 +47,8 @@ const guidance = computed(() => ({
         <div class="project-detail">
             <B v-if="data.area !== 'cliente'" :href="listadoProyectos"
                variant="ghost">← Volver a proyectos</B>
-            <T :eyebrow="data.area === 'cliente' ? undefined : 'PRY-' + project.id + ' · Proyecto'" :title="project.title">
+            <T :eyebrow="data.area === 'cliente' ? undefined : 'PRY-' + project.id + ' · Proyecto'"
+               :title="project.title">
                 <div class="button-row">
                     <S :status="project.status"/>
                     <B v-if="data.area === 'gestion' && (data.auth?.puede_gestionar ?? data.auth?.is_admin) && !data.preview"
@@ -55,8 +56,11 @@ const guidance = computed(() => ({
                 </div>
             </T>
             <v-card v-if="data.pagos?.length" class="card cierre-proyecto">
-                <div><span class="eyebrow">ENTREGA</span><strong>{{ entregaRealizada ? 'Trabajo completado' : 'En curso' }}</strong></div>
-                <div v-if="estadoPagosPosteriores"><span class="eyebrow">PAGOS RESTANTES</span><strong>{{ estadoPagosPosteriores }}</strong></div>
+                <div><span class="eyebrow">ENTREGA</span><strong>{{
+                        entregaRealizada ? 'Trabajo completado' : 'En curso'
+                    }}</strong></div>
+                <div v-if="estadoPagosPosteriores"><span
+                    class="eyebrow">PAGOS RESTANTES</span><strong>{{ estadoPagosPosteriores }}</strong></div>
             </v-card>
             <div class="project-guidance"><I :name="project.status === 'completed' ? 'check' : 'folder'"/>
                 <div><strong>{{ guidance[0] }}</strong>
@@ -99,9 +103,11 @@ const guidance = computed(() => ({
                             <h3>Datos para la transferencia</h3>
                             <p class="preserve-lines">{{ budget.plan_pago.instrucciones }}</p>
                         </div>
-                        <PagoProyecto v-for="pago in data.pagos" :key="pago.id" :pago="pago" :cuota="cuotasPorConcepto[pago.concepto]"
+                        <PagoProyecto v-for="pago in data.pagos" :key="pago.id" :pago="pago"
+                                      :cuota="cuotasPorConcepto[pago.concepto]"
                                       :moneda="budget.currency_code" :proyecto-id="project.id"
-                                      :puede-presentar="data.puedePresentarComprobante" :puede-revisar="data.puedeRevisarComprobante"/>
+                                      :puede-presentar="data.puedePresentarComprobante"
+                                      :puede-revisar="data.puedeRevisarComprobante"/>
                     </v-card>
                     <v-card class="card next-steps"><p class="eyebrow">Qué sigue</p>
                         <h2>Próximos pasos</h2>
@@ -159,24 +165,50 @@ const guidance = computed(() => ({
                                                                             variant="secondary">Descargar presupuesto
                             PDF</B></div>
                         <HistorialPresupuesto v-if="data.historialPresupuestos?.length" class="historial-del-proyecto"
-                                              :versiones="data.historialPresupuestos" titulo="Historial del presupuesto"/>
+                                              :versiones="data.historialPresupuestos"
+                                              titulo="Historial del presupuesto"/>
                     </v-card>
                 </aside>
             </div>
         </div>
-        <ProjectUpdate v-if="updating"  :project="{...project, pagos: data.pagos}" @close="updating = false"/>
+        <ProjectUpdate v-if="updating" :project="{...project, pagos: data.pagos}" @close="updating = false"/>
     </section>
 </template>
 
 <style scoped>
 /* El seguimiento y las condiciones se leen en columnas amplias y se apilan en móvil. */
-.historial-del-proyecto { margin-top: 16px; }
-.pagos-proyecto { display: grid; gap: 12px; }
-.cierre-proyecto { display: flex; flex-wrap: wrap; gap: 20px 36px; }
-.cierre-proyecto > div { display: grid; gap: 4px; }
-.cierre-proyecto strong { color: #153b64; }
-.cierre-proyecto .eyebrow { margin: 0; }
-.pagos-proyecto h3 { font-size: .95rem; }
+.historial-del-proyecto {
+    margin-top: 16px;
+}
+
+.pagos-proyecto {
+    display: grid;
+    gap: 12px;
+}
+
+.cierre-proyecto {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px 36px;
+}
+
+.cierre-proyecto > div {
+    display: grid;
+    gap: 4px;
+}
+
+.cierre-proyecto strong {
+    color: #153b64;
+}
+
+.cierre-proyecto .eyebrow {
+    margin: 0;
+}
+
+.pagos-proyecto h3 {
+    font-size: .95rem;
+}
+
 .project-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
@@ -297,14 +329,39 @@ const guidance = computed(() => ({
 }
 
 @media (max-width: 900px) {
-    .historial-del-proyecto { margin-top: 16px; }
-.pagos-proyecto { display: grid; gap: 12px; }
-.cierre-proyecto { display: flex; flex-wrap: wrap; gap: 20px 36px; }
-.cierre-proyecto > div { display: grid; gap: 4px; }
-.cierre-proyecto strong { color: #153b64; }
-.cierre-proyecto .eyebrow { margin: 0; }
-.pagos-proyecto h3 { font-size: .95rem; }
-.project-grid {
+    .historial-del-proyecto {
+        margin-top: 16px;
+    }
+
+    .pagos-proyecto {
+        display: grid;
+        gap: 12px;
+    }
+
+    .cierre-proyecto {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px 36px;
+    }
+
+    .cierre-proyecto > div {
+        display: grid;
+        gap: 4px;
+    }
+
+    .cierre-proyecto strong {
+        color: #153b64;
+    }
+
+    .cierre-proyecto .eyebrow {
+        margin: 0;
+    }
+
+    .pagos-proyecto h3 {
+        font-size: .95rem;
+    }
+
+    .project-grid {
         grid-template-columns: 1fr;
     }
 

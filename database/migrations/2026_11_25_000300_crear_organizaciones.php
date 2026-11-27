@@ -42,7 +42,7 @@ return new class extends Migration {
         ]);
 
         $administradores->select('id')->chunkById(500, function ($usuarios) use ($id) {
-            DB::table('organizacion_miembros')->insert($usuarios->map(fn ($usuario) => [
+            DB::table('organizacion_miembros')->insert($usuarios->map(fn($usuario) => [
                 'organizacion_id' => $id, 'user_id' => $usuario->id, 'rol' => 'administrador',
             ])->all());
         });

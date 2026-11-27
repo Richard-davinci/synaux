@@ -5,7 +5,14 @@ import I from '../UI/AppIcon.vue';
 import {date, money} from '../../support/formatters';
 
 // El editor y el documento recibido comparten los datos de una versión, sin consultar perfiles actuales.
-const props = defineProps({budget: Object, client: Object, issuer: Object, compact: Boolean, example: Boolean, estimacion: Object});
+const props = defineProps({
+    budget: Object,
+    client: Object,
+    issuer: Object,
+    compact: Boolean,
+    example: Boolean,
+    estimacion: Object
+});
 const pending = computed(() => (props.budget.items ?? []).some(item => item.unit_price === '' || item.unit_price == null));
 // Los documentos anteriores conservan cantidad y precio unitario solo si el concepto los necesitaba.
 const mostrarCantidad = computed(() => (props.budget.items ?? []).some(item => Number(item.quantity) !== 1));
@@ -14,7 +21,8 @@ const scope = description => String(description ?? '').split('\n').slice(1).join
 const concept = description => String(description ?? '').split('\n')[0] || 'Servicio por definir';
 </script>
 <template>
-    <article class="budget-document" :class="{ 'budget-document-compact': compact, 'documento-estimacion': estimacion }">
+    <article class="budget-document"
+             :class="{ 'budget-document-compact': compact, 'documento-estimacion': estimacion }">
         <header class="document-heading">
             <BrandLogo :with-slogan="false" variant="white"/>
             <div>
@@ -22,7 +30,8 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
                 <!-- La estimación en curso y la muestra pública se identifican sin numeración oficial. -->
                 <p v-if="estimacion" class="document-number">Vista previa en vivo</p>
                 <p v-else-if="example" class="document-number">Propuesta de ejemplo</p>
-                <p v-else class="document-number">{{ budget.budget_id ? 'PRE-' + budget.budget_id : 'Borrador' }} · Versión
+                <p v-else class="document-number">{{ budget.budget_id ? 'PRE-' + budget.budget_id : 'Borrador' }} ·
+                    Versión
                     {{ budget.version_number ?? 1 }}</p>
             </div>
         </header>
@@ -31,7 +40,10 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
                 date(budget.sent_at ?? budget.created_at ?? new Date().toISOString())
             }}</span><span>Válido hasta: {{ date(budget.valid_until) }}</span></div>
         <div class="document-content">
-            <component :is="estimacion ? 'h3' : 'h2'" class="document-title">{{ budget.title || 'Tu proyecto' }}</component>
+            <component :is="estimacion ? 'h3' : 'h2'" class="document-title">{{
+                    budget.title || 'Tu proyecto'
+                }}
+            </component>
             <details v-if="estimacion?.alcance" class="documento-alcance">
                 <summary>Descripción del proyecto</summary>
                 <p class="preserve-lines">{{ estimacion.alcance }}</p>
@@ -75,7 +87,8 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
                     <tbody>
                     <tr v-for="(item,index) in budget.items" :key="index">
                         <td><strong>{{ concept(item.description) }}</strong>
-                            <p v-if="(!compact || example || estimacion) && scope(item.description)" class="preserve-lines">
+                            <p v-if="(!compact || example || estimacion) && scope(item.description)"
+                               class="preserve-lines">
                                 {{ scope(item.description) }}</p></td>
                         <td v-if="!compact && mostrarCantidad">{{ item.quantity }}</td>
                         <td v-if="!compact && mostrarCantidad">{{
@@ -89,7 +102,10 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
                         </td>
                     </tr>
                     <tr v-if="!budget.items?.length">
-                        <td :colspan="compact || !mostrarCantidad ? 2 : 4">{{ estimacion ? 'Elegí un servicio para ver su referencia.' : 'Agregá los servicios para preparar el presupuesto.' }}</td>
+                        <td :colspan="compact || !mostrarCantidad ? 2 : 4">{{
+                                estimacion ? 'Elegí un servicio para ver su referencia.' : 'Agregá los servicios para preparar el presupuesto.'
+                            }}
+                        </td>
                     </tr>
                     </tbody>
                 </table>
@@ -119,7 +135,8 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
                     <dd>{{ money(budget.total, budget.currency_code) }}</dd>
                 </div>
             </dl>
-            <p v-if="!estimacion && pending" class="document-warning">Hay servicios pendientes de cotizar. El total se completará al
+            <p v-if="!estimacion && pending" class="document-warning">Hay servicios pendientes de cotizar. El total se
+                completará al
                 definir sus precios.</p>
         </div>
         <!-- La landing resume las condiciones; las vistas de trabajo conservan el documento completo. -->
@@ -129,7 +146,8 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
         </section>
         <section v-else-if="compact" class="document-conditions document-conditions-summary">
             <p v-if="example">Entrega estimada: {{ budget.estimated_delivery_days }} días desde el inicio acordado.</p>
-            <p v-else>Entrega estimada: {{ budget.estimated_delivery_days }} días. Alcance y condiciones a acordar en la propuesta formal.</p>
+            <p v-else>Entrega estimada: {{ budget.estimated_delivery_days }} días. Alcance y condiciones a acordar en la
+                propuesta formal.</p>
             <p v-if="example && budget.terms">{{ budget.terms }}</p>
         </section>
         <section v-else class="document-conditions"><h3 class="document-section-title"><I name="check"/>Plazos y
@@ -143,7 +161,8 @@ const concept = description => String(description ?? '').split('\n')[0] || 'Serv
             <h3 class="document-section-title"><I name="receipt"/>Plan de pago</h3>
             <div>
                 <p v-for="cuota in budget.plan_pago.cuotas" :key="cuota.concepto">
-                    <strong>{{ cuota.titulo }}<template v-if="cuota.porcentaje"> · {{ cuota.porcentaje }}%</template>
+                    <strong>{{ cuota.titulo }}
+                        <template v-if="cuota.porcentaje"> · {{ cuota.porcentaje }}%</template>
                         · {{ money(cuota.importe_centavos / 100, budget.currency_code) }}</strong>
                     · {{ cuota.momento }}
                 </p>

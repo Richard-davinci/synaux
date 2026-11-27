@@ -21,11 +21,15 @@ const serviciosSolicitud = computed(() => {
     const moneda = props.source.pricing_reference?.currency
         ?? extras.find(item => item.pricing_reference)?.pricing_reference.currency ?? 'ARS';
     return [
-        {name: props.source.service_name, quantity: 1, answers: props.source.answers,
-            pricing_reference: props.source.pricing_reference},
+        {
+            name: props.source.service_name, quantity: 1, answers: props.source.answers,
+            pricing_reference: props.source.pricing_reference
+        },
         ...extras,
-    ].map((item, index) => ({...item, principal: index === 0,
-        price: referenceLine(item.pricing_reference, item.quantity ?? 1, null, moneda), moneda}));
+    ].map((item, index) => ({
+        ...item, principal: index === 0,
+        price: referenceLine(item.pricing_reference, item.quantity ?? 1, null, moneda), moneda
+    }));
 });
 const estimacion = computed(() => summarizePrices(serviciosSolicitud.value.map(item => item.price),
     serviciosSolicitud.value[0]?.moneda ?? 'ARS'));
@@ -63,34 +67,54 @@ function textoPrecio({min, max}, moneda) {
             <span>Pedido que vas a presupuestar</span>
             <strong>SOL-{{ source.id }} · {{ source.title }}</strong>
         </div>
-        <p v-if="!selected.budget_id" class="editor-hint">Elegí el pedido original del cliente. El presupuesto se prepara y se guarda por separado.</p>
+        <p v-if="!selected.budget_id" class="editor-hint">Elegí el pedido original del cliente. El presupuesto se
+            prepara y se guarda por separado.</p>
         <p v-if="!requestOptions.length">Todavía no hay pedidos disponibles para presupuestar.</p>
         <section v-if="source" class="request-context" aria-label="Información de la solicitud">
             <div class="request-detail-layout">
                 <div class="request-detail-main">
                     <section class="card request-detail-card">
                         <h3>Alcance de la solicitud</h3>
-                        <p class="preserve-lines request-description">{{ source.description || 'Sin descripción adicional.' }}</p>
+                        <p class="preserve-lines request-description">
+                            {{ source.description || 'Sin descripción adicional.' }}</p>
                         <dl class="request-facts">
-                            <div><dt>Plazo solicitado</dt><dd>{{ source.desired_deadline || 'A coordinar' }}</dd></div>
-                            <div><dt>Presupuesto indicado</dt><dd>{{ source.budget_reference || 'Sin indicar' }}</dd></div>
-                            <div><dt>Visibilidad</dt><dd>{{ source.visibility === 'public' ? 'Pública' : 'Privada' }}</dd></div>
+                            <div>
+                                <dt>Plazo solicitado</dt>
+                                <dd>{{ source.desired_deadline || 'A coordinar' }}</dd>
+                            </div>
+                            <div>
+                                <dt>Presupuesto indicado</dt>
+                                <dd>{{ source.budget_reference || 'Sin indicar' }}</dd>
+                            </div>
+                            <div>
+                                <dt>Visibilidad</dt>
+                                <dd>{{ source.visibility === 'public' ? 'Pública' : 'Privada' }}</dd>
+                            </div>
                         </dl>
-                        <p v-if="source.skills?.length" class="request-skills"><strong>Habilidades solicitadas</strong><br>{{ source.skills.join(' · ') }}</p>
+                        <p v-if="source.skills?.length" class="request-skills"><strong>Habilidades
+                            solicitadas</strong><br>{{ source.skills.join(' · ') }}</p>
                     </section>
                     <section class="card request-detail-card">
                         <h3>Servicios solicitados</h3>
-                        <article v-for="(item, index) in serviciosSolicitud" :key="item.service_id || index" class="request-service">
+                        <article v-for="(item, index) in serviciosSolicitud" :key="item.service_id || index"
+                                 class="request-service">
                             <div class="request-service-heading">
-                                <div><p class="request-service-type">{{ item.principal ? 'Principal' : 'Adicional' }}<span v-if="!item.principal && item.quantity && item.quantity !== 1"> · {{ item.quantity }} ud.</span></p>
+                                <div><p class="request-service-type">{{
+                                        item.principal ? 'Principal' : 'Adicional'
+                                    }}<span v-if="!item.principal && item.quantity && item.quantity !== 1"> · {{
+                                            item.quantity
+                                        }} ud.</span></p>
                                     <strong>{{ item.name }}</strong></div>
-                                <strong v-if="item.price.priced" class="request-service-price">{{ textoPrecio(item.price, item.moneda) }}</strong>
+                                <strong v-if="item.price.priced" class="request-service-price">{{
+                                        textoPrecio(item.price, item.moneda)
+                                    }}</strong>
                                 <small v-else>Pendiente de cotización</small>
                             </div>
                             <p v-if="item.notes" class="preserve-lines request-description">{{ item.notes }}</p>
                             <dl v-if="item.answers?.length" class="request-answers">
                                 <div v-for="(answer, answerIndex) in item.answers" :key="answer.id || answerIndex">
-                                    <dt>{{ answer.question }}</dt><dd>{{ answer.label }}</dd>
+                                    <dt>{{ answer.question }}</dt>
+                                    <dd>{{ answer.label }}</dd>
                                 </div>
                             </dl>
                         </article>
@@ -98,10 +122,15 @@ function textoPrecio({min, max}, moneda) {
                 </div>
                 <aside class="request-detail-aside">
                     <section class="card request-detail-card request-estimate-card">
-                        <h3>{{ estimacion.hasPrice && estimacion.pending ? 'Subtotal orientativo' : 'Estimación orientativa' }}</h3>
-                        <strong v-if="estimacion.hasPrice">{{ textoPrecio(estimacion, serviciosSolicitud[0].moneda) }}</strong>
+                        <h3>{{
+                                estimacion.hasPrice && estimacion.pending ? 'Subtotal orientativo' : 'Estimación orientativa'
+                            }}</h3>
+                        <strong v-if="estimacion.hasPrice">{{
+                                textoPrecio(estimacion, serviciosSolicitud[0].moneda)
+                            }}</strong>
                         <strong v-else>Pendiente de cotización</strong>
-                        <p v-if="estimacion.hasPrice && estimacion.pending">Hay servicios pendientes que no están incluidos en este importe.</p>
+                        <p v-if="estimacion.hasPrice && estimacion.pending">Hay servicios pendientes que no están
+                            incluidos en este importe.</p>
                         <p v-else-if="!estimacion.hasPrice">El importe se define al preparar el presupuesto.</p>
                         <p v-else>El importe final se confirma en el presupuesto formal.</p>
                     </section>
