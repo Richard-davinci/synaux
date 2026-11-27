@@ -1,6 +1,6 @@
 # Etapa 2 · Plataforma de empresas y profesionales
 
-**Actualizado:** 27 de noviembre de 2026  
+**Actualizado:** 27 de noviembre de 2026
 **Estado:** planificación. Las capacidades de este documento no se consideran implementadas.
 
 ## Propósito
