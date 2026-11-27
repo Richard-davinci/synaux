@@ -63,7 +63,7 @@ class TariffImport
             $component = DB::table('service_components')->where('service_id', $service->id)
                 ->where('slug', 'segmento-tarifario-2026-11')->where('active', 1)->first();
             if (!$component || DB::table('service_components')->where('service_id', $service->id)->where('active', 1)->count() !== 1) {
-                throw new RuntimeException('Prepará primero el paquete institucional con SynauxInstitutionalTariffSeeder.');
+                throw new RuntimeException('Guardá el servicio institucional para preparar su configuración y dejá activo un solo componente tarifario.');
             }
             $existing = DB::table('tariff_versions')->where('source_fingerprint', $fingerprint)->first();
             if ($existing) {

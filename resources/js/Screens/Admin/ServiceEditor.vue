@@ -48,6 +48,7 @@ const service = useForm({
     id: null, name: '', slug: '', service_category_id: '', summary: '', description: '',
     deliverables: '', estimation_mode: 'manual', active: false,
 });
+const tieneTarifaInstitucional = computed(() => service.slug === 'sitio-institucional');
 watch(() => service.name, name => {
     if (!slugEdited.value) service.slug = slugify(name);
 });
@@ -132,6 +133,11 @@ function guardar() {
                     <F v-model="service.estimation_mode" label="¿Cómo se cotiza este servicio?" type="select"
                        :options="modalidades" required :error="service.errors.estimation_mode"
                        :hint="service.estimation_mode === 'manual' ? 'Un profesional revisa cada solicitud y prepara el presupuesto.' : 'Configurá la base, las reglas y los precios vigentes para calcular una referencia.'"/>
+                    <p v-if="tieneTarifaInstitucional" class="tarifa-institucional-nota" role="note">
+                        Al guardar, se prepara automáticamente la configuración para importar Tarifario.ar, incluso si
+                        dejás el servicio como borrador. La actualización de precios se inicia después desde
+                        <strong>Administración → Tarifarios</strong>.
+                    </p>
                 </v-card>
                 <v-card tag="section" class="card catalog-section" aria-labelledby="ficha-publicacion">
                     <h2 id="ficha-publicacion">Publicación</h2>
@@ -199,6 +205,16 @@ function guardar() {
 
 .catalog-section h2 {
     margin-bottom: 14px;
+}
+
+/* La nota explica qué prepara el guardado y separa esa tarea de la importación explícita de precios. */
+.tarifa-institucional-nota {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-left: 3px solid #1f6f7f;
+    border-radius: 0 8px 8px 0;
+    background: #f5f9fa;
+    color: #446075;
 }
 
 .catalog-section p {
