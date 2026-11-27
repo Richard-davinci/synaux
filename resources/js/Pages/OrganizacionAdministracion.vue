@@ -56,7 +56,7 @@ function guardar() {
                 <PageTitle eyebrow="Administración" :title="organizacion.nombre"
                            :description="organizacion.tipo === 'empresa' ? 'Empresa' : 'Profesional independiente'"/>
                 <div class="ficha-organizacion">
-                <TarjetaPerfil id="emision" class="organizacion-ficha-card" titulo="Datos de emisión" icono="file" :datos="datos"
+                <TarjetaPerfil id="emision" titulo="Datos de emisión" icono="file" :datos="datos"
                                vacio="Agregá los datos que se usarán en los próximos presupuestos."
                                accion-guardar="Guardar datos de emisión" :editando="editando"
                                :guardando="form.processing" :modificado="form.isDirty"
@@ -68,7 +68,7 @@ function guardar() {
                     <F v-model="form.address" label="Domicilio (opcional)" maxlength="500" :error="form.errors.address"/>
 
                 </TarjetaPerfil>
-                <TarjetaPerfil id="correo-equipo" class="organizacion-ficha-card" titulo="Correo del equipo" icono="user"
+                <TarjetaPerfil id="correo-equipo" titulo="Correo del equipo" icono="user"
                                :datos="organizacion.dominio_correo_equipo ? [['Dominio', organizacion.dominio_correo_equipo]] : []"
                                vacio="Configurá el dominio que usarán las nuevas cuentas del equipo."
                                accion-guardar="Guardar dominio" :editando="editandoDominio" :guardando="dominio.processing" :modificado="dominio.isDirty"
@@ -76,7 +76,7 @@ function guardar() {
                     <F v-model="dominio.dominio_correo_equipo" label="Dominio corporativo" maxlength="253" required
                        placeholder="empresa.com" hint="Ingresá el dominio a la derecha de @." :error="dominio.errors.dominio_correo_equipo"/>
                 </TarjetaPerfil>
-                <v-card v-if="equipo.length" tag="section" class="card equipo-organizacion organizacion-ficha-card" aria-labelledby="titulo-equipo">
+                <v-card v-if="equipo.length" tag="section" class="card equipo-organizacion" aria-labelledby="titulo-equipo">
                     <h2 id="titulo-equipo">Equipo</h2>
                     <ul>
                         <li v-for="miembro in equipo" :key="miembro.id">
@@ -106,32 +106,20 @@ function guardar() {
     margin-inline: auto;
 }
 
-/* La ficha y el equipo se consultan en una columna y conservan el acento turquesa de Administración. */
+/* La ficha conserva superficies limpias y reserva el turquesa para los íconos de sección. */
 .ficha-organizacion { display: grid; gap: 18px; }
-.ficha-organizacion :deep(.organizacion-ficha-card) {
-    border-top: 3px solid #2db3a3;
-}
 .ficha-organizacion :deep(.tarjeta-perfil-encabezado) {
-    padding: 12px 14px;
-    border-left: 3px solid #1f6f7f;
-    border-radius: 9px;
-    background: #e8f3f4;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #1f6f7f26;
 }
-.ficha-organizacion :deep(.tarjeta-perfil-datos > div) {
-    padding: 10px 12px;
-    border: 1px solid #1f6f7f1a;
-    border-radius: 8px;
-    background: #f5f9fa;
-}
-.ficha-organizacion :deep(.tarjeta-perfil-datos dt) { color: #446075; }
-.ficha-organizacion :deep(.tarjeta-perfil-datos dd) { color: #153b64; }
+.ficha-organizacion :deep(.tarjeta-perfil-encabezado .icon) { color: #1f6f7f; }
+.ficha-organizacion :deep(.tarjeta-perfil-datos > div:last-child:nth-child(odd)) { grid-column: 1 / -1; }
+.ficha-organizacion :deep(.tarjeta-perfil-datos > div:only-child) { grid-column: 1 / -1; }
 .equipo-organizacion { padding: 20px; }
 .equipo-organizacion h2 {
     margin: 0 0 12px;
-    padding: 12px 14px;
-    border-left: 3px solid #1f6f7f;
-    border-radius: 9px;
-    background: #e8f3f4;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #1f6f7f26;
     font-size: 1.2rem;
 }
 .equipo-organizacion ul { margin: 0; padding: 0; list-style: none; }
@@ -140,10 +128,9 @@ function guardar() {
     flex-wrap: wrap;
     justify-content: space-between;
     gap: 8px;
-    padding: 12px;
+    padding: 12px 0;
     border-top: 1px solid #1f6f7f26;
 }
-.equipo-organizacion li:nth-child(even) { background: #f5f9fa; }
 
 @media (max-width: 760px) {
     .organization-settings-view { padding-inline: 16px; }
