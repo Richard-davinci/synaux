@@ -25,6 +25,13 @@ const destination = computed(() => referenceHref(props.href, page.props));
 </template>
 
 <style scoped>
+/* Los tamaños compartidos son fijos para que las acciones mantengan la misma altura entre pantallas. */
+.btn.v-btn {
+    min-height: 44px;
+    height: 44px;
+    padding-block: 0;
+}
+
 /* El texto conserva el contraste aunque el botón sea un enlace y reciba estilos generales de navegación. */
 .btn-primary.v-btn,
 .btn-primary.v-btn:hover,
@@ -99,7 +106,8 @@ const destination = computed(() => referenceHref(props.href, page.props));
 /* El tamaño compacto se reserva para tarjetas y accesos secundarios; en pantallas táctiles mantiene área de toque. */
 .btn.v-btn.btn-compact {
     min-height: 36px;
-    padding: 6px 12px;
+    height: 36px;
+    padding: 0 12px;
     font-size: .875rem;
     line-height: 1.4;
     border-radius: 8px;
@@ -108,6 +116,7 @@ const destination = computed(() => referenceHref(props.href, page.props));
 @media (pointer: coarse) {
     .btn.v-btn.btn-compact {
         min-height: 44px;
+        height: 44px;
     }
 }
 

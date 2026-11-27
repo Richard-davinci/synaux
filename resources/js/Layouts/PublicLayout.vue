@@ -67,7 +67,7 @@ const {
     accountName,
     accountRole,
     currentSection,
-    migasCliente,
+    migasPanel,
     adminView,
     workspaceTitle,
     showAreaSwitch,
@@ -112,7 +112,7 @@ watch(() => page.url, () => {
                 </div>
             </aside>
             <v-main id="contenido" class="workspace-content" tabindex="-1">
-                <MigasNavegacion v-if="mostrarPanel && migasCliente.length" :niveles="migasCliente"/>
+                <MigasNavegacion v-if="mostrarPanel && migasPanel.length" :niveles="migasPanel"/>
                 <slot/>
             </v-main>
         </div>

@@ -107,19 +107,17 @@
         }
     }
     .btn.v-btn {
-        min-height: 46px;
-        height: auto;
         min-width: 0;
-        padding-block: 10px;
         font-family: 'Nunito', sans-serif;
         font-size: 1rem;
         text-transform: none;
         letter-spacing: 0;
         border-radius: 10px;
     }
+    /* El componente de botón fija las alturas; este contenedor evita saltos de línea visuales. */
     .btn .v-btn__content {
         gap: 9px;
-        white-space: normal;
+        white-space: nowrap;
     }
     .card.v-card {
         border: 1px solid var(--line);
@@ -198,4 +196,32 @@
     .error-summary p {
         margin: 4px 0;
     }
+}
+
+/* Los controles de archivos comparten el mismo acabado en portfolio, proyectos y perfil. */
+.synaux-app input[type='file']:not(.account-file-input) {
+    max-width: 100%;
+    padding: 4px 6px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--muted);
+    font: 400 .875rem 'Nunito', sans-serif;
+}
+
+.synaux-app input[type='file']:not(.account-file-input)::file-selector-button {
+    min-height: 34px;
+    margin-inline-end: 8px;
+    padding-inline: 10px;
+    border: 0;
+    border-radius: 6px;
+    background: #1f6f7f12;
+    color: #153b64;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.synaux-app input[type='file']:not(.account-file-input)::file-selector-button:hover {
+    background: #1f6f7f22;
 }

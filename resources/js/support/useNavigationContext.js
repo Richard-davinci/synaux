@@ -114,6 +114,8 @@ export function useNavigationContext() {
         if (!seccion) return [];
 
         const {screen, selected} = page.props;
+        // El detalle de presupuesto ya muestra sus propias migas dentro del documento.
+        if (screen === 'presupuesto') return [];
         if (screen === 'publicar') return [inicio, seccion, ['Nueva estimación']];
         if (screen === 'solicitud' && selected?.status === 'draft') {
             return [inicio, seccion, ['EST-' + (selected.estimate_id ?? selected.id)]];
@@ -128,6 +130,51 @@ export function useNavigationContext() {
     });
 
     const adminView = computed(() => area.value === 'gestion' && currentSection.value === 'administracion');
+    // Las áreas privadas comparten migas; las fichas que ya las dibujan conservan un único encabezado de navegación.
+    const migasPanel = computed(() => {
+        if (!hasWorkspace.value || !paginaDePanel.value) return [];
+        if (area.value === 'cliente') return migasCliente.value;
+
+        const {screen, selected, section} = page.props;
+        const pathname = path.value;
+        const esEditorServicio = screen === 'admin' && /\/servicios\/(nuevo|\d+\/editar)$/.test(pathname);
+        const tieneMigasPropias = ['editor-presupuesto', 'presupuesto'].includes(screen)
+            || (screen === 'solicitud' && area.value === 'gestion' && selected?.status !== 'draft')
+            || esEditorServicio;
+        if (tieneMigasPropias) return [];
+
+        if (adminView.value) {
+            const clave = section || pathname.split('/')[2] || 'servicios';
+            const nombres = {
+                servicios: 'Servicios', categorias: 'Categorías', tarifario: 'Tarifarios',
+                organizacion: 'Datos de la organización', usuarios: 'Equipo', preguntas: 'Preguntas',
+                componentes: 'Componentes', reglas: 'Reglas'
+            };
+            return [['Administración', '/admin/servicios'], [nombres[clave] || 'Administración']];
+        }
+
+        const raices = {
+            gestion: ['Gestión', '/gestion'],
+            profesional: ['Área profesional', '/profesional']
+        };
+        const raiz = raices[area.value];
+        if (!raiz) return [];
+        if (pathname === raiz[1]) return [[raiz[0]]];
+
+        const prefijo = raiz[1] + '/';
+        const seccion = nav.value.find(([, href]) => href === prefijo + (section || currentSection.value));
+        if (!seccion) return [[...raiz], [section || 'Panel']];
+
+        const niveles = [[...raiz], [seccion[0], seccion[1]]];
+        const identificador = identificadoresCliente[screen];
+        if (identificador && selected) {
+            const [prefijoId, campo] = identificador;
+            const id = selected[campo] ?? selected.id;
+            if (id != null) niveles.push([prefijoId + '-' + id]);
+        }
+        return niveles;
+    });
+
     // La línea del navbar identifica el área abierta, incluso al navegar con la misma cuenta administradora.
     const navbarRole = computed(() => {
         if (!hasWorkspace.value) return null;
@@ -150,6 +197,7 @@ export function useNavigationContext() {
         accountRole,
         currentSection,
         migasCliente,
+        migasPanel,
         adminView,
         workspaceTitle,
         showAreaSwitch,

@@ -169,7 +169,7 @@ defineExpose({payload});
     border-radius: 8px;
 }
 
-/* Los campos usan su propio espaciado dentro de las tarjetas, y el archivo conserva el control nativo. */
+/* Los campos usan su propio espaciado dentro de las tarjetas. El selector de archivos usa el estilo global. */
 .work-gallery-fields {
     display: grid;
     gap: 12px;
@@ -178,29 +178,6 @@ defineExpose({payload});
 
 .work-gallery .field {
     margin-bottom: 0;
-}
-
-.work-gallery input[type="file"] {
-    max-width: 100%;
-    padding: 4px 6px;
-    font-size: .875rem;
-}
-
-.work-gallery input[type="file"]::file-selector-button {
-    min-height: 34px;
-    margin-inline-end: 8px;
-    padding-inline: 10px;
-    color: #153b64;
-    background: #1f6f7f12;
-    border: 0;
-    border-radius: 6px;
-    font: inherit;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.work-gallery input[type="file"]::file-selector-button:hover {
-    background: #1f6f7f22;
 }
 
 .work-gallery-actions {
