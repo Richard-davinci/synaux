@@ -92,3 +92,7 @@ La finalización técnica actual es el estado **Completado**. La entrega formal 
 2. Marcarla como **Pendiente** hasta que esté implementada; luego pasarla a **Implementado** o **Parcial** según corresponda.
 3. Registrar la fecha de actualización y el cambio de código relacionado en el historial de Git.
 4. No presentar una regla pendiente como una capacidad ya disponible en la aplicación.
+
+## Documentación relacionada
+
+- [Roles y capacidades](roles-y-capacidades.md): acceso de Administración, Gestión, profesionales internos y clientes.
