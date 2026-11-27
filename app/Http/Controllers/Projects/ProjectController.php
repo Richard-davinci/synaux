@@ -30,7 +30,7 @@ class ProjectController extends Controller
                 'screen' => 'proyecto', 'area' => 'profesional', 'selected' => $proyecto,
                 'tareas' => DB::table('project_tasks as tarea')->leftJoin('users as alta', 'alta.id', '=', 'tarea.created_by')
                     ->leftJoin('users as cierre', 'cierre.id', '=', 'tarea.completed_by')->where('tarea.project_id', $id)->orderBy('tarea.id')
-                    ->get(['tarea.id', 'tarea.title', 'tarea.completed', 'tarea.completed_at', 'alta.name as agregada_por', 'cierre.name as completada_por']),
+                    ->get(['tarea.id', 'tarea.title', 'tarea.etapa', 'tarea.completed', 'tarea.completed_at', 'alta.name as agregada_por', 'cierre.name as completada_por']),
                 'alcanceAsignado' => [
                     'entrega' => DB::table('budget_versions')->where('id', $version)->value('estimated_delivery_days'),
                     'entregables' => DB::table('budget_items')->where('budget_version_id', $version)
@@ -89,7 +89,7 @@ class ProjectController extends Controller
             'selected' => $selected,
             'tareas' => DB::table('project_tasks as tarea')->leftJoin('users as alta', 'alta.id', '=', 'tarea.created_by')
                 ->leftJoin('users as cierre', 'cierre.id', '=', 'tarea.completed_by')->where('tarea.project_id', $id)->orderBy('tarea.id')
-                ->get(['tarea.id', 'tarea.title', 'tarea.completed', 'tarea.completed_at', 'alta.name as agregada_por', 'cierre.name as completada_por']),
+                ->get(['tarea.id', 'tarea.title', 'tarea.etapa', 'tarea.completed', 'tarea.completed_at', 'alta.name as agregada_por', 'cierre.name as completada_por']),
             'pagos' => $pagos,
             'puedePresentarComprobante' => $esTitular,
             'puedeRevisarComprobante' => $gestion,
@@ -109,33 +109,70 @@ class ProjectController extends Controller
         return back()->with('notice', 'Responsable del proyecto actualizado.');
     }
 
-    // El responsable y Gestión agregan tareas sin borrar el historial cuando una tarea se marca completa.
-    public function agregarTarea(Request $request, int $id)
+    // El responsable y Gestión mantienen el checklist agrupado; al cambiar su total se recalcula el avance.
+    public function agregarTarea(Request $request, NotificationCenter $notifications, int $id)
     {
-        $datos = $request->validate(['title' => 'required|string|max:180']);
-        $proyecto = DB::table('projects')->where('id', $id)->firstOrFail();
-        $this->autorizarEdicion($request, $proyecto);
-        abort_unless(in_array($proyecto->status, ['pending', 'in_progress'], true), 409);
-        DB::table('project_tasks')->insert([
-            'project_id' => $id, 'created_by' => $request->user()->id, 'title' => $datos['title'],
-            'completed' => false, 'created_at' => now(), 'updated_at' => now(),
+        $datos = $request->validate([
+            'title' => 'required|string|max:180',
+            'etapa' => ['required', 'string', Rule::in(['Planificación', 'Diseño', 'Desarrollo', 'Revisión', 'Entrega', 'Ejecución', 'Otros'])],
         ]);
+        DB::transaction(function () use ($request, $notifications, $id, $datos) {
+            $proyecto = DB::table('projects')->where('id', $id)->lockForUpdate()->firstOrFail();
+            $this->autorizarEdicion($request, $proyecto);
+            abort_unless(in_array($proyecto->status, ['pending', 'in_progress'], true), 409);
+            DB::table('project_tasks')->insert([
+                'project_id' => $id, 'created_by' => $request->user()->id, 'title' => $datos['title'],
+                'etapa' => $datos['etapa'], 'completed' => false, 'created_at' => now(), 'updated_at' => now(),
+            ]);
+            $this->sincronizarAvanceChecklist($proyecto, $request, $notifications);
+        });
         return back()->with('notice', 'Tarea agregada al proyecto.');
     }
 
-    // Cada cambio de estado queda asociado a la persona y la fecha que lo registró.
-    public function completarTarea(Request $request, int $id, int $tarea)
+    // Cada marca conserva quién la hizo y sincroniza el porcentaje, el historial y los avisos del proyecto.
+    public function completarTarea(Request $request, NotificationCenter $notifications, int $id, int $tarea)
     {
-        $proyecto = DB::table('projects')->where('id', $id)->firstOrFail();
-        $this->autorizarEdicion($request, $proyecto);
-        abort_unless(in_array($proyecto->status, ['pending', 'in_progress'], true), 409);
-        $registro = DB::table('project_tasks')->where('project_id', $id)->where('id', $tarea)->firstOrFail();
-        $completada = !$registro->completed;
-        DB::table('project_tasks')->where('id', $tarea)->update([
-            'completed' => $completada, 'completed_by' => $completada ? $request->user()->id : null,
-            'completed_at' => $completada ? now() : null, 'updated_at' => now(),
-        ]);
+        $completada = false;
+        DB::transaction(function () use ($request, $notifications, $id, $tarea, &$completada) {
+            $proyecto = DB::table('projects')->where('id', $id)->lockForUpdate()->firstOrFail();
+            $this->autorizarEdicion($request, $proyecto);
+            abort_unless($proyecto->status === 'in_progress', 409);
+            $registro = DB::table('project_tasks')->where('project_id', $id)->where('id', $tarea)->lockForUpdate()->firstOrFail();
+            $completada = !$registro->completed;
+            DB::table('project_tasks')->where('id', $tarea)->update([
+                'completed' => $completada, 'completed_by' => $completada ? $request->user()->id : null,
+                'completed_at' => $completada ? now() : null, 'updated_at' => now(),
+            ]);
+            $this->sincronizarAvanceChecklist($proyecto, $request, $notifications);
+        });
         return back()->with('notice', $completada ? 'Tarea completada.' : 'Tarea reabierta.');
+    }
+
+    // Si hay checklist activo, su proporción completada es la fuente del avance visible del proyecto.
+    private function sincronizarAvanceChecklist(object $proyecto, Request $request, NotificationCenter $notifications): void
+    {
+        $tareas = DB::table('project_tasks')->where('project_id', $proyecto->id);
+        $total = (clone $tareas)->count();
+        if ($total === 0) return;
+
+        $completadas = (clone $tareas)->where('completed', true)->count();
+        $avance = match ($proyecto->status) {
+            'in_progress' => (int)round($completadas * 100 / $total),
+            'completed' => 100,
+            'cancelled' => (int)$proyecto->progress,
+            default => 0,
+        };
+        if ((int)$proyecto->progress === $avance) return;
+
+        DB::table('projects')->where('id', $proyecto->id)->update(['progress' => $avance, 'updated_at' => now()]);
+        $updateId = DB::table('project_updates')->insertGetId([
+            'project_id' => $proyecto->id, 'user_id' => $request->user()->id, 'status' => $proyecto->status,
+            'progress' => $avance, 'start_date' => $proyecto->start_date, 'end_date' => $proyecto->end_date,
+            'notes' => null, 'next_steps' => $proyecto->next_steps, 'created_at' => now(),
+        ]);
+        $notifications->send('proyecto', $proyecto->id, 'proyecto-actualizado:' . $updateId,
+            'Avance del proyecto actualizado', $proyecto->title,
+            $notifications->projectRecipients($proyecto->id), management: true, actor: $request->user()->id);
     }
 
     // La misma regla autoriza a Gestión y al profesional responsable vigente.
@@ -151,7 +188,7 @@ class ProjectController extends Controller
         abort_if($request->user()->esProfesionalInterno() && !$request->user()->puedeGestionarSynaux(), 403);
         $d = $request->validate([
             'id' => 'required|integer', 'status' => ['required', Rule::in(['pending', 'in_progress', 'completed', 'cancelled'])],
-            'progress' => 'required|integer|min:0|max:100',
+            'progress' => 'nullable|integer|min:0|max:100',
             'start_date' => 'nullable|required_with:end_date|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'notes' => 'nullable|string|max:10000', 'next_steps' => 'nullable|string|max:5000',
@@ -164,9 +201,16 @@ class ProjectController extends Controller
                 ? ['issuer_id' => null]
                 : ($budgetQueries->quotes($request->user()->id, false, id: $project->accepted_budget_version_id)[0] ?? null);
             abort_unless($version && ($gestion || $responsable || $version['issuer_id'] === $request->user()->id), 403);
-            // Estado y porcentaje deben comunicar el mismo avance.
-            if (($d['status'] === 'completed' && (int)$d['progress'] !== 100)
-                || ($d['status'] === 'pending' && (int)$d['progress'] !== 0)) {
+            // Con tareas, el avance sale del checklist; el campo manual sigue para proyectos anteriores sin tareas.
+            $totalTareas = DB::table('project_tasks')->where('project_id', $project->id)->count();
+            $tareasCompletadas = DB::table('project_tasks')->where('project_id', $project->id)->where('completed', true)->count();
+            if ($totalTareas > 0 && $d['status'] === 'completed' && $tareasCompletadas < $totalTareas) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'status' => 'Completá todas las tareas del checklist antes de marcar el proyecto como completado.',
+                ]);
+            }
+            if ($totalTareas === 0 && (($d['status'] === 'completed' && (int)($d['progress'] ?? 0) !== 100)
+                || ($d['status'] === 'pending' && (int)($d['progress'] ?? 0) !== 0))) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
                     'progress' => 'Usá 0% para pendiente y 100% para un proyecto completado.',
                 ]);
@@ -180,11 +224,20 @@ class ProjectController extends Controller
                     ]);
                 }
             }
+            $avance = $totalTareas > 0
+                ? match ($d['status']) {
+                    'in_progress' => (int)round($tareasCompletadas * 100 / $totalTareas),
+                    'completed' => 100,
+                    'cancelled' => (int)$project->progress,
+                    default => 0,
+                }
+                : (int)($d['progress'] ?? $project->progress);
             $values = [
                 'start_date' => $project->start_date, 'end_date' => $project->end_date,
                 'notes' => $project->notes, 'next_steps' => $project->next_steps,
                 ...collect($d)->except('id')->all(),
             ];
+            $values['progress'] = $avance;
             // Reenviar los mismos datos no duplica el historial.
             $changed = collect($values)->contains(fn($value, $key) => (string)$value !== (string)$project->$key);
             if ($changed) {

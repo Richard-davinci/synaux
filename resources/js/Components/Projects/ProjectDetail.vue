@@ -70,7 +70,7 @@ const guidance = computed(() => ({
                 <div class="project-main">
                     <AsignacionProyecto v-if="data.asignacion" :proyecto-id="project.id" :asignacion="data.asignacion"
                                         :usuario-id="data.auth?.id"/>
-                    <ListaTareasProyecto :proyecto-id="project.id" :tareas="data.tareas ?? []"
+                    <ListaTareasProyecto :proyecto-id="project.id" :tareas="data.tareas ?? []" :estado="project.status"
                                          :editable="puedeEditarTareas && ['pending', 'in_progress'].includes(project.status)"/>
                     <v-card class="card">
                         <h2>Avance del proyecto</h2>
@@ -171,7 +171,7 @@ const guidance = computed(() => ({
                 </aside>
             </div>
         </div>
-        <ProjectUpdate v-if="updating" :project="{...project, pagos: data.pagos}" @close="updating = false"/>
+        <ProjectUpdate v-if="updating" :project="{...project, pagos: data.pagos, tareas: data.tareas ?? []}" @close="updating = false"/>
     </section>
 </template>
 

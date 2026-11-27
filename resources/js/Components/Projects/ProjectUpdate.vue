@@ -1,7 +1,7 @@
 <script setup>
 import SidePanel from '../UI/SidePanel.vue';
 import {useForm} from '@inertiajs/vue3';
-import {watch} from 'vue';
+import {computed, watch} from 'vue';
 import B from '../UI/AppButton.vue';
 import F from '../UI/FormField.vue';
 import CampoFecha from '../UI/CampoFecha.vue';
@@ -10,6 +10,11 @@ import {useSubmit} from '../../support/useSubmit';
 // El formulario parte del proyecto elegido y conserva sus campos ante errores de validación.
 const props = defineProps({project: Object});
 const tieneAnticipoPendiente = props.project.pagos?.some(pago => pago.concepto === 'sena' && pago.estado !== 'confirmado') ?? false;
+const tieneChecklist = computed(() => (props.project.tareas?.length ?? 0) > 0);
+const avanceChecklist = computed(() => {
+    const tareas = props.project.tareas ?? [];
+    return tareas.length ? Math.round(tareas.filter(tarea => Boolean(tarea.completed)).length * 100 / tareas.length) : 0;
+});
 const emit = defineEmits(['close']);
 const submit = useSubmit();
 const form = useForm({
@@ -49,12 +54,16 @@ function save() {
                         <F v-model="form.status" label="Estado del proyecto" type="select"
                            :options="[{value:'pending',label:'Pendiente de inicio'},{value:'in_progress',label:tieneAnticipoPendiente ? 'En desarrollo · requiere anticipo confirmado' : 'En desarrollo'},{value:'completed',label:'Completado'},{value:'cancelled',label:'Cancelado'}]"
                            :error="form.errors.status" required/>
-                        <F v-model="form.completion" label="Avance (%)" type="number" min="0" max="100" step="1"
-                           :disabled="['pending', 'completed'].includes(form.status)" :error="form.errors.progress"
-                           required/>
+                        <div v-if="tieneChecklist" class="avance-derivado">
+                            <span>Avance del checklist</span>
+                            <strong>{{ avanceChecklist }}%</strong>
+                            <small>Se calcula con las tareas completadas.</small>
+                        </div>
+                        <F v-else v-model="form.completion" label="Avance (%)" type="number" min="0" max="100" step="1"
+                           :disabled="['pending', 'completed'].includes(form.status)" :error="form.errors.progress" required/>
                     </div>
-                    <p class="tracking-help">Pendiente corresponde a 0% y completado a 100%. El porcentaje representa el
-                        avance informado por Gestión.</p>
+                    <p v-if="!tieneChecklist" class="tracking-help">Pendiente corresponde a 0% y completado a 100%. Si el proyecto tiene checklist, el porcentaje se calcula automáticamente.</p>
+                    <p v-else class="tracking-help">El avance no se edita aquí porque se calcula automáticamente desde el checklist.</p>
                     <p v-if="tieneAnticipoPendiente" class="tracking-help">El anticipo debe estar confirmado antes de
                         iniciar el proyecto.</p>
                     <div class="form-grid">
@@ -94,6 +103,26 @@ function save() {
 .tracking-help {
     font-size: .9rem;
     color: #446075;
+}
+
+.avance-derivado {
+    display: grid;
+    align-content: center;
+    gap: 3px;
+    padding: 10px 14px;
+    border: 1px solid #d5e5e9;
+    border-radius: 10px;
+    background: #f5f9fa;
+}
+
+.avance-derivado span, .avance-derivado small {
+    color: #446075;
+    font-size: .875rem;
+}
+
+.avance-derivado strong {
+    color: #153b64;
+    font-size: 1.25rem;
 }
 
 @media (max-width: 600px) {
