@@ -56,10 +56,10 @@ function equivalente(amount) {
     return cotizacionCcl.value && Number.isFinite(Number(amount)) ? money(Number(amount) * cotizacionCcl.value, 'ARS') : 'Ingresá la cotización CCL';
 }
 
-// Un precio fijo se guarda como mínimo y máximo iguales para conservar la estructura histórica del cálculo.
-function alternarPrecioFijo(price, event) {
-    price.fixed = event.target.checked;
-    if (price.fixed) price.max = price.min;
+// Conserva la estructura de rangos; un precio fijo guarda el mismo importe como mínimo y máximo.
+function establecerPrecioFijo(precio, fijo) {
+    precio.fixed = fijo;
+    if (fijo) precio.max = precio.min;
 }
 
 function guardarTarifario() {
@@ -125,15 +125,21 @@ function guardarTarifario() {
                             <p v-if="!administration.clientSegments.length" class="notice">Primero configurá la pregunta general «¿Para qué tipo de cliente?» con sus variantes.</p>
                             <article v-for="servicio in tarifario.services" :key="servicio.id" class="tariff-service">
                                 <h3>{{ servicio.name }}</h3>
+                                <div class="tariff-segment-header" aria-hidden="true">
+                                    <span>Tipo de cliente</span><span>Modalidad</span><span>Importe en USD</span><span>Equivalente</span>
+                                </div>
                                 <div v-for="precio in tarifario.segments.filter(row => row.service_id === servicio.id)" :key="precio.option_id"
-                                     :class="['tariff-segment', {'tariff-segment-fixed': precio.fixed}]">
+                                     class="tariff-segment">
                                     <strong>{{ precio.label }}</strong>
-                                    <label class="fixed-toggle"><input :checked="precio.fixed" type="checkbox" @change="alternarPrecioFijo(precio, $event)">Precio fijo</label>
-                                    <F v-if="precio.fixed" v-model="precio.min" label="Precio · USD" type="number" min="0" step="0.01" :required="tarifario.active" @update:model-value="precio.max = $event"/>
-                                    <template v-else>
+                                    <div class="tariff-price-mode" role="group" :aria-label="'Modalidad de precio para ' + precio.label">
+                                        <button type="button" :aria-pressed="precio.fixed" @click="establecerPrecioFijo(precio, true)">Fijo</button>
+                                        <button type="button" :aria-pressed="!precio.fixed" @click="establecerPrecioFijo(precio, false)">Rango</button>
+                                    </div>
+                                    <F v-if="precio.fixed" v-model="precio.min" label="Precio fijo en USD" type="number" min="0" step="0.01" :required="tarifario.active" @update:model-value="precio.max = $event"/>
+                                    <div v-else class="tariff-range-inputs">
                                         <F v-model="precio.min" label="Desde · USD" type="number" min="0" step="0.01" :required="tarifario.active"/>
                                         <F v-model="precio.max" label="Hasta · USD" type="number" min="0" step="0.01" :required="tarifario.active"/>
-                                    </template>
+                                    </div>
                                     <span class="tariff-equivalent">{{ equivalente(precio.min) }}<template v-if="Number(precio.min) !== Number(precio.max)"> – {{ equivalente(precio.max) }}</template></span>
                                 </div>
                             </article>
@@ -199,11 +205,16 @@ function guardarTarifario() {
 .tariff-heading p { margin-top: 4px; }
 .tariff-service { display: grid; gap: 5px; padding: 11px; border: 1px solid #1f6f7f26; border-radius: 12px; }
 .tariff-service h3 { margin: 0; padding: 8px 11px; border-radius: 8px; background: #153b64; color: #fff; font-size: .96rem; }
-.tariff-segment { display: grid; grid-template-columns: minmax(95px, .7fr) auto repeat(2, minmax(110px, 1fr)) minmax(125px, .8fr); align-items: center; gap: 9px; padding: 8px 0; border-top: 1px solid #1f6f7f1e; }
-.tariff-segment-fixed { grid-template-columns: minmax(95px, .7fr) auto minmax(150px, 1fr) minmax(125px, .8fr); }
+.tariff-segment-header, .tariff-segment { display: grid; grid-template-columns: minmax(100px, .8fr) 112px minmax(150px, 1fr) minmax(125px, .8fr); align-items: center; gap: 9px; }
+.tariff-segment-header { padding: 8px 0 5px; color: #446075; font-size: .72rem; font-weight: 700; }
+.tariff-segment { padding: 8px 0; border-top: 1px solid #1f6f7f1e; }
+.tariff-component-row { grid-template-columns: minmax(150px, .9fr) repeat(2, minmax(130px, 1fr)) minmax(125px, .8fr); }
 .tariff-segment > strong { align-self: center; color: #153b64; }
-.fixed-toggle { display: flex; align-items: center; gap: 6px; align-self: center; color: #446075; font-size: .8rem; white-space: nowrap; }
-.tariff-equivalent { align-self: center; color: #446075; font-size: .85rem; text-align: right; }
+.tariff-price-mode { display: grid; grid-template-columns: 1fr 1fr; padding: 2px; border: 1px solid #1f6f7f30; border-radius: 7px; background: #f5f9fa; }
+.tariff-price-mode button { min-height: 28px; border: 0; border-radius: 5px; background: transparent; color: #446075; font: inherit; font-size: .75rem; cursor: pointer; }
+.tariff-price-mode button[aria-pressed='true'] { background: #153b64; color: #fff; }
+.tariff-range-inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.tariff-equivalent { align-self: center; color: #446075; font-size: .82rem; text-align: right; }
 .tariff-segment :deep(.field) { gap: 3px; margin: 0; }
 .tariff-segment :deep(.field > label) { font-size: .78rem; line-height: 1.15; }
 .tariff-components { border: 1px solid #1f6f7f26 !important; border-radius: 12px; padding: 14px !important; }
@@ -214,7 +225,8 @@ function guardarTarifario() {
 .field-error { color: #a43c46 !important; }
 @media (max-width: 700px) {
     .tariff-form-card { padding: 14px; }
-    .tariff-segment, .tariff-segment-fixed { grid-template-columns: minmax(0, 1fr) auto; }
-    .tariff-segment > strong, .tariff-equivalent { grid-column: 1 / -1; text-align: left; }
+    .tariff-segment-header { display: none; }
+    .tariff-segment { grid-template-columns: minmax(90px, .7fr) auto; }
+    .tariff-segment > strong, .tariff-range-inputs, .tariff-equivalent { grid-column: 1 / -1; text-align: left; }
 }
 </style>
