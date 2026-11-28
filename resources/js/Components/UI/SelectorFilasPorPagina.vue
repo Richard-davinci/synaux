@@ -37,7 +37,7 @@ opciones.push({value: 'todos', label: 'Todos'});
 }
 
 .selector-filas :deep(.synaux-field-control) {
-    width: 94px;
-    flex: 0 0 94px;
+    width: 120px;
+    flex: 0 0 120px;
 }
 </style>
