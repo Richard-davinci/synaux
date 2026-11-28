@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Services\Catalog\TipoCliente;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -38,9 +39,10 @@ class SynauxLandingTariffSeeder extends Seeder
                 'service_id' => $service->id, 'question' => '¿Para qué tipo de cliente es la landing?',
                 'input_type' => 'single_choice', 'sort_order' => 0, 'active' => 1,
             ]);
-            foreach (['Particular', 'PyME', 'Empresa'] as $quantity => $label) {
+            // Las opciones del tarifario heredado también se reconocen por sus claves al agregar la landing a una solicitud.
+            foreach (array_keys(TipoCliente::ETIQUETAS) as $quantity => $clave) {
                 $option = DB::table('estimator_options')->insertGetId([
-                    'question_id' => $question, 'label' => $label, 'sort_order' => $quantity, 'active' => 1,
+                    'question_id' => $question, 'clave_segmento' => $clave, 'label' => TipoCliente::ETIQUETAS[$clave], 'sort_order' => $quantity, 'active' => 1,
                 ]);
                 DB::table('estimation_rules')->insert([
                     'estimator_option_id' => $option, 'service_component_id' => $component, 'quantity' => $quantity, 'active' => 1,

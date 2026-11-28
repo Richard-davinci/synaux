@@ -4,12 +4,12 @@ import {money} from '../../support/formatters';
 import FuenteCotizacionCcl from './FuenteCotizacionCcl.vue';
 
 // Cada tarjeta mantiene su propio segmento. Los importes llegan del tarifario publicado por Laravel.
-const props = defineProps({reference: Object, serviceName: String, currency: {type: String, default: 'ARS'}, modelValue: {type: String, default: 'PyME'}});
+const props = defineProps({reference: Object, serviceName: String, currency: {type: String, default: 'ARS'}, modelValue: {type: String, default: 'pyme'}});
 const emit = defineEmits(['update:modelValue']);
 // La tarjeta comunica su selección para que el enlace al detalle conserve el mismo tipo de cliente.
 const segment = computed({get: () => props.modelValue, set: value => emit('update:modelValue', value)});
 const options = computed(() => props.reference?.segments ?? []);
-const price = computed(() => options.value.find(item => item.label === segment.value) ?? options.value[0] ?? props.reference);
+const price = computed(() => options.value.find(item => item.key === segment.value) ?? options.value[0] ?? props.reference);
 // La conversión usa la cotización CCL que quedó guardada con esta versión del tarifario.
 const displayedPrice = computed(() => {
     if (!price.value) return null;
@@ -33,8 +33,8 @@ const secondaryPrice = computed(() => {
     <div class="catalog-price">
         <div v-if="options.length" class="price-segments" role="group"
              :aria-label="'Tipo de cliente para ' + serviceName">
-            <button v-for="option in options" :key="option.label" type="button"
-                    :aria-pressed="price.label === option.label" @click="segment = option.label">{{ option.label }}
+            <button v-for="option in options" :key="option.key" type="button"
+                    :aria-pressed="price.key === option.key" @click="segment = option.key">{{ option.label }}
             </button>
         </div>
         <div class="price-summary" aria-live="polite">

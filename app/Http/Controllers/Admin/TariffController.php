@@ -100,9 +100,7 @@ class TariffController extends Controller
         if ($segmentKeys->unique()->count() !== $segmentKeys->count()) {
             throw ValidationException::withMessages(['segments' => 'No repitas el precio de un mismo servicio y tipo de cliente.']);
         }
-        $validOptionIds = DB::table('estimator_options as o')->join('estimator_questions as q', 'q.id', '=', 'o.question_id')
-            ->whereNull('q.service_id')->where('q.question', '¿Para qué tipo de cliente?')
-            ->where('q.active', 1)->where('o.active', 1)->pluck('o.id')->map(fn($id) => (int)$id);
+        $validOptionIds = $catalogo->segmentos()->pluck('id')->map(fn($id) => (int)$id);
         if (collect($data['segments'])->contains(fn($row) => !$validOptionIds->contains((int)$row['option_id']))) {
             throw ValidationException::withMessages(['segments' => 'Elegí una variante activa de la pregunta general de tipo de cliente.']);
         }

@@ -3,6 +3,7 @@
 namespace App\Services\Solicitudes;
 
 use App\Services\Catalog\ServiceCatalog;
+use App\Services\Catalog\TipoCliente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -61,18 +62,15 @@ class RecorridoSolicitud
         );
         $descriptionQuestion = collect($map[$service['database_id'] ?? 0] ?? [])->firstWhere('from_project_description', true);
         $description = $descriptionQuestion ? ($initialAnswers[$descriptionQuestion['id']] ?? '') : '';
-        $clientType = $request->query('cliente');
-        foreach ($map[$service['database_id'] ?? 0] ?? [] as $question) {
-            if (in_array($clientType, ['Particular', 'PyME', 'Empresa'], true)) {
-                $option = collect($question['options'])->firstWhere('label', $clientType);
-                if ($option) $initialAnswers[$question['id']] = $option->id;
-            }
-        }
+        $initialAnswers = array_replace($initialAnswers, TipoCliente::preseleccion(
+            $map[$service['database_id'] ?? 0] ?? [], $request->query('cliente'),
+        ));
         return [...$data, 'screen' => 'publicar', 'area' => $data['area'] ?? ($request->user() ? 'cliente' : 'public'),
             'accountContact' => $request->user()?->contactDetails(), 'requestQuestions' => $map,
             'requestServiceId' => $service['database_id'] ?? null,
             'requestDraft' => $resume ? $pending['form'] : null,
             'requestCalculation' => $resume ? $pending['calculation'] : null,
+            'requestEstimateClientType' => TipoCliente::desdeRespuestas($estimate['answers'] ?? []),
             'requestAdditionalPricing' => $resume ? ($pending['additional_services'] ?? []) : [],
             'requestStep' => $resume ? 3 : 1, 'requestInitialAnswers' => $initialAnswers,
             'requestInitialDescription' => is_string($description) ? $description : '', 'allowPublicRequest' => (bool)config('synaux.stage_two_enabled'),
@@ -100,8 +98,10 @@ class RecorridoSolicitud
 
         $catalog = collect($this->catalog->services())->keyBy('database_id');
         $previousByService = array_column($previous, null, 'service_id');
-        $segments = ['Particular', 'PyME', 'Empresa'];
-        $mainSegment = collect($mainAnswers)->pluck('label')->first(fn($label) => in_array($label, $segments, true)) ?? 'Particular';
+        $segmentoPrincipal = TipoCliente::desdeRespuestas($mainAnswers);
+        $opcionesGlobales = TipoCliente::opcionesActivas();
+        $opcionHeredada = $opcionesGlobales->firstWhere('clave_segmento', $segmentoPrincipal);
+        $preguntaHeredada = $opcionHeredada ? DB::table('estimator_questions')->find($opcionHeredada->question_id) : null;
         $snapshots = [];
         foreach ($items as $index => $item) {
             $serviceId = (int)$item['service_id'];
@@ -111,16 +111,18 @@ class RecorridoSolicitud
             }
             $questions = $this->catalog->questions($serviceId, specificOnly: true);
             $answers = $item['answers'] ?? [];
-            // Los pedidos guardados con el formulario anterior usaban el segmento del principal.
+            // Completa el tipo de cliente desde el principal. Las configuraciones antiguas conservan su respuesta explícita.
+            $answers += TipoCliente::preseleccion($questions, $segmentoPrincipal);
+            if ($preguntaHeredada) {
+                $questions[] = [...(array)$preguntaHeredada, 'options' => $opcionesGlobales];
+                $answers[$preguntaHeredada->id] = $opcionHeredada->id;
+            }
+            // Los pedidos anteriores a las preguntas de adicionales conservan su descripción original.
             if (!array_key_exists('answers', $item)) {
                 foreach ($questions as $question) {
-                    $options = collect($question['options']);
                     if ($service['estimation_mode'] === 'manual' && $question['input_type'] === 'text'
                         && $question['question'] === '¿Qué objetivo querés lograr y qué necesitás resolver?') {
                         $answers[$question['id']] = $item['notes'] ?? null;
-                    }
-                    if ($question['input_type'] === 'single_choice' && $options->pluck('label')->intersect($segments)->count() === 3) {
-                        $answers[$question['id']] = $options->firstWhere('label', $mainSegment)->id;
                     }
                 }
             }
@@ -135,15 +137,18 @@ class RecorridoSolicitud
             $priced = $result['min'] !== null && $result['currency'] === $currency;
             $reference = $priced ? ['min' => $result['min'], 'max' => $result['max'], 'currency' => $currency] : null;
             $breakdown = $priced ? ['base_min' => $result['base_min'], 'base_max' => $result['base_max'], 'items' => $result['items']] : null;
+            // Conserva las respuestas propias del adicional y registra por separado el segmento heredado.
+            $respuestasPropias = array_values(array_filter($result['answers'], fn($respuesta) => $respuesta['id'] !== $preguntaHeredada?->id));
             $saved = $previousByService[$serviceId] ?? null;
-            if ((!$allowIncomplete || $priced) && ($saved['pricing_reference']['currency'] ?? null) === $currency
-                && ($saved['answers'] ?? null) == $result['answers']) {
+            if ($priced && ($saved['pricing_reference']['currency'] ?? null) === $currency
+                && (!array_key_exists('segmento_cliente', $saved) || $saved['segmento_cliente'] === $segmentoPrincipal)
+                && ($saved['answers'] ?? null) == $respuestasPropias) {
                 $reference = $saved['pricing_reference'];
                 $breakdown = $saved['pricing_breakdown'] ?? null;
             }
             $snapshots[] = [
                 'service_id' => $serviceId, 'name' => $service['name'], 'quantity' => $item['quantity'],
-                'notes' => $item['notes'] ?? '', 'answers' => $result['answers'],
+                'notes' => $item['notes'] ?? '', 'answers' => $respuestasPropias, 'segmento_cliente' => $segmentoPrincipal,
                 'pricing_reference' => $reference, 'pricing_breakdown' => $breakdown,
             ];
         }

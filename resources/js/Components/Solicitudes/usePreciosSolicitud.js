@@ -1,5 +1,6 @@
 import {computed} from 'vue';
 import {referenceLine, summarizePrices} from '../../support/calculoPreciosSolicitud';
+import {claveTipoCliente, esSelectorTipoCliente, referenciaPorTipoCliente} from '../../support/visualizacionPregunta';
 
 // Contrasta todas las preguntas activas para invalidar la referencia al cambiar cualquier respuesta.
 function sameAnswers(questionsForService, snapshot, readValue) {
@@ -11,20 +12,11 @@ function sameAnswers(questionsForService, snapshot, readValue) {
     });
 }
 
-// Encuentra el segmento de la tarifa usando las opciones del propio servicio.
-function segmentoElegido(referencia, preguntas, respuestas) {
-    if (!referencia?.segments?.length) return null;
-
-    for (const pregunta of preguntas) {
-        const opcion = pregunta.options?.find(item => String(item.id) === String(respuestas[pregunta.id]));
-        const segmento = referencia.segments.find(item => item.label === opcion?.label);
-        if (segmento) return segmento;
-    }
-    return null;
-}
-
 // Usa las instantáneas del servidor cuando coinciden las respuestas y las referencias publicadas al editar.
 export function useRequestPricing(data, form, {estimate, old, selectedService, questions, extraQuestions}) {
+    // Los adicionales usan el tipo del principal. Solo las tarifas antiguas conservan un selector propio.
+    const tipoPrincipal = computed(() => estimate ? data.value.requestEstimateClientType
+        : claveTipoCliente(questions.value, pregunta => form.answers[pregunta.id]));
     const matchingCalculation = computed(() => {
         const calculation = data.value.requestCalculation;
         if (!calculation || calculation.service?.database_id != form.service_id) return null;
@@ -45,8 +37,9 @@ export function useRequestPricing(data, form, {estimate, old, selectedService, q
         };
 
         const published = data.value.references?.[selectedService.value?.id];
-        const segment = segmentoElegido(published, questions.value, form.answers);
-        return segment ? {...published, min: segment.min, max: segment.max, segment: segment.label} : published;
+        const tipoLocal = published?.segmentos_heredados
+            ? claveTipoCliente(questions.value.filter(pregunta => !esSelectorTipoCliente(pregunta)), pregunta => form.answers[pregunta.id]) : null;
+        return referenciaPorTipoCliente(published, tipoLocal ?? tipoPrincipal.value);
     });
     const preliminaryReference = computed(() => Boolean(reference.value && !estimate && !matchingCalculation.value));
     // Cada adicional tiene su propia referencia confirmada, en la misma moneda que el resumen.
@@ -57,7 +50,8 @@ export function useRequestPricing(data, form, {estimate, old, selectedService, q
 
     function matchingExtra(item) {
         const previous = extraSnapshots.value.find(snapshot => snapshot.service_id == item.service_id && Array.isArray(snapshot.answers));
-        return previous && sameAnswers(extraQuestions(item.service_id), previous.answers, question => item.answers[question.id]) ? previous : null;
+        return previous && (!Object.hasOwn(previous, 'segmento_cliente') || previous.segmento_cliente === (tipoPrincipal.value ?? null))
+            && sameAnswers(extraQuestions(item.service_id), previous.answers, question => item.answers[question.id]) ? previous : null;
     }
 
     const additionalPrices = computed(() => form.additional_services.map(item => {
@@ -70,8 +64,10 @@ export function useRequestPricing(data, form, {estimate, old, selectedService, q
         const service = data.value.services.find(service => service.database_id == item.service_id);
         const published = data.value.references?.[service?.id];
         const preguntas = extraQuestions(item.service_id);
-        const segmento = segmentoElegido(published, preguntas, item.answers);
-        const linea = referenceLine(published, item.quantity, segmento?.label, summaryCurrency.value);
+        const tipoLocal = published?.segmentos_heredados ? claveTipoCliente(preguntas, pregunta => item.answers[pregunta.id]) : null;
+        const tipo = tipoLocal ?? tipoPrincipal.value;
+        const referencia = published?.segments?.length && !tipo ? null : referenciaPorTipoCliente(published, tipo);
+        const linea = referenceLine(referencia, item.quantity, null, summaryCurrency.value);
 
         return {...linea, preliminar: linea.priced && preguntas.length > 0};
     }));

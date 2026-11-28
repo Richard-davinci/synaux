@@ -82,8 +82,10 @@ class ServiceCatalog
         $prices = DB::table('component_prices')->where('tariff_version_id', $tariff->id)->get()->keyBy('service_component_id');
         $segmentPrices = DB::table('service_segment_prices as p')
             ->join('estimator_options as o', 'o.id', '=', 'p.estimator_option_id')
-            ->where('p.tariff_version_id', $tariff->id)->where('o.active', 1)
-            ->select('p.*', 'o.label')->get()->groupBy('service_id');
+            ->join('estimator_questions as q', 'q.id', '=', 'o.question_id')
+            ->where('p.tariff_version_id', $tariff->id)->orderBy('o.sort_order')
+            ->select('p.*', 'o.label', 'o.clave_segmento', 'o.active as opcion_activa', 'q.active as pregunta_activa', 'q.clave_sistema')
+            ->get()->groupBy('service_id');
         $components = DB::table('service_components')->where('active', 1)->get()->groupBy('service_id');
         $references = [];
         foreach (($services ?? $this->services()) as $service) {
@@ -92,13 +94,17 @@ class ServiceCatalog
 
             $base = $bases->get($service['database_id']);
             $parts = $components->get($service['database_id'], collect());
-            $configuredSegments = $segmentPrices->get($service['database_id'], collect());
-            $partsForPrice = $configuredSegments->isNotEmpty()
-                ? $parts->reject(fn($part) => $part->slug === 'segmento-tarifario-2026-11')
+            $segmentRows = $segmentPrices->get($service['database_id'], collect());
+            $configuredSegments = $segmentRows->filter(fn($row) => $row->clave_sistema === TipoCliente::PREGUNTA
+                && isset(TipoCliente::ETIQUETAS[$row->clave_segmento]) && ($tariffId !== null || ($row->opcion_activa && $row->pregunta_activa)));
+            $partsForPrice = $segmentRows->isNotEmpty()
+                ? $parts->reject(fn($part) => $part->slug === TipoCliente::CONCEPTO_HEREDADO)
                 : $parts;
             if (!$base || $partsForPrice->contains(fn($part) => !$prices->has($part->id))) {
                 continue;
             }
+            // Un precio base técnico o variantes deshabilitadas no se publican como una oferta de cero.
+            if ($configuredSegments->isEmpty() && ($segmentRows->isNotEmpty() || $this->baseTecnica($base))) continue;
             // Si hay variantes, el importe del segmento reemplaza la base. Los adicionales siguen sumándose.
             $min = $configuredSegments->isEmpty() ? (float)$base->price_min : 0.0;
             $max = $configuredSegments->isEmpty() ? (float)$base->price_max : 0.0;
@@ -108,33 +114,39 @@ class ServiceCatalog
             }
             // Cada variante tiene su propio importe; las reglas antiguas solo sirven como respaldo histórico.
             $segments = $configuredSegments->map(fn($price) => [
+                'key' => $price->clave_segmento,
                 'label' => $price->label,
                 'min' => round((float)$price->price_min + $min, 2),
                 'max' => round((float)$price->price_max + $max, 2),
             ])->values()->all();
             if (!$segments) {
-                $segmentPart = $parts->firstWhere('slug', 'segmento-tarifario-2026-11');
+                $segmentPart = $parts->firstWhere('slug', TipoCliente::CONCEPTO_HEREDADO);
                 if ($segmentPart && $prices->has($segmentPart->id)) {
                     $options = DB::table('estimator_options as o')
                         ->join('estimator_questions as q', 'q.id', '=', 'o.question_id')
                         ->join('estimation_rules as r', 'r.estimator_option_id', '=', 'o.id')
-                        ->where('q.active', 1)->whereNull('q.service_id')->where('q.question', '¿Para qué tipo de cliente?')
+                        ->where('q.active', 1)->whereIn('o.clave_segmento', array_keys(TipoCliente::ETIQUETAS))
                         ->where('o.active', 1)->where('r.active', 1)->where('r.service_component_id', $segmentPart->id)
-                        ->orderBy('o.sort_order')->select('o.label', 'r.quantity')->get();
+                        ->orderByDesc('q.clave_sistema')->orderBy('o.sort_order')->select('o.clave_segmento', 'o.label', 'r.quantity')
+                        ->get()->unique('clave_segmento');
                     foreach ($options as $option) {
                         $segments[] = [
+                            'key' => $option->clave_segmento,
                             'label' => $option->label,
                             'min' => round($min + $prices[$segmentPart->id]->price_min * $option->quantity, 2),
                             'max' => round($max + $prices[$segmentPart->id]->price_max * $option->quantity, 2),
                         ];
                     }
+                    if (!$segments) continue;
                 }
             }
+            $referencia = collect($segments)->firstWhere('key', 'particular') ?? ($segments[0] ?? null);
             $references[$service['id']] = [
-                'min' => round($min, 2), 'max' => round($max, 2), 'currency' => $tariff->currency_code,
+                'min' => $referencia['min'] ?? round($min, 2), 'max' => $referencia['max'] ?? round($max, 2), 'currency' => $tariff->currency_code,
                 'ccl_rate' => $ccl['valor'] ?? null, 'ccl_source' => $ccl['fuente'] ?? null,
                 'date' => $tariff->effective_from, 'segments' => $segments,
-                'segment' => $segments ? 'Particular' : null,
+                'segment' => $referencia['label'] ?? null,
+                'segmentos_heredados' => $segmentRows->isEmpty() && $referencia !== null,
             ];
         }
 
@@ -148,9 +160,8 @@ class ServiceCatalog
             return null;
         }
 
-        $segment = collect($answers)->pluck('label')->first(fn($label) => in_array($label, ['Particular', 'PyME', 'Empresa'], true))
-            ?? 'Particular';
-        $price = $reference['segments'] ? collect($reference['segments'])->firstWhere('label', $segment) : $reference;
+        $segmento = TipoCliente::desdeRespuestas($answers);
+        $price = $reference['segments'] ? collect($reference['segments'])->firstWhere('key', $segmento) : $reference;
 
         return $price ? ['min' => $price['min'], 'max' => $price['max'], 'currency' => $currency] : null;
     }
@@ -179,6 +190,8 @@ class ServiceCatalog
         $questions ??= $this->questions($service['database_id']);
         $snapshot = [];
         $selected = [];
+        $opcionGlobal = null;
+        $opcionHeredada = null;
         $quantities = [];
         $incomplete = false;
         // Revalida todas las respuestas en el servidor; no confía en rótulos ni importes del navegador.
@@ -186,6 +199,8 @@ class ServiceCatalog
             $value = $answers[$q['id']] ?? null;
             $values = $q['input_type'] === 'multiple_choice' ? (array)$value : [$value];
             if ($value === null || $value === '' || $values === []) {
+                // Si falta el tipo de cliente, un servicio con variantes queda a revisión.
+                if (($q['clave_sistema'] ?? null) === TipoCliente::PREGUNTA) continue;
                 // Una respuesta opcional vacía no agrega componentes ni altera el importe.
                 if (!($q['required'] ?? true)) continue;
                 if ($allowIncomplete) {
@@ -206,6 +221,10 @@ class ServiceCatalog
                     }
                     $selected[] = $option->id;
                     $labels[] = $option->label;
+                    if (isset(TipoCliente::ETIQUETAS[$option->clave_segmento ?? ''])) {
+                        if (($q['clave_sistema'] ?? null) === TipoCliente::PREGUNTA) $opcionGlobal = $option->id;
+                        else $opcionHeredada = $option->id;
+                    }
                 } elseif ($q['input_type'] === 'number') {
                     if (!is_numeric($v) || $v <= 0 || $v > 10000) {
                         throw ValidationException::withMessages(["answers.{$q['id']}" => 'Ingresá una cantidad entre 1 y 10000.']);
@@ -225,35 +244,34 @@ class ServiceCatalog
         }
         $tariff = DB::table('tariff_versions')->where('active', 1)->where('effective_from', '<=', now())->orderByDesc('effective_from')->orderByDesc('id')->first();
         $base = $tariff ? DB::table('service_prices')->where('tariff_version_id', $tariff->id)->where('service_id', $service['database_id'])->first() : null;
-        $globalTypeQuestion = collect($questions)->first(fn($question) => $question['service_id'] === null
-            && $question['question'] === '¿Para qué tipo de cliente?');
-        $selectedSegment = $globalTypeQuestion ? collect($selected)->first(fn($optionId) => DB::table('estimator_options as o')
-            ->join('estimator_questions as q', 'q.id', '=', 'o.question_id')
-            ->where('o.id', $optionId)->where('q.id', $globalTypeQuestion['id'])->exists()) : null;
-        $segmentPrice = $tariff && $selectedSegment
-            ? DB::table('service_segment_prices')->where('tariff_version_id', $tariff->id)
-                ->where('service_id', $service['database_id'])->where('estimator_option_id', $selectedSegment)->first()
-            : null;
+        // La presencia de variantes obliga a usar el ID de la opción del sistema, incluso si falta su precio.
+        $preciosSegmento = $tariff ? DB::table('service_segment_prices')->where('tariff_version_id', $tariff->id)
+            ->where('service_id', $service['database_id'])->get()->keyBy('estimator_option_id') : collect();
+        $segmentPrice = $preciosSegmento->get($opcionGlobal);
 
         $components = DB::table('service_components')->where('service_id', $service['database_id'])->where('active', 1)
             // El concepto de segmentos solo se usa para tarifarios heredados; las nuevas versiones guardan importes directos.
-            ->when($segmentPrice, fn($query) => $query->where('slug', '!=', 'segmento-tarifario-2026-11'))
+            ->when($preciosSegmento->isNotEmpty(), fn($query) => $query->where('slug', '!=', TipoCliente::CONCEPTO_HEREDADO))
             ->get()->keyBy('id');
         $rules = DB::table('estimation_rules')->whereIn('estimator_option_id', $selected)->where('active', 1)->get();
+        // Una tarifa antigua puede tener reglas locales y generales. Solo se aplica una al concepto de segmento.
+        $componenteHeredado = $components->firstWhere('slug', TipoCliente::CONCEPTO_HEREDADO);
+        $reglaHeredada = $componenteHeredado ? $rules->where('service_component_id', $componenteHeredado->id)
+            ->firstWhere('estimator_option_id', $opcionHeredada ?? $opcionGlobal) : null;
         foreach ($components as $c) {
             if ($c->is_default) {
                 $quantities[$c->id] = $quantities[$c->id] ?? (float)$c->default_quantity;
             }
         }
         foreach ($rules as $rule) {
+            if ($rule->service_component_id === $componenteHeredado?->id && $rule->id !== $reglaHeredada?->id) continue;
             if ($components->has($rule->service_component_id)) {
                 $quantities[$rule->service_component_id] = ($quantities[$rule->service_component_id] ?? 0) + (float)$rule->quantity;
             }
         }
         $available = !$incomplete && $service['estimation_mode'] === 'automatic' && $base !== null;
-        if ($globalTypeQuestion && $selectedSegment) {
-            $available = $available && $segmentPrice !== null;
-        }
+        if ($preciosSegmento->isNotEmpty() || ($base && $this->baseTecnica($base))) $available = $available && $segmentPrice !== null;
+        if ($componenteHeredado) $available = $available && $reglaHeredada !== null;
         $baseMin = $segmentPrice?->price_min ?? $base?->price_min;
         $baseMax = $segmentPrice?->price_max ?? $base?->price_max;
         $min = $baseMin !== null ? (int)round($baseMin * 100) : 0;
@@ -280,5 +298,11 @@ class ServiceCatalog
             'base_min' => $available ? $baseMin : null,
             'base_max' => $available ? $baseMax : null, 'min' => $available ? $min / 100 : null,
             'max' => $available ? $max / 100 : null, 'date' => now()->toDateTimeString()];
+    }
+
+    // Los importes comerciales de las variantes viven en su tabla. Esta fila común es solo un respaldo técnico.
+    private function baseTecnica(object $precio): bool
+    {
+        return (float)$precio->price_min === 0.0 && (float)$precio->price_max === 0.0;
     }
 }

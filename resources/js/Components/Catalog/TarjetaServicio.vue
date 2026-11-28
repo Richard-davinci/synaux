@@ -13,11 +13,11 @@ const props = defineProps({
 });
 
 // La selección se comparte con el precio y se conserva al aplicar filtros en el catálogo.
-const segment = defineModel({type: String, default: 'PyME'});
+const segment = defineModel({type: String, default: 'pyme'});
 const detailHref = computed(() => {
     const path = '/servicios/' + encodeURIComponent(props.service.id);
     const available = props.reference?.segments ?? [];
-    return available.some(item => item.label === segment.value)
+    return available.some(item => item.key === segment.value)
         ? path + '?cliente=' + encodeURIComponent(segment.value)
         : path;
 });

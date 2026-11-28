@@ -10,7 +10,7 @@ import ServiceReference from '../../Components/Estimates/ServiceReference.vue';
 import EstimateResult from '../../Components/Estimates/EstimateResult.vue';
 import ReiniciarEstimacion from '../../Components/Estimates/ReiniciarEstimacion.vue';
 import {useSubmit} from '../../support/useSubmit';
-import {esSelectorTipoCliente} from '../../support/visualizacionPregunta';
+import {claveTipoCliente, esSelectorTipoCliente, referenciaPorTipoCliente} from '../../support/visualizacionPregunta';
 
 // El formulario conserva sus respuestas al recorrer los pasos; Laravel valida y calcula los importes.
 const props = defineProps({data: {type: Object, required: true}});
@@ -32,11 +32,8 @@ const labels = ['Servicio', 'Preguntas', 'Revisión', 'Resultado'];
 const currentReference = computed(() => {
     const reference = props.data.references?.[service.value];
     if (!reference || props.data.selected?.id !== service.value) return reference;
-    const selectedLabels = (props.data.questions ?? []).flatMap(question =>
-        (question.options ?? []).filter(option => String(option.id) === String(form.answers[question.id])).map(option => option.label)
-    );
-    const segment = reference.segments?.find(item => selectedLabels.includes(item.label));
-    return segment ? {...reference, min: segment.min, max: segment.max, segment: segment.label} : reference;
+    const clave = claveTipoCliente(props.data.questions ?? [], question => form.answers[question.id]);
+    return referenciaPorTipoCliente(reference, clave);
 });
 
 // Los resúmenes toleran opciones históricas retiradas y respuestas todavía incompletas.

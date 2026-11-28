@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\Catalog\ServiceCatalog;
+use App\Services\Catalog\TipoCliente;
 use App\Services\Marketplace\MarketplaceQueries;
 use App\Services\Portfolio\PortfolioQueries;
 use App\Services\Solicitudes\ConsultasSolicitudes;
@@ -60,8 +61,7 @@ class PublicPageController extends Controller
         if ($screen === 'servicio') {
             $data['selected'] = $this->catalog->service($id);
             // El catálogo puede indicar el segmento inicial, pero el servidor conserva el control de los precios.
-            $data['initialClientType'] = in_array($request->query('cliente'), ['Particular', 'PyME', 'Empresa'], true)
-                ? $request->query('cliente') : null;
+            $data['initialClientType'] = TipoCliente::desdeUrl($request->query('cliente'));
         }
         if (in_array($screen, ['portfolio', 'trabajo'], true)) {
             $data['works'] = $this->portfolioQueries->works();
@@ -103,16 +103,7 @@ class PublicPageController extends Controller
             $data['questions'] = $this->catalog->questions($service['database_id']);
             $data['selected'] = $service;
             // Solo preselecciona opciones activas del servicio: la URL no aporta precios ni respuestas libres.
-            $data['initialAnswers'] = [];
-            $clientType = $request->query('cliente');
-            if (in_array($clientType, ['Particular', 'PyME', 'Empresa'], true)) {
-                foreach ($data['questions'] as $question) {
-                    $options = collect($question['options']);
-                    if ($question['input_type'] === 'single_choice' && $options->pluck('label')->intersect(['Particular', 'PyME', 'Empresa'])->count() === 3) {
-                        $data['initialAnswers'][$question['id']] = $options->firstWhere('label', $clientType)->id;
-                    }
-                }
-            }
+            $data['initialAnswers'] = TipoCliente::preseleccion($data['questions'], $request->query('cliente'));
             // Las respuestas de otro servicio no se pueden reutilizar en el formulario actual.
             $data['pending'] = $pendingSlug === $slug ? $pending : null;
             $data['step'] = $step === 4 && !$data['pending'] ? 1 : $step;

@@ -121,6 +121,9 @@ function copiarPlantilla() {
 const dialog = ref(false);
 const resource = ref('preguntas');
 const form = useForm({});
+// Los campos de la pregunta del sistema mantienen el ID de cada variante aunque cambie su texto.
+const segmentosEditables = ref([]);
+const nombresSegmentos = {particular: 'Particular', pyme: 'PyME', empresa: 'Empresa'};
 const puedeGeneralizar = ref(false);
 const alcance = computed({
     get: () => form.service_id == null ? 'general' : 'servicio',
@@ -136,6 +139,8 @@ const fields = {
 
 function edit(kind, row = {}, general = false) {
     resource.value = kind;
+    segmentosEditables.value = kind === 'preguntas' && row.clave_sistema === 'tipo_cliente'
+        ? row.options.filter(option => Object.hasOwn(nombresSegmentos, option.clave_segmento)) : [];
     const defaults = {
         id: null,
         service_id: general ? null : props.service.id,
@@ -164,18 +169,26 @@ function edit(kind, row = {}, general = false) {
         options_text: row.options?.filter(o => o.active).map(o => o.label).join('\n') ?? ''
     };
     puedeGeneralizar.value = kind === 'preguntas' && values.service_id != null && !row.quantity_component_id;
-    form.defaults(Object.fromEntries(fields[kind].map(key => [key, values[key]])));
+    const datos = Object.fromEntries(fields[kind].map(key => [key, values[key]]));
+    if (segmentosEditables.value.length) {
+        datos.etiquetas_segmentos = Object.fromEntries(segmentosEditables.value.map(option => [option.id, option.label]));
+    }
+    form.defaults(datos);
     form.reset();
     form.clearErrors();
     dialog.value = true;
 }
 
 function save() {
-    form.transform(values => ({
-        ...Object.fromEntries(fields[resource.value].map(key => [key, values[key]])),
-        catalog_service_id: props.service.id,
-        quantity_component_id: values.input_type === 'number' ? values.quantity_component_id || null : null
-    }));
+    form.transform(values => {
+        const datos = Object.fromEntries(fields[resource.value].map(key => [key, values[key]]));
+        if (segmentosEditables.value.length) {
+            delete datos.options_text;
+            datos.etiquetas_segmentos = values.etiquetas_segmentos;
+        }
+        return {...datos, catalog_service_id: props.service.id,
+            quantity_component_id: values.input_type === 'number' ? values.quantity_component_id || null : null};
+    });
     submit(form, `/admin/guardar/${resource.value}`, {
         onSuccess: () => {
             dialog.value = false;
@@ -445,16 +458,22 @@ function importe(precio) {
                 <template v-if="resource === 'preguntas'">
                     <F v-if="puedeGeneralizar" v-model="alcance" label="Alcance de la pregunta" type="select" required
                        :options="[{value: 'servicio', label: 'Solo este servicio'}, {value: 'general', label: 'Todos los servicios'}]"/>
-                    <p v-if="alcance === 'general'" class="notice">Pregunta general. Se aplica a todos los
+                    <p v-if="segmentosEditables.length" class="notice">Pregunta del sistema. La respuesta define el precio base.</p>
+                    <p v-else-if="alcance === 'general'" class="notice">Pregunta general. Se aplica a todos los
                         servicios.</p>
                     <F v-model="form.question" label="Pregunta" required maxlength="1000"
                        :error="form.errors.question"/>
                     <div class="field-row">
-                        <F v-model="form.input_type" label="Tipo de respuesta" type="select" :options="types" required/>
+                        <F v-model="form.input_type" label="Tipo de respuesta" type="select" :options="types" required
+                           :disabled="Boolean(segmentosEditables.length)"/>
                         <F v-model="form.sort_order" label="Orden de aparición" type="number" min="0" max="1000"
                            required/>
                     </div>
-                    <F v-if="['single_choice','multiple_choice'].includes(form.input_type)"
+                    <template v-if="segmentosEditables.length">
+                        <F v-for="opcion in segmentosEditables" :key="opcion.id" v-model="form.etiquetas_segmentos[opcion.id]"
+                           :label="'Texto visible de ' + nombresSegmentos[opcion.clave_segmento]" required maxlength="255"/>
+                    </template>
+                    <F v-else-if="['single_choice','multiple_choice'].includes(form.input_type)"
                        v-model="form.options_text" label="Opciones (una por línea)" type="textarea" required
                        maxlength="5000"
                        hint="Las opciones sin cambios conservan sus reglas. Si cambiás un texto, revisá las reglas vinculadas."/>
@@ -487,14 +506,14 @@ function importe(precio) {
                 <fieldset class="controles-configuracion">
                     <legend>Opciones</legend>
                     <label v-if="resource === 'preguntas'" class="select-row">
-                        <input v-model="form.required" type="checkbox">Respuesta obligatoria
+                        <input v-model="form.required" type="checkbox" :disabled="Boolean(segmentosEditables.length)">Respuesta obligatoria
                     </label>
                     <label v-if="resource === 'componentes'" class="select-row">
                         <input v-model="form.is_default" type="checkbox">Incluir por defecto en la estimación
                     </label>
                     <label class="select-row">
                         <input v-model="form.active"
-                               type="checkbox">{{ resource === 'preguntas' ? 'Pregunta activa' : 'Activo' }}
+                               type="checkbox" :disabled="Boolean(segmentosEditables.length)">{{ resource === 'preguntas' ? 'Pregunta activa' : 'Activo' }}
                     </label>
                     <p v-if="form.id" class="ayuda-configuracion">Desactivar conserva las respuestas y estimaciones
                         anteriores.</p>

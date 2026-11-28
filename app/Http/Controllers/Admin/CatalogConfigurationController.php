@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Services\Admin\PreciosCatalogo;
 use App\Services\Catalog\ServiceCatalog;
+use App\Services\Catalog\TipoCliente;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -123,6 +124,11 @@ class CatalogConfigurationController extends Controller
             'categorias' => [...$common, 'name' => 'required|string|max:255', 'slug' => ['required', 'alpha_dash', Rule::unique('service_categories', 'slug')->ignore($id)], 'description' => 'required|string|max:10000'],
         };
         $data = $request->validate($rules);
+        // Cada rótulo de sistema viaja con su ID actual, independientemente de su posición o del texto anterior.
+        $etiquetasSegmentos = $resource === 'preguntas' ? $request->validate([
+            'etiquetas_segmentos' => 'sometimes|array|size:3',
+            'etiquetas_segmentos.*' => 'required|string|max:255|distinct:ignore_case',
+        ])['etiquetas_segmentos'] ?? null : null;
         // El alta puede guardar la ficha y sus precios juntos, o dejar la ficha sin publicar.
         $precios = $resource === 'servicios' && $data['estimation_mode'] === 'automatic' && $request->has('precios')
             ? $request->validate(PreciosCatalogo::reglas())['precios']
@@ -142,7 +148,7 @@ class CatalogConfigurationController extends Controller
                 abort_unless((int)$old->service_id === (int)$context, 422);
             }
         }
-        $savedId = DB::transaction(function () use ($resource, $table, $id, $data, $precios, $catalogoPrecios) {
+        $savedId = DB::transaction(function () use ($resource, $table, $id, $data, $precios, $catalogoPrecios, $etiquetasSegmentos) {
             if ($resource === 'servicios') $catalogoPrecios->bloquearVersiones();
             $anterior = null;
             if ($id) {
@@ -177,6 +183,9 @@ class CatalogConfigurationController extends Controller
             }
             $options = null;
             if ($resource === 'preguntas') {
+                if ($anterior?->clave_sistema === TipoCliente::PREGUNTA) {
+                    return $this->guardarPreguntaTipoCliente($anterior, $data, $etiquetasSegmentos);
+                }
                 if (!empty($data['required']) || !array_key_exists('required', $data)) $data['required'] = true;
                 $options = $data['options_text'] ?? '';
                 unset($data['options_text']);
@@ -221,5 +230,34 @@ class CatalogConfigurationController extends Controller
             return redirect("/admin/servicios/$savedId/editar?config=$seccion")->with('notice', $mensaje);
         }
         return back()->with('notice', $mensaje);
+    }
+
+    // La pregunta del sistema conserva su alcance, tipo, estado y opciones. Solo se editan los rótulos y el orden de la pregunta.
+    private function guardarPreguntaTipoCliente(object $pregunta, array $datos, ?array $etiquetas): int
+    {
+        if (!$datos['active'] || !($datos['required'] ?? true) || $datos['input_type'] !== 'single_choice'
+            || ($datos['service_id'] ?? null) !== null || ($datos['quantity_component_id'] ?? null) !== null) {
+            throw ValidationException::withMessages(['question' => 'La pregunta de tipo de cliente debe seguir activa, obligatoria y disponible para todos los servicios.']);
+        }
+
+        $opciones = DB::table('estimator_options')->where('question_id', $pregunta->id)
+            ->whereIn('clave_segmento', array_keys(TipoCliente::ETIQUETAS))->orderBy('sort_order')->lockForUpdate()->get();
+        if ($etiquetas === null && array_key_exists('options_text', $datos)) {
+            $textoActual = $opciones->pluck('label')->implode("\n");
+            if (str_replace("\r\n", "\n", $datos['options_text'] ?? '') !== $textoActual) {
+                throw ValidationException::withMessages(['options_text' => 'Editá cada rótulo desde su campo de tipo de cliente.']);
+            }
+        }
+        if ($etiquetas !== null && (count($etiquetas) !== $opciones->count() || $opciones->pluck('id')->diff(array_keys($etiquetas))->isNotEmpty())) {
+            throw ValidationException::withMessages(['etiquetas_segmentos' => 'Los textos deben corresponder a las opciones existentes de tipo de cliente.']);
+        }
+        DB::table('estimator_questions')->where('id', $pregunta->id)->update([
+            'question' => $datos['question'], 'sort_order' => $datos['sort_order'],
+        ]);
+        foreach ($etiquetas ?? [] as $id => $texto) {
+            DB::table('estimator_options')->where('question_id', $pregunta->id)->where('id', $id)->update(['label' => trim($texto)]);
+        }
+
+        return (int)$pregunta->id;
     }
 }

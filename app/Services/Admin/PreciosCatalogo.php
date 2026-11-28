@@ -2,6 +2,7 @@
 
 namespace App\Services\Admin;
 
+use App\Services\Catalog\TipoCliente;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -16,9 +17,7 @@ class PreciosCatalogo
 
     public function segmentos()
     {
-        return DB::table('estimator_options as o')->join('estimator_questions as q', 'q.id', '=', 'o.question_id')
-            ->whereNull('q.service_id')->where('q.question', '¿Para qué tipo de cliente?')
-            ->where('q.active', 1)->where('o.active', 1)->orderBy('o.sort_order')->get(['o.id', 'o.label']);
+        return TipoCliente::opcionesActivas();
     }
 
     private function conceptos(int $servicio)
@@ -56,7 +55,7 @@ class PreciosCatalogo
         $vigente = $this->vigente();
         $segmentos = $this->segmentos()->pluck('id');
         $conceptos = $this->conceptos($servicio);
-        if ($segmentos->isEmpty() || $segmentos->diff(array_column($precios['segmentos'], 'id'))->isNotEmpty()
+        if ($segmentos->count() !== count(TipoCliente::ETIQUETAS) || $segmentos->diff(array_column($precios['segmentos'], 'id'))->isNotEmpty()
             || count($precios['segmentos']) !== $segmentos->count()
             || $conceptos->diff(array_column($precios['conceptos'], 'id'))->isNotEmpty()
             || count($precios['conceptos']) !== $conceptos->count()) {
@@ -102,7 +101,7 @@ class PreciosCatalogo
         $conceptos = DB::table('component_prices')->where('tariff_version_id', $version)->pluck('service_component_id');
 
         return DB::table('service_prices')->where('tariff_version_id', $version)->where('service_id', $servicio)->exists()
-            && $segmentos->isNotEmpty() && $segmentos->diff($cargados)->isEmpty()
+            && $segmentos->count() === count(TipoCliente::ETIQUETAS) && $segmentos->diff($cargados)->isEmpty()
             && $this->conceptos($servicio)->diff($conceptos)->isEmpty();
     }
 

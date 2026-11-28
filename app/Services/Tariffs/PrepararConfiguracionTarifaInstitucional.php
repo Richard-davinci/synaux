@@ -2,6 +2,7 @@
 
 namespace App\Services\Tariffs;
 
+use App\Services\Catalog\TipoCliente;
 use Illuminate\Support\Facades\DB;
 
 // Asegura la configuración mínima que necesita el importador institucional, sin publicar precios.
@@ -39,8 +40,7 @@ class PrepararConfiguracionTarifaInstitucional
             }
 
             // Reutiliza la pregunta general o convierte la versión anterior del servicio sin perder sus respuestas.
-            $question = DB::table('estimator_questions')->whereNull('service_id')
-                ->where('question', self::PREGUNTA)->lockForUpdate()->first();
+            $question = DB::table('estimator_questions')->where('clave_sistema', TipoCliente::PREGUNTA)->lockForUpdate()->first();
             $legacyQuestion = DB::table('estimator_questions')->where('service_id', $serviceId)
                 ->whereIn('question', [self::PREGUNTA, self::PREGUNTA_ANTERIOR])->lockForUpdate()->first();
             if (!$question && $legacyQuestion) {
@@ -68,7 +68,8 @@ class PrepararConfiguracionTarifaInstitucional
             $questionValues = [
                 'quantity_component_id' => null, 'input_type' => 'single_choice',
                 'sort_order' => $question->sort_order ?? ((int)(DB::table('estimator_questions')->whereNull('service_id')->max('sort_order') ?? -1) + 1),
-                'active' => true, 'required' => true, 'question' => self::PREGUNTA, 'service_id' => null,
+                'active' => true, 'required' => true, 'question' => $question->question ?? self::PREGUNTA,
+                'service_id' => null, 'clave_sistema' => TipoCliente::PREGUNTA,
             ];
             if ($question) {
                 DB::table('estimator_questions')->where('id', $question->id)->update($questionValues);
@@ -78,15 +79,17 @@ class PrepararConfiguracionTarifaInstitucional
             }
 
             // Las tres opciones traducen los precios de la fuente a reglas de cantidad del componente.
-            $opciones = ['Particular' => 0, 'PyME' => 1, 'Empresa' => 2];
-            foreach ($opciones as $label => $quantity) {
-                $option = DB::table('estimator_options')->where('question_id', $questionId)->where('label', $label)->first();
+            $cantidades = ['particular' => 0, 'pyme' => 1, 'empresa' => 2];
+            foreach (TipoCliente::ETIQUETAS as $clave => $label) {
+                $quantity = $cantidades[$clave];
+                $option = DB::table('estimator_options')->where('question_id', $questionId)->where('clave_segmento', $clave)->first()
+                    ?? DB::table('estimator_options')->where('question_id', $questionId)->whereNull('clave_segmento')->where('label', $label)->first();
                 if ($option) {
-                    DB::table('estimator_options')->where('id', $option->id)->update(['sort_order' => $quantity, 'active' => true]);
+                    DB::table('estimator_options')->where('id', $option->id)->update(['clave_segmento' => $clave, 'sort_order' => $quantity, 'active' => true]);
                     $optionId = (int)$option->id;
                 } else {
                     $optionId = DB::table('estimator_options')->insertGetId([
-                        'question_id' => $questionId, 'label' => $label, 'sort_order' => $quantity, 'active' => true,
+                        'question_id' => $questionId, 'clave_segmento' => $clave, 'label' => $label, 'sort_order' => $quantity, 'active' => true,
                     ]);
                 }
 
@@ -104,7 +107,7 @@ class PrepararConfiguracionTarifaInstitucional
 
             // Las opciones anteriores quedan guardadas por si hay respuestas históricas, pero no se ofrecen al cliente.
             DB::table('estimator_options')->where('question_id', $questionId)
-                ->whereNotIn('label', array_keys($opciones))->update(['active' => false]);
+                ->whereNull('clave_segmento')->update(['active' => false]);
 
             return true;
         });

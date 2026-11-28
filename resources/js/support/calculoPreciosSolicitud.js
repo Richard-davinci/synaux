@@ -2,7 +2,7 @@
 export function referenceLine(reference, quantity = 1, segment = null, currency = null) {
     const count = Number(quantity);
     const selected = reference?.segments?.length && segment
-        ? reference.segments.find(item => item.label === segment) : reference;
+        ? reference.segments.find(item => item.key === segment) : reference;
     const min = selected?.min;
     const max = selected?.max ?? min;
     const code = reference?.currency || 'ARS';

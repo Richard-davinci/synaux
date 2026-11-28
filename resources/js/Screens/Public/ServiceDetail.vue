@@ -26,24 +26,35 @@ const detailPrices = computed(() => detailReference.value?.segments?.length
         max: detailReference.value.max
     }] : []);
 // El tipo de cliente elegido en el detalle acompaña el acceso al estimador.
-const detailSegment = ref(props.data.initialClientType ?? 'PyME');
+const detailSegment = ref(props.data.initialClientType ?? null);
 const displayCurrency = ref('ARS');
 // La ficha muestra la moneda del importe original hasta que haya un CCL para convertirlo.
 const priceCurrency = computed(() => detailReference.value?.ccl_rate ? displayCurrency.value : detailReference.value?.currency);
-const chosenPrice = computed(() => detailPrices.value.find(item => item.label === detailSegment.value) ?? detailPrices.value[0]);
+const chosenPrice = computed(() => {
+    if (!detailReference.value?.segments?.length) return detailPrices.value[0];
+    if (detailSegment.value) return detailPrices.value.find(item => item.key === detailSegment.value);
+    return detailPrices.value.find(item => item.key === 'pyme') ?? detailPrices.value[0];
+});
 const estimateHref = computed(() => {
     const query = new URLSearchParams({servicio: selected.value.id, paso: '2'});
-    if (['Particular', 'PyME', 'Empresa'].includes(chosenPrice.value?.label)) query.set('cliente', chosenPrice.value.label);
+    const clave = detailSegment.value ?? chosenPrice.value?.key;
+    if (clave) query.set('cliente', clave);
     return '/estimador?' + query.toString();
+});
+// La solicitud a medida también conserva el tipo elegido al venir desde el catálogo.
+const requestHref = computed(() => {
+    const query = new URLSearchParams({servicio: selected.value.id});
+    if (detailSegment.value) query.set('cliente', detailSegment.value);
+    return '/solicitudes/nueva?' + query.toString();
 });
 // El detalle reutiliza las escenas de trabajo digital que ya forman parte de los recursos de synaux.
 const detailImage = computed(() => ['Desarrollo web', 'UX/UI'].includes(selected.value.category)
     ? {src: '/images/landing/planificacion.webp', alt: 'Planificación de una interfaz con bocetos y una computadora.'}
     : {src: '/images/landing/colaboracion.webp', alt: 'Dos personas revisando una propuesta digital.'});
 const segmentDescriptions = {
-    Particular: 'Personas y entidades sin fines de lucro',
-    PyME: 'PyMEs e instituciones',
-    Empresa: 'Grandes empresas',
+    particular: 'Personas y entidades sin fines de lucro',
+    pyme: 'PyMEs e instituciones',
+    empresa: 'Grandes empresas',
 };
 
 function convertPrice(min, max, currency) {
@@ -105,18 +116,19 @@ function detailEquivalentText(min, max) {
                     </div>
                     <div v-if="detailReference.segments?.length" class="detail-price-grid" role="group"
                          aria-label="Precio por tipo de cliente">
-                        <button v-for="price in detailPrices" :key="price.label" type="button"
+                        <button v-for="price in detailPrices" :key="price.key" type="button"
                                 class="detail-price-option"
-                                :aria-pressed="price.label === chosenPrice?.label" @click="detailSegment = price.label">
+                                :aria-pressed="price.key === chosenPrice?.key" @click="detailSegment = price.key">
                             <span class="detail-price-label">{{ price.label }} <I
-                                v-if="price.label === chosenPrice?.label" name="check"/></span>
+                                v-if="price.key === chosenPrice?.key" name="check"/></span>
                             <strong>{{ detailPrice(price.min, price.max) }}</strong>
                             <span v-if="detailEquivalent(price.min, price.max)" class="detail-price-equivalent">{{ detailEquivalentText(price.min, price.max) }}</span>
-                            <span v-if="segmentDescriptions[price.label]"
-                                  class="detail-price-description">{{ segmentDescriptions[price.label] }}</span>
+                            <span v-if="segmentDescriptions[price.key]"
+                                  class="detail-price-description">{{ segmentDescriptions[price.key] }}</span>
                         </button>
                     </div>
-                    <p v-else-if="chosenPrice" class="detail-base-price">
+                    <p v-if="!chosenPrice">Para el tipo de cliente elegido, el precio se define al revisar la solicitud.</p>
+                    <p v-else-if="!detailReference.segments?.length" class="detail-base-price">
                         <strong>{{ detailPrice(chosenPrice.min, chosenPrice.max) }}</strong> {{
                             priceCurrency
                         }}</p>
@@ -133,8 +145,8 @@ function detailEquivalentText(min, max) {
                     precio, plazo y condiciones.</p>
                 <div class="editorial-actions detail-actions">
                     <B v-if="!$page.props.auth?.es_cuenta_interna || data.preview"
-                       :href="detailReference ? estimateHref : '/solicitudes/nueva?servicio=' + encodeURIComponent(selected.id)"
-                       arrow>{{ detailReference ? 'Iniciar estimación' : 'Solicitar presupuesto' }}</B>
+                       :href="chosenPrice ? estimateHref : requestHref"
+                       arrow>{{ chosenPrice ? 'Iniciar estimación' : 'Solicitar presupuesto' }}</B>
                     <B href="/contacto" variant="secondary">Hacer una consulta</B>
                 </div>
             </section>
