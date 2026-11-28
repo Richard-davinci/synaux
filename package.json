@@ -15,6 +15,7 @@
     },
     "dependencies": {
         "@inertiajs/vue3": "^3.9.1",
+        "sweetalert2": "^11.26.26",
         "vue": "^3.5.44",
         "vuetify": "^3.13.5"
     }
