@@ -186,7 +186,7 @@ function save() {
 // El servidor identifica la versión vigente con el mismo criterio que usa el catálogo.
 const currentTariff = computed(() => props.administration.currentTariff);
 const moneda = computed(() => currentTariff.value?.currency_code ?? 'ARS');
-const cotizacion = computed(() => currentTariff.value?.ccl_rate ?? currentTariff.value?.source_rate);
+const cotizacion = computed(() => props.administration.currentCcl?.valor);
 const precioConcepto = id => currentTariff.value?.components.find(p => p.service_component_id == id);
 const preciosPorSegmento = computed(() => props.administration.clientSegments.map(segment => ({
     ...segment,

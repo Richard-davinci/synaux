@@ -4,10 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\Admin\PreciosCatalogo;
+use App\Services\Tariffs\CotizacionCcl;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class TariffController extends Controller
 {
@@ -29,14 +33,44 @@ class TariffController extends Controller
         return redirect("/admin/servicios/$service/editar?config=precios")->with('notice', 'Precios del servicio guardados.');
     }
 
-    // La acción global cambia únicamente la cotización de referencia.
-    public function actualizarCcl(Request $request, PreciosCatalogo $catalogo)
+    // Consultar crea una propuesta temporal en esta sesión y no toca la cotización publicada.
+    public function consultarCcl(Request $request, CotizacionCcl $cotizacion)
     {
         abort_unless($request->user()->puedeAdministrarSynaux(), 403);
-        $datos = $request->validate(['ccl_rate' => 'required|numeric|decimal:0,4|gt:0|max:1000000']);
-        $cambio = $catalogo->actualizarCcl($datos['ccl_rate']);
 
-        return redirect('/admin/tarifario')->with('notice', $cambio ? 'Cotización CCL actualizada.' : 'La cotización CCL ya tiene ese valor.');
+        try {
+            $propuesta = $cotizacion->consultar();
+        } catch (Throwable $error) {
+            report($error);
+            return response()->json(['message' => 'DolarApi no devolvió una cotización utilizable. Probá más tarde o cargala manualmente.'], 503)
+                ->header('Cache-Control', 'no-store');
+        }
+
+        $propuesta['token'] = (string) Str::uuid();
+        $request->session()->put('propuesta_ccl', [...$propuesta, 'expira' => now()->addMinutes(15)->timestamp]);
+
+        return response()->json($propuesta)->header('Cache-Control', 'no-store');
+    }
+
+    // La confirmación aplica exactamente el valor que presentó el servidor.
+    public function actualizarCcl(Request $request, CotizacionCcl $cotizacion)
+    {
+        abort_unless($request->user()->puedeAdministrarSynaux(), 403);
+        if ($request->filled('token')) {
+            $token = $request->validate(['token' => 'required|uuid'])['token'];
+            $propuesta = $request->session()->get('propuesta_ccl');
+            if (!$propuesta || $propuesta['token'] !== $token || $propuesta['expira'] < now()->timestamp) {
+                throw ValidationException::withMessages(['cotizacion' => 'La consulta venció o fue reemplazada. Consultá el CCL de nuevo.']);
+            }
+            $cambio = $cotizacion->aplicar($propuesta['valor'], CotizacionCcl::FUENTE_API, Carbon::parse($propuesta['fecha_fuente']));
+            $request->session()->forget('propuesta_ccl');
+        } else {
+            $datos = $request->validate(['ccl_rate' => CotizacionCcl::REGLA_VALOR]);
+            $cambio = $cotizacion->aplicar($datos['ccl_rate'], 'manual');
+            $request->session()->forget('propuesta_ccl');
+        }
+
+        return redirect('/admin/tarifario')->with('notice', $cambio ? 'Cotización CCL aplicada al catálogo.' : 'La cotización consultada ya está aplicada.');
     }
 
     // Valida rangos y cobertura antes de crear una versión nueva e independiente del tarifario.

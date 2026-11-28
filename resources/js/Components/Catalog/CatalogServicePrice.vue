@@ -1,6 +1,7 @@
 <script setup>
 import {computed} from 'vue';
 import {money} from '../../support/formatters';
+import FuenteCotizacionCcl from './FuenteCotizacionCcl.vue';
 
 // Cada tarjeta mantiene su propio segmento. Los importes llegan del tarifario publicado por Laravel.
 const props = defineProps({reference: Object, serviceName: String, currency: {type: String, default: 'ARS'}, modelValue: {type: String, default: 'PyME'}});
@@ -43,6 +44,7 @@ const secondaryPrice = computed(() => {
                     <template v-if="Number(displayedPrice.max) !== Number(displayedPrice.min)"> – {{ money(displayedPrice.max, displayedPrice.currency) }}</template>
                 </strong>
                 <small v-if="secondaryPrice">Equivale a {{ money(secondaryPrice.min, secondaryPrice.currency) }}<template v-if="Number(secondaryPrice.max) !== Number(secondaryPrice.min)"> – {{ money(secondaryPrice.max, secondaryPrice.currency) }}</template></small>
+                <FuenteCotizacionCcl v-if="secondaryPrice" :fuente="reference.ccl_source"/>
             </template>
             <template v-else><span>Presupuesto a medida</span><strong>Consultar precio</strong></template>
         </div>

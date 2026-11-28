@@ -50,7 +50,7 @@ class PreciosCatalogo
         DB::table('tariff_versions')->orderBy('id')->lockForUpdate()->first();
     }
 
-    // Los precios del servicio y el CCL crean instantáneas internas para conservar estimaciones anteriores.
+    // Una edición de importes crea una versión de precios para conservar el cálculo histórico.
     public function guardarServicio(int $servicio, array $precios): void
     {
         $vigente = $this->vigente();
@@ -74,8 +74,7 @@ class PreciosCatalogo
             throw ValidationException::withMessages(['precios' => 'La tarifa vigente contiene precios en otra moneda. Para operar en USD primero hay que migrar esa tarifa con una cotización acordada.']);
         }
 
-        $version = $this->copiarVersion($vigente, 'USD', $vigente?->ccl_rate ?? $vigente?->source_rate,
-            $vigente?->ccl_rate_at ?? $vigente?->source_checked_at, $servicio);
+        $version = $this->copiarVersion($vigente, $servicio);
         // La variante ya representa el importe inicial; la fila base es un respaldo técnico sin cargo.
         DB::table('service_prices')->insert([
             'tariff_version_id' => $version, 'service_id' => $servicio, 'price_min' => 0, 'price_max' => 0,
@@ -107,26 +106,13 @@ class PreciosCatalogo
             && $this->conceptos($servicio)->diff($conceptos)->isEmpty();
     }
 
-    // Un cambio de CCL copia los importes de todos los servicios en su moneda original.
-    public function actualizarCcl(string|float $cotizacion): bool
-    {
-        return DB::transaction(function () use ($cotizacion) {
-            $this->bloquearVersiones();
-            $vigente = $this->vigente();
-            if ($vigente && (float) $vigente->ccl_rate === (float) $cotizacion) return false;
-
-            $this->copiarVersion($vigente, $vigente?->currency_code ?? 'USD', $cotizacion, now());
-            return true;
-        }, 3);
-    }
-
-    private function copiarVersion($vigente, string $moneda, $cotizacion, $fechaCcl, ?int $servicio = null): int
+    private function copiarVersion($vigente, int $servicio): int
     {
         $ahora = now();
         DB::table('tariff_versions')->where('active', 1)->where('effective_from', '<=', $ahora)->update(['active' => false]);
         $version = DB::table('tariff_versions')->insertGetId([
-            'name' => 'Precios del catálogo', 'currency_code' => $moneda, 'ccl_rate' => $cotizacion,
-            'ccl_rate_at' => $fechaCcl, 'effective_from' => $ahora, 'active' => true, 'created_at' => $ahora,
+            'name' => 'Precios del catálogo', 'currency_code' => 'USD',
+            'effective_from' => $ahora, 'active' => true, 'created_at' => $ahora,
         ]);
         if (!$vigente) return $version;
 
@@ -138,12 +124,10 @@ class PreciosCatalogo
         ] as $tabla => $claves) {
             $origen = DB::table($tabla)->where('tariff_version_id', $vigente->id)
                 ->selectRaw('? as tariff_version_id', [$version])->addSelect([...$claves, ...$columnas]);
-            if ($servicio !== null) {
-                if ($tabla === 'component_prices') {
-                    $origen->whereNotIn('service_component_id', DB::table('service_components')->where('service_id', $servicio)->select('id'));
-                } else {
-                    $origen->where('service_id', '!=', $servicio);
-                }
+            if ($tabla === 'component_prices') {
+                $origen->whereNotIn('service_component_id', DB::table('service_components')->where('service_id', $servicio)->select('id'));
+            } else {
+                $origen->where('service_id', '!=', $servicio);
             }
             DB::table($tabla)->insertUsing(['tariff_version_id', ...$claves, ...$columnas], $origen);
         }

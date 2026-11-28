@@ -53,7 +53,7 @@ const service = useForm({
 });
 // Un alta automática puede guardar importes en el mismo envío que la ficha.
 const cargaInicial = computed(() => service.estimation_mode === 'automatic' && selected.value?.estimation_mode !== 'automatic');
-const cotizacion = computed(() => catalog.value.currentTariff?.ccl_rate ?? catalog.value.currentTariff?.source_rate);
+const cotizacion = computed(() => catalog.value.currentCcl?.valor);
 watch(() => service.name, name => {
     if (!slugEdited.value) service.slug = slugify(name);
 });

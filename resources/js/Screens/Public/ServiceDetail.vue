@@ -4,6 +4,7 @@ import {computed, ref} from 'vue';
 import B from '../../Components/UI/AppButton.vue';
 import T from '../../Components/UI/PageTitle.vue';
 import I from '../../Components/UI/AppIcon.vue';
+import FuenteCotizacionCcl from '../../Components/Catalog/FuenteCotizacionCcl.vue';
 import {date, money} from '../../support/formatters';
 import {categoryIcons} from './serviceCategoryIcons';
 
@@ -119,7 +120,9 @@ function detailEquivalentText(min, max) {
                         <strong>{{ detailPrice(chosenPrice.min, chosenPrice.max) }}</strong> {{
                             priceCurrency
                         }}</p>
-                    <p class="detail-price-date">Valores vigentes desde {{ date(detailReference.date) }}.</p>
+                    <p class="detail-price-date">Valores vigentes desde {{ date(detailReference.date) }}.
+                        <FuenteCotizacionCcl :fuente="detailReference.ccl_source"/>
+                    </p>
                     <div class="detail-price-info">
                         <I name="info"/>
                         <p>El importe final depende del alcance, los entregables y los plazos acordados. Se confirma en

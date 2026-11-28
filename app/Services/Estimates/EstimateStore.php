@@ -47,6 +47,8 @@ class EstimateStore
             'price_min' => $pending['min'],
             'price_max' => $pending['max'],
             'currency_snapshot' => $pending['currency'],
+            'ccl_rate_snapshot' => $pending['ccl_rate'] ?? null,
+            'ccl_source_snapshot' => $pending['ccl_source'] ?? null,
             'answers_snapshot' => json_encode($pending['answers']),
             'items_snapshot' => json_encode($pending['items']),
             'created_at' => now(),

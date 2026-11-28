@@ -10,7 +10,7 @@ use RuntimeException;
 class TariffImport
 {
     public const SOURCE = 'https://tarifario.ar/categoria/dev-web-app#service-pd-3';
-    public const RATE = 'https://dolarapi.com/v1/dolares/contadoconliqui';
+    public const RATE = CotizacionCcl::ENDPOINT;
 
     public function sync(): array
     {

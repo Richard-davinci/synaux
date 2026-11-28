@@ -1,7 +1,9 @@
 <script setup>
+import {computed} from 'vue';
 import {date, money} from '../../support/formatters';
+import FuenteCotizacionCcl from '../Catalog/FuenteCotizacionCcl.vue';
 
-defineProps({
+const props = defineProps({
     result: {type: Object, required: true},
     showDeliverables: Boolean,
     preview: Boolean,
@@ -10,6 +12,13 @@ defineProps({
 function priceRange(min, max, currency) {
     return Number(min) === Number(max) ? money(min, currency) : money(min, currency) + ' – ' + money(max, currency);
 }
+
+// El equivalente del resultado usa la instantánea del cálculo, incluso al abrirlo más adelante.
+const equivalenteArs = computed(() => {
+    const {mode, currency, ccl_rate, min, max} = props.result;
+    if (mode === 'manual' || currency !== 'USD' || !Number(ccl_rate) || min == null || max == null) return '';
+    return priceRange(Number(min) * Number(ccl_rate), Number(max) * Number(ccl_rate), 'ARS');
+});
 </script>
 
 <template>
@@ -20,6 +29,10 @@ function priceRange(min, max, currency) {
             <h2>{{
                     result.mode === 'manual' ? 'Preparemos una propuesta para tu proyecto' : priceRange(result.min, result.max, result.currency)
                 }}</h2>
+            <p v-if="equivalenteArs" class="estimacion-equivalente">
+                Equivalente en pesos: {{ equivalenteArs }}
+                <FuenteCotizacionCcl :fuente="result.ccl_source"/>
+            </p>
             <p>{{
                     result.mode === 'manual' ? 'synaux necesita revisar el alcance para definir el importe y los plazos. Podés continuar con la solicitud.' : 'Calculada el ' + date(result.date) + '. El precio y las condiciones finales se confirman en el presupuesto formal.'
                 }}</p>
@@ -80,6 +93,8 @@ function priceRange(min, max, currency) {
 .result-grid .result-card h2 {
     overflow-wrap: anywhere;
 }
+
+.estimacion-equivalente { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; color: #446075; }
 
 .result-grid :deep(button:focus-visible) {
     outline: 3px solid #1f6f7f;

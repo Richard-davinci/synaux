@@ -18,6 +18,8 @@ const result = computed(() => {
         max: estimate.price_max,
         mode: estimate.status === 'manual' ? 'manual' : 'automatic',
         currency: estimate.currency_snapshot,
+        ccl_rate: estimate.ccl_rate_snapshot,
+        ccl_source: estimate.ccl_source_snapshot,
         base_min: estimate.base_min_snapshot,
         base_max: estimate.base_max_snapshot,
         date: estimate.created_at,

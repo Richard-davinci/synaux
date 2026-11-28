@@ -1,6 +1,7 @@
 <script setup>
 import {computed} from 'vue';
 import {date, money} from '../../support/formatters';
+import FuenteCotizacionCcl from '../Catalog/FuenteCotizacionCcl.vue';
 
 // Muestra los datos del servicio seleccionado y la referencia inicial publicada por el servidor.
 const props = defineProps({service: Object, reference: Object, saved: Boolean});
@@ -30,6 +31,7 @@ const equivalent = computed(() => {
                         reference.currency
                     }}</span>
                 <small v-if="equivalent">Equivale a {{ money(equivalent.min, equivalent.currency) }}<template v-if="Number(equivalent.max) !== Number(equivalent.min)"> – {{ money(equivalent.max, equivalent.currency) }}</template></small>
+                <FuenteCotizacionCcl v-if="equivalent" :fuente="reference.ccl_source"/>
             </div>
             <strong v-else>Precio a definir al revisar el alcance</strong>
         </div>

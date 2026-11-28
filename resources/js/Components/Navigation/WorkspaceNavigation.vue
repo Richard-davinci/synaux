@@ -54,7 +54,7 @@ const icons = {
 // Los grupos organizan el catálogo, los precios y las cuentas; el prototipo solo muestra sus secciones de referencia.
 const administration = computed(() => [
     {title: 'Catálogo', items: [['Servicios', 'servicios', 'grid'], ['Categorías', 'categorias', 'tag']]},
-    {title: 'Precios', items: [['Tarifarios', 'tarifario', 'calculator']]},
+    {title: 'Precios', items: [['Cotización CCL', 'tarifario', 'calculator']]},
     ...(page.props.preview ? [] : [{
         title: 'Organización',
         items: [['Datos de la organización', 'organizacion', 'file'], ['Equipo', 'usuarios', 'user']]

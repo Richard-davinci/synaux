@@ -2,6 +2,7 @@
 
 namespace App\Services\Catalog;
 
+use App\Services\Tariffs\CotizacionCcl;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -10,6 +11,10 @@ use Illuminate\Validation\ValidationException;
 class ServiceCatalog
 {
     public const FEATURED_LIMIT = 3;
+
+    public function __construct(private CotizacionCcl $cotizacion)
+    {
+    }
 
     // Conserva la selección automática hasta el primer guardado y excluye servicios despublicados.
     public function featuredServices(): array
@@ -69,6 +74,10 @@ class ServiceCatalog
         if (!$tariff) {
             return [];
         }
+        // Una referencia histórica conserva el valor de su versión y nunca toma el CCL actual.
+        $ccl = in_array($tariff->currency_code, ['USD', 'ARS'], true)
+            ? ($tariffId === null ? $this->cotizacion->vigente($tariff) : ['valor' => $tariff->ccl_rate ?? $tariff->source_rate])
+            : null;
         $bases = DB::table('service_prices')->where('tariff_version_id', $tariff->id)->get()->keyBy('service_id');
         $prices = DB::table('component_prices')->where('tariff_version_id', $tariff->id)->get()->keyBy('service_component_id');
         $segmentPrices = DB::table('service_segment_prices as p')
@@ -123,7 +132,7 @@ class ServiceCatalog
             }
             $references[$service['id']] = [
                 'min' => round($min, 2), 'max' => round($max, 2), 'currency' => $tariff->currency_code,
-                'ccl_rate' => $tariff->ccl_rate ?? $tariff->source_rate ?? null,
+                'ccl_rate' => $ccl['valor'] ?? null, 'ccl_source' => $ccl['fuente'] ?? null,
                 'date' => $tariff->effective_from, 'segments' => $segments,
                 'segment' => $segments ? 'Particular' : null,
             ];
@@ -261,10 +270,13 @@ class ServiceCatalog
             $max += (int)round(($price?->price_max ?? 0) * 100 * $quantity);
         }
 
+        // La estimación conserva la cotización que tenía el catálogo al calcular.
+        $ccl = $available && in_array($tariff?->currency_code, ['USD', 'ARS'], true) ? $this->cotizacion->vigente($tariff) : null;
         // Sin configuración completa se informa revisión profesional, nunca un precio ficticio.
         return ['key' => (string)Str::uuid(), 'service' => $service, 'answers' => $snapshot, 'items' => $items,
             'mode' => $available ? 'automatic' : 'manual', 'tariff_id' => $available ? $tariff->id : null,
-            'currency' => $tariff?->currency_code ?? 'ARS', 'ccl_rate' => $tariff?->ccl_rate ?? null,
+            'currency' => $tariff?->currency_code ?? 'ARS', 'ccl_rate' => $ccl['valor'] ?? null,
+            'ccl_source' => $ccl['fuente'] ?? null,
             'base_min' => $available ? $baseMin : null,
             'base_max' => $available ? $baseMax : null, 'min' => $available ? $min / 100 : null,
             'max' => $available ? $max / 100 : null, 'date' => now()->toDateTimeString()];
