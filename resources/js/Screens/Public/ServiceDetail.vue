@@ -98,6 +98,7 @@ function detailEquivalentText(min, max) {
                         <span>Mostrar en</span>
                         <button v-for="currency in ['ARS', 'USD']" :key="currency" type="button"
                                 :aria-pressed="displayCurrency === currency" @click="displayCurrency = currency">{{ currency }}</button>
+                        <span class="detail-ccl-reference">CCL aplicado: <strong>{{ money(detailReference.ccl_rate, 'ARS') }}</strong> por USD</span>
                     </div>
                     <div v-if="detailReference.segments?.length" class="detail-price-grid" role="group"
                          aria-label="Precio por tipo de cliente">
@@ -250,9 +251,11 @@ function detailEquivalentText(min, max) {
 }
 
 /* Permite priorizar pesos o dólares sin ocultar el equivalente convertido con el CCL de la tarifa. */
-.detail-currency { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-block: 8px; color: #446075; font-size: .8rem; }
+.detail-currency { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; margin-block: 8px; color: #446075; font-size: .8rem; }
 .detail-currency button { min-width: 52px; min-height: 30px; border: 1px solid #1f6f7f44; border-radius: 7px; background: #fff; color: #153b64; font: inherit; font-weight: 700; cursor: pointer; }
 .detail-currency button[aria-pressed='true'] { color: #fff; background: #1f6f7f; border-color: #1f6f7f; }
+.detail-ccl-reference { margin-left: 6px; padding: 5px 8px; border: 1px solid #1f6f7f26; border-radius: 6px; background: #f5f9fa; color: #446075; font-size: .75rem; }
+.detail-ccl-reference strong { color: #153b64; }
 .detail-price-equivalent { color: #446075; font-size: .75rem; line-height: 1.35; }
 
 .detail-price-option {

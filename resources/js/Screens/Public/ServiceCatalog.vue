@@ -8,6 +8,7 @@ import T from '../../Components/UI/PageTitle.vue';
 import I from '../../Components/UI/AppIcon.vue';
 import Empty from '../../Components/UI/EmptyState.vue';
 import TarjetaServicio from '../../Components/Catalog/TarjetaServicio.vue';
+import {money} from '../../support/formatters';
 
 // El catálogo filtra los servicios publicados y conserva el segmento seleccionado en cada tarjeta.
 const props = defineProps({data: Object});
@@ -32,6 +33,11 @@ const services = computed(() => props.data.services.filter(service => {
     return searchWords.value.every(word => searchableText.includes(word));
 }));
 const hasCclReference = computed(() => Object.values(props.data.references ?? {}).some(reference => Number(reference.ccl_rate) > 0));
+const cclRates = computed(() => [...new Set(Object.values(props.data.references ?? {})
+    .map(reference => Number(reference.ccl_rate)).filter(rate => Number.isFinite(rate) && rate > 0))]);
+const cclReferenceLabel = computed(() => cclRates.value.length === 1
+    ? `CCL aplicado: ${money(cclRates.value[0], 'ARS')} por USD`
+    : 'CCL aplicado según la tarifa de cada servicio');
 // La selección por servicio se conserva al aplicar los filtros.
 const catalogSegments = ref({});
 
@@ -71,6 +77,7 @@ const clear = () => {
                 <span>Mostrar precios en</span>
                 <button v-for="currency in ['ARS', 'USD']" :key="currency" type="button"
                         :aria-pressed="displayCurrency === currency" @click="displayCurrency = currency">{{ currency }}</button>
+                <span class="ccl-rate-reference">{{ cclReferenceLabel }}</span>
             </div>
         </div>
         <div v-if="services.length && data.referenceKey !== 'catalogo-vacio'" class="service-grid">
@@ -122,9 +129,10 @@ const clear = () => {
 }
 
 /* El selector cambia la moneda principal y conserva visible el equivalente calculado con el CCL de la versión. */
-.currency-picker { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: 12px; color: #446075; font-size: .8rem; }
+.currency-picker { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; margin-top: 12px; color: #446075; font-size: .8rem; }
 .currency-picker button { min-width: 54px; min-height: 32px; border: 1px solid #1f6f7f44; border-radius: 7px; background: white; color: #153b64; font: inherit; font-weight: 700; cursor: pointer; }
 .currency-picker button[aria-pressed='true'] { border-color: #1f6f7f; background: #1f6f7f; color: white; }
+.ccl-rate-reference { margin-left: 6px; padding: 5px 8px; border: 1px solid #1f6f7f26; border-radius: 6px; background: #fff; color: #446075; font-size: .75rem; }
 .catalog-page .price-summary small { color: #446075; font-size: .78rem; }
 
 /* El buscador y el autocompletado comparten altura y etiquetas alineadas. */
