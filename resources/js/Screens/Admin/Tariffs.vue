@@ -197,7 +197,7 @@ function guardarTarifario() {
 .tariff-section-heading > span { color: #446075; font-size: .76rem; white-space: nowrap; }
 .tariff-section-heading > span strong { color: #1f6f7f; }
 .tariff-section p { margin: 0; color: #446075; }
-.tariff-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(130px, .48fr); gap: 12px; align-items: start; max-width: 520px; }
+.tariff-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, .48fr); gap: 12px; align-items: start; width: 100%; }
 .tariff-fields :deep(.field > label) { min-height: 0; display: flex; align-items: flex-end; }
 .tariff-conversion { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 18px; margin: 0; }
 .tariff-activation { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; padding: 14px 16px; border: 1px solid #1f6f7f30; border-left: 4px solid #446075; border-radius: 10px; background: #f5f9fa; }
