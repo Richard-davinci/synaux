@@ -249,6 +249,26 @@ function quitarOpcion(indice) {
     form.options.splice(indice, 1);
 }
 
+// Cada selector muestra los conceptos activos del servicio y conserva visibles los inactivos ya vinculados.
+function opcionesConceptosPara(opcion) {
+    const vinculados = new Set((opcion.component_ids ?? []).map(Number));
+    return components.value
+        .filter(concepto => concepto.active || vinculados.has(Number(concepto.id)))
+        .map(concepto => {
+            const precio = precioConcepto(concepto.id);
+            const modo = modosCobro.find(item => item.value === concepto.modo_cobro)?.label ?? modosCobro[0].label;
+            const tienePrecioVigente = precio?.price_min != null && precio?.price_max != null;
+            const importeReferencia = tienePrecioVigente
+                ? importe(precio) + ' ' + moneda.value
+                : 'Sin precio cargado · requiere cotización';
+            return {
+                value: Number(concepto.id),
+                label: concepto.name + (concepto.active ? '' : ' (inactivo)'),
+                detalle: `${modo} · ${importeReferencia}`,
+            };
+        });
+}
+
 // El servidor identifica la versión vigente con el mismo criterio que usa el catálogo.
 const currentTariff = computed(() => props.administration.currentTariff);
 const moneda = computed(() => currentTariff.value?.currency_code ?? 'ARS');
@@ -559,25 +579,45 @@ function importe(precio) {
                     <section v-else-if="['single_choice','multiple_choice'].includes(form.input_type)" class="opciones-editor">
                         <div class="opciones-editor-heading"><div><h3>Respuestas y adicionales</h3>
                             <p>Podés dejar una respuesta sin adicional o asociarle varios conceptos de este servicio.</p></div>
-                            <B compact variant="secondary" type="button" @click="agregarOpcion">Agregar respuesta</B>
                         </div>
-                        <div v-for="(opcion, indice) in form.options" :key="opcion.id ?? 'nueva-' + indice" class="opcion-editor-row">
-                            <F v-model="opcion.label" :label="'Respuesta ' + (indice + 1)" required maxlength="255"
+                        <article v-for="(opcion, indice) in form.options" :key="opcion.id ?? 'nueva-' + indice" class="opcion-editor-row">
+                            <div class="opcion-editor-row-heading">
+                                <h4>Respuesta {{ indice + 1 }}</h4>
+                                <B compact variant="ghost" type="button" :disabled="form.options.length <= 1"
+                                   :aria-label="'Quitar respuesta ' + (indice + 1)" @click="quitarOpcion(indice)">Quitar</B>
+                            </div>
+                            <F v-model="opcion.label" label="Texto de la respuesta" required maxlength="255"
                                :error="form.errors[`options.${indice}.label`]"/>
                             <div class="opcion-vinculo">
                                 <label :for="idEditor + '-opcion-' + indice">Conceptos que suma (opcional)</label>
-                                <VSelect :id="idEditor + '-opcion-' + indice" v-model="opcion.component_ids"
-                                         :items="componentOptions" item-title="label" item-value="value" multiple chips
-                                         closable-chips density="compact" variant="outlined" color="primary" hide-details
-                                         :menu-props="{maxHeight: 260}"/>
-                                <small v-if="!componentOptions.length">Primero agregá un concepto en Precios y adicionales.</small>
-                                <small v-else>Sin selección, esta respuesta no agrega un importe.</small>
+                                <VSelect v-if="conceptosActivos.length" :id="idEditor + '-opcion-' + indice"
+                                         v-model="opcion.component_ids" :items="opcionesConceptosPara(opcion)"
+                                         item-title="label" item-value="value" multiple chips closable-chips
+                                         density="compact" variant="outlined" color="primary" hide-details
+                                         :menu-props="{maxHeight: 300}" class="selector-conceptos-opcion">
+                                    <template #item="{props: itemProps, item}">
+                                        <v-list-item v-bind="itemProps">
+                                            <template #title>{{ item.raw.label }}</template>
+                                            <template #subtitle>{{ item.raw.detalle }}</template>
+                                        </v-list-item>
+                                    </template>
+                                    <template #selection="{item, props: selectionProps}">
+                                        <v-chip v-bind="selectionProps" size="small" color="primary">
+                                            {{ item.raw.label }}
+                                        </v-chip>
+                                    </template>
+                                </VSelect>
+                                <p v-else class="notice conceptos-sin-disponibles" role="status">
+                                    No hay adicionales disponibles. Podés guardar esta respuesta sin costo adicional y vincular un concepto después de crearlo en Precios y adicionales.
+                                </p>
+                                <small v-if="conceptosActivos.length">Sin selección, esta respuesta no agrega un importe.</small>
                                 <small v-if="form.errors[`options.${indice}.component_ids.0`]" class="error" role="alert">
                                     {{ form.errors[`options.${indice}.component_ids.0`] }}</small>
                             </div>
-                            <B compact variant="secondary" type="button" :disabled="form.options.length <= 1"
-                               :aria-label="'Quitar respuesta ' + (indice + 1)" @click="quitarOpcion(indice)">Quitar</B>
-                        </div>
+                        </article>
+                        <B class="agregar-respuesta" compact variant="secondary" type="button" @click="agregarOpcion">
+                            Agregar respuesta
+                        </B>
                     </section>
                     <F v-if="form.input_type === 'number' && form.service_id !== null"
                        v-model="form.quantity_component_id" label="Concepto cuya cantidad define (opcional)"
@@ -609,7 +649,7 @@ function importe(precio) {
                        step="0.001" required/>
                 </template>
                 <fieldset class="controles-configuracion">
-                    <legend>Opciones</legend>
+                    <legend>Configuración</legend>
                     <label v-if="resource === 'preguntas'" class="select-row">
                         <input v-model="form.required" type="checkbox" :disabled="Boolean(segmentosEditables.length)">Respuesta obligatoria
                     </label>
@@ -725,11 +765,8 @@ function importe(precio) {
 }
 
 .opciones-editor-heading {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
+    display: grid;
+    gap: 4px;
 }
 
 .opciones-editor-heading h3 { color: #153b64; font-size: 1rem; }
@@ -737,21 +774,27 @@ function importe(precio) {
 
 .opcion-editor-row {
     display: grid;
-    grid-template-columns: minmax(140px, .85fr) minmax(240px, 1.5fr) auto;
-    align-items: end;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
     gap: 12px;
     min-width: 0;
-    padding: 14px;
+    padding: 14px 16px;
     border: 1px solid #1f6f7f26;
     border-radius: 10px;
-    background: #f5f9fa;
+    background: #fff;
 }
 
-.opcion-vinculo { display: grid; gap: 5px; min-width: 0; }
+.opcion-editor-row-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; min-width:0; }
+.opcion-editor-row-heading h4 { margin:0; color:#153b64; font-size:.95rem; }
+.opcion-vinculo { display: grid; gap: 6px; min-width: 0; }
 .opcion-vinculo > label { color: #153b64; font-size: .875rem; }
-.opcion-vinculo :deep(.v-field) { background: #fff; border-radius: 8px; }
+.opcion-vinculo :deep(.v-field) { min-width:0; max-width:100%; background: #fff; border-radius: 8px; }
 .opcion-vinculo :deep(.v-chip) { max-width: 100%; }
+.opcion-vinculo :deep(.v-field__input) { min-width:0; flex-wrap:wrap; }
+.opcion-vinculo :deep(.v-list-item-subtitle) { color:#446075; opacity:1; }
 .opcion-vinculo .error { color: #a63a45; }
+.conceptos-sin-disponibles { margin:0; }
+.agregar-respuesta { justify-self:start; }
 
 .configuration-row p {
     font-size: .875rem;
