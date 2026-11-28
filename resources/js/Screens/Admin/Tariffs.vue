@@ -106,13 +106,15 @@ function guardarTarifario() {
                         <div v-if="erroresFormulario.length" class="notice tariff-errors" role="alert">
                             <p v-for="error in erroresFormulario" :key="error.field">{{ error.message }}</p>
                         </div>
-                        <p class="tariff-required-note">Los campos marcados con * son obligatorios.</p>
                         <section class="tariff-section">
-                            <h2>Datos de la versión</h2>
+                            <div class="tariff-section-heading">
+                                <h2>Datos de la versión</h2>
+                                <span><strong>*</strong> Campos obligatorios</span>
+                            </div>
                             <div class="tariff-fields">
                                 <F v-model="tarifario.name" label="Nombre de la versión" required maxlength="255"/>
-                                <F v-model="tarifario.ccl_rate" label="CCL de venta · ARS por USD" type="number"
-                                   min="0.0001" step="0.0001" required hint="Ingresá manualmente la cotización de referencia del día."/>
+                                <F v-model="tarifario.ccl_rate" label="CCL · ARS/USD" type="number"
+                                   min="0.0001" step="0.0001" required hint="Cotización CCL de venta."/>
                             </div>
                             <div class="notice tariff-conversion"><span>Moneda de carga: <strong>USD</strong></span>
                                 <span v-if="cotizacionCcl">Con esta cotización, USD 1 equivale a {{ money(cotizacionCcl, 'ARS') }}.</span>
@@ -189,11 +191,13 @@ function guardarTarifario() {
 .tariff-form-card { width: 100%; max-width: 640px; margin-inline: auto; padding: 18px; }
 .tariff-form-card form, .tariff-section { display: grid; gap: 14px; }
 .tariff-errors { margin: 0; }
-.tariff-required-note { font-size: .82rem; }
 .tariff-section + .tariff-section { border-top: 1px solid #1f6f7f26; padding-top: 18px; }
-.tariff-section h2 { margin: 0; padding-left: 10px; border-left: 3px solid #2db3a3; font-size: 1.1rem; line-height: 1.35; }
+.tariff-section h2 { margin: 0; font-size: 1.1rem; line-height: 1.35; }
+.tariff-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 12px; border: 1px solid #1f6f7f26; border-left: 3px solid #2db3a3; border-radius: 8px; background: #f5f9fa; }
+.tariff-section-heading > span { color: #446075; font-size: .76rem; white-space: nowrap; }
+.tariff-section-heading > span strong { color: #1f6f7f; }
 .tariff-section p { margin: 0; color: #446075; }
-.tariff-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-items: start; max-width: 520px; }
+.tariff-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(130px, .48fr); gap: 12px; align-items: start; max-width: 520px; }
 .tariff-fields :deep(.field > label) { min-height: 0; display: flex; align-items: flex-end; }
 .tariff-conversion { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 18px; margin: 0; }
 .tariff-activation { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; padding: 14px 16px; border: 1px solid #1f6f7f30; border-left: 4px solid #446075; border-radius: 10px; background: #f5f9fa; }
@@ -226,7 +230,15 @@ function guardarTarifario() {
 @media (max-width: 700px) {
     .tariff-form-card { padding: 14px; }
     .tariff-segment-header { display: none; }
-    .tariff-segment { grid-template-columns: minmax(90px, .7fr) auto; }
-    .tariff-segment > strong, .tariff-range-inputs, .tariff-equivalent { grid-column: 1 / -1; text-align: left; }
+    .tariff-segment { grid-template-columns: 88px minmax(0, 1fr); gap: 6px 8px; }
+    .tariff-segment > strong { grid-column: 1 / -1; }
+    .tariff-price-mode { grid-column: 1; grid-row: 2; }
+    .tariff-segment > :deep(.field), .tariff-range-inputs { grid-column: 2; grid-row: 2; }
+    .tariff-component-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tariff-equivalent { grid-column: 1 / -1; text-align: left; }
+}
+@media (max-width: 480px) {
+    .tariff-section-heading { align-items: flex-start; flex-direction: column; gap: 4px; }
+    .tariff-fields { grid-template-columns: minmax(0, 1fr); }
 }
 </style>
