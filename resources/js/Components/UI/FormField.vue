@@ -9,6 +9,7 @@ const props = defineProps({
     label: String,
     type: {type: String, default: 'text'},
     options: Array,
+    mostrarOpcionVacia: {type: Boolean, default: true},
     menuProps: Object,
     error: String,
     hint: String,
@@ -36,7 +37,8 @@ const items = computed(() => {
         value: option?.value ?? option?.id ?? option,
         title: String(option?.label ?? option?.name ?? option)
     }));
-    return values.some(option => option.value === '') ? values : [{
+    // Los selectores con valor obligatorio ya definido pueden omitir la opción vacía del menú.
+    return !props.mostrarOpcionVacia || values.some(option => option.value === '') ? values : [{
         value: '',
         title: props.placeholder || 'Seleccioná una opción'
     }, ...values];
@@ -75,7 +77,8 @@ function invalidSelection() {
         <template v-if="type === 'select'">
             <VSelect ref="selectControl" class="synaux-field-control" v-bind="common" :model-value="modelValue"
                      :items="items" item-title="title" item-value="value"
-                     :placeholder="placeholder || 'Seleccioná una opción'" :aria-required="required"
+                     :placeholder="mostrarOpcionVacia ? placeholder || 'Seleccioná una opción' : placeholder"
+                     :aria-required="required"
                      :menu-props="{maxHeight: 280, ...menuProps}" @update:model-value="update"/>
             <input v-if="required" class="select-validity-proxy" type="text" tabindex="-1" aria-hidden="true"
                    :value="hasSelection ? 'selected' : ''" :disabled="disabled" required

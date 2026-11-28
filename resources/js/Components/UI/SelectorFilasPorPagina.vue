@@ -11,6 +11,7 @@ opciones.push({value: 'todos', label: 'Todos'});
 <template>
     <div class="selector-filas">
         <F :model-value="modelValue" label="Filas por página" type="select" :options="opciones"
+           :mostrar-opcion-vacia="false"
            @update:model-value="emit('update:modelValue', String($event))"/>
     </div>
 </template>
