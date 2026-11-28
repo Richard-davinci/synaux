@@ -31,6 +31,7 @@ final class SimuladorEstimacionesController extends Controller
 
         // El motor recibe el servicio por su slug y las preguntas guardadas para validar cada opción seleccionada.
         $resultado = $catalog->calculate($servicio['id'], $data['answers'], $preguntas, true, true);
+        $preguntas = $catalog->visibleQuestions($preguntas, $data['answers']);
         $tarifa = DB::table('tariff_versions')->where('active', 1)->where('effective_from', '<=', now())
             ->orderByDesc('effective_from')->orderByDesc('id')->first();
         $preciosSegmento = $tarifa ? DB::table('service_segment_prices')->where('tariff_version_id', $tarifa->id)
@@ -48,7 +49,8 @@ final class SimuladorEstimacionesController extends Controller
 
         // Cada renglón indica qué respuesta lo activó; esto explica el cálculo sin volver a calcularlo en el controlador.
         $idsOpcionSeleccionada = [];
-        foreach ($data['answers'] as $valor) {
+        foreach ($resultado['answers'] as $respuesta) {
+            $valor = $respuesta['value'];
             foreach (is_array($valor) ? $valor : [$valor] as $idOpcion) {
                 if (is_int($idOpcion) || (is_string($idOpcion) && ctype_digit($idOpcion))) $idsOpcionSeleccionada[] = (int)$idOpcion;
             }

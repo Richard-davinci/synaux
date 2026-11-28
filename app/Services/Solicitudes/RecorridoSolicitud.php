@@ -159,12 +159,24 @@ class RecorridoSolicitud
                 throw ValidationException::withMessages(["additional_services.$index.service_id" => 'Elegí otro servicio disponible.']);
             }
             $questions = $this->catalog->questions($serviceId, specificOnly: true);
+            // Las preguntas generales se responden una vez en el servicio principal y se heredan si quedaron visibles.
+            foreach ($this->catalog->questions($serviceId) as $preguntaGeneral) {
+                if ($preguntaGeneral['service_id'] !== null || ($preguntaGeneral['clave_sistema'] ?? null) === TipoCliente::PREGUNTA) continue;
+                foreach ($mainAnswers as $respuestaGeneral) {
+                    if ((int)($respuestaGeneral['id'] ?? 0) === (int)$preguntaGeneral['id']) {
+                        $answers[$preguntaGeneral['id']] = $respuestaGeneral['value'];
+                        $questions[] = $preguntaGeneral;
+                        break;
+                    }
+                }
+            }
             // Completa el tipo de cliente desde el principal. Las configuraciones antiguas conservan su respuesta explícita.
             $answers += TipoCliente::preseleccion($questions, $segmentoPrincipal);
             if ($preguntaHeredada) {
                 $questions[] = [...(array)$preguntaHeredada, 'options' => $opcionesGlobales];
                 $answers[$preguntaHeredada->id] = $opcionHeredada->id;
             }
+            usort($questions, fn ($a, $b) => ((int)$a['sort_order'] <=> (int)$b['sort_order']) ?: ((int)$a['id'] <=> (int)$b['id']));
             // Los pedidos anteriores a las preguntas de adicionales conservan su descripción original.
             if (!array_key_exists('answers', $item)) {
                 foreach ($questions as $question) {

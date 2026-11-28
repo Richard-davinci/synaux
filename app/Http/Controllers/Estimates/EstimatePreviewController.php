@@ -31,6 +31,7 @@ final class EstimatePreviewController extends Controller
         $questions = $catalog->questions($service['database_id']);
         $this->rejectUnknownQuestionIds($data['answers'], $questions, 'answers');
         $main = $catalog->calculate($service['id'], $data['answers'], $questions, true);
+        $questions = $catalog->visibleQuestions($questions, $data['answers']);
         $missing = $this->missingRequired($questions, $data['answers']);
         $incomplete = $main['incomplete'] || $missing !== [];
         $mainItemsMissingPrice = collect($main['items'])->contains(fn($item) => $item['min'] === null || $item['max'] === null);
@@ -49,7 +50,7 @@ final class EstimatePreviewController extends Controller
                     "additional_services.$index.service_id" => 'Elegí otro servicio publicado y disponible.',
                 ]);
             }
-            $scopedQuestions = $catalog->questions((int)$extraService['database_id'], specificOnly: true);
+            $scopedQuestions = $catalog->questions((int)$extraService['database_id']);
             $this->rejectUnknownQuestionIds($extra['answers'] ?? [], $scopedQuestions, "additional_services.$index.answers");
         }
 

@@ -110,6 +110,51 @@ class ServiceConfigurationTest extends TestCase
         $this->assertEquals($antes['min'] + 120, $catalog->calculate('landing-page', $answers + [$questionId => $optionIds[1]])['min']);
     }
 
+    // Las dependencias guardan IDs y el editor rechaza referencias circulares o posteriores.
+    public function test_conditional_question_and_yes_no_are_saved_without_converting_existing_options(): void
+    {
+        $serviceId = (int)DB::table('services')->where('slug', 'landing-page')->value('id');
+        $sourceData = [
+            'catalog_service_id' => $serviceId, 'service_id' => $serviceId, 'question' => '¿Necesitás una tienda?',
+            'input_type' => 'single_choice', 'sort_order' => 50, 'active' => true, 'required' => true,
+            'options' => [['id' => null, 'label' => 'Sí', 'component_ids' => []], ['id' => null, 'label' => 'No', 'component_ids' => []]],
+        ];
+        $this->post('/admin/guardar/preguntas', $sourceData)->assertRedirect()->assertSessionHasNoErrors();
+        $source = DB::table('estimator_questions')->where('question', $sourceData['question'])->first();
+        $sourceOption = DB::table('estimator_options')->where('question_id', $source->id)->where('label', 'Sí')->first();
+        $yesNoData = [
+            'catalog_service_id' => $serviceId, 'service_id' => $serviceId, 'question' => '¿Necesitás carga inicial?',
+            'input_type' => 'single_choice', 'is_yes_no' => true, 'sort_order' => 60, 'active' => true, 'required' => false,
+            'visibility_question_id' => $source->id, 'visibility_operator' => 'equals', 'visibility_option_id' => $sourceOption->id,
+            'options' => [['id' => null, 'label' => 'Sí', 'component_ids' => []], ['id' => null, 'label' => 'No', 'component_ids' => []]],
+        ];
+        $this->post('/admin/guardar/preguntas', $yesNoData)->assertRedirect()->assertSessionHasNoErrors();
+        $target = DB::table('estimator_questions')->where('question', $yesNoData['question'])->first();
+        $this->assertTrue((bool)$target->is_yes_no);
+        $this->assertSame((int)$source->id, (int)$target->visibility_question_id);
+        $this->assertSame('equals', $target->visibility_operator);
+        $this->assertSame(['Sí', 'No'], DB::table('estimator_options')->where('question_id', $target->id)->orderBy('sort_order')->pluck('label')->all());
+
+        $sourceData['id'] = $source->id;
+        $sourceData['options'] = [
+            ['id' => $sourceOption->id, 'label' => 'Incluir tienda', 'component_ids' => []],
+            ['id' => DB::table('estimator_options')->where('question_id', $source->id)->where('label', 'No')->value('id'), 'label' => 'No', 'component_ids' => []],
+        ];
+        $this->post('/admin/guardar/preguntas', $sourceData)->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame((int)$sourceOption->id, (int)DB::table('estimator_options')->where('question_id', $source->id)->where('label', 'Incluir tienda')->value('id'));
+        $this->assertSame((int)$sourceOption->id, (int)DB::table('estimator_questions')->where('id', $target->id)->value('visibility_option_id'));
+
+        $sourceOptions = DB::table('estimator_options')->where('question_id', $source->id)->orderBy('sort_order')->get();
+        $sourceData['options'] = $sourceOptions->map(fn ($option) => [
+            'id' => $option->id, 'label' => $option->label, 'component_ids' => [],
+        ])->all();
+        $sourceData['visibility_question_id'] = $target->id;
+        $sourceData['visibility_operator'] = 'equals';
+        $sourceData['visibility_option_id'] = DB::table('estimator_options')->where('question_id', $target->id)->value('id');
+        $this->post('/admin/guardar/preguntas', $sourceData)->assertSessionHasErrors('visibility_question_id');
+        $this->assertSame(2, DB::table('estimator_options')->where('question_id', $source->id)->count());
+    }
+
     // Una pregunta general puede tener reglas por servicio sin apagar vínculos de otros servicios.
     public function test_general_question_links_are_scoped_to_the_service_being_edited(): void
     {

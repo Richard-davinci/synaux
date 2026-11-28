@@ -119,7 +119,10 @@ class CatalogConfigurationController extends Controller
                 'excluded_items' => 'nullable|string|max:10000', 'conditions' => 'nullable|string|max:10000'],
             'preguntas' => [...$common, 'service_id' => 'nullable|integer|exists:services,id', 'question' => 'required|string|max:1000',
                 'input_type' => ['required', Rule::in(['single_choice', 'multiple_choice', 'number', 'text'])], 'sort_order' => 'required|integer|min:0|max:1000', 'options_text' => 'nullable|string|max:5000',
-                'quantity_component_id' => 'nullable|integer|exists:service_components,id', 'required' => 'sometimes|boolean'],
+                'quantity_component_id' => 'nullable|integer|exists:service_components,id', 'required' => 'sometimes|boolean',
+                'is_yes_no' => 'sometimes|boolean', 'visibility_question_id' => 'nullable|integer|exists:estimator_questions,id',
+                'visibility_operator' => ['nullable', Rule::in(['equals', 'not_equals', 'contains', 'not_contains'])],
+                'visibility_option_id' => 'nullable|integer|exists:estimator_options,id'],
             'componentes' => [...$common, 'service_id' => 'required|integer|exists:services,id', 'name' => 'required|string|max:255', 'slug' => 'required|alpha_dash|max:150',
                 'description' => 'required|string|max:10000', 'unit_code' => 'required|string|max:32', 'is_default' => 'required|boolean', 'default_quantity' => 'required|numeric|gt:0|max:10000',
                 'modo_cobro' => ['sometimes', Rule::enum(ModoCobro::class)]],
@@ -204,9 +207,22 @@ class CatalogConfigurationController extends Controller
                 if ($anterior?->clave_sistema === TipoCliente::PREGUNTA) {
                     return $this->guardarPreguntaTipoCliente($anterior, $data, $etiquetasSegmentos);
                 }
+                if ($anterior) $this->validarPreguntaReferenciada($anterior, $data, $opcionesEditadas);
+                $this->validarCondicionPregunta($data, $anterior, $context);
                 if (!empty($data['required']) || !array_key_exists('required', $data)) $data['required'] = true;
+                $data['is_yes_no'] = (bool)($data['is_yes_no'] ?? false);
+                if ($data['is_yes_no'] && $data['input_type'] !== 'single_choice') {
+                    throw ValidationException::withMessages(['input_type' => 'Sí/No utiliza el tipo de respuesta de una opción.']);
+                }
+                if ($data['is_yes_no'] && $anterior && !$anterior->is_yes_no) {
+                    throw ValidationException::withMessages(['input_type' => 'Para conservar las opciones y reglas actuales, una pregunta existente no se puede convertir a Sí/No. Creá una nueva pregunta binaria.']);
+                }
                 $options = $data['options_text'] ?? '';
                 unset($data['options_text']);
+                if ($data['is_yes_no'] && (!$opcionesEditadas || count($opcionesEditadas) !== 2
+                    || array_map(fn($opcion) => mb_strtolower(trim($opcion['label'])), $opcionesEditadas) !== ['sí', 'no'])) {
+                    throw ValidationException::withMessages(['options' => 'Una pregunta Sí/No debe conservar exactamente las respuestas Sí y No.']);
+                }
                 if (!empty($data['quantity_component_id'])) {
                     $component = DB::table('service_components')->where('id', $data['quantity_component_id'])->firstOrFail();
                     abort_unless($data['input_type'] === 'number' && $component->service_id === $data['service_id'], 422);
@@ -289,6 +305,76 @@ class CatalogConfigurationController extends Controller
             return redirect("/admin/servicios/$savedId/editar?config=$seccion")->with('notice', $mensaje);
         }
         return back()->with('notice', $mensaje);
+    }
+
+    // Valida la visibilidad por pregunta y opción estable; una dependencia solo puede apuntar hacia atrás.
+    private function validarCondicionPregunta(array $datos, ?object $anterior, ?int $contexto): void
+    {
+        $origenId = $datos['visibility_question_id'] ?? null;
+        $operador = $datos['visibility_operator'] ?? null;
+        $opcionId = $datos['visibility_option_id'] ?? null;
+        $camposVacios = $origenId === null && $operador === null && $opcionId === null;
+        if ($camposVacios) return;
+        if (!$origenId || !$operador || !$opcionId || !$contexto
+            || (array_key_exists('service_id', $datos) && $datos['service_id'] === null)) {
+            throw ValidationException::withMessages(['visibility_question_id' => 'Completá la pregunta, la condición y la respuesta que la muestra.']);
+        }
+        if (($datos['clave_sistema'] ?? null) === TipoCliente::PREGUNTA || $anterior?->clave_sistema === TipoCliente::PREGUNTA) {
+            throw ValidationException::withMessages(['visibility_question_id' => 'La pregunta del tipo de cliente siempre debe estar visible.']);
+        }
+        $origen = DB::table('estimator_questions')->where('id', $origenId)->first();
+        if (!$origen || !$origen->active || ($origen->service_id !== null && (int)$origen->service_id !== $contexto)
+            || (int)$origen->id === (int)($anterior->id ?? 0)) {
+            throw ValidationException::withMessages(['visibility_question_id' => 'Elegí una pregunta activa, general o de este servicio, distinta de la actual.']);
+        }
+        // La referencia debe preceder a la pregunta dependiente para que no se formen ciclos.
+        if ($anterior && ((int)$origen->sort_order > (int)$datos['sort_order']
+            || ((int)$origen->sort_order === (int)$datos['sort_order'] && (int)$origen->id >= (int)$anterior->id))) {
+            throw ValidationException::withMessages(['visibility_question_id' => 'La pregunta que controla la visibilidad debe aparecer antes.']);
+        }
+        if (!$anterior && (int)$origen->sort_order >= (int)$datos['sort_order']) {
+            throw ValidationException::withMessages(['visibility_question_id' => 'La pregunta que controla la visibilidad debe tener un orden anterior.']);
+        }
+        $opcion = DB::table('estimator_options')->where('id', $opcionId)->where('question_id', $origenId)->where('active', true)->first();
+        if (!$opcion) throw ValidationException::withMessages(['visibility_option_id' => 'Elegí una respuesta activa de la pregunta seleccionada.']);
+        $esMulti = $origen->input_type === 'multiple_choice';
+        $esSimple = $origen->input_type === 'single_choice';
+        $operadorValido = $esMulti ? in_array($operador, ['contains', 'not_contains'], true)
+            : ($esSimple && in_array($operador, ['equals', 'not_equals'], true));
+        if (!$operadorValido) throw ValidationException::withMessages(['visibility_operator' => 'El operador no corresponde al tipo de respuesta de la pregunta.']);
+
+    }
+
+    // Evita que una edición deje referencias activas hacia opciones, tipos u órdenes que ya no existen.
+    private function validarPreguntaReferenciada(object $anterior, array $datos, ?array $opcionesEditadas): void
+    {
+        $dependientes = DB::table('estimator_questions')->where('visibility_question_id', $anterior->id)->get();
+        if ($dependientes->isEmpty()) return;
+        if (empty($datos['active'])) {
+            throw ValidationException::withMessages(['active' => 'Esta pregunta controla otras preguntas. Quitá primero sus condiciones para poder desactivarla.']);
+        }
+        $tipoNuevo = $datos['input_type'];
+        foreach ($dependientes as $dependiente) {
+            $operador = $dependiente->visibility_operator;
+            $tipoCompatible = $tipoNuevo === 'multiple_choice'
+                ? in_array($operador, ['contains', 'not_contains'], true)
+                : ($tipoNuevo === 'single_choice' && in_array($operador, ['equals', 'not_equals'], true));
+            if (!$tipoCompatible || (int)$datos['sort_order'] > (int)$dependiente->sort_order
+                || ((int)$datos['sort_order'] === (int)$dependiente->sort_order && (int)$anterior->id >= (int)$dependiente->id)) {
+                throw ValidationException::withMessages(['input_type' => 'Esta pregunta controla otras. Conservá su tipo compatible y su orden anterior, o quitá primero las condiciones vinculadas.']);
+            }
+            if ($opcionesEditadas === null) {
+                $opcionOrigen = DB::table('estimator_options')->where('id', $dependiente->visibility_option_id)
+                    ->where('question_id', $anterior->id)->first();
+                $etiquetas = array_filter(array_map('trim', explode("\n", str_replace("\r\n", "\n", $datos['options_text'] ?? ''))));
+                $opcionActiva = $opcionOrigen && in_array($opcionOrigen->label, $etiquetas, true);
+            } else {
+                $opcionActiva = collect($opcionesEditadas)->contains(fn ($opcion) => (int)($opcion['id'] ?? 0) === (int)$dependiente->visibility_option_id);
+            }
+            if (!$opcionActiva) {
+                throw ValidationException::withMessages(['options' => 'Una respuesta de esta pregunta controla otras. Quitá primero sus condiciones antes de retirarla.']);
+            }
+        }
     }
 
     // Sincroniza las reglas económicas de esta pregunta sin tocar vínculos globales pertenecientes a otros servicios.

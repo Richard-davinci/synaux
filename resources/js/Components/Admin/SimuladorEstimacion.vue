@@ -3,6 +3,8 @@ import {computed, reactive, ref, watch} from 'vue';
 import axios from 'axios';
 import {money} from '../../support/formatters';
 import F from '../UI/FormField.vue';
+import SelectorSiNo from '../UI/SelectorSiNo.vue';
+import {preguntasVisibles as resolverVisibilidad} from '../../support/preguntasVisibles';
 
 const props = defineProps({service: {type: Object, required: true}, questions: {type: Array, required: true}});
 const respuestas = reactive({});
@@ -13,9 +15,15 @@ const desactualizado = ref(false);
 const tipos = {
     single_choice: 'Una opción', multiple_choice: 'Varias opciones', number: 'Cantidad', text: 'Texto libre',
 };
-const preguntasActivas = computed(() => props.questions
+const preguntasConfiguradas = computed(() => props.questions
     .filter(pregunta => pregunta.active && (pregunta.service_id == null || pregunta.service_id == props.service.id))
     .map(pregunta => ({...pregunta, options: pregunta.options.filter(opcion => opcion.active)})));
+const preguntasActivas = computed(() => resolverVisibilidad(preguntasConfiguradas.value, respuestas));
+// Las respuestas de preguntas que se ocultan se eliminan del envío de simulación.
+watch(preguntasActivas, visibles => {
+    const ids = new Set(visibles.map(pregunta => String(pregunta.id)));
+    for (const id of Object.keys(respuestas)) if (!ids.has(String(id))) delete respuestas[id];
+});
 const opcionesTipoCliente = computed(() => preguntasActivas.value.find(p => p.clave_sistema === 'tipo_cliente')?.options ?? []);
 const preguntasAdicionales = computed(() => preguntasActivas.value.filter(pregunta => pregunta.clave_sistema !== 'tipo_cliente'));
 
@@ -95,23 +103,27 @@ const estados = {
                     Este servicio no tiene preguntas adicionales configuradas. Podés probar el precio base según el tipo de cliente.
                 </p>
                 <div v-for="pregunta in preguntasActivas" :key="pregunta.id" class="simulador-pregunta">
-                    <label class="simulador-etiqueta" :for="`simulacion-${pregunta.id}`">
-                        {{ pregunta.question }}<span v-if="pregunta.required"> *</span>
-                    </label>
-                    <F v-if="pregunta.input_type === 'single_choice'"
-                       v-model="respuestas[pregunta.id]" type="select" :options="opciones(pregunta)"
-                       placeholder="Seleccioná una opción"/>
-                    <fieldset v-else-if="pregunta.input_type === 'multiple_choice'" class="simulador-opciones">
-                        <legend class="visually-hidden">{{ pregunta.question }}</legend>
-                        <label v-for="opcion in pregunta.options" :key="opcion.id" class="simulador-opcion">
-                            <input v-model="respuestas[pregunta.id]" type="checkbox" :value="opcion.id">
-                            <span>{{ opcion.label }}</span>
+                    <SelectorSiNo v-if="pregunta.is_yes_no" v-model="respuestas[pregunta.id]" :question="pregunta"
+                                  :required="Boolean(pregunta.required)"/>
+                    <template v-else>
+                        <label class="simulador-etiqueta" :for="`simulacion-${pregunta.id}`">
+                            {{ pregunta.question }}<span v-if="pregunta.required"> *</span>
                         </label>
-                    </fieldset>
-                    <F v-else-if="pregunta.input_type === 'number'" v-model="respuestas[pregunta.id]"
-                       type="number" min="1" max="10000" step="1" placeholder="Ingresá una cantidad"/>
-                    <F v-else v-model="respuestas[pregunta.id]" type="textarea"
-                       placeholder="Escribí una respuesta de prueba"/>
+                        <F v-if="pregunta.input_type === 'single_choice'"
+                           v-model="respuestas[pregunta.id]" type="select" :options="opciones(pregunta)"
+                           placeholder="Seleccioná una opción"/>
+                        <fieldset v-else-if="pregunta.input_type === 'multiple_choice'" class="simulador-opciones">
+                            <legend class="visually-hidden">{{ pregunta.question }}</legend>
+                            <label v-for="opcion in pregunta.options" :key="opcion.id" class="simulador-opcion">
+                                <input v-model="respuestas[pregunta.id]" type="checkbox" :value="opcion.id">
+                                <span>{{ opcion.label }}</span>
+                            </label>
+                        </fieldset>
+                        <F v-else-if="pregunta.input_type === 'number'" v-model="respuestas[pregunta.id]"
+                           type="number" min="1" max="10000" step="1" placeholder="Ingresá una cantidad"/>
+                        <F v-else v-model="respuestas[pregunta.id]" type="textarea"
+                           placeholder="Escribí una respuesta de prueba"/>
+                    </template>
                 </div>
                 <div class="simulador-acciones">
                     <button type="button" class="simulador-boton simulador-secundario" @click="reiniciar">Reiniciar</button>

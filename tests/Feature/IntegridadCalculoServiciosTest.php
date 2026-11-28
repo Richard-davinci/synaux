@@ -137,6 +137,15 @@ class IntegridadCalculoServiciosTest extends TestCase
         $resultado = $this->motor->calculate('integridad-principal', $this->respuestas('pyme'));
         $this->assertEquals(800, $resultado['min']);
         $this->assertSame('Comercio mediano', $resultado['answers'][0]['label']);
+
+        $control = $this->pregunta('¿Control de prueba?', 'single_choice');
+        DB::table('estimator_questions')->where('id', $this->catalogo['pregunta_cliente'])->update([
+            'visibility_question_id' => $control['id'], 'visibility_operator' => 'equals',
+            'visibility_option_id' => $control['opciones'][0],
+        ]);
+        $resultado = $this->motor->calculate('integridad-principal', $this->respuestas('pyme'));
+        $this->assertEquals(800, $resultado['min']);
+        $this->assertNotEmpty($resultado['answers'][0]['value']);
     }
 
     public function test_client_preview_matches_the_economic_engine_and_does_not_persist_or_trust_amounts(): void
@@ -177,6 +186,97 @@ class IntegridadCalculoServiciosTest extends TestCase
 
         $this->post('/estimador/calcular', ['service' => 'integridad-principal', 'answers' => $answers])
             ->assertSessionHasErrors("answers.{$required['id']}");
+    }
+
+    // Las preguntas condicionales dependen de IDs; ocultar una requerida elimina su respuesta y cualquier regla.
+    public function test_hidden_required_question_is_ignored_and_cannot_activate_an_economic_rule(): void
+    {
+        $origen = $this->pregunta('¿Querés sumar una galería?', 'single_choice', null, true);
+        $concepto = $this->concepto('Galería opcional', 'galeria-condicional', 90, 'unico');
+        $condicional = $this->pregunta('¿Cuántas galerías?', 'single_choice', null, true);
+        DB::table('estimator_questions')->where('id', $condicional['id'])->update([
+            'visibility_question_id' => $origen['id'], 'visibility_operator' => 'equals',
+            'visibility_option_id' => $origen['opciones'][0],
+        ]);
+        $this->regla($condicional['opciones'][0], $concepto);
+
+        $respuestas = $this->respuestas() + [$origen['id'] => $origen['opciones'][1], $condicional['id'] => $condicional['opciones'][0]];
+        $resultado = $this->motor->calculate('integridad-principal', $respuestas);
+        $this->assertEquals(800, $resultado['min']);
+        $this->assertNotContains($condicional['id'], array_column($resultado['answers'], 'id'));
+        $this->postJson('/estimador/previsualizar', [
+            'service' => 'integridad-principal', 'answers' => $respuestas,
+        ])->assertOk()->assertJsonPath('completa', true)
+            ->assertJsonPath('total_estimado.minimo', 800)
+            ->assertJsonPath('preguntas_pendientes', []);
+
+        $respuestas[$origen['id']] = $origen['opciones'][0];
+        unset($respuestas[$condicional['id']]);
+        $incompleto = $this->motor->calculate('integridad-principal', $respuestas, allowIncomplete: true);
+        $this->assertTrue($incompleto['incomplete']);
+        $this->assertNull($incompleto['min']);
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->motor->calculate('integridad-principal', $respuestas);
+    }
+
+    // Las condiciones de selección múltiple usan la presencia de una opción, no su posición o etiqueta.
+    public function test_multiple_choice_condition_uses_stable_option_id_and_yes_no_keeps_option_economics(): void
+    {
+        $multiple = $this->pregunta('¿Qué módulos incluís?', 'multiple_choice');
+        DB::table('estimator_options')->where('id', $multiple['opciones'][1])->update(['label' => 'Módulo premium']);
+        $hijoId = DB::table('estimator_questions')->insertGetId([
+            'service_id' => $this->catalogo['servicios']['principal'], 'question' => '¿Querés el montaje?',
+            'input_type' => 'single_choice', 'is_yes_no' => true, 'sort_order' => 1000,
+            'visibility_question_id' => $multiple['id'], 'visibility_operator' => 'contains',
+            'visibility_option_id' => $multiple['opciones'][1], 'active' => true, 'required' => false,
+        ]);
+        $this->assertNotSame(0, $hijoId);
+        $no = DB::table('estimator_options')->insertGetId(['question_id' => $hijoId, 'label' => 'No', 'sort_order' => 1, 'active' => true]);
+        DB::table('estimator_options')->insert(['question_id' => $hijoId, 'label' => 'Sí', 'sort_order' => 0, 'active' => true]);
+        $cargo = $this->concepto('Montaje', 'montaje-condicional', 35, 'unico');
+        $this->regla($no, $cargo);
+        $respuesta = $this->respuestas() + [$multiple['id'] => [$multiple['opciones'][1]], $hijoId => $no];
+        $resultado = $this->motor->calculate('integridad-principal', $respuesta);
+        $this->assertEquals(835, $resultado['min']);
+        $this->assertSame('No', collect($resultado['answers'])->firstWhere('id', $hijoId)['label']);
+
+        $sinModulo = $this->motor->calculate('integridad-principal', $this->respuestas() + [$multiple['id'] => [], $hijoId => $no]);
+        $this->assertEquals(800, $sinModulo['min']);
+    }
+
+    // Un servicio adicional reutiliza respuestas globales visibles del servicio principal sin volver a preguntarlas.
+    public function test_additional_service_inherits_global_answer_for_visibility_without_repeating_it(): void
+    {
+        $globalId = DB::table('estimator_questions')->insertGetId([
+            'service_id' => null, 'question' => '¿El proyecto incluye comercio?', 'input_type' => 'single_choice',
+            'sort_order' => 10, 'active' => true, 'required' => false,
+        ]);
+        $globalYes = DB::table('estimator_options')->insertGetId(['question_id' => $globalId, 'label' => 'Sí', 'sort_order' => 0, 'active' => true]);
+        $globalNo = DB::table('estimator_options')->insertGetId(['question_id' => $globalId, 'label' => 'No', 'sort_order' => 1, 'active' => true]);
+        $extraQuestion = DB::table('estimator_questions')->insertGetId([
+            'service_id' => $this->catalogo['servicios']['adicional'], 'question' => '¿Qué pasarela necesitás?',
+            'input_type' => 'single_choice', 'sort_order' => 100, 'active' => true, 'required' => true,
+            'visibility_question_id' => $globalId, 'visibility_operator' => 'equals', 'visibility_option_id' => $globalYes,
+        ]);
+        $extraOption = DB::table('estimator_options')->insertGetId(['question_id' => $extraQuestion, 'label' => 'Tarjeta', 'sort_order' => 0, 'active' => true]);
+
+        $answersMain = array_replace($this->respuestas(), [$globalId => $globalNo]);
+        $main = $this->motor->calculate('integridad-principal', $answersMain);
+        $hidden = app(RecorridoSolicitud::class)->calculateAdditionalServices(
+            $this->catalogo['servicios']['principal'], [['service_id' => $this->catalogo['servicios']['adicional'], 'quantity' => 1, 'answers' => []]],
+            $main['answers'], 'USD', [], true,
+        )[0];
+        $this->assertFalse($hidden['pricing_breakdown']['incomplete']);
+        $this->assertNotContains($extraQuestion, array_column($hidden['answers'], 'id'));
+
+        $answersMain[$globalId] = $globalYes;
+        $main = $this->motor->calculate('integridad-principal', $answersMain);
+        $visible = app(RecorridoSolicitud::class)->calculateAdditionalServices(
+            $this->catalogo['servicios']['principal'], [['service_id' => $this->catalogo['servicios']['adicional'], 'quantity' => 1, 'answers' => []]],
+            $main['answers'], 'USD', [], true,
+        )[0];
+        $this->assertTrue($visible['pricing_breakdown']['incomplete']);
+        $this->assertNotSame(0, $extraOption);
     }
 
     public function test_live_preview_recalculates_when_a_response_is_selected_or_removed(): void

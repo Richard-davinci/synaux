@@ -12,7 +12,7 @@ class ServiceCatalog
 {
     public const FEATURED_LIMIT = 3;
 
-    public function __construct(private CotizacionCcl $cotizacion)
+    public function __construct(private CotizacionCcl $cotizacion, private VisibilidadPreguntas $visibilidad)
     {
     }
 
@@ -170,7 +170,7 @@ class ServiceCatalog
     {
         return DB::table('estimator_questions')->where('active', 1)
             ->where(fn($q) => $q->where('service_id', $serviceId)->when(!$specificOnly, fn($query) => $query->orWhereNull('service_id')))
-            ->orderBy('sort_order')->get()->map(fn($q) => [
+            ->orderBy('sort_order')->orderBy('id')->get()->map(fn($q) => [
                 ...((array)$q),
                 'options' => DB::table('estimator_options')->where('question_id', $q->id)->where('active', 1)->orderBy('sort_order')->get(),
             ])->all();
@@ -182,6 +182,10 @@ class ServiceCatalog
         // La opción administrativa permite probar fichas todavía no publicadas sin cambiar el acceso comercial.
         $service = $this->service($slug, $includeInactiveService);
         $questions ??= $this->questions($service['database_id']);
+        // Las respuestas ocultas se quitan antes de validar requisitos y activar reglas económicas.
+        $questions = $this->visibleQuestions($questions, $answers);
+        $idsVisibles = array_fill_keys(array_map(fn ($pregunta) => (string)((array)$pregunta)['id'], $questions), true);
+        $answers = array_intersect_key($answers, $idsVisibles);
         $snapshot = [];
         $selected = [];
         $opcionGlobal = null;
@@ -299,6 +303,12 @@ class ServiceCatalog
             'base_min' => $baseMin, 'base_max' => $baseMax, ...$subtotal,
             'min' => $available ? $subtotal['subtotal_min'] : null, 'max' => $available ? $subtotal['subtotal_max'] : null,
             'date' => now()->toDateTimeString()];
+    }
+
+    /** Devuelve la misma lista visible que utilizan la interfaz y la validación final. */
+    public function visibleQuestions(array $questions, array $answers): array
+    {
+        return $this->visibilidad->filtrar($questions, $answers);
     }
 
     // El concepto tarifario antiguo y las configuraciones sin modalidad conservan la suma anterior.

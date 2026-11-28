@@ -1,6 +1,6 @@
 <script setup>
 import SidePanel from '../UI/SidePanel.vue';
-import {computed, ref, useId} from 'vue';
+import {computed, ref, useId, watch} from 'vue';
 import {VListItem, VSelect, VTooltip} from 'vuetify/components';
 import {useForm} from '@inertiajs/vue3';
 import B from '../UI/AppButton.vue';
@@ -55,6 +55,7 @@ const types = [{value: 'single_choice', label: 'Una opción'}, {
     value: 'multiple_choice',
     label: 'Varias opciones'
 }, {value: 'number', label: 'Cantidad'}, {value: 'text', label: 'Texto libre'}];
+const typesWithBinary = computed(() => [...types.slice(0, 1), {value: 'yes_no', label: 'Sí / No'}, ...types.slice(1)]);
 const modosCobro = [
     {value: 'heredado', label: 'Conservar cálculo actual'},
     {value: 'unico', label: 'Cargo único'},
@@ -150,6 +151,17 @@ function copiarPlantilla() {
 const dialog = ref(false);
 const resource = ref('preguntas');
 const form = useForm({});
+// El tipo binario conserva las respuestas económicas actuales y completa las etiquetas al elegirlo.
+watch(() => form.input_type, tipo => {
+    if (tipo !== 'yes_no') return;
+    const actuales = form.options ?? [];
+    if (actuales.length === 2 && actuales[0].label === 'Sí' && actuales[1].label === 'No') return;
+    form.options = ['Sí', 'No'].map((label, indice) => ({
+        id: actuales[indice]?.id ?? null,
+        label,
+        component_ids: actuales[indice]?.component_ids ?? [],
+    }));
+});
 // Los campos de la pregunta del sistema mantienen el ID de cada variante aunque cambie su texto.
 const segmentosEditables = ref([]);
 const nombresSegmentos = {particular: 'Particular', pyme: 'PyME', empresa: 'Empresa'};
@@ -161,7 +173,8 @@ const alcance = computed({
     },
 });
 const fields = {
-    preguntas: ['id', 'service_id', 'question', 'input_type', 'sort_order', 'options_text', 'options', 'quantity_component_id', 'required', 'active'],
+    preguntas: ['id', 'service_id', 'question', 'input_type', 'is_yes_no', 'sort_order', 'options_text', 'options', 'quantity_component_id', 'required', 'active',
+        'visibility_question_id', 'visibility_operator', 'visibility_option_id'],
     componentes: ['id', 'service_id', 'name', 'slug', 'description', 'unit_code', 'is_default', 'default_quantity', 'modo_cobro', 'active'],
     reglas: ['id', 'estimator_option_id', 'service_component_id', 'quantity', 'active'],
 };
@@ -175,10 +188,14 @@ function edit(kind, row = {}, general = false) {
         service_id: general ? null : props.service.id,
         question: '',
         input_type: 'single_choice',
+        is_yes_no: false,
         sort_order: 0,
         options_text: '',
         options: [],
         quantity_component_id: null,
+        visibility_question_id: null,
+        visibility_operator: null,
+        visibility_option_id: null,
         required: true,
         active: true,
         name: '',
@@ -205,9 +222,14 @@ function edit(kind, row = {}, general = false) {
                 .map(rule => Number(rule.service_component_id)),
         })) ?? [],
     };
+    values.is_yes_no = Boolean(row.is_yes_no);
+    values.input_type = values.is_yes_no ? 'yes_no' : values.input_type;
     if (kind === 'preguntas' && !segmentosEditables.value.length
-        && ['single_choice', 'multiple_choice'].includes(values.input_type) && !values.options.length) {
+        && ['single_choice', 'multiple_choice', 'yes_no'].includes(values.input_type) && !values.options.length) {
         values.options = [{id: null, label: '', component_ids: []}];
+    }
+    if (values.input_type === 'yes_no' && values.options.length === 1 && !values.options[0].label) {
+        values.options = [{id: null, label: 'Sí', component_ids: []}, {id: null, label: 'No', component_ids: []}];
     }
     puedeGeneralizar.value = kind === 'preguntas' && values.service_id != null && !row.quantity_component_id;
     const datos = Object.fromEntries(fields[kind].map(key => [key, values[key]]));
@@ -228,8 +250,10 @@ function save() {
             delete datos.options;
             datos.etiquetas_segmentos = values.etiquetas_segmentos;
         } else if (resource.value === 'preguntas') {
+            datos.is_yes_no = values.input_type === 'yes_no';
+            datos.input_type = datos.is_yes_no ? 'single_choice' : values.input_type;
             delete datos.options_text;
-            if (!['single_choice', 'multiple_choice'].includes(values.input_type)) delete datos.options;
+            if (!['single_choice', 'multiple_choice', 'yes_no'].includes(values.input_type)) delete datos.options;
         }
         return {...datos, catalog_service_id: props.service.id,
             quantity_component_id: values.input_type === 'number' ? values.quantity_component_id || null : null};
@@ -249,6 +273,44 @@ function agregarOpcion() {
 function quitarOpcion(indice) {
     form.options.splice(indice, 1);
 }
+
+// Las preguntas anteriores del mismo servicio o generales son las únicas referencias válidas.
+const preguntasOrigen = computed(() => questions.value.filter(pregunta => pregunta.active)
+    .filter(pregunta => Number(pregunta.id) !== Number(form.id)
+        && (Number(pregunta.sort_order) < Number(form.sort_order)
+            || (Boolean(form.id) && Number(pregunta.sort_order) === Number(form.sort_order)
+                && Number(pregunta.id) < Number(form.id)))
+        && ['single_choice', 'multiple_choice'].includes(pregunta.input_type))
+    .filter(pregunta => pregunta.service_id == null || Number(pregunta.service_id) === Number(props.service.id))
+    .map(pregunta => ({value: pregunta.id, label: pregunta.question})));
+const preguntaOrigen = computed(() => questions.value.find(pregunta => Number(pregunta.id) === Number(form.visibility_question_id)));
+const opcionesOrigen = computed(() => (preguntaOrigen.value?.options ?? []).filter(opcion => opcion.active)
+    .map(opcion => ({value: opcion.id, label: opcion.label})));
+const operadoresOrigen = computed(() => preguntaOrigen.value?.input_type === 'multiple_choice'
+    ? [{value: 'contains', label: 'Incluye la respuesta'}, {value: 'not_contains', label: 'No incluye la respuesta'}]
+    : [{value: 'equals', label: 'Es igual a'}, {value: 'not_equals', label: 'Es distinta de'}]);
+const modoVisibilidad = computed({
+    get: () => form.visibility_question_id ? 'conditional' : 'always',
+    set: valor => {
+        if (valor === 'always') {
+            form.visibility_question_id = null;
+            form.visibility_operator = null;
+            form.visibility_option_id = null;
+        }
+    },
+});
+function cambiarPreguntaOrigen(id) {
+    form.visibility_question_id = id;
+    form.visibility_option_id = null;
+    form.visibility_operator = preguntasOrigen.value.find(pregunta => Number(pregunta.value) === Number(id))
+        && questions.value.find(pregunta => Number(pregunta.id) === Number(id))?.input_type === 'multiple_choice'
+        ? 'contains' : 'equals';
+}
+watch(() => form.input_type, tipo => {
+    if (tipo === 'yes_no' && !form.options.some(opcion => opcion.label)) {
+        form.options = [{id: null, label: 'Sí', component_ids: []}, {id: null, label: 'No', component_ids: []}];
+    }
+});
 
 // Cada selector muestra los conceptos activos del servicio y conserva visibles los inactivos ya vinculados.
 function opcionesConceptosPara(opcion) {
@@ -568,7 +630,8 @@ function importe(precio) {
                     <F v-model="form.question" label="Pregunta" required maxlength="1000"
                        :error="form.errors.question"/>
                     <div class="field-row">
-                        <F v-model="form.input_type" label="Tipo de respuesta" type="select" :options="types" required
+                        <F v-model="form.input_type" label="Tipo de respuesta" type="select"
+                           :options="form.is_yes_no || !form.id ? typesWithBinary : types" required
                            :disabled="Boolean(segmentosEditables.length)"/>
                         <F v-model="form.sort_order" label="Orden de aparición" type="number" min="0" max="1000"
                            required/>
@@ -577,7 +640,26 @@ function importe(precio) {
                         <F v-for="opcion in segmentosEditables" :key="opcion.id" v-model="form.etiquetas_segmentos[opcion.id]"
                            :label="'Texto visible de ' + nombresSegmentos[opcion.clave_segmento]" required maxlength="255"/>
                     </template>
-                    <section v-else-if="['single_choice','multiple_choice'].includes(form.input_type)" class="opciones-editor">
+                    <section v-if="!segmentosEditables.length && form.service_id !== null" class="condicion-visibilidad">
+                        <h3>Cuándo mostrar esta pregunta</h3>
+                        <F v-model="modoVisibilidad" label="Visibilidad" type="select"
+                           :options="[{value:'always',label:'Siempre visible'},{value:'conditional',label:'Depende de otra respuesta'}]"/>
+                        <p v-if="modoVisibilidad === 'conditional' && !preguntasOrigen.length" class="notice">
+                            No hay preguntas anteriores compatibles para usar como condición.
+                        </p>
+                        <div v-else-if="modoVisibilidad === 'conditional'" class="field-row">
+                            <F :model-value="form.visibility_question_id" label="Pregunta anterior" type="select" required :options="preguntasOrigen"
+                               @update:model-value="cambiarPreguntaOrigen"/>
+                            <F v-model="form.visibility_operator" label="Condición" type="select" required :options="operadoresOrigen"/>
+                            <F v-model="form.visibility_option_id" label="Respuesta que se evalúa" type="select" required :options="opcionesOrigen"/>
+                        </div>
+                        <p v-if="form.service_id === null" class="ayuda-configuracion">
+                            Las preguntas generales se mantienen siempre visibles y pueden controlar preguntas propias de cada servicio.
+                        </p>
+                        <p v-else class="ayuda-configuracion">La pregunta del tipo de cliente siempre queda visible.</p>
+                    </section>
+                    <p v-if="form.service_id === null" class="ayuda-configuracion">Las preguntas generales se mantienen siempre visibles; sus respuestas pueden controlar preguntas propias del servicio.</p>
+                    <section v-if="!segmentosEditables.length && ['single_choice','multiple_choice','yes_no'].includes(form.input_type)" class="opciones-editor">
                         <div class="opciones-editor-heading"><div><h3>Respuestas y adicionales</h3>
                             <p>Podés dejar una respuesta sin adicional o asociarle varios conceptos de este servicio.</p></div>
                         </div>
@@ -597,8 +679,9 @@ function importe(precio) {
                                     </template>
                                 </VTooltip>
                             </div>
-                            <F v-model="opcion.label" label="Texto de la respuesta" required maxlength="255"
+                            <F v-if="form.input_type !== 'yes_no'" v-model="opcion.label" label="Texto de la respuesta" required maxlength="255"
                                :error="form.errors[`options.${indice}.label`]"/>
+                            <p v-else class="respuesta-binaria">{{ opcion.label }}</p>
                             <div v-if="conceptosActivos.length" class="opcion-vinculo">
                                 <label :for="idEditor + '-opcion-' + indice">Conceptos que suma (opcional)</label>
                                 <VSelect :id="idEditor + '-opcion-' + indice"
@@ -621,7 +704,7 @@ function importe(precio) {
                                     {{ form.errors[`options.${indice}.component_ids.0`] }}</small>
                             </div>
                         </article>
-                        <B class="agregar-respuesta" compact variant="secondary" type="button" @click="agregarOpcion">
+                        <B v-if="form.input_type !== 'yes_no'" class="agregar-respuesta" compact variant="secondary" type="button" @click="agregarOpcion">
                             Agregar respuesta
                         </B>
                     </section>
@@ -794,6 +877,10 @@ function importe(precio) {
 .opcion-editor-row-heading h4 { margin:0; color:#153b64; font-size:.95rem; }
 .opcion-editor-row-heading :deep(.respuesta-quitar.v-btn) { width:36px; min-width:36px; height:36px; padding:0; box-shadow:none; }
 .opcion-editor-row-heading :deep(.respuesta-quitar .icon) { width:18px; height:18px; }
+.condicion-visibilidad { display:grid; gap:10px; margin:12px 0 18px; padding:16px; border:1px solid #d3e3e8; border-radius:10px; background:#f8fbfc; }
+.condicion-visibilidad h3 { margin:0; color:#153b64; font-size:1rem; }
+.condicion-visibilidad .field-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+.respuesta-binaria { margin:0; padding:10px 12px; border-radius:8px; background:#f5f9fa; color:#153b64; font-weight:700; }
 .opcion-vinculo { display: grid; gap: 7px; min-width: 0; }
 .opcion-vinculo > label { color: #153b64; font-size: .875rem; }
 .opcion-vinculo :deep(.v-field) { min-width:0; max-width:100%; background: #fff; border-radius: 8px; }
