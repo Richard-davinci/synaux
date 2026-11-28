@@ -1,6 +1,7 @@
 <script setup>
 import {computed, ref, useId, watch} from 'vue';
 import {useForm, usePage} from '@inertiajs/vue3';
+import Swal from 'sweetalert2';
 import {demoNotice} from '../../support/prototype';
 import B from '../../Components/UI/AppButton.vue';
 import F from '../../Components/UI/FormField.vue';
@@ -116,13 +117,63 @@ const serviciosVinculados = computed(() => catalog.value.services.filter(s => Nu
 const publicado = computed(() => Boolean(vistaPrevia.value?.active && catalog.value.categories.some(c =>
     c.active && Number(c.id) === Number(vistaPrevia.value?.service_category_id))));
 
-// La eliminación requiere confirmación y muestra los vínculos que detecta el servidor.
+// Las categorías conservan su panel; los servicios usan una alerta breve y el servidor verifica sus vínculos.
 const registroAEliminar = ref(null);
 const eliminacion = useForm({});
 
 function confirmarEliminacion(row) {
     eliminacion.clearErrors();
+    if (!categoriesView.value) {
+        confirmarEliminacionServicio(row);
+        return;
+    }
     registroAEliminar.value = row;
+}
+
+// La alerta espera la respuesta del servidor antes de cerrarse y muestra allí los vínculos que impiden borrar.
+async function confirmarEliminacionServicio(row) {
+    await Swal.fire({
+        title: '¿Eliminar este servicio?',
+        text: `${row.name}. El borrado es definitivo y solo está disponible si no tiene datos asociados.`,
+        icon: 'warning',
+        iconColor: '#a13b42',
+        width: 440,
+        showCancelButton: true,
+        confirmButtonText: 'Eliminar servicio',
+        cancelButtonText: 'Cancelar',
+        reverseButtons: true,
+        focusCancel: true,
+        showLoaderOnConfirm: true,
+        buttonsStyling: false,
+        customClass: {
+            popup: 'synaux-alerta',
+            title: 'synaux-alerta-titulo',
+            htmlContainer: 'synaux-alerta-texto',
+            actions: 'synaux-alerta-acciones',
+            confirmButton: 'synaux-alerta-confirmar',
+            cancelButton: 'synaux-alerta-cancelar',
+            validationMessage: 'synaux-alerta-error',
+        },
+        allowOutsideClick: () => !Swal.isLoading(),
+        allowEscapeKey: () => !Swal.isLoading(),
+        preConfirm: () => {
+            if (page.props.preview) {
+                demoNotice.value = 'Vista de referencia: no se eliminan registros reales.';
+                return true;
+            }
+            return new Promise(resolve => {
+                eliminacion.delete(`/admin/catalogo/servicios/${row.id}`, {
+                    preserveScroll: true,
+                    onSuccess: () => resolve(true),
+                    onError: errors => {
+                        Swal.showValidationMessage(errors.eliminar_catalogo ?? 'No se pudo eliminar el servicio. Intentá de nuevo.');
+                        resolve(false);
+                    },
+                    onCancel: () => resolve(false),
+                });
+            });
+        },
+    });
 }
 
 function eliminarRegistro() {
@@ -319,7 +370,7 @@ function saveCategory() {
             </template>
         </SidePanel>
 
-        <SidePanel :title="'Eliminar ' + entidad" :model-value="Boolean(registroAEliminar)" max-width="480"
+        <SidePanel title="Eliminar categoría" :model-value="Boolean(registroAEliminar)" max-width="480"
                    :persistent="eliminacion.processing" @update:model-value="registroAEliminar = null">
             <div v-if="registroAEliminar" class="contenido-panel-catalogo">
                 <div class="cabecera-panel-catalogo"><h2>{{ registroAEliminar.name }}</h2></div>
@@ -479,5 +530,88 @@ th[aria-sort] .orden-catalogo, th[aria-sort] .orden-catalogo span {
     border-radius: 8px;
     color: var(--danger);
     background: var(--danger-bg);
+}
+</style>
+
+<style>
+/* SweetAlert2 se monta fuera de Vue; estas clases globales igualan la escala de botones y tarjetas de synaux. */
+.swal2-popup.synaux-alerta {
+    box-sizing: border-box;
+    max-width: calc(100vw - 32px);
+    padding: 24px;
+    border: 1px solid #1f6f7f26;
+    border-radius: 16px;
+    background: #fff;
+    color: #153b64;
+    box-shadow: 0 12px 32px #153b6426;
+    font-family: 'Nunito', Arial, sans-serif;
+}
+
+.synaux-alerta .synaux-alerta-titulo {
+    padding: 0;
+    font-family: 'Space Grotesk', Arial, sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.synaux-alerta .synaux-alerta-texto {
+    margin: 12px 0 0;
+    color: #446075;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+/* Cancelar conserva el estilo secundario y la eliminación usa el rojo de las acciones destructivas. */
+.synaux-alerta .synaux-alerta-acciones {
+    width: 100%;
+    justify-content: flex-end;
+    gap: 8px;
+    margin: 24px 0 0;
+}
+
+.synaux-alerta :is(.synaux-alerta-confirmar, .synaux-alerta-cancelar) {
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 8px;
+    font-family: 'Nunito', Arial, sans-serif;
+    font-size: .875rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.synaux-alerta .synaux-alerta-confirmar {
+    border: 1px solid #a13b42;
+    background: #a13b42;
+    color: #fff;
+    box-shadow: 0 4px 10px #153b6426;
+}
+
+.synaux-alerta .synaux-alerta-confirmar:hover {
+    background: #842f36;
+}
+
+.synaux-alerta .synaux-alerta-cancelar {
+    border: 1px solid #153b64;
+    background: #fff;
+    color: #153b64;
+    box-shadow: 0 4px 10px #153b6420;
+}
+
+.synaux-alerta .synaux-alerta-cancelar:hover {
+    background: #f5f9fa;
+}
+
+.synaux-alerta :is(.synaux-alerta-confirmar, .synaux-alerta-cancelar):focus-visible {
+    outline: 3px solid #1f6f7f;
+    outline-offset: 3px;
+}
+
+.synaux-alerta .synaux-alerta-error {
+    margin: 16px 0 0;
+    border-radius: 8px;
+    background: #a13b4214;
+    color: #842f36;
+    font-family: 'Nunito', Arial, sans-serif;
 }
 </style>
