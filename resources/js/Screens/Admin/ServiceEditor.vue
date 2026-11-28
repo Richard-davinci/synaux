@@ -39,9 +39,10 @@ const categoryOptions = computed(() => catalog.value.categories.map(category => 
     value: category.id,
     label: category.name + (category.active ? '' : ' (inactiva)'),
 })));
+// Las opciones describen lo que verá el cliente y usan los valores que espera el servidor.
 const modalidades = [
-    {value: 'manual', label: 'Cotización profesional'},
-    {value: 'automatic', label: 'Estimación automática'},
+    {value: 'manual', label: 'Solicitar presupuesto a medida'},
+    {value: 'automatic', label: 'Mostrar precio orientativo'},
 ];
 
 // La ficha reúne la información, el alcance y la publicación en un único guardado.
@@ -145,10 +146,12 @@ function guardar() {
                     </div>
                 </v-card>
                 <v-card tag="section" class="card catalog-section" aria-labelledby="ficha-modalidad">
-                    <h2 id="ficha-modalidad">Modalidad de estimación</h2>
-                    <F v-model="service.estimation_mode" label="¿Cómo se cotiza este servicio?" type="select"
+                    <h2 id="ficha-modalidad">Precio en el catálogo</h2>
+                    <F v-model="service.estimation_mode" label="¿Qué verá el cliente en el catálogo?" type="select"
                        :options="modalidades" required :error="service.errors.estimation_mode"
-                       :hint="service.estimation_mode === 'manual' ? 'Un profesional revisa cada solicitud y prepara el presupuesto.' : 'Cada tipo de cliente tiene su propio precio orientativo.'"/>
+                       :hint="service.estimation_mode === 'manual'
+                           ? 'El cliente envía su pedido y Gestión define el precio al revisar el alcance.'
+                           : 'El cliente ve una referencia según su tipo de cliente. Gestión confirma el importe en el presupuesto formal.'"/>
                 </v-card>
                 <v-card v-if="cargaInicial" tag="section" class="card catalog-section" aria-labelledby="ficha-precios">
                     <h2 id="ficha-precios">Precios del servicio</h2>
@@ -161,7 +164,7 @@ function guardar() {
                     <label class="select-row"><input v-model="service.active" type="checkbox">Mostrar en el
                         catálogo</label>
                     <p v-if="service.errors.active" role="alert">{{ service.errors.active }}</p>
-                    <p v-if="service.estimation_mode === 'automatic'">Para publicar un servicio automático, completá sus precios.</p>
+                    <p v-if="service.estimation_mode === 'automatic'">Completá los precios orientativos antes de publicar el servicio.</p>
                 </v-card>
                 <div class="form-actions">
                     <B type="submit"

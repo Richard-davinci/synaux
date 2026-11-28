@@ -45,13 +45,14 @@ const rows = computed(() => (categoriesView.value ? catalog.value.categories : c
 // Ordena el resultado completo con los mismos valores que aparecen en cada columna.
 const comparador = new Intl.Collator('es-AR', {sensitivity: 'base', numeric: true});
 const cantidadServicios = row => conteos.value.get(Number(row.id)) ?? 0;
-const modalidad = row => row.estimation_mode === 'automatic' ? 'Automático' : 'Profesional';
+// La tabla y la vista previa usan las mismas etiquetas breves que el catálogo público.
+const precioEnCatalogo = row => row.estimation_mode === 'automatic' ? 'Precio orientativo' : 'Presupuesto a medida';
 const columnas = computed(() => [
     {clave: 'nombre', titulo: categoriesView.value ? 'Categoría' : 'Servicio', valor: row => row.name},
     categoriesView.value
         ? {clave: 'cantidad', titulo: 'Servicios', valor: cantidadServicios}
         : {clave: 'categoria', titulo: 'Categoría', valor: row => categoryName(row.service_category_id)},
-    ...(!categoriesView.value ? [{clave: 'modalidad', titulo: 'Modalidad', valor: modalidad}] : []),
+    ...(!categoriesView.value ? [{clave: 'modalidad', titulo: 'Precio en el catálogo', valor: precioEnCatalogo}] : []),
     {clave: 'estado', titulo: 'Estado', valor: row => row.active ? 'Activo' : 'Inactivo'},
     ...(!categoriesView.value ? [{
         clave: 'actualizacion',
@@ -227,7 +228,7 @@ function saveCategory() {
                             categoriesView ? cantidadServicios(row) : categoryName(row.service_category_id)
                         }}
                     </td>
-                    <td v-if="!categoriesView">{{ modalidad(row) }}</td>
+                    <td v-if="!categoriesView">{{ precioEnCatalogo(row) }}</td>
                     <td><S :status="row.active ? 'enabled' : 'disabled'"/></td>
                     <td v-if="!categoriesView" class="fecha-catalogo">
                         <time v-if="row.updated_at" :datetime="row.updated_at">{{ date(row.updated_at) }}</time>
@@ -301,9 +302,7 @@ function saveCategory() {
                 <div class="cabecera-panel-catalogo">
                     <S :status="vistaPrevia.active ? 'enabled' : 'disabled'"/>
                     <h2>{{ vistaPrevia.name }}</h2>
-                    <p v-if="!categoriesView">{{ categoryName(vistaPrevia.service_category_id) }} · {{
-                            vistaPrevia.estimation_mode === 'automatic' ? 'Estimación automática' : 'Presupuesto profesional'
-                        }}</p>
+                    <p v-if="!categoriesView">{{ categoryName(vistaPrevia.service_category_id) }} · {{ precioEnCatalogo(vistaPrevia) }}</p>
                     <p v-else>{{ serviciosVinculados.length }}
                         {{ serviciosVinculados.length === 1 ? 'servicio vinculado' : 'servicios vinculados' }}</p>
                 </div>
