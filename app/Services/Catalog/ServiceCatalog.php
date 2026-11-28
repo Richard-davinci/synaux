@@ -59,6 +59,8 @@ class ServiceCatalog
                 ...((array)$s), 'database_id' => $s->id, 'id' => $s->slug,
                 'summary' => $s->summary ?? $s->description,
                 'includes' => json_decode($s->deliverables ?? '[]', true),
+                'excluded_items' => json_decode($s->excluded_items ?? '[]', true),
+                'conditions' => $s->conditions ?? null,
                 'mode' => $s->estimation_mode === 'automatic' ? 'Estimación automática' : 'Presupuesto profesional',
             ])->all();
     }

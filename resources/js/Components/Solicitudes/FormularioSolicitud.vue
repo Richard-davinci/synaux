@@ -30,6 +30,7 @@ watch(step, async () => {
 });
 // El adicional abierto se conserva al volver al paso de servicios o recibir errores.
 const expandedExtra = ref(null);
+const pricingChanged = ref(false);
 
 // Los datos de contacto se confirman en el mismo paso en que se envía la solicitud.
 const labels = ['Servicios', 'Proyecto', 'Confirmar y enviar'];
@@ -53,6 +54,7 @@ function initialExtraAnswers(serviceId, previous = {}) {
 const form = useForm({
     id: old?.id ?? null,
     estimate_id: estimate?.id ?? old?.estimate_id ?? null,
+    preview_revision: null,
     service_id: estimate?.service_id ?? pending.service_id ?? old?.service_id ?? props.data.requestServiceId ?? props.data.services[0]?.database_id,
     title: pending.title ?? old?.title ?? '',
     description: pending.description ?? old?.description ?? props.data.requestInitialDescription ?? '',
@@ -98,6 +100,8 @@ const pricing = reactive(useRequestPricing(toRef(props, 'data'), form, {
     questions,
     extraQuestions
 }));
+watch(() => pricing.livePreview, result => { form.preview_revision = result?.revision ?? null; });
+const necesitaRevisionActual = computed(() => !estimate && !old && Boolean(selectedService.value));
 
 // La acción conserva el texto de publicación cuando el cliente eligió visibilidad pública.
 const textoEnvio = computed(() => form.visibility === 'public' ? 'Publicar solicitud' : 'Solicitar presupuesto');
@@ -154,15 +158,20 @@ function advance() {
 }
 
 function prepareJourney(destination) {
-    handoff.transform(() => ({...form.data(), destination}));
+    handoff.transform(() => ({...form.data(), destination, preview_revision: form.preview_revision}));
     handoff.post('/solicitudes/preparar', {
         preserveScroll: true,
         // Volver a calcular puede devolver la misma URL y conservar el paso local de Inertia.
         onSuccess: result => {
+            pricingChanged.value = false;
             if (['publicar', 'solicitud'].includes(result.props.screen) && result.props.requestStep === 3) step.value = 3;
         },
         onError: errors => {
             form.setError(errors);
+            if (errors.pricing_revision) {
+                pricingChanged.value = true;
+                pricing.refresh();
+            }
             step.value = Object.keys(errors).some(field => field === 'service_id' || field.startsWith('answers.') || field.startsWith('additional_services')) ? 1 : 2;
         },
     });
@@ -179,6 +188,11 @@ function save(publish) {
         previewTarget: publish ? 'solicitud' : 'solicitud-borrador',
         onError: (errors) => {
             const fields = Object.keys(errors);
+            if (errors.pricing_revision) {
+                pricingChanged.value = true;
+                pricing.refresh();
+                return;
+            }
             step.value = fields.some(field => field.startsWith('contact')) ? 3
                 : fields.some(field => field === 'service_id' || field === 'estimate_id' || field.startsWith('answers.') || field.startsWith('additional_services')) ? 1 : 2;
         },
@@ -207,6 +221,9 @@ function save(publish) {
                     <ul>
                         <li v-for="(error, field) in form.errors" :key="field">{{ error }}</li>
                     </ul>
+                </div>
+                <div v-if="pricingChanged" class="notice pricing-changed" role="status">
+                    El tarifario o el CCL cambió. Actualizamos la referencia; revisá el importe antes de continuar.
                 </div>
 
                 <!-- El último paso valida el contacto antes de enviar; Laravel comprueba la solicitud completa. -->
@@ -298,9 +315,11 @@ function save(publish) {
                     <div v-if="step !== 3 || authenticated" class="form-actions">
                         <B v-if="step > 1" variant="secondary" :disabled="form.processing || handoff.processing"
                            @click="step -= 1">Anterior</B>
-                        <B type="submit" arrow :disabled="!selectedService || form.processing || handoff.processing">
+                        <B type="submit" arrow :disabled="!selectedService || form.processing || handoff.processing
+                            || (step === 2 && pricing.previewLoading)
+                            || (step === 3 && necesitaRevisionActual && (pricing.previewLoading || !form.preview_revision))">
                             <template v-if="step === 3">{{
-                                    form.processing && form.publish ? 'Enviando…' : textoEnvio
+                                form.processing && form.publish ? 'Enviando…' : pricing.previewLoading ? 'Actualizando…' : textoEnvio
                                 }}
                             </template>
                             <template v-else>Continuar</template>
@@ -350,6 +369,10 @@ function save(publish) {
 
 .request-main .request-card {
     padding: clamp(16px, 2.2vw, 26px);
+}
+
+.pricing-changed {
+    margin-top: 12px;
 }
 
 .request-main .request-step-title {

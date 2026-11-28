@@ -139,6 +139,158 @@ class IntegridadCalculoServiciosTest extends TestCase
         $this->assertSame('Comercio mediano', $resultado['answers'][0]['label']);
     }
 
+    public function test_client_preview_matches_the_economic_engine_and_does_not_persist_or_trust_amounts(): void
+    {
+        foreach (['particular', 'pyme', 'empresa'] as $segmento) {
+            $answers = $this->respuestas($segmento);
+            $esperado = $this->motor->calculate('integridad-principal', $answers);
+            $response = $this->postJson('/estimador/previsualizar', [
+                'service' => 'integridad-principal', 'answers' => $answers,
+                'price' => 0, 'total_estimado' => 0,
+            ]);
+
+            $response->assertOk()->assertJsonPath('moneda', 'USD')
+                ->assertJsonPath('version_tarifario.id', $this->catalogo['tarifa'])
+                ->assertJsonPath('total_estimado.minimo', $esperado['min'])
+                ->assertJsonPath('total_estimado.maximo', $esperado['max'])
+                ->assertJsonPath('principal.completa', true);
+        }
+
+        $this->assertSame(0, DB::table('estimates')->count());
+        $this->assertSame(0, DB::table('project_requests')->count());
+        $this->assertSame(0, DB::table('budgets')->count());
+    }
+
+    public function test_client_preview_marks_required_answers_pending_without_weakening_definitive_validation(): void
+    {
+        $required = $this->pregunta('¿Qué tecnología preferís?', 'single_choice', null, true);
+        $answers = $this->respuestas('pyme');
+        unset($answers[$required['id']]);
+
+        $this->postJson('/estimador/previsualizar', [
+            'service' => 'integridad-principal', 'answers' => $answers,
+        ])->assertOk()->assertJsonPath('principal.completa', false)
+            ->assertJsonPath('estado.0', 'respuestas_pendientes')
+            ->assertJsonPath('preguntas_pendientes.0', '¿Qué tecnología preferís?')
+            ->assertJsonPath('total_estimado', null)
+            ->assertJsonPath('subtotal_conocido.minimo', 800);
+
+        $this->post('/estimador/calcular', ['service' => 'integridad-principal', 'answers' => $answers])
+            ->assertSessionHasErrors("answers.{$required['id']}");
+    }
+
+    public function test_live_preview_recalculates_when_a_response_is_selected_or_removed(): void
+    {
+        $component = $this->concepto('Integración seleccionable', 'integracion-seleccionable', 150, 'unico');
+        $question = $this->pregunta('¿Necesitás esta integración?');
+        $this->regla($question['opciones'][0], $component);
+        $answers = $this->respuestas();
+        $selectedAnswers = $answers;
+        $selectedAnswers[$question['id']] = $question['opciones'][0];
+
+        $withAnswer = $this->postJson('/estimador/previsualizar', [
+            'service' => 'integridad-principal',
+            'answers' => $selectedAnswers,
+        ])->assertOk()->assertJsonPath('total_estimado.minimo', 950)
+            ->assertJsonPath('adicionales.0.subtotal_minimo', 150);
+
+        $withoutAnswer = $this->postJson('/estimador/previsualizar', [
+            'service' => 'integridad-principal', 'answers' => $answers,
+        ])->assertOk()->assertJsonPath('total_estimado.minimo', 800)
+            ->assertJsonPath('adicionales', []);
+
+        $this->assertNotSame($withAnswer->json('revision'), $withoutAnswer->json('revision'));
+    }
+
+    public function test_live_preview_marks_selected_unpriced_additional_for_professional_review(): void
+    {
+        $component = $this->concepto('Integración a cotizar', 'integracion-a-cotizar', null, 'unico');
+        $question = $this->pregunta('¿Necesitás integración a medida?');
+        $this->regla($question['opciones'][0], $component);
+        $answers = $this->respuestas();
+        $answers[$question['id']] = $question['opciones'][0];
+
+        $this->postJson('/estimador/previsualizar', [
+            'service' => 'integridad-principal',
+            'answers' => $answers,
+        ])->assertOk()->assertJsonPath('completa', false)
+            ->assertJsonPath('estado.0', 'conceptos_pendientes_de_cotizacion')
+            ->assertJsonPath('total_estimado', null)
+            ->assertJsonPath('subtotal_conocido.minimo', 800)
+            ->assertJsonPath('adicionales.0.estado', 'sin_precio');
+    }
+
+    public function test_live_preview_requires_a_quote_when_the_selected_customer_segment_has_no_base_price(): void
+    {
+        DB::table('service_segment_prices')->where('tariff_version_id', $this->catalogo['tarifa'])
+            ->where('service_id', $this->catalogo['servicios']['principal'])
+            ->where('estimator_option_id', $this->catalogo['opciones_cliente']['pyme']->id)->delete();
+
+        $this->postJson('/estimador/previsualizar', [
+            'service' => 'integridad-principal', 'answers' => $this->respuestas('pyme'),
+        ])->assertOk()->assertJsonPath('completa', false)
+            ->assertJsonPath('estado.0', 'segmento_sin_precio')
+            ->assertJsonPath('total_estimado', null);
+    }
+
+    public function test_live_preview_recalculates_the_answers_and_additions_of_an_additional_service(): void
+    {
+        $component = $this->concepto('Ajuste del servicio adicional', 'ajuste-adicional-preview', 50, 'unico',
+            $this->catalogo['servicios']['adicional']);
+        $question = $this->pregunta('¿Necesitás el ajuste?', 'single_choice', null, false,
+            $this->catalogo['servicios']['adicional']);
+        $this->regla($question['opciones'][0], $component);
+
+        $this->postJson('/estimador/previsualizar', [
+            'service' => 'integridad-principal', 'answers' => $this->respuestas('empresa'),
+            'additional_services' => [[
+                'service_id' => $this->catalogo['servicios']['adicional'], 'quantity' => 2,
+                'answers' => [$question['id'] => $question['opciones'][0]],
+            ]],
+        ])->assertOk()->assertJsonPath('servicios_adicionales.0.subtotal_minimo', 2500)
+            ->assertJsonPath('servicios_adicionales.0.conceptos.0.subtotal_min', 50)
+            ->assertJsonPath('total_estimado.minimo', 3700);
+    }
+
+    public function test_confirming_estimate_detects_tariff_or_ccl_changed_since_live_preview(): void
+    {
+        $answers = $this->respuestas('pyme');
+        $preview = $this->postJson('/estimador/previsualizar', [
+            'service' => 'integridad-principal', 'answers' => $answers,
+        ])->assertOk()->json();
+
+        DB::table('tariff_versions')->where('id', $this->catalogo['tarifa'])->update(['ccl_rate' => 1800]);
+
+        $this->postJson('/estimador/calcular', [
+            'service' => 'integridad-principal', 'answers' => $answers,
+            'preview_revision' => $preview['revision'],
+        ])->assertJsonValidationErrors('pricing_revision');
+
+        $this->assertNull(session('pending_estimate'));
+        $this->assertSame(0, DB::table('estimates')->count());
+    }
+
+    public function test_client_preview_inherits_segment_for_additional_services_and_rejects_unpublished_services(): void
+    {
+        $mainAnswers = $this->respuestas('pyme');
+        $expectedMain = $this->motor->calculate('integridad-principal', $mainAnswers);
+
+        $this->postJson('/estimador/previsualizar', [
+            'service' => 'integridad-principal', 'answers' => $mainAnswers,
+            'additional_services' => [[
+                'service_id' => $this->catalogo['servicios']['adicional'], 'quantity' => 2,
+                'answers' => [], 'price' => 0,
+            ]],
+        ])->assertOk()->assertJsonPath('servicios_adicionales.0.subtotal_minimo', 1600)
+            ->assertJsonPath('total_estimado.minimo', $expectedMain['min'] + 1600);
+
+        DB::table('services')->where('id', $this->catalogo['servicios']['adicional'])->update(['active' => false]);
+        $this->postJson('/estimador/previsualizar', [
+            'service' => 'integridad-principal', 'answers' => $mainAnswers,
+            'additional_services' => [['service_id' => $this->catalogo['servicios']['adicional'], 'quantity' => 1]],
+        ])->assertJsonValidationErrors('additional_services.0.service_id');
+    }
+
     public function test_unique_fixed_charge_avoids_duplicate_and_reference_example_totals_usd_1330(): void
     {
         $tecnologia = $this->concepto('Tecnología específica', 'tecnologia-especifica', 150, 'unico');

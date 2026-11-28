@@ -5,6 +5,7 @@ namespace App\Services\Solicitudes;
 use App\Services\Catalog\ServiceCatalog;
 use App\Services\Catalog\EconomiaEstimada;
 use App\Services\Catalog\TipoCliente;
+use App\Services\Estimates\RevisionPrevisualizacion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -236,6 +237,7 @@ class RecorridoSolicitud
             'additional_services.*.quantity' => 'required|integer|min:1|max:1000',
             'additional_services.*.notes' => 'nullable|string|max:2000',
             'additional_services.*.answers' => 'sometimes|array|max:100',
+            'preview_revision' => 'nullable|string|size:64',
             'destination' => 'required|in:login,register,review',
         ]);
         // El cálculo de un borrador solo puede retomarlo su propietario.
@@ -267,12 +269,19 @@ class RecorridoSolicitud
                 'min' => $estimate->price_min, 'currency' => $estimate->currency_snapshot,
             ];
         } else {
-            $calculation = $this->retomarCalculo($data, $previous);
+            $calculation = !empty($data['preview_revision']) ? $this->calculate($data) : $this->retomarCalculo($data, $previous);
         }
         $additional = $this->calculateAdditionalServices(
             (int)$data['service_id'], $data['additional_services'], $calculation['answers'],
             $calculation['currency'] ?? 'ARS', $previous['additional_services'] ?? [],
         );
+        if (!empty($data['preview_revision']) && !$estimateId && !hash_equals(
+            RevisionPrevisualizacion::generar($calculation, $additional), $data['preview_revision'],
+        )) {
+            throw ValidationException::withMessages([
+                'pricing_revision' => 'El tarifario o la cotización CCL cambió. Actualizamos la referencia; revisala antes de continuar.',
+            ]);
+        }
         $form = collect($data)->except('destination')->all();
         $request->session()->put('pending_request', [
             'form' => $form, 'calculation' => $calculation, 'additional_services' => $additional, 'expires_at' => now()->addHours(2)->timestamp,

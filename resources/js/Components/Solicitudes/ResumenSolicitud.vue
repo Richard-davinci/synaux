@@ -4,6 +4,7 @@ import {useDisplay} from 'vuetify';
 import DocumentoPresupuesto from '../Presupuestos/DocumentoPresupuesto.vue';
 import AppIcon from '../UI/AppIcon.vue';
 import SidePanel from '../UI/SidePanel.vue';
+import PrevisualizacionCliente from '../Estimates/PrevisualizacionCliente.vue';
 import {referenceLine} from '../../support/calculoPreciosSolicitud';
 import {date, money} from '../../support/formatters';
 
@@ -107,11 +108,17 @@ const datosDocumento = computed(() => ({
                 </button>
             </template>
             <div class="documento-en-panel">
+                <PrevisualizacionCliente :preview="pricing.livePreview" :loading="pricing.previewLoading"
+                                         :error="pricing.previewError" :requested="pricing.previewRequested"
+                                         empty-message="Elegí un servicio para ver el cálculo actualizado."/>
                 <DocumentoPresupuesto v-bind="datosDocumento"/>
             </div>
         </SidePanel>
     </div>
     <aside v-else class="vista-previa-escritorio" aria-label="Vista previa de tu estimación" tabindex="0">
+        <PrevisualizacionCliente :preview="pricing.livePreview" :loading="pricing.previewLoading"
+                                 :error="pricing.previewError" :requested="pricing.previewRequested"
+                                 empty-message="Elegí un servicio para ver el cálculo actualizado."/>
         <DocumentoPresupuesto v-bind="datosDocumento"/>
     </aside>
 </template>
@@ -130,6 +137,10 @@ const datosDocumento = computed(() => ({
     box-shadow: var(--card-shadow);
     overflow: auto;
     overscroll-behavior: contain;
+}
+
+.vista-previa-escritorio :deep(.estimate-live) {
+    margin: 12px;
 }
 
 .boton-vista-previa {
@@ -167,5 +178,9 @@ const datosDocumento = computed(() => ({
 
 .documento-en-panel {
     padding: 16px;
+}
+
+.documento-en-panel :deep(.estimate-live) {
+    margin-bottom: 16px;
 }
 </style>

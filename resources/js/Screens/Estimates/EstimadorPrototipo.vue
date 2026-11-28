@@ -1,5 +1,5 @@
 <script setup>
-import {computed, ref} from 'vue';
+import {computed, ref, watch} from 'vue';
 import {router, useForm} from '@inertiajs/vue3';
 import ServicePicker from '../../Components/Catalog/ServicePicker.vue';
 import B from '../../Components/UI/AppButton.vue';
@@ -8,8 +8,10 @@ import SelectorSegmentado from '../../Components/UI/SelectorSegmentado.vue';
 import T from '../../Components/UI/PageTitle.vue';
 import ServiceReference from '../../Components/Estimates/ServiceReference.vue';
 import EstimateResult from '../../Components/Estimates/EstimateResult.vue';
+import PrevisualizacionCliente from '../../Components/Estimates/PrevisualizacionCliente.vue';
 import ReiniciarEstimacion from '../../Components/Estimates/ReiniciarEstimacion.vue';
 import {useSubmit} from '../../support/useSubmit';
+import {usePrevisualizacionEstimacion} from '../../support/usePrevisualizacionEstimacion';
 import {claveTipoCliente, esSelectorTipoCliente, referenciaPorTipoCliente} from '../../support/visualizacionPregunta';
 
 // El formulario conserva sus respuestas al recorrer los pasos; Laravel valida y calcula los importes.
@@ -25,7 +27,21 @@ const initial = {
 for (const question of props.data.questions ?? []) {
     if (question.input_type === 'multiple_choice' && !initial[question.id]) initial[question.id] = [];
 }
-const form = useForm({service: service.value, answers: initial});
+const form = useForm({service: service.value, answers: initial, preview_revision: null});
+const previewQuestions = computed(() => props.data.questions ?? []);
+const previewPayload = computed(() => ({service: service.value, answers: {...form.answers}}));
+// Textos descriptivos no alteran el precio; solo cambia el estado pendiente/completo al completar uno.
+const previewFingerprint = computed(() => JSON.stringify({
+    service: service.value,
+    answers: previewQuestions.value.map(question => {
+        const answer = form.answers[question.id];
+        return [question.id, question.input_type === 'text' ? Boolean(String(answer ?? '').trim())
+            : Array.isArray(answer) ? [...answer].map(String).sort() : answer ?? null];
+    }),
+}));
+const live = usePrevisualizacionEstimacion(previewPayload, previewFingerprint, () => Boolean(selectedService.value));
+const pricingChanged = ref(false);
+watch(live.result, result => { form.preview_revision = result?.revision ?? null; }, {immediate: true});
 const saveForm = useForm({to_request: false});
 const labels = ['Servicio', 'Preguntas', 'Revisión', 'Resultado'];
 // El precio orientativo sigue al segmento elegido, sin alterar los importes históricos del resultado.
@@ -61,13 +77,19 @@ function next() {
 }
 
 function calculate() {
+    if (live.loading.value) return;
     submit(form, '/estimador/calcular', {
         previewTarget: 'estimador-4',
         // Una respuesta exitosa también abre el resultado cuando Inertia conserva la misma página.
         onSuccess: () => {
+            pricingChanged.value = false;
             step.value = 4;
         },
         onError: errors => {
+            if (errors.pricing_revision) {
+                pricingChanged.value = true;
+                live.refresh();
+            }
             step.value = errors.service ? 1 : 2;
         },
     });
@@ -150,8 +172,11 @@ function save(toRequest) {
                 </div>
                 <p class="estimate-note">Al confirmar, synaux calcula la referencia y conserva las respuestas para tu
                     solicitud de presupuesto.</p>
+                <p v-if="pricingChanged" class="pricing-changed" role="status">
+                    El tarifario o el CCL cambió. Actualizamos la referencia; revisá el importe antes de calcular.
+                </p>
                 <div class="form-actions"><B variant="secondary" @click="step = 2">Anterior</B><B
-                    :disabled="form.processing" arrow
+                    :disabled="form.processing || live.loading" arrow
                     @click="calculate">{{ form.processing ? 'Calculando…' : 'Calcular estimación' }}</B></div>
             </v-card>
 
@@ -161,7 +186,10 @@ function save(toRequest) {
             </div>
 
             <aside class="estimator-reference">
-                <ServiceReference :service="selectedService" :reference="currentReference"/>
+                <PrevisualizacionCliente v-if="step === 2 || step === 3" :preview="live.result" :loading="live.loading"
+                                         :error="live.error" :requested="live.requested"
+                                         empty-message="Completá las respuestas para actualizar el importe."/>
+                <ServiceReference v-else :service="selectedService" :reference="currentReference"/>
                 <v-card v-if="!selectedService" class="card reference-empty"><h3>Referencia del servicio</h3>
                     <p>Elegí un servicio para ver su alcance y la referencia de precio disponible.</p></v-card>
                 <p class="estimate-note">Podés revisar los datos antes de enviar una solicitud a synaux.</p>

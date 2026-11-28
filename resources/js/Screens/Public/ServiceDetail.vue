@@ -160,10 +160,22 @@ function detailEquivalentText(min, max) {
 
                 <article v-if="selected.includes?.length" class="editorial-panel service-includes"
                          aria-labelledby="service-includes-title">
-                    <h2 id="service-includes-title">Qué incluye</h2>
+                    <h2 id="service-includes-title">Prestaciones incluidas</h2>
                     <ul class="service-deliverables">
                         <li v-for="item in selected.includes" :key="item"><I name="check"/>{{ item }}</li>
                     </ul>
+                </article>
+                <article v-if="selected.excluded_items?.length" class="editorial-panel service-excludes"
+                         aria-labelledby="service-excludes-title">
+                    <h2 id="service-excludes-title">Prestaciones no incluidas</h2>
+                    <ul class="service-deliverables">
+                        <li v-for="item in selected.excluded_items" :key="item"><I name="close"/>{{ item }}</li>
+                    </ul>
+                </article>
+                <article v-if="selected.conditions" class="editorial-panel service-conditions"
+                         aria-labelledby="service-conditions-title">
+                    <h2 id="service-conditions-title">Condiciones y limitaciones</h2>
+                    <p class="service-description text-block">{{ selected.conditions }}</p>
                 </article>
             </div>
         </div>

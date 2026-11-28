@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Solicitudes;
 use App\Http\Controllers\Controller;
 use App\Services\Catalog\ServiceCatalog;
 use App\Services\Estimates\EstimateStore;
+use App\Services\Estimates\RevisionPrevisualizacion;
 use App\Services\Notifications\NotificationCenter;
 use App\Services\Presupuestos\ConsultasPresupuestos;
 use App\Services\Solicitudes\ConsultasSolicitudes;
@@ -42,6 +43,7 @@ class SolicitudController extends Controller
             'budget_reference' => 'nullable|string|max:255',
             'desired_deadline' => 'nullable|string|max:255',
             'publish' => 'required|boolean',
+            'preview_revision' => 'nullable|string|size:64',
             'contact' => 'sometimes|array:name,email,company,phone,address,cuit',
             'contact.name' => 'required_with:contact|string|max:255',
             'contact.email' => 'required_with:contact|email|max:254',
@@ -63,6 +65,19 @@ class SolicitudController extends Controller
 
         // Las habilidades llegan separadas por comas y se guardan sin espacios externos ni duplicados.
         $data['skills'] = array_values(array_unique(array_filter(array_map('trim', explode(',', $data['skills'] ?? '')))));
+        if (!empty($data['preview_revision']) && empty($data['estimate_id'])) {
+            $journey = app(RecorridoSolicitud::class);
+            $calculation = $journey->calculate($data);
+            $additional = $journey->calculateAdditionalServices(
+                (int)$data['service_id'], $data['additional_services'] ?? [], $calculation['answers'],
+                $calculation['currency'] ?? 'ARS',
+            );
+            if (!hash_equals(RevisionPrevisualizacion::generar($calculation, $additional), $data['preview_revision'])) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'pricing_revision' => 'El tarifario o la cotización CCL cambió. Revisá la estimación actualizada antes de confirmar el envío.',
+                ]);
+            }
+        }
         // La estimación integrada se calcula en el servidor y se guarda junto al pedido en una transacción.
         $id = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $data) {
             $journey = app(\App\Services\Solicitudes\RecorridoSolicitud::class);

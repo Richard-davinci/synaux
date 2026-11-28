@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Estimates;
 
 use App\Http\Controllers\Controller;
 use App\Services\Catalog\ServiceCatalog;
+use App\Services\Estimates\RevisionPrevisualizacion;
 use App\Services\Estimates\EstimateStore;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Validation\ValidationException;
 
 class EstimateController extends Controller
 {
@@ -62,8 +64,18 @@ class EstimateController extends Controller
     {
         abort_if($request->user()?->esCuentaInterna(), 403);
 
-        $data = $request->validate(['service' => 'required|string', 'answers' => 'required|array|max:100']);
+        $data = $request->validate([
+            'service' => 'required|string', 'answers' => 'required|array|max:100',
+            'preview_revision' => 'nullable|string|size:64',
+        ]);
         $result = $catalog->calculate($data['service'], $data['answers']);
+        if (!empty($data['preview_revision']) && !hash_equals(
+            RevisionPrevisualizacion::generar($result), $data['preview_revision'],
+        )) {
+            throw ValidationException::withMessages([
+                'pricing_revision' => 'El tarifario o la cotización CCL cambió. Actualizamos la referencia; revisala antes de confirmar.',
+            ]);
+        }
         $request->session()->put('pending_estimate', $result);
 
         return redirect('/estimador?paso=4&servicio=' . $data['service']);
