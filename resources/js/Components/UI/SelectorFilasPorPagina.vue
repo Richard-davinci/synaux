@@ -16,13 +16,27 @@ opciones.push({value: 'todos', label: 'Todos'});
 </template>
 
 <style scoped>
-/* El selector mantiene una anchura constante y no añade margen al pie de la tabla. */
+/* La etiqueta y el campo comparten una línea para alinear el selector con la navegación. */
 .selector-filas {
-    width: 148px;
+    width: auto;
     flex: 0 0 auto;
 }
 
 .selector-filas :deep(.field) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     margin: 0;
+}
+
+.selector-filas :deep(.field > label) {
+    margin: 0;
+    white-space: nowrap;
+    font-size: .875rem;
+}
+
+.selector-filas :deep(.synaux-field-control) {
+    width: 94px;
+    flex: 0 0 94px;
 }
 </style>

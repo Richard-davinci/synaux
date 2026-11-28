@@ -454,7 +454,7 @@ function cambiarFilas(valor) {
 
 .users-results-controles {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     flex-wrap: wrap;
     gap: 12px;
 }
