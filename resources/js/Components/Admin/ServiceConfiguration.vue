@@ -794,7 +794,7 @@ function importe(precio) {
 .opcion-editor-row-heading h4 { margin:0; color:#153b64; font-size:.95rem; }
 .opcion-editor-row-heading :deep(.respuesta-quitar.v-btn) { width:36px; min-width:36px; height:36px; padding:0; box-shadow:none; }
 .opcion-editor-row-heading :deep(.respuesta-quitar .icon) { width:18px; height:18px; }
-.opcion-vinculo { display: grid; gap: 4px; min-width: 0; }
+.opcion-vinculo { display: grid; gap: 7px; min-width: 0; }
 .opcion-vinculo > label { color: #153b64; font-size: .875rem; }
 .opcion-vinculo :deep(.v-field) { min-width:0; max-width:100%; background: #fff; border-radius: 8px; }
 .opcion-vinculo :deep(.v-chip) { max-width: 100%; }
@@ -806,7 +806,7 @@ function importe(precio) {
     min-height: 0;
     height: auto;
     flex: 1 1 24px;
-    padding: 0;
+    padding: 0 2px;
     border: 0;
     border-radius: 0;
     background: transparent;
