@@ -204,7 +204,7 @@ function edit(kind, row = {}, general = false) {
                 .map(rule => Number(rule.service_component_id)),
         })) ?? [],
     };
-    if (kind === 'preguntas' && !segmentsEditables.value.length
+    if (kind === 'preguntas' && !segmentosEditables.value.length
         && ['single_choice', 'multiple_choice'].includes(values.input_type) && !values.options.length) {
         values.options = [{id: null, label: '', component_ids: []}];
     }
