@@ -99,10 +99,10 @@ function guardarTarifario() {
                 <p>Una nueva versión no modifica estimaciones ni presupuestos ya preparados. El equivalente en ARS usa el CCL guardado en esa versión.</p></div></div>
         </div>
 
-        <SidePanel title="Nueva versión del tarifario" v-model="panelOpen" max-width="920" :persistent="tarifario.processing">
+        <SidePanel title="Nueva versión de precios" v-model="panelOpen" max-width="700" :persistent="tarifario.processing">
             <div class="synaux-app">
                 <v-card class="card modal-card tariff-form-card">
-                    <form @submit.prevent="guardarTarifario">
+                    <form id="formulario-tarifario" @submit.prevent="guardarTarifario">
                         <div v-if="erroresFormulario.length" class="notice tariff-errors" role="alert">
                             <p v-for="error in erroresFormulario" :key="error.field">{{ error.message }}</p>
                         </div>
@@ -167,28 +167,28 @@ function guardarTarifario() {
                             </div>
                             <p v-if="tarifario.errors.active" class="field-error" role="alert">{{ tarifario.errors.active }}</p>
                         </section>
-                        <div class="form-actions">
-                            <B variant="secondary" :disabled="tarifario.processing" @click="panelOpen = false">Cancelar</B>
-                            <B type="submit" :disabled="tarifario.processing">{{ tarifario.processing ? 'Guardando…' : (tarifario.active ? 'Activar y guardar' : 'Guardar como borrador') }}</B>
-                        </div>
                     </form>
                 </v-card>
             </div>
+            <template #footer>
+                <B variant="secondary" :disabled="tarifario.processing" @click="panelOpen = false">Cancelar</B>
+                <B type="submit" form="formulario-tarifario" :disabled="tarifario.processing">{{ tarifario.processing ? 'Guardando…' : (tarifario.active ? 'Activar y guardar' : 'Guardar como borrador') }}</B>
+            </template>
         </SidePanel>
     </section>
 </template>
 
 <style scoped>
 /* El panel de carga separa la conversión, los precios base y los componentes opcionales. */
-.tariff-form-card { width: 100%; max-width: 780px; margin-inline: auto; padding: 18px; }
+.tariff-form-card { width: 100%; max-width: 640px; margin-inline: auto; padding: 18px; }
 .tariff-form-card form, .tariff-section { display: grid; gap: 14px; }
 .tariff-errors { margin: 0; }
 .tariff-required-note { font-size: .82rem; }
 .tariff-section + .tariff-section { border-top: 1px solid #1f6f7f26; padding-top: 18px; }
-.tariff-section h2 { margin: 0; font-size: 1.15rem; }
+.tariff-section h2 { margin: 0; padding-left: 10px; border-left: 3px solid #2db3a3; font-size: 1.1rem; line-height: 1.35; }
 .tariff-section p { margin: 0; color: #446075; }
-.tariff-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
-.tariff-fields :deep(.field > label) { min-height: 2.5em; display: flex; align-items: flex-end; }
+.tariff-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-items: start; max-width: 520px; }
+.tariff-fields :deep(.field > label) { min-height: 0; display: flex; align-items: flex-end; }
 .tariff-conversion { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 18px; margin: 0; }
 .tariff-activation { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; padding: 14px 16px; border: 1px solid #1f6f7f30; border-left: 4px solid #446075; border-radius: 10px; background: #f5f9fa; }
 .tariff-activation-on { border-left-color: #2db3a3; background: #eaf7f5; }
@@ -214,7 +214,6 @@ function guardarTarifario() {
 .field-error { color: #a43c46 !important; }
 @media (max-width: 700px) {
     .tariff-form-card { padding: 14px; }
-    .tariff-fields { grid-template-columns: 1fr; }
     .tariff-segment, .tariff-segment-fixed { grid-template-columns: minmax(0, 1fr) auto; }
     .tariff-segment > strong, .tariff-equivalent { grid-column: 1 / -1; text-align: left; }
 }
