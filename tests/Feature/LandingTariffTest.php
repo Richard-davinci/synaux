@@ -20,14 +20,13 @@ class LandingTariffTest extends TestCase
     {
         $this->seed([SynauxCatalogSeeder::class, SynauxInstitutionalTariffSeeder::class]);
         $catalog = app(ServiceCatalog::class);
-        $institutional = $catalog->references()['sitio-institucional'];
-        $previous = DB::table('service_prices')->get()->toJson();
+        $this->assertArrayNotHasKey('sitio-institucional', $catalog->references());
+        $this->assertDatabaseCount('tariff_versions', 0);
         $this->seed(SynauxLandingTariffSeeder::class);
-        $this->assertSame($institutional, $catalog->references()['sitio-institucional']);
-        $this->assertSame($previous, DB::table('service_prices')->where('tariff_version_id', 1)->get()->toJson());
+        $this->assertArrayNotHasKey('sitio-institucional', $catalog->references());
         $service = $catalog->service('landing-page');
         $this->assertSame('automatic', $service['estimation_mode']);
-        $questions = $catalog->questions($service['database_id']);
+        $questions = $catalog->questions($service['database_id'], specificOnly: true);
         $this->assertCount(1, $questions);
         foreach ($questions[0]['options'] as $position => $option) {
             $calculation = $catalog->calculate('landing-page', [$questions[0]['id'] => $option->id]);
@@ -37,8 +36,8 @@ class LandingTariffTest extends TestCase
             $this->assertEquals($amount, $catalog->references()['landing-page']['segments'][$position]['min']);
         }
         $this->seed(SynauxLandingTariffSeeder::class);
-        $this->assertDatabaseCount('tariff_versions', 2);
-        $this->assertCount(1, $catalog->questions($service['database_id']));
+        $this->assertDatabaseCount('tariff_versions', 1);
+        $this->assertCount(1, $catalog->questions($service['database_id'], specificOnly: true));
         $this->get('/plataforma')->assertInertia(fn(Assert $page) => $page->has('references.landing-page.segments', 3));
         $this->get('/estimador?servicio=landing-page&cliente=PyME')->assertInertia(fn(Assert $page) => $page
             ->where('requestServiceId', $service['database_id'])

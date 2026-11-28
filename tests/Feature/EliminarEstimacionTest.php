@@ -27,8 +27,9 @@ class EliminarEstimacionTest extends TestCase
     {
         $catalog = app(ServiceCatalog::class);
         $service = $catalog->service('sitio-institucional');
-        $question = $catalog->questions($service['database_id'])[0];
-        $calculation = $catalog->calculate('sitio-institucional', [$question['id'] => $question['options'][0]->id]);
+        // La prueba completa todas las preguntas obligatorias para comprobar el borrado, no la validación del catálogo.
+        $answers = $this->respuestasValidas('sitio-institucional');
+        $calculation = $catalog->calculate('sitio-institucional', $answers);
         return [app(EstimateStore::class)->save($owner->id, $calculation), $calculation];
     }
 

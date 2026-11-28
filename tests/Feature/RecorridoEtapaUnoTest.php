@@ -28,22 +28,21 @@ class RecorridoEtapaUnoTest extends TestCase
         ]);
         $service = DB::table('services')->where('slug', 'sitio-institucional')->value('id');
         $extra = DB::table('services')->where('slug', 'identidad-visual')->value('id');
-        $question = DB::table('estimator_questions')->where('service_id', $service)->where('active', 1)->value('id');
-        $option = DB::table('estimator_options')->where('question_id', $question)->where('label', 'PyME')->value('id');
+        $answers = $this->respuestasValidas('sitio-institucional', 'pyme');
 
         // El cálculo público se recupera después del ingreso sin habilitar el marketplace.
         $this->get('/plataforma')->assertInertia(fn(Assert $page) => $page->where('stageTwo', false));
         $this->get('/servicios/sitio-institucional?cliente=Empresa')->assertInertia(fn(Assert $page) => $page
-            ->where('initialClientType', 'Empresa'));
+            ->where('initialClientType', 'empresa'));
         $this->get('/servicios/sitio-institucional?cliente=Inventado')->assertInertia(fn(Assert $page) => $page
             ->where('initialClientType', null));
-        $this->post('/estimador/calcular', ['service' => 'sitio-institucional', 'answers' => [$question => $option]])
-            ->assertSessionHasNoErrors()->assertSessionHas('pending_estimate', fn($estimate) => $estimate['min'] === 1352480);
+        $this->post('/estimador/calcular', ['service' => 'sitio-institucional', 'answers' => $answers])
+            ->assertSessionHasNoErrors()->assertSessionHas('pending_estimate', fn($estimate) => $estimate['mode'] === 'manual' && $estimate['min'] === null);
         $this->post('/ingresar', ['email' => $client->email, 'password' => 'password'])->assertRedirect('/estimador?paso=4');
         $this->post('/acciones/guardar-estimacion', ['to_request' => true])->assertSessionHasNoErrors();
         $estimateId = DB::table('estimates')->where('user_id', $client->id)->value('id');
         $this->get('/solicitudes/nueva?estimacion=' . $estimateId)->assertInertia(fn(Assert $page) => $page
-            ->where('selectedEstimate.price_min', 1352480)->where('selectedEstimate.answers.0.label', 'PyME'));
+            ->where('selectedEstimate.price_min', null)->where('selectedEstimate.answers.0.label', 'PyME'));
         $this->get('/oportunidades')->assertNotFound();
 
         $request = [
@@ -63,7 +62,7 @@ class RecorridoEtapaUnoTest extends TestCase
         $this->post('/ingresar', ['email' => $manager->email, 'password' => 'password'])->assertRedirect('/gestion');
         $this->get('/gestion/solicitudes')->assertInertia(fn(Assert $page) => $page->where('requests.0.id', $requestId));
         $this->get('/solicitudes/' . $requestId)->assertInertia(fn(Assert $page) => $page
-            ->where('selected.id', $requestId)->missing('requests')->missing('quotes')->missing('budgetRequests'));
+            ->where('selected.id', $requestId)->missing('requests')->has('quotes', 0)->missing('budgetRequests'));
         $this->get('/editor/presupuesto?solicitud=' . $requestId)->assertInertia(fn(Assert $page) => $page
             ->where('budgetRequests.0.contact.email', $request['contact']['email'])
             ->where('budgetRequests.0.additional_services.0.service_id', $extra));
@@ -104,6 +103,7 @@ class RecorridoEtapaUnoTest extends TestCase
         $update = ['id' => $projectId, 'status' => 'in_progress', 'progress' => 60,
             'notes' => 'Diseño aprobado y desarrollo en curso.', 'next_steps' => 'El cliente revisará los contenidos.'];
         $this->post('/acciones/proyecto', $update)->assertForbidden();
+        DB::table('projects')->where('id', $projectId)->update(['responsable_id' => $manager->id]);
         $this->actingAs($manager)->post('/acciones/proyecto', $update)->assertSessionHasNoErrors();
         $this->post('/acciones/proyecto', [...$update, 'status' => 'completed', 'progress' => 100,
             'start_date' => today()->toDateString(), 'end_date' => today()->toDateString(),

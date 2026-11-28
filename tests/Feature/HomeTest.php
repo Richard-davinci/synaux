@@ -48,16 +48,16 @@ class HomeTest extends TestCase
                 ->where('platformUrl', '/plataforma')
                 ->has('services', 11)
                 ->where('services.0.id', 'sitio-institucional')
-                ->where('services.1.category', 'Diseño')
-                ->where('services.2.category', 'Marketing')
-                ->where('services.5.category', 'UX/UI')
+                ->where('services.1.category', 'Diseño gráfico e identidad visual')
+                ->where('services.2.category', 'Marketing digital y contenidos')
+                ->where('services.5.category', 'Diseño UX/UI y producto digital')
                 ->where('services.6.id', 'auditoria-usabilidad')
                 ->where('services.7.id', 'prototipo-interactivo')
             );
     }
 
     // Las fichas de Inicio reciben el mismo alcance y tarifario que las del catálogo completo.
-    public function test_site_home_uses_the_same_tariff_and_deliverables_as_catalog(): void
+    public function test_site_home_uses_the_same_service_content_without_inventing_an_unpublished_tariff(): void
     {
         $this->seed(SynauxInstitutionalTariffSeeder::class);
         $catalog = $this->get('/plataforma')->assertOk()->inertiaProps();
@@ -68,7 +68,7 @@ class HomeTest extends TestCase
             ->has('featuredServices', 3)
             ->where('featuredServices.0.id', $service['id'])
             ->where('featuredServices.0.includes', $service['includes'])
-            ->where('featuredReferences.' . $service['id'], $catalog['references'][$service['id']])
+            ->missing('featuredReferences.' . $service['id'])
             ->missing('featuredReferences.identidad-visual')
         );
     }
@@ -100,7 +100,7 @@ class HomeTest extends TestCase
             ->component('InicioSitio')
             ->has('featuredWorks', 3)
             ->where('featuredWorks.0.id', $first)
-            ->where('featuredWorks.0.category', 'Desarrollo web')
+            ->where('featuredWorks.0.category', 'Desarrollo web y tiendas online')
             ->where('featuredWorks.1.id', $second)
             ->where('featuredWorks.2.id', $third)
             ->missing('featuredWorks.0.professional_profile_id')
@@ -108,26 +108,22 @@ class HomeTest extends TestCase
         $this->get('/trabajos/' . $first)->assertOk();
     }
 
-    // Volver a cargar el catálogo reubica UX/UI sin duplicar servicios ni pisar su descripción.
-    public function test_catalog_reseed_updates_the_legacy_ux_category_without_duplicates(): void
+    // Volver a cargar el catálogo conserva las categorías canónicas y no duplica ni pisa contenido editorial.
+    public function test_catalog_reseed_is_idempotent_and_preserves_editorial_content(): void
     {
-        $design = DB::table('service_categories')->where('slug', 'diseno')->value('id');
-        $ux = DB::table('service_categories')->where('name', 'UX/UI')->value('id');
+        $ux = DB::table('services')->where('slug', 'diseno-ux-ui')->value('service_category_id');
         DB::table('services')->where('slug', 'diseno-ux-ui')->update([
-            'service_category_id' => $design,
             'description' => 'Descripción editorial de Synaux.',
         ]);
+        $categoryCount = DB::table('service_categories')->count();
         $questionsCount = DB::table('estimator_questions')->count();
 
         $this->seed(SynauxCatalogSeeder::class);
         $this->seed(SynauxCatalogSeeder::class);
 
-        $this->assertDatabaseHas('services', [
-            'slug' => 'diseno-ux-ui',
-            'service_category_id' => $ux,
-            'description' => 'Descripción editorial de Synaux.',
-        ]);
-        $this->assertDatabaseCount('service_categories', 4);
+        $this->assertDatabaseHas('services', ['slug' => 'diseno-ux-ui', 'service_category_id' => $ux,
+            'description' => 'Descripción editorial de Synaux.']);
+        $this->assertSame($categoryCount, DB::table('service_categories')->count());
         $this->assertDatabaseCount('services', 11);
         $this->assertDatabaseCount('estimator_questions', $questionsCount);
     }
@@ -151,7 +147,7 @@ class HomeTest extends TestCase
                 ->where('screen', 'publicar')
                 ->where('selected.id', $slug)
                 ->where('step', 1)
-                ->has('questions', 1)
+                ->has('questions', 2)
             );
     }
 

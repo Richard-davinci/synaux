@@ -147,8 +147,7 @@ class ServiceConfigurationTest extends TestCase
     {
         $catalog = app(ServiceCatalog::class);
         $service = $catalog->service('landing-page');
-        $question = $catalog->questions($service['database_id'])[0];
-        $answers = [$question['id'] => $question['options'][0]->id];
+        $answers = $this->respuestasDePrueba($catalog, 'landing-page');
         $before = $catalog->calculate('landing-page', $answers);
         $this->post('/admin/guardar/preguntas', ['catalog_service_id' => $service['database_id'], 'service_id' => $service['database_id'],
             'question' => 'Referencia opcional', 'input_type' => 'number', 'sort_order' => 5, 'active' => true, 'required' => false, 'quantity_component_id' => null])->assertSessionHasNoErrors();
@@ -214,26 +213,37 @@ class ServiceConfigurationTest extends TestCase
     {
         $web = DB::table('services')->where('slug', 'sitio-institucional')->value('id');
         $landing = DB::table('services')->where('slug', 'landing-page')->value('id');
-        $version = DB::table('tariff_versions')->max('id');
+        DB::table('tariff_versions')->update(['active' => false]);
+        $version = DB::table('tariff_versions')->insertGetId([
+            'name' => 'Tarifa USD de prueba', 'currency_code' => 'USD', 'effective_from' => now(), 'active' => true, 'created_at' => now(),
+        ]);
+        DB::table('service_prices')->insert(['tariff_version_id' => $version, 'service_id' => $web, 'price_min' => 50, 'price_max' => 60]);
         $history = DB::table('service_prices')->where('tariff_version_id', $version)->orderBy('id')->get()->toJson();
-        $other = DB::table('service_prices')->where('tariff_version_id', $version)->where('service_id', $web)->first();
-        $components = DB::table('service_components')->where('service_id', $landing)->where('active', 1)->pluck('id')->map(fn($id) => ['id' => $id, 'min' => 10, 'max' => 20])->all();
-        $payload = ['service_id' => $landing, 'name' => 'Actualización individual', 'min' => 100, 'max' => 200, 'components' => $components];
-        $this->post('/admin/guardar/precios-servicio', $payload)->assertRedirect()->assertSessionHasNoErrors();
+        $segments = app(\App\Services\Admin\PreciosCatalogo::class)->segmentos()
+            ->map(fn($option) => ['id' => $option->id, 'min' => 100, 'max' => 200])->all();
+        $payload = ['precios' => ['segmentos' => $segments, 'conceptos' => []]];
+        $this->post("/admin/servicios/$landing/precios", $payload)->assertRedirect()->assertSessionHasNoErrors();
         $next = DB::table('tariff_versions')->max('id');
         $this->assertGreaterThan($version, $next);
         $this->assertSame($history, DB::table('service_prices')->where('tariff_version_id', $version)->orderBy('id')->get()->toJson());
-        $this->assertDatabaseHas('service_prices', ['tariff_version_id' => $next, 'service_id' => $web, 'price_min' => $other->price_min, 'price_max' => $other->price_max]);
-        $this->assertDatabaseHas('service_prices', ['tariff_version_id' => $next, 'service_id' => $landing, 'price_min' => 100, 'price_max' => 200]);
-        $this->post('/admin/guardar/precios-servicio', [...$payload, 'max' => 1])->assertSessionHasErrors('services.1.max');
+        $this->assertDatabaseHas('service_prices', ['tariff_version_id' => $next, 'service_id' => $web, 'price_min' => 50, 'price_max' => 60]);
+        foreach ($segments as $segment) $this->assertDatabaseHas('service_segment_prices', [
+            'tariff_version_id' => $next, 'service_id' => $landing, 'estimator_option_id' => $segment['id'], 'price_min' => 100, 'price_max' => 200,
+        ]);
+        $invalid = $segments;
+        $invalid[1]['max'] = 1;
+        $this->post("/admin/servicios/$landing/precios", ['precios' => ['segmentos' => $invalid, 'conceptos' => []]])
+            ->assertSessionHasErrors('precios.segmentos.1.max');
         $this->assertSame($next, DB::table('tariff_versions')->max('id'));
-        $this->post('/admin/guardar/precios-servicio', [...$payload, 'components' => []])->assertSessionHasErrors('components');
+        $this->post("/admin/servicios/$landing/precios", ['precios' => ['segmentos' => [], 'conceptos' => []]])
+            ->assertSessionHasErrors('precios.segmentos');
         $this->assertSame($next, DB::table('tariff_versions')->max('id'));
     }
 
     public function test_clients_cannot_publish_service_prices(): void
     {
         $this->actingAs(User::factory()->create());
-        $this->post('/admin/guardar/precios-servicio', [])->assertForbidden();
+        $service = DB::table('services')->where('slug', 'landing-page')->value('id');
+        $this->post("/admin/servicios/$service/precios", [])->assertForbidden();
     }
 }

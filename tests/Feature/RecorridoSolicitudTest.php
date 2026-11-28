@@ -25,11 +25,8 @@ class RecorridoSolicitudTest extends TestCase
     private function project(string $slug = 'sitio-institucional'): array
     {
         $service = DB::table('services')->where('slug', $slug)->value('id');
-        $answers = [];
-        if ($slug === 'sitio-institucional') {
-            $question = DB::table('estimator_questions')->where('service_id', $service)->where('active', 1)->first();
-            $answers[$question->id] = DB::table('estimator_options')->where('question_id', $question->id)->where('label', 'PyME')->value('id');
-        }
+        // La fixture responde el catálogo vigente; las pruebas pueden reemplazar luego la respuesta que quieran invalidar.
+        $answers = $this->respuestasValidas($slug, 'pyme');
         return ['service_id' => $service, 'answers' => $answers, 'title' => 'Sitio para mi organización',
             'description' => 'Queremos presentar nuestros servicios y recibir consultas.',
             'skills' => '', 'budget_reference' => '', 'desired_deadline' => 'Durante el próximo mes',
@@ -79,9 +76,12 @@ class RecorridoSolicitudTest extends TestCase
         $question = DB::table('estimator_questions')->where('service_id', $landing)->where('active', 1)->value('id');
         $enterprise = DB::table('estimator_options')->where('question_id', $question)->where('label', 'Empresa')->value('id');
         $data['additional_services'] = [['service_id' => $landing, 'quantity' => 2, 'answers' => []]];
+        DB::table('estimator_questions')->where('id', $question)->update(['required' => true]);
 
         $field = 'additional_services.0.answers.' . $question;
-        $this->post('/solicitudes/preparar', $data)->assertSessionHasErrors($field);
+        $this->post('/solicitudes/preparar', $data)->assertSessionHasNoErrors();
+        $this->assertSame('pyme', session('pending_request.additional_services.0.segmento_cliente'));
+        $this->assertEquals(509160, session('pending_request.additional_services.0.pricing_reference.min'));
         $data['additional_services'][0]['answers'] = [$question => 999999];
         $this->post('/solicitudes/preparar', $data)->assertSessionHasErrors($field);
         $data['additional_services'][0]['answers'] = [$question => $enterprise];
@@ -98,7 +98,7 @@ class RecorridoSolicitudTest extends TestCase
         $id = $draft->id;
         $this->get('/solicitudes/' . $id)->assertInertia(fn(Assert $page) => $page
             ->where('selected.additional_services.0.answers.0.label', 'Empresa')
-            ->has('requestQuestions.' . $landing, 1));
+            ->has('requestQuestions.' . $landing, 2));
         $payload = [...$payload, 'id' => $id, 'estimate_id' => $draft->estimate_id];
         $this->post('/solicitudes/preparar', $payload)->assertRedirect('/solicitudes/' . $id);
         $this->get('/solicitudes/' . $id)->assertInertia(fn(Assert $page) => $page
@@ -112,7 +112,7 @@ class RecorridoSolicitudTest extends TestCase
         $this->assertDatabaseCount('project_requests', 1);
         $this->actingAs($manager)->get('/editor/presupuesto?solicitud=' . $id)->assertInertia(fn(Assert $page) => $page
             ->where('budgetRequests.0.answers.0.label', 'PyME')
-            ->has('budgetRequests.0.pricing_breakdown.items', 1)
+            ->has('budgetRequests.0.pricing_breakdown.items')
             ->where('budgetRequests.0.additional_services.0.answers.0.label', 'Empresa')
             ->where('budgetRequests.0.additional_services.0.pricing_reference.min', 763740)
             ->where('budgetRequests.0.additional_services.0.pricing_breakdown.base_min', 254580)
@@ -168,9 +168,9 @@ class RecorridoSolicitudTest extends TestCase
         $this->post('/solicitudes/preparar', [...$data, 'price_min' => 1, 'estimate_id' => 999,
             'contact' => ['name' => 'No guardar', 'email' => 'no-guardar@example.test'],
         ])->assertRedirect('/ingresar')->assertSessionHasNoErrors()
-            ->assertSessionHas('pending_request.calculation.min', 1352480)
             ->assertSessionHas('pending_request.calculation.key', $preparedKey)
             ->assertSessionMissing('pending_request.form.contact')->assertSessionMissing('pending_request.form.estimate_id');
+        $this->assertNull(session('pending_request.calculation.min'));
         $this->assertDatabaseCount('project_requests', 0);
         $this->assertDatabaseCount('estimates', 0);
         $this->post('/ingresar', ['email' => $client->email, 'password' => 'incorrecta'])->assertSessionHasErrors('email');
@@ -185,7 +185,7 @@ class RecorridoSolicitudTest extends TestCase
         $this->assertDatabaseCount('project_requests', 1);
         $this->assertDatabaseCount('estimates', 1);
         $estimate = DB::table('estimates')->first();
-        $this->assertEquals(1352480, $estimate->price_min);
+        $this->assertNull($estimate->price_min);
         $this->assertDatabaseHas('project_requests', ['estimate_id' => $estimate->id, 'status' => 'open', 'user_id' => $client->id]);
         $this->assertNull(session('pending_request'));
     }
@@ -208,7 +208,7 @@ class RecorridoSolicitudTest extends TestCase
         $estimate = DB::table('estimates')->first();
         $this->assertSame('manual', $estimate->status);
         $this->assertNull($estimate->price_min);
-        $this->assertSame($data['description'], json_decode($estimate->answers_snapshot, true)[0]['value']);
+        $this->assertTrue(collect(json_decode($estimate->answers_snapshot, true))->contains(fn($answer) => $answer['value'] === $data['description']));
         $this->assertDatabaseHas('users', ['email' => 'nueva@example.test', 'is_admin' => 0]);
     }
 

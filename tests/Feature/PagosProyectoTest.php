@@ -34,6 +34,8 @@ class PagosProyectoTest extends TestCase
         $this->get('/presupuestos/' . $version . '/pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
 
         $proyecto = $this->aceptar($version);
+        $this->actingAs($supervisor)->patch("/proyectos/$proyecto/responsable", ['responsable_id' => $supervisor->id])
+            ->assertSessionHasNoErrors();
         $sena = DB::table('proyecto_pagos')->where('project_id', $proyecto)->where('concepto', 'sena')->firstOrFail();
         $this->assertDatabaseHas('proyecto_pagos', ['project_id' => $proyecto, 'concepto' => 'saldo', 'importe_centavos' => 605]);
         $ruta = "/proyectos/$proyecto/pagos/$sena->id";
@@ -89,12 +91,14 @@ class PagosProyectoTest extends TestCase
             'id' => $version, 'decision' => 'accepted', 'confirmed' => true,
         ])->assertSessionHasNoErrors();
         $this->assertDatabaseCount('proyecto_pagos', 1);
-        $this->assertDatabaseHas('proyecto_pagos', ['concepto' => 'saldo', 'importe_centavos' => 1211, 'estado' => 'pendiente']);
+        $this->assertDatabaseHas('proyecto_pagos', ['concepto' => 'pago_total', 'importe_centavos' => 1211, 'estado' => 'pendiente']);
         $proyecto = DB::table('projects')->where('accepted_budget_version_id', $version)->firstOrFail();
+        $this->actingAs($supervisor)->patch("/proyectos/$proyecto->id/responsable", ['responsable_id' => $supervisor->id])
+            ->assertSessionHasNoErrors();
         $this->actingAs($supervisor)->post('/acciones/proyecto', ['id' => $proyecto->id, 'status' => 'in_progress', 'progress' => 10])->assertSessionHasNoErrors();
         $this->post('/acciones/proyecto', ['id' => $proyecto->id, 'status' => 'completed', 'progress' => 100])->assertSessionHasNoErrors();
         $this->assertDatabaseHas('projects', ['id' => $proyecto->id, 'status' => 'completed']);
-        $this->assertDatabaseHas('proyecto_pagos', ['project_id' => $proyecto->id, 'concepto' => 'saldo', 'estado' => 'pendiente']);
+        $this->assertDatabaseHas('proyecto_pagos', ['project_id' => $proyecto->id, 'concepto' => 'pago_total', 'estado' => 'pendiente']);
     }
 
     // El responsable interno puede consultar el alcance acordado mientras conserva la asignación.

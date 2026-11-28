@@ -87,6 +87,8 @@ class NotificationCenterTest extends TestCase
         $this->assertSame(2, DB::table('synaux_notifications')->where('event_key', 'proyecto-creado:' . $project->id)->count());
         $this->actingAs($admin)->get('/gestion/proyectos')->assertInertia(fn(Assert $page) => $page->where('notifications.unread_entities.proyecto.0', $project->id));
         $this->get('/proyectos/' . $project->id)->assertInertia(fn(Assert $page) => $page->where('notifications.unread_count', 0));
+        // El recorrido asigna un responsable antes de comprobar avisos de inicio y actualización.
+        DB::table('projects')->where('id', $project->id)->update(['responsable_id' => $admin->id]);
         $update = ['id' => $project->id, 'status' => 'in_progress', 'progress' => 25, 'notes' => 'Diseño en curso.'];
         $this->post('/acciones/proyecto', $update)->assertSessionHasNoErrors();
         $this->post('/acciones/proyecto', $update)->assertSessionHasNoErrors();

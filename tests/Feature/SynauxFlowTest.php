@@ -47,7 +47,7 @@ class SynauxFlowTest extends TestCase
 
     private function quoteData(int $id): array
     {
-        return ['request_id' => $id, 'title' => 'Presupuesto de prueba', 'currency_code' => 'ARS', 'tax_rate' => 21, 'valid_until' => today()->addDays(14)->toDateString(), 'estimated_delivery_days' => 30, 'terms' => 'Dos revisiones y entrega acordada.', 'items' => [['description' => 'Diseño y desarrollo', 'quantity' => 2, 'unit_price' => 100000]], 'send' => true];
+        return ['request_id' => $id, 'title' => 'Presupuesto de prueba', 'currency_code' => 'ARS', 'tax_rate' => 21, 'valid_until' => today()->addDays(14)->toDateString(), 'estimated_delivery_days' => 30, 'terms' => 'Dos revisiones y entrega acordada.', 'items' => [['description' => 'Diseño y desarrollo', 'quantity' => 1, 'unit_price' => 100000]], 'send' => true];
     }
 
     // Un registro público jamás puede concederse administración aunque manipule los campos enviados.
@@ -184,29 +184,25 @@ class SynauxFlowTest extends TestCase
     }
 
 
-    // La ficha usa el paquete completo por segmento y conserva la versión anterior al volver a cargarla.
-    public function test_institutional_reference_matches_all_three_customer_segments(): void
+    // La preparación del servicio no publica precios ni convierte una referencia ausente en un importe cero.
+    public function test_institutional_service_without_a_published_tariff_requires_professional_review(): void
     {
         $this->seed(\Database\Seeders\SynauxInstitutionalTariffSeeder::class);
         $catalog = app(\App\Services\Catalog\ServiceCatalog::class);
         $service = $catalog->service('sitio-institucional');
-        $this->assertContains('Hasta 7 secciones en WordPress', $service['includes']);
+        $this->assertContains('Carga inicial y documentación de uso', $service['includes']);
+        $this->assertArrayNotHasKey('sitio-institucional', $catalog->references());
         $questions = $catalog->questions($service['database_id']);
-        $this->assertCount(1, $questions);
-
-        foreach ($questions[0]['options'] as $position => $option) {
-            $result = $catalog->calculate('sitio-institucional', [$questions[0]['id'] => $option->id]);
-            $expected = [676240, 1352480, 2028720][$position];
-            $this->assertSame('automatic', $result['mode']);
-            $this->assertSame('ARS', $result['currency']);
-            $this->assertEquals($expected, $result['min']);
-            $this->assertEquals($expected, $result['max']);
-        }
+        $this->assertCount(4, $questions);
+        $result = $catalog->calculate('sitio-institucional', $this->respuestasValidas('sitio-institucional', 'pyme'));
+        $this->assertSame('manual', $result['mode']);
+        $this->assertNull($result['min']);
+        $this->assertNull($result['max']);
 
         $this->seed(\Database\Seeders\SynauxInstitutionalTariffSeeder::class);
         $this->seed(SynauxCatalogSeeder::class);
-        $this->assertDatabaseCount('tariff_versions', 1);
-        $this->assertCount(1, $catalog->questions($service['database_id']));
+        $this->assertDatabaseCount('tariff_versions', 0);
+        $this->assertCount(4, $catalog->questions($service['database_id']));
     }
 
     // Omitir estimate_id no permite cambiar el servicio de una solicitud basada en una estimación.
@@ -237,11 +233,11 @@ class SynauxFlowTest extends TestCase
         $owner = $this->account();
         $service = DB::table('services')->where('slug', 'auditoria-usabilidad')->value('id');
         $data = [
-            'service_id' => $service, 'category' => 'Desarrollo web', 'title' => 'Auditoría de mi producto',
+            'service_id' => $service, 'category' => 'Desarrollo web y tiendas online', 'title' => 'Auditoría de mi producto',
             'description' => 'Necesitamos revisar el proceso de registro.', 'visibility' => 'private', 'publish' => false,
         ];
         $this->actingAs($owner)->post('/acciones/solicitud', $data)->assertSessionHasNoErrors()->assertRedirect();
-        $this->assertDatabaseHas('project_requests', ['user_id' => $owner->id, 'service_id' => $service, 'category' => 'UX/UI']);
+        $this->assertDatabaseHas('project_requests', ['user_id' => $owner->id, 'service_id' => $service, 'category' => 'Diseño UX/UI y producto digital']);
         DB::table('services')->where('id', $service)->update(['active' => 0]);
         $this->post('/acciones/solicitud', $data)->assertSessionHasErrors('service_id');
         $this->assertDatabaseCount('project_requests', 1);
@@ -528,23 +524,27 @@ class SynauxFlowTest extends TestCase
         $service = DB::table('services')->where('slug', 'sitio-institucional')->value('id');
         $components = DB::table('service_components')->where('service_id', $service)->get();
         $prices = $components->map(fn($c) => ['id' => $c->id, 'min' => 10, 'max' => 20])->all();
-        $tariff = ['name' => 'Tarifa de prueba', 'currency_code' => 'USD', 'active' => true, 'services' => [['id' => $service, 'min' => 100, 'max' => 200]], 'components' => $prices];
+        $segments = app(\App\Services\Catalog\TipoCliente::class)::opcionesActivas()
+            ->values()->map(fn($option, $position) => ['service_id' => $service, 'option_id' => $option->id,
+                'min' => [100, 200, 300][$position], 'max' => [100, 200, 300][$position]])->all();
+        $tariff = ['name' => 'Tarifa de prueba', 'currency_code' => 'USD', 'ccl_rate' => 1700, 'active' => true,
+            'services' => [['id' => $service, 'min' => 0, 'max' => 0]], 'components' => $prices, 'segments' => $segments];
         $this->post('/admin/guardar/tarifario', [...$tariff, 'components' => []])->assertSessionHasErrors('active');
         $this->assertDatabaseCount('tariff_versions', 0);
         $this->post('/admin/guardar/tarifario', $tariff)->assertSessionHasNoErrors();
-        $answers = DB::table('estimator_questions')->where('service_id', $service)->get()->mapWithKeys(fn($q) => [$q->id => (string)DB::table('estimator_options')->where('question_id', $q->id)->value('id')])->all();
+        $answers = $this->respuestasValidas('sitio-institucional', 'pyme');
         $this->actingAs($this->account());
-        $this->post('/estimador/calcular', ['service' => 'sitio-institucional', 'answers' => $answers])->assertSessionHas('pending_estimate', fn($p) => $p['mode'] === 'automatic' && $p['min'] === 140 && $p['max'] === 280 && $p['currency'] === 'USD');
+        $this->post('/estimador/calcular', ['service' => 'sitio-institucional', 'answers' => $answers])->assertSessionHas('pending_estimate', fn($p) => $p['mode'] === 'automatic' && $p['min'] === 240 && $p['max'] === 280 && $p['currency'] === 'USD');
         $this->post('/acciones/guardar-estimacion', [])->assertRedirect();
         $this->actingAs($admin)->post('/admin/guardar/tarifario', [...$tariff, 'name' => 'Versión siguiente', 'currency_code' => 'ARS'])->assertSessionHasNoErrors();
         $this->assertDatabaseCount('tariff_versions', 2);
-        $this->assertDatabaseHas('estimates', ['currency_snapshot' => 'USD', 'price_min' => 140, 'price_max' => 280]);
+        $this->assertDatabaseHas('estimates', ['currency_snapshot' => 'USD', 'price_min' => 240, 'price_max' => 280]);
     }
 
     public function test_question_options_are_deactivated_without_destroying_history(): void
     {
         $this->actingAs($this->account(true));
-        $q = DB::table('estimator_questions')->first();
+        $q = DB::table('estimator_questions')->whereNotNull('service_id')->first();
         $option = DB::table('estimator_options')->where('question_id', $q->id)->first();
         $this->post('/admin/guardar/preguntas', ['id' => $q->id, 'service_id' => $q->service_id, 'question' => $q->question, 'input_type' => 'single_choice', 'sort_order' => 0, 'active' => true, 'options_text' => "Opción nueva\nOtra opción", 'quantity_component_id' => null])->assertSessionHasNoErrors();
         $this->assertDatabaseHas('estimator_options', ['id' => $option->id, 'active' => 0]);
@@ -562,10 +562,10 @@ class SynauxFlowTest extends TestCase
         $data = ['service_id' => DB::table('services')->where('slug', 'sitio-institucional')->value('id'), 'title' => 'Trabajo publicado', 'description' => 'Descripción del proyecto de prueba', 'category' => 'Categoría ajena al catálogo', 'is_public' => true];
         $this->actingAs($owner)->post('/acciones/trabajo', [...$data, 'cover' => UploadedFile::fake()->createWithContent('portada.png', $png)])->assertSessionHasNoErrors()->assertRedirect();
         $work = DB::table('portfolio_projects')->first();
-        $this->assertSame('Desarrollo web', $work->category);
+        $this->assertSame('Desarrollo web y tiendas online', $work->category);
         DB::table('portfolio_projects')->where('id', $work->id)->update(['category' => 'Rótulo anterior']);
         $this->get('/trabajos/' . $work->id)->assertInertia(fn(Assert $page) => $page
-            ->where('selected.category', 'Desarrollo web'));
+            ->where('selected.category', 'Desarrollo web y tiendas online'));
         $this->get($work->cover_path)->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
         $visitor = $this->account();
         $this->actingAs($visitor)->get($work->cover_path)->assertOk();
@@ -649,6 +649,7 @@ class SynauxFlowTest extends TestCase
         $version = DB::table('budget_versions')->value('id');
         $this->actingAs($client)->post('/acciones/decidir-presupuesto', ['id' => $version, 'decision' => 'accepted', 'confirmed' => true])->assertRedirect();
         $project = DB::table('projects')->value('id');
+        DB::table('projects')->where('id', $project)->update(['responsable_id' => $issuer->id]);
         $data = ['id' => $project, 'status' => 'in_progress', 'progress' => 60, 'start_date' => null, 'end_date' => null, 'notes' => 'Diseño aprobado, avanzamos en desarrollo.'];
         $this->post('/acciones/proyecto', $data)->assertForbidden();
         $this->actingAs($issuer)->post('/acciones/proyecto', $data)->assertSessionHasNoErrors()->assertRedirect();

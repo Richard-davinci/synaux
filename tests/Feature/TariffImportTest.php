@@ -73,6 +73,10 @@ class TariffImportTest extends TestCase
 
     public function test_scope_change_or_network_failure_preserves_the_existing_version(): void
     {
+        // La tarifa preexistente es sintética y solo permite comprobar que la consulta fallida no la altera.
+        DB::table('tariff_versions')->insert([
+            'name' => 'Referencia previa de prueba', 'currency_code' => 'ARS', 'effective_from' => now(), 'active' => true, 'created_at' => now(),
+        ]);
         $this->remote('Paquete modificado de doce secciones.');
         try {
             app(TariffImport::class)->sync();
@@ -87,9 +91,10 @@ class TariffImportTest extends TestCase
     public function test_detail_customer_type_preselects_only_valid_service_options(): void
     {
         $service = DB::table('services')->where('slug', 'sitio-institucional')->value('id');
-        $question = DB::table('estimator_questions')->where('service_id', $service)->where('active', 1)->value('id');
+        $question = DB::table('estimator_questions')->whereNull('service_id')->where('clave_sistema', 'tipo_cliente')->where('active', 1)->value('id');
         foreach (['Particular', 'PyME', 'Empresa'] as $label) {
-            $option = DB::table('estimator_options')->where('question_id', $question)->where('label', $label)->value('id');
+            $segment = match ($label) { 'Particular' => 'particular', 'PyME' => 'pyme', default => 'empresa' };
+            $option = DB::table('estimator_options')->where('question_id', $question)->where('clave_segmento', $segment)->where('active', 1)->value('id');
             $this->get('/estimador?servicio=sitio-institucional&paso=2&cliente=' . urlencode($label))
                 ->assertInertia(fn(\Inertia\Testing\AssertableInertia $page) => $page
                     ->where('step', 2)->where('selected.id', 'sitio-institucional')
