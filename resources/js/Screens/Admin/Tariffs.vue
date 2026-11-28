@@ -111,7 +111,7 @@ function guardarTarifario() {
                             <h2>Datos de la versión</h2>
                             <div class="tariff-fields">
                                 <F v-model="tarifario.name" label="Nombre de la versión" required maxlength="255"/>
-                                <F v-model="tarifario.ccl_rate" label="Cotización CCL de venta · ARS/USD" type="number"
+                                <F v-model="tarifario.ccl_rate" label="CCL de venta · ARS por USD" type="number"
                                    min="0.0001" step="0.0001" required hint="Ingresá manualmente la cotización de referencia del día."/>
                             </div>
                             <div class="notice tariff-conversion"><span>Moneda de carga: <strong>USD</strong></span>
@@ -180,7 +180,7 @@ function guardarTarifario() {
 
 <style scoped>
 /* El panel de carga separa la conversión, los precios base y los componentes opcionales. */
-.tariff-form-card { padding: 20px; }
+.tariff-form-card { width: 100%; max-width: 780px; margin-inline: auto; padding: 18px; }
 .tariff-form-card form, .tariff-section { display: grid; gap: 14px; }
 .tariff-errors { margin: 0; }
 .tariff-required-note { font-size: .82rem; }
@@ -197,14 +197,15 @@ function guardarTarifario() {
 .tariff-activation-toggle { display: inline-flex; align-items: center; gap: 9px; color: #153b64; font-size: .88rem; font-weight: 700; cursor: pointer; }
 .tariff-activation-toggle input { width: 18px; height: 18px; margin: 0; accent-color: #1f6f7f; }
 .tariff-heading p { margin-top: 4px; }
-.tariff-service { display: grid; gap: 8px; padding: 14px; border: 1px solid #1f6f7f26; border-radius: 12px; }
-.tariff-service h3 { margin: 0; padding: 10px 12px; border-radius: 8px; background: #153b64; color: #fff; font-size: 1rem; }
-.tariff-segment { display: grid; grid-template-columns: minmax(100px, .8fr) auto repeat(2, minmax(120px, 1fr)) minmax(145px, 1fr); align-items: end; gap: 12px; padding: 12px 0; border-top: 1px solid #1f6f7f1e; }
-.tariff-segment-fixed { grid-template-columns: minmax(100px, .8fr) auto minmax(140px, 1fr) minmax(145px, 1fr); }
+.tariff-service { display: grid; gap: 5px; padding: 11px; border: 1px solid #1f6f7f26; border-radius: 12px; }
+.tariff-service h3 { margin: 0; padding: 8px 11px; border-radius: 8px; background: #153b64; color: #fff; font-size: .96rem; }
+.tariff-segment { display: grid; grid-template-columns: minmax(95px, .7fr) auto repeat(2, minmax(110px, 1fr)) minmax(125px, .8fr); align-items: center; gap: 9px; padding: 8px 0; border-top: 1px solid #1f6f7f1e; }
+.tariff-segment-fixed { grid-template-columns: minmax(95px, .7fr) auto minmax(150px, 1fr) minmax(125px, .8fr); }
 .tariff-segment > strong { align-self: center; color: #153b64; }
 .fixed-toggle { display: flex; align-items: center; gap: 6px; align-self: center; color: #446075; font-size: .8rem; white-space: nowrap; }
 .tariff-equivalent { align-self: center; color: #446075; font-size: .85rem; text-align: right; }
-.tariff-segment :deep(.field) { margin: 0; }
+.tariff-segment :deep(.field) { gap: 3px; margin: 0; }
+.tariff-segment :deep(.field > label) { font-size: .78rem; line-height: 1.15; }
 .tariff-components { border: 1px solid #1f6f7f26 !important; border-radius: 12px; padding: 14px !important; }
 .tariff-components summary { cursor: pointer; color: #153b64; font-weight: 700; }
 .tariff-components summary span { color: #446075; font-weight: 400; margin-left: 8px; }
@@ -212,8 +213,9 @@ function guardarTarifario() {
 .form-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .field-error { color: #a43c46 !important; }
 @media (max-width: 700px) {
+    .tariff-form-card { padding: 14px; }
     .tariff-fields { grid-template-columns: 1fr; }
-    .tariff-segment { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tariff-segment, .tariff-segment-fixed { grid-template-columns: minmax(0, 1fr) auto; }
     .tariff-segment > strong, .tariff-equivalent { grid-column: 1 / -1; text-align: left; }
 }
 </style>
