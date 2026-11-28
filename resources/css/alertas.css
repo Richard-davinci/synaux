@@ -1,0 +1,80 @@
+/* SweetAlert2 se monta fuera de Vue; estas clases comparten la escala de botones y tarjetas de synaux. */
+.swal2-popup.synaux-alerta {
+    box-sizing: border-box;
+    max-width: calc(100vw - 32px);
+    padding: 24px;
+    border: 1px solid #1f6f7f26;
+    border-radius: 16px;
+    background: #fff;
+    color: #153b64;
+    box-shadow: 0 12px 32px #153b6426;
+    font-family: 'Nunito', Arial, sans-serif;
+}
+
+.synaux-alerta .synaux-alerta-titulo {
+    padding: 0;
+    font-family: 'Space Grotesk', Arial, sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.synaux-alerta .synaux-alerta-texto {
+    margin: 12px 0 0;
+    color: #446075;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+/* Cancelar usa el estilo secundario y confirmar conserva el rojo de las acciones destructivas. */
+.synaux-alerta .synaux-alerta-acciones {
+    width: 100%;
+    justify-content: flex-end;
+    gap: 8px;
+    margin: 24px 0 0;
+}
+
+.synaux-alerta :is(.synaux-alerta-confirmar, .synaux-alerta-cancelar) {
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 8px;
+    font-family: 'Nunito', Arial, sans-serif;
+    font-size: .875rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.synaux-alerta .synaux-alerta-confirmar {
+    border: 1px solid #a13b42;
+    background: #a13b42;
+    color: #fff;
+    box-shadow: 0 4px 10px #153b6426;
+}
+
+.synaux-alerta .synaux-alerta-confirmar:hover {
+    background: #842f36;
+}
+
+.synaux-alerta .synaux-alerta-cancelar {
+    border: 1px solid #153b64;
+    background: #fff;
+    color: #153b64;
+    box-shadow: 0 4px 10px #153b6420;
+}
+
+.synaux-alerta .synaux-alerta-cancelar:hover {
+    background: #f5f9fa;
+}
+
+.synaux-alerta :is(.synaux-alerta-confirmar, .synaux-alerta-cancelar):focus-visible {
+    outline: 3px solid #1f6f7f;
+    outline-offset: 3px;
+}
+
+.synaux-alerta .synaux-alerta-error {
+    margin: 16px 0 0;
+    border-radius: 8px;
+    background: #a13b4214;
+    color: #842f36;
+    font-family: 'Nunito', Arial, sans-serif;
+}
