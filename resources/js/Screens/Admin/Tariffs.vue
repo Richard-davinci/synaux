@@ -106,6 +106,7 @@ function guardarTarifario() {
                         <div v-if="erroresFormulario.length" class="notice tariff-errors" role="alert">
                             <p v-for="error in erroresFormulario" :key="error.field">{{ error.message }}</p>
                         </div>
+                        <p class="tariff-required-note">Los campos marcados con * son obligatorios.</p>
                         <section class="tariff-section">
                             <h2>Datos de la versión</h2>
                             <div class="tariff-fields">
@@ -149,17 +150,26 @@ function guardarTarifario() {
                         </details>
 
                         <section class="tariff-section">
+                            <div class="tariff-activation" :class="{'tariff-activation-on': tarifario.active}">
+                                <div class="tariff-activation-copy">
+                                    <strong>¿Cuándo se usa esta versión?</strong>
+                                    <span v-if="tarifario.active">Se aplicará a las próximas estimaciones de los servicios automáticos. Las estimaciones y presupuestos anteriores conservan sus importes.</span>
+                                    <span v-else>Quedará como borrador y no se usará para calcular nuevas estimaciones.</span>
+                                </div>
+                                <label class="tariff-activation-toggle">
+                                    <input v-model="tarifario.active" type="checkbox">
+                                    <span>{{ tarifario.active ? 'Activar para nuevas estimaciones' : 'Dejar como borrador' }}</span>
+                                </label>
+                            </div>
                             <div class="notice tariff-conversion">
                                 <strong>{{ filasCompletas }} de {{ filasEsperadas }} precios cargados</strong>
-                                <span>Para activar la versión, completá las variantes y los componentes de los servicios automáticos.</span>
+                                <span>Para activarla, completá los precios de cada tipo de cliente y los componentes requeridos.</span>
                             </div>
-                            <label class="select-row"><input v-model="tarifario.active" type="checkbox">Usar esta versión en las nuevas estimaciones</label>
                             <p v-if="tarifario.errors.active" class="field-error" role="alert">{{ tarifario.errors.active }}</p>
-                            <p>Al usarla, estos precios se aplican a las estimaciones nuevas de todos los servicios incluidos. Las estimaciones y presupuestos anteriores conservan sus importes.</p>
                         </section>
                         <div class="form-actions">
                             <B variant="secondary" :disabled="tarifario.processing" @click="panelOpen = false">Cancelar</B>
-                            <B type="submit" :disabled="tarifario.processing">{{ tarifario.processing ? 'Guardando…' : 'Guardar versión' }}</B>
+                            <B type="submit" :disabled="tarifario.processing">{{ tarifario.processing ? 'Guardando…' : (tarifario.active ? 'Activar y guardar' : 'Guardar como borrador') }}</B>
                         </div>
                     </form>
                 </v-card>
@@ -173,12 +183,19 @@ function guardarTarifario() {
 .tariff-form-card { padding: 20px; }
 .tariff-form-card form, .tariff-section { display: grid; gap: 14px; }
 .tariff-errors { margin: 0; }
+.tariff-required-note { font-size: .82rem; }
 .tariff-section + .tariff-section { border-top: 1px solid #1f6f7f26; padding-top: 18px; }
 .tariff-section h2 { margin: 0; font-size: 1.15rem; }
 .tariff-section p { margin: 0; color: #446075; }
 .tariff-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
 .tariff-fields :deep(.field > label) { min-height: 2.5em; display: flex; align-items: flex-end; }
 .tariff-conversion { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 18px; margin: 0; }
+.tariff-activation { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; padding: 14px 16px; border: 1px solid #1f6f7f30; border-left: 4px solid #446075; border-radius: 10px; background: #f5f9fa; }
+.tariff-activation-on { border-left-color: #2db3a3; background: #eaf7f5; }
+.tariff-activation-copy { display: grid; gap: 4px; max-width: 500px; color: #446075; font-size: .9rem; }
+.tariff-activation-copy strong { color: #153b64; font-size: .98rem; }
+.tariff-activation-toggle { display: inline-flex; align-items: center; gap: 9px; color: #153b64; font-size: .88rem; font-weight: 700; cursor: pointer; }
+.tariff-activation-toggle input { width: 18px; height: 18px; margin: 0; accent-color: #1f6f7f; }
 .tariff-heading p { margin-top: 4px; }
 .tariff-service { display: grid; gap: 8px; padding: 14px; border: 1px solid #1f6f7f26; border-radius: 12px; }
 .tariff-service h3 { margin: 0; padding: 10px 12px; border-radius: 8px; background: #153b64; color: #fff; font-size: 1rem; }
