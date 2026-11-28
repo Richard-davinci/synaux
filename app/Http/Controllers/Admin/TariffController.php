@@ -70,6 +70,10 @@ class TariffController extends Controller
         }
         DB::transaction(function () use ($data) {
             // Cada publicación crea una versión; no se editan los valores que originaron cálculos anteriores.
+            if ($data['active']) {
+                // Solo una versión queda vigente; los precios previos permanecen intactos para el historial.
+                DB::table('tariff_versions')->where('active', 1)->update(['active' => false]);
+            }
             $id = DB::table('tariff_versions')->insertGetId([
                 'name' => $data['name'], 'currency_code' => $data['currency_code'], 'ccl_rate' => $data['ccl_rate'] ?? null,
                 'ccl_rate_at' => isset($data['ccl_rate']) ? now() : null,

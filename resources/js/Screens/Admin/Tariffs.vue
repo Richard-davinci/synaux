@@ -110,7 +110,7 @@ function guardarTarifario() {
                             <h2>Datos de la versión</h2>
                             <div class="tariff-fields">
                                 <F v-model="tarifario.name" label="Nombre de la versión" required maxlength="255"/>
-                                <F v-model="tarifario.ccl_rate" label="Cotización CCL de venta · ARS por USD" type="number"
+                                <F v-model="tarifario.ccl_rate" label="Cotización CCL de venta · ARS/USD" type="number"
                                    min="0.0001" step="0.0001" required hint="Ingresá manualmente la cotización de referencia del día."/>
                             </div>
                             <div class="notice tariff-conversion"><span>Moneda de carga: <strong>USD</strong></span>
@@ -120,7 +120,7 @@ function guardarTarifario() {
 
                         <section class="tariff-section">
                             <div class="tariff-heading"><div><h2>Precios por servicio y tipo de cliente</h2>
-                                <p>Cargá el precio del servicio para cada variante. Los conceptos configurados se suman cuando corresponda.</p></div></div>
+                                <p>Cada bloque corresponde a un servicio. Definí su precio para cada tipo de cliente; los componentes se suman aparte cuando corresponda.</p></div></div>
                             <p v-if="!administration.clientSegments.length" class="notice">Primero configurá la pregunta general «¿Para qué tipo de cliente?» con sus variantes.</p>
                             <article v-for="servicio in tarifario.services" :key="servicio.id" class="tariff-service">
                                 <h3>{{ servicio.name }}</h3>
@@ -153,9 +153,9 @@ function guardarTarifario() {
                                 <strong>{{ filasCompletas }} de {{ filasEsperadas }} precios cargados</strong>
                                 <span>Para activar la versión, completá las variantes y los componentes de los servicios automáticos.</span>
                             </div>
-                            <label class="select-row"><input v-model="tarifario.active" type="checkbox">Activar esta versión para nuevas estimaciones</label>
+                            <label class="select-row"><input v-model="tarifario.active" type="checkbox">Usar esta versión en las nuevas estimaciones</label>
                             <p v-if="tarifario.errors.active" class="field-error" role="alert">{{ tarifario.errors.active }}</p>
-                            <p>Para activarla, completá los precios de todas las variantes y los componentes de cada servicio automático.</p>
+                            <p>Al usarla, estos precios se aplican a las estimaciones nuevas de todos los servicios incluidos. Las estimaciones y presupuestos anteriores conservan sus importes.</p>
                         </section>
                         <div class="form-actions">
                             <B variant="secondary" :disabled="tarifario.processing" @click="panelOpen = false">Cancelar</B>
@@ -176,11 +176,12 @@ function guardarTarifario() {
 .tariff-section + .tariff-section { border-top: 1px solid #1f6f7f26; padding-top: 18px; }
 .tariff-section h2 { margin: 0; font-size: 1.15rem; }
 .tariff-section p { margin: 0; color: #446075; }
-.tariff-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.tariff-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.tariff-fields :deep(.field > label) { min-height: 2.5em; display: flex; align-items: flex-end; }
 .tariff-conversion { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 18px; margin: 0; }
 .tariff-heading p { margin-top: 4px; }
 .tariff-service { display: grid; gap: 8px; padding: 14px; border: 1px solid #1f6f7f26; border-radius: 12px; }
-.tariff-service h3 { margin: 0; font-size: 1rem; }
+.tariff-service h3 { margin: 0; padding: 10px 12px; border-radius: 8px; background: #153b64; color: #fff; font-size: 1rem; }
 .tariff-segment { display: grid; grid-template-columns: minmax(100px, .8fr) auto repeat(2, minmax(120px, 1fr)) minmax(145px, 1fr); align-items: end; gap: 12px; padding: 12px 0; border-top: 1px solid #1f6f7f1e; }
 .tariff-segment-fixed { grid-template-columns: minmax(100px, .8fr) auto minmax(140px, 1fr) minmax(145px, 1fr); }
 .tariff-segment > strong { align-self: center; color: #153b64; }
