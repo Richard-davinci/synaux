@@ -1,6 +1,6 @@
 <script setup>
-import {computed, ref} from 'vue';
-import {useForm} from '@inertiajs/vue3';
+import {computed, onMounted, ref} from 'vue';
+import {useForm, usePage} from '@inertiajs/vue3';
 import B from '../../Components/UI/AppButton.vue';
 import F from '../../Components/UI/FormField.vue';
 import S from '../../Components/UI/StatusBadge.vue';
@@ -14,28 +14,33 @@ import {useSubmit} from '../../support/useSubmit';
 const props = defineProps({data: Object});
 const administration = computed(() => props.data.administration);
 const tarifarios = computed(() => administration.value.tariffs);
+const page = usePage();
 const panelOpen = ref(false);
 const servicioAbierto = ref(null);
+const servicioFocalId = ref(null);
+const tarifaOrigen = ref(null);
 const submit = useSubmit();
 const tarifario = useForm({name: '', currency_code: 'USD', ccl_rate: '', active: false, services: [], components: [], segments: []});
 const cotizacionCcl = computed(() => Number(tarifario.ccl_rate) || 0);
-const serviciosActivos = computed(() => administration.value.services.filter(service =>
-    service.active && service.estimation_mode === 'automatic'));
+const serviciosAutomaticos = computed(() => administration.value.services.filter(service =>
+    service.estimation_mode === 'automatic'));
 const componentesActivos = computed(() => administration.value.components.filter(component => component.active
     && component.slug !== 'segmento-tarifario-2026-11'));
 const filasEsperadas = computed(() => tarifario.segments.length + tarifario.components.length);
 const filasCompletas = computed(() => [...tarifario.segments, ...tarifario.components]
     .filter(row => row.min !== '' && row.min != null && row.max !== '' && row.max != null).length);
 const erroresFormulario = computed(() => Object.entries(tarifario.errors).map(([field, message]) => ({field, message})));
+const servicioFocal = computed(() => tarifario.services.find(servicio => Number(servicio.id) === Number(servicioFocalId.value)));
 
 // Una versión anterior en USD sirve de plantilla; las versiones históricas en ARS no se reinterpretan como dólares.
-function prepararVersion(origen = {}) {
+function prepararVersion(origen = {}, servicioId = null) {
     const reutilizar = origen.currency_code === 'USD';
+    tarifaOrigen.value = origen.id ? origen : null;
     tarifario.name = '';
     tarifario.currency_code = 'USD';
     tarifario.ccl_rate = reutilizar ? (origen.ccl_rate ?? '') : '';
     tarifario.active = false;
-    tarifario.services = serviciosActivos.value.map(servicio => {
+    tarifario.services = serviciosAutomaticos.value.map(servicio => {
         const precio = origen.services?.find(item => item.service_id === servicio.id);
         return {id: servicio.id, name: servicio.name, min: reutilizar ? (precio?.price_min ?? 0) : 0, max: reutilizar ? (precio?.price_max ?? 0) : 0};
     });
@@ -43,15 +48,31 @@ function prepararVersion(origen = {}) {
         const precio = origen.components?.find(item => item.service_component_id === componente.id);
         return {id: componente.id, name: componente.name, min: reutilizar ? (precio?.price_min ?? '') : '', max: reutilizar ? (precio?.price_max ?? '') : ''};
     });
-    tarifario.segments = serviciosActivos.value.flatMap(servicio => administration.value.clientSegments.map(segmento => {
+    tarifario.segments = serviciosAutomaticos.value.flatMap(servicio => administration.value.clientSegments.map(segmento => {
         const precio = origen.segments?.find(item => item.service_id === servicio.id && item.estimator_option_id === segmento.id);
         return {service_id: servicio.id, service_name: servicio.name, option_id: segmento.id, label: segmento.label,
             min: reutilizar ? (precio?.price_min ?? '') : '', max: reutilizar ? (precio?.price_max ?? '') : '',
             fixed: !reutilizar || Number(precio?.price_min) === Number(precio?.price_max)};
     }));
-    servicioAbierto.value = tarifario.services[0]?.id ?? null;
+    servicioFocalId.value = servicioId;
+    servicioAbierto.value = servicioId ?? tarifario.services[0]?.id ?? null;
     panelOpen.value = true;
 }
+
+// El acceso desde un servicio abre una copia de la tarifa vigente enfocada en ese servicio.
+onMounted(() => {
+    const serviceId = Number(new URLSearchParams(page.url.split('?')[1] ?? '').get('servicio'));
+    if (!Number.isInteger(serviceId) || serviceId <= 0) return;
+
+    const servicio = serviciosAutomaticos.value.find(item => Number(item.id) === serviceId);
+    if (!servicio) return;
+
+    const vigente = tarifarios.value.find(item => item.id == administration.value.currentTariffId);
+    prepararVersion(vigente ?? {}, serviceId);
+    tarifario.name = vigente?.currency_code === 'USD' && vigente.name
+        ? `${vigente.name} · ${servicio.name}`.slice(0, 255)
+        : `Precios de ${servicio.name}`.slice(0, 255);
+});
 
 function equivalente(amount) {
     if (amount === '' || amount == null) return 'Ingresá el importe';
@@ -117,7 +138,13 @@ function guardarTarifario() {
                         <div class="tariff-status-summary" :class="{'tariff-status-ready': filasEsperadas > 0 && filasCompletas === filasEsperadas}">
                             <strong>{{ filasCompletas }} de {{ filasEsperadas }} precios cargados</strong>
                             <span v-if="filasEsperadas > 0 && filasCompletas === filasEsperadas">Ya están todos los precios. Podés activar esta versión para las nuevas estimaciones.</span>
-                            <span v-else>Completá los precios de cada tipo de cliente<span v-if="componentesActivos.length"> y los trabajos adicionales con costo</span> para poder activarla.</span>
+                            <span v-else>Completá los precios de cada tipo de cliente<span v-if="componentesActivos.length"> y los trabajos adicionales con costo</span> para completar esta versión.</span>
+                        </div>
+                        <div v-if="servicioFocal" class="notice tariff-target-context">
+                            <strong>Estás editando los precios de {{ servicioFocal.name }}.</strong>
+                            <span v-if="tarifaOrigen?.currency_code === 'USD'">Se crea una versión nueva con los demás precios vigentes precargados. Podés revisar o cambiar cualquier otro servicio antes de guardar.</span>
+                            <span v-else-if="tarifaOrigen">La tarifa vigente está en {{ tarifaOrigen.currency_code }}. Sus importes no se convierten; completá los precios en USD para esta versión.</span>
+                            <span v-else>No hay una tarifa vigente para precargar. Completá los precios de los servicios que quieras incluir en esta versión.</span>
                         </div>
                         <section class="tariff-section">
                             <div class="tariff-section-heading">
@@ -213,6 +240,9 @@ function guardarTarifario() {
 .tariff-form-card { width: 100%; max-width: 640px; margin-inline: auto; padding: 18px; }
 .tariff-form-card form, .tariff-section { display: grid; gap: 14px; }
 .tariff-errors { margin: 0; }
+.tariff-target-context { display: grid; gap: 3px; margin: 0; border-left: 3px solid #1f6f7f; background: #f3f8f9; }
+.tariff-target-context strong { color: #153b64; }
+.tariff-target-context span { color: #446075; }
 .tariff-status-summary { position: sticky; top: 0; z-index: 2; display: grid; gap: 2px; margin: -18px -18px 2px; padding: 10px 18px; border-bottom: 1px solid #1f6f7f26; background: #fff; color: #446075; font-size: .8rem; }
 .tariff-status-summary strong { color: #153b64; font-size: .86rem; }
 .tariff-status-ready { border-bottom-color: #2db3a380; background: #f1faf8; }

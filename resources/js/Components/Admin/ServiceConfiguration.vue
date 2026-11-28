@@ -188,6 +188,11 @@ const preciosPorSegmento = computed(() => props.administration.clientSegments.ma
     ...segment,
     price: currentTariff.value?.segments?.find(price => price.service_id == props.service.id && price.estimator_option_id == segment.id),
 })));
+const tienePreciosVigentes = computed(() => {
+    const base = currentTariff.value?.services?.find(price => price.service_id == props.service.id);
+    return Boolean((base && (Number(base.price_min) > 0 || Number(base.price_max) > 0))
+        || preciosPorSegmento.value.some(segment => Boolean(segment.price)));
+});
 const conceptosConPrecio = computed(() => conceptosActivos.value.filter(c => precioConcepto(c.id)).length);
 const coberturaCompleta = computed(() => preciosPorSegmento.value.length > 0
     && preciosPorSegmento.value.every(segment => Boolean(segment.price))
@@ -332,6 +337,9 @@ function importe(precio) {
                     <p v-else-if="automatica">Todavía no hay un tarifario vigente.</p>
                 </div>
                 <div class="acciones-configuracion">
+                    <B v-if="automatica" compact :href="'/admin/tarifario?servicio=' + service.id">
+                        {{ tienePreciosVigentes ? 'Editar precios' : 'Configurar precio' }}
+                    </B>
                     <B compact variant="secondary" href="/admin/tarifario">Administrar tarifario</B>
                 </div>
             </div>

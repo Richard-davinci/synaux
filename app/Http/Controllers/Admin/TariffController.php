@@ -44,8 +44,9 @@ class TariffController extends Controller
             throw ValidationException::withMessages(['segments' => 'Elegí una variante activa de la pregunta general de tipo de cliente.']);
         }
         $automaticServiceIds = DB::table('services')->where('active', 1)->where('estimation_mode', 'automatic')->pluck('id')->map(fn($id) => (int)$id);
-        if (collect($data['segments'])->contains(fn($row) => !$automaticServiceIds->contains((int)$row['service_id']))) {
-            throw ValidationException::withMessages(['segments' => 'Los precios por variante deben pertenecer a un servicio automático activo.']);
+        $allAutomaticServiceIds = DB::table('services')->where('estimation_mode', 'automatic')->pluck('id')->map(fn($id) => (int)$id);
+        if (collect($data['segments'])->contains(fn($row) => !$allAutomaticServiceIds->contains((int)$row['service_id']))) {
+            throw ValidationException::withMessages(['segments' => 'Los precios por variante deben pertenecer a un servicio automático.']);
         }
         if ($data['active']) {
             $automatic = $automaticServiceIds;
@@ -95,6 +96,6 @@ class TariffController extends Controller
             }
         });
 
-        return back()->with('notice', 'Nueva versión del tarifario guardada.');
+        return redirect('/admin/tarifario')->with('notice', 'Nueva versión del tarifario guardada.');
     }
 }
