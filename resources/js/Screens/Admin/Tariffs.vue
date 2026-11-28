@@ -132,6 +132,18 @@ function guardarTarifario() {
                             <div class="notice tariff-conversion"><span>Moneda de carga: <strong>USD</strong></span>
                                 <span v-if="cotizacionCcl">Con esta cotización, USD 1 equivale a {{ money(cotizacionCcl, 'ARS') }}.</span>
                                 <span v-else>La conversión a pesos aparece cuando ingreses el CCL.</span></div>
+                            <div class="tariff-activation" :class="{'tariff-activation-on': tarifario.active}">
+                                <div class="tariff-activation-copy">
+                                    <strong>¿Cuándo se usa esta versión?</strong>
+                                    <span v-if="tarifario.active">Se aplicará a las próximas estimaciones de los servicios automáticos. Las estimaciones y presupuestos anteriores conservan sus importes.</span>
+                                    <span v-else>Quedará como borrador y no se usará para calcular nuevas estimaciones.</span>
+                                </div>
+                                <label class="tariff-activation-toggle">
+                                    <input v-model="tarifario.active" type="checkbox">
+                                    <span>{{ tarifario.active ? 'Activar para nuevas estimaciones' : 'Dejar como borrador' }}</span>
+                                </label>
+                            </div>
+                            <p v-if="tarifario.errors.active" class="field-error" role="alert">{{ tarifario.errors.active }}</p>
                         </section>
 
                         <section class="tariff-section">
@@ -185,20 +197,6 @@ function guardarTarifario() {
                             </div>
                         </details>
 
-                        <section class="tariff-section">
-                            <div class="tariff-activation" :class="{'tariff-activation-on': tarifario.active}">
-                                <div class="tariff-activation-copy">
-                                    <strong>¿Cuándo se usa esta versión?</strong>
-                                    <span v-if="tarifario.active">Se aplicará a las próximas estimaciones de los servicios automáticos. Las estimaciones y presupuestos anteriores conservan sus importes.</span>
-                                    <span v-else>Quedará como borrador y no se usará para calcular nuevas estimaciones.</span>
-                                </div>
-                                <label class="tariff-activation-toggle">
-                                    <input v-model="tarifario.active" type="checkbox">
-                                    <span>{{ tarifario.active ? 'Activar para nuevas estimaciones' : 'Dejar como borrador' }}</span>
-                                </label>
-                            </div>
-                            <p v-if="tarifario.errors.active" class="field-error" role="alert">{{ tarifario.errors.active }}</p>
-                        </section>
                     </form>
                 </v-card>
             </div>
