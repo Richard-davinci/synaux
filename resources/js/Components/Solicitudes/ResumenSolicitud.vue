@@ -40,7 +40,8 @@ const documento = computed(() => {
             : linea.segment;
         renglones.push({
             description: [selectedService.name, referencia].filter(Boolean).join('\n'),
-            importe: linea.priced ? importe(linea, moneda) : 'A cotizar',
+            importe: linea.priced ? importe(linea, moneda)
+                : linea.hasKnownAmount ? 'Subtotal conocido: ' + importe(linea, moneda) + ' · saldo a cotizar' : 'A cotizar',
         });
     }
 
@@ -56,7 +57,9 @@ const documento = computed(() => {
         const referencia = linea?.preliminar ? ['Referencia preliminar', linea.segment].filter(Boolean).join(' · ') : '';
         renglones.push({
             description: [concepto, referencia, servicio.notes?.trim()].filter(Boolean).join('\n'),
-            importe: linea?.priced ? importe(linea, moneda) : valida ? 'A cotizar' : 'Completá la cantidad',
+            importe: linea?.priced ? importe(linea, moneda)
+                : linea?.hasKnownAmount ? 'Subtotal conocido: ' + importe(linea, moneda) + ' · saldo a cotizar'
+                    : valida ? 'A cotizar' : 'Completá la cantidad',
         });
     });
 

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Presupuestos;
 
 use App\Http\Controllers\Controller;
 use App\Models\Organizacion;
-use App\Services\Catalog\ServiceCatalog;
 use App\Services\Marketplace\MarketplaceQueries;
 use App\Services\Notifications\NotificationCenter;
 use App\Services\Presupuestos\ConsultasPresupuestos;
@@ -46,7 +45,7 @@ class PresupuestoController extends Controller
     }
 
     // Conserva las solicitudes elegibles y las referencias históricas que necesita el editor.
-    public function edit(Request $request, ServiceCatalog $catalog, int $id = 0)
+    public function edit(Request $request, int $id = 0)
     {
         $user = $request->user();
         $management = $user->puedeGestionarSynaux();
@@ -61,29 +60,6 @@ class PresupuestoController extends Controller
         $sources = $management ? $this->requestQueries->requests($user->id, true)
             : ($chosen ? $this->requestQueries->requests(null, true, only: $chosen) : []);
         $budgetRequests = array_values(array_filter($sources, fn($source) => $source['user_id'] !== $user->id));
-
-        // Recupera referencias de adicionales antiguos desde la versión vinculada a la solicitud.
-        $referencesByTariff = [];
-        $slugs = array_column($catalog->services($management), 'id', 'database_id');
-        foreach ($budgetRequests as &$source) {
-            $tariffId = $source['tariff_version_id'];
-            if (!$tariffId) {
-                continue;
-            }
-            foreach ($source['additional_services'] as &$extra) {
-                if (array_key_exists('pricing_reference', $extra)) {
-                    continue;
-                }
-                $references = $referencesByTariff[$tariffId] ??= $catalog->references((int)$tariffId);
-                $slug = $slugs[$extra['service_id']] ?? '';
-                $reference = $catalog->extraReference($references[$slug] ?? null, $source['answers'], $source['pricing_reference']['currency'] ?? 'ARS');
-                if ($reference) {
-                    $extra['pricing_reference'] = [...$reference, 'recovered' => true];
-                }
-            }
-            unset($extra);
-        }
-        unset($source);
 
         return Inertia::render('EspacioTrabajo', [
             'screen' => 'editor-presupuesto',

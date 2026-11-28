@@ -2,6 +2,7 @@
 
 namespace App\Services\Estimates;
 
+use App\Services\Catalog\EconomiaEstimada;
 use Illuminate\Support\Facades\DB;
 
 // Guarda el resultado de sesión con una clave única para que los reintentos recuperen la misma estimación.
@@ -25,10 +26,15 @@ class EstimateStore
 
     private function withSnapshots(object $estimate): array
     {
+        $items = json_decode($estimate->items_snapshot ?? '[]', true);
         return [
             ...(array)$estimate,
             'answers' => json_decode($estimate->answers_snapshot, true),
-            'items' => json_decode($estimate->items_snapshot ?? '[]', true),
+            'items' => $items,
+            // Las estimaciones antiguas siguen leyendo sus precios guardados. El subtotal parcial usa solo líneas capturadas.
+            'pricing_partial' => $estimate->price_min === null ? EconomiaEstimada::referenciaParcial(
+                $estimate->base_min_snapshot, $estimate->base_max_snapshot, $items, $estimate->currency_snapshot,
+            ) : null,
         ];
     }
 

@@ -60,6 +60,9 @@ class GestionSolicitudes
                 'base_min' => $estimate->base_min_snapshot,
                 'base_max' => $estimate->base_max_snapshot,
                 'currency' => $estimate->currency_snapshot,
+                'tariff_version_id' => $estimate->tariff_version_id,
+                'ccl_rate' => $estimate->ccl_rate_snapshot,
+                'ccl_source' => $estimate->ccl_source_snapshot,
                 'items' => json_decode($estimate->items_snapshot ?? '[]', true),
             ] : (json_decode($existing?->estimate_snapshot ?? 'null', true));
             // Los servicios se identifican por registros del catálogo y sus nombres quedan en la instantánea del pedido.
@@ -68,8 +71,8 @@ class GestionSolicitudes
                 $samePreparedService = (int)($pending['form']['service_id'] ?? 0) === (int)$d['service_id']
                     && (int)($pending['form']['id'] ?? 0) === (int)($d['id'] ?? 0);
                 $additional = $this->journey->calculateAdditionalServices(
-                    (int)$d['service_id'], $d['additional_services'], json_decode($estimate?->answers_snapshot ?? '[]', true),
-                    $estimate?->currency_snapshot ?? 'ARS',
+                    (int)$d['service_id'], $d['additional_services'], json_decode($estimate?->answers_snapshot ?? $existing?->answers_snapshot ?? '[]', true),
+                    $estimate?->currency_snapshot ?? ($estimateSnapshot['currency'] ?? 'ARS'),
                     [...$additional, ...($samePreparedService ? ($pending['additional_services'] ?? []) : [])], allowIncomplete: !$d['publish'],
                 );
             }

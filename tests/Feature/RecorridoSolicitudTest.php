@@ -38,34 +38,34 @@ class RecorridoSolicitudTest extends TestCase
     }
 
     // El editor recibe el precio unitario histórico de cada servicio, aun con cantidades distintas.
-    public function test_budget_editor_gets_requested_prices_and_recovers_legacy_additional_references(): void
+    public function test_budget_editor_uses_saved_prices_without_inventing_missing_legacy_additional_references(): void
     {
-        $this->seed(\Database\Seeders\SynauxLandingTariffSeeder::class);
         $client = User::factory()->create();
         $manager = User::factory()->create(['is_admin' => true]);
-        $data = $this->project();
-        $extra = DB::table('services')->where('slug', 'landing-page')->value('id');
-        $data['additional_services'][] = ['service_id' => $extra, 'quantity' => 2];
-        $this->actingAs($client)->post('/acciones/solicitud', [
-            ...$data, 'visibility' => 'private', 'publish' => true,
-        ])->assertSessionHasNoErrors();
-        $record = DB::table('project_requests')->where('user_id', $client->id)->first();
-        $extras = json_decode($record->requested_services, true);
-        $this->assertNull($extras[0]['pricing_reference']);
-        $this->assertEquals(509160, $extras[1]['pricing_reference']['min']);
+        $principal = DB::table('services')->where('slug', 'sitio-institucional')->first();
+        $conHistorial = DB::table('services')->where('slug', 'identidad-visual')->first();
+        $sinHistorial = DB::table('services')->where('slug', 'landing-page')->first();
+        $adicionales = [
+            ['service_id' => $conHistorial->id, 'name' => $conHistorial->name, 'quantity' => 1, 'answers' => [],
+                'pricing_reference' => ['min' => 123, 'max' => 123, 'currency' => 'ARS']],
+            ['service_id' => $sinHistorial->id, 'name' => $sinHistorial->name, 'quantity' => 2, 'answers' => []],
+        ];
+        $snapshot = ['price_min' => 1352480, 'price_max' => 1352480, 'base_min' => 1352480, 'base_max' => 1352480,
+            'currency' => 'ARS', 'tariff_version_id' => null, 'items' => []];
+        $requestId = DB::table('project_requests')->insertGetId([
+            'user_id' => $client->id, 'service_id' => $principal->id, 'title' => 'Solicitud histórica',
+            'description' => 'Pedido de prueba', 'visibility' => 'private', 'status' => 'open',
+            'service_name_snapshot' => $principal->name, 'service_slug_snapshot' => $principal->slug,
+            'estimate_snapshot' => json_encode($snapshot), 'contact_snapshot' => json_encode(['name' => $client->name, 'email' => $client->email]),
+            'requested_services' => json_encode($adicionales), 'skills' => json_encode([]),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
 
-        $url = '/editor/presupuesto?solicitud=' . $record->id;
-        $this->actingAs($manager)->get($url)->assertInertia(fn(Assert $page) => $page
+        $this->actingAs($manager)->get('/editor/presupuesto?solicitud=' . $requestId)->assertInertia(fn(Assert $page) => $page
             ->where('budgetRequests.0.pricing_reference.min', 1352480)
-            ->where('budgetRequests.0.pricing_reference.currency', 'ARS')
+            ->where('budgetRequests.0.additional_services.0.pricing_reference.min', 123)
             ->where('budgetRequests.0.additional_services.1.quantity', 2)
-            ->where('budgetRequests.0.additional_services.1.pricing_reference.min', 509160));
-
-        unset($extras[1]['pricing_reference']);
-        DB::table('project_requests')->where('id', $record->id)->update(['requested_services' => json_encode($extras)]);
-        $this->get($url)->assertInertia(fn(Assert $page) => $page
-            ->where('budgetRequests.0.additional_services.1.pricing_reference.min', 509160)
-            ->where('budgetRequests.0.additional_services.1.pricing_reference.recovered', true));
+            ->missing('budgetRequests.0.additional_services.1.pricing_reference'));
     }
 
     // Un adicional se calcula con sus respuestas y su importe llega a Gestión junto con el desglose histórico.

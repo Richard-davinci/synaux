@@ -100,7 +100,9 @@ class ServiceCatalog
             $partsForPrice = $segmentRows->isNotEmpty()
                 ? $parts->reject(fn($part) => $part->slug === TipoCliente::CONCEPTO_HEREDADO)
                 : $parts;
-            if (!$base || $partsForPrice->contains(fn($part) => !$prices->has($part->id))) {
+            // Un adicional opcional sin importe se cotiza si se elige. Los incluidos sí afectan la referencia pública.
+            $incluidos = $partsForPrice->where('is_default', 1);
+            if (!$base || $incluidos->contains(fn($part) => !$prices->has($part->id))) {
                 continue;
             }
             // Un precio base técnico o variantes deshabilitadas no se publican como una oferta de cero.
@@ -108,9 +110,10 @@ class ServiceCatalog
             // Si hay variantes, el importe del segmento reemplaza la base. Los adicionales siguen sumándose.
             $min = $configuredSegments->isEmpty() ? (float)$base->price_min : 0.0;
             $max = $configuredSegments->isEmpty() ? (float)$base->price_max : 0.0;
-            foreach ($partsForPrice->where('is_default', 1) as $part) {
-                $min += $prices[$part->id]->price_min * $part->default_quantity;
-                $max += $prices[$part->id]->price_max * $part->default_quantity;
+            foreach ($incluidos as $part) {
+                $cantidad = $this->modoCobro($part)->unidades((float)$part->default_quantity, [], 0);
+                $min += round($prices[$part->id]->price_min * $cantidad, 2);
+                $max += round($prices[$part->id]->price_max * $cantidad, 2);
             }
             // Cada variante tiene su propio importe; las reglas antiguas solo sirven como respaldo histórico.
             $segments = $configuredSegments->map(fn($price) => [
@@ -121,6 +124,7 @@ class ServiceCatalog
             ])->values()->all();
             if (!$segments) {
                 $segmentPart = $parts->firstWhere('slug', TipoCliente::CONCEPTO_HEREDADO);
+                if ($segmentPart && !$prices->has($segmentPart->id)) continue;
                 if ($segmentPart && $prices->has($segmentPart->id)) {
                     $options = DB::table('estimator_options as o')
                         ->join('estimator_questions as q', 'q.id', '=', 'o.question_id')
@@ -153,19 +157,6 @@ class ServiceCatalog
         return $references;
     }
 
-    // Los adicionales comparten segmento y moneda con el resumen de la solicitud.
-    public function extraReference(?array $reference, array $answers, string $currency): ?array
-    {
-        if (!$reference || $reference['currency'] !== $currency) {
-            return null;
-        }
-
-        $segmento = TipoCliente::desdeRespuestas($answers);
-        $price = $reference['segments'] ? collect($reference['segments'])->firstWhere('key', $segmento) : $reference;
-
-        return $price ? ['min' => $price['min'], 'max' => $price['max'], 'currency' => $currency] : null;
-    }
-
     // Resuelve un servicio activo por su identificador público; devuelve 404 si no existe.
     public function service(string $slug): array
     {
@@ -192,7 +183,7 @@ class ServiceCatalog
         $selected = [];
         $opcionGlobal = null;
         $opcionHeredada = null;
-        $quantities = [];
+        $cantidadesIngresadas = [];
         $incomplete = false;
         // Revalida todas las respuestas en el servidor; no confía en rótulos ni importes del navegador.
         foreach ($questions as $q) {
@@ -212,6 +203,8 @@ class ServiceCatalog
             if (collect($values)->contains(fn($answer) => !is_int($answer) && !is_float($answer) && !is_string($answer))) {
                 throw ValidationException::withMessages(["answers.{$q['id']}" => 'Revisá el formato de esta respuesta.']);
             }
+            // Repetir el mismo ID en una selección múltiple no representa una segunda elección.
+            if ($q['input_type'] === 'multiple_choice') $value = $values = array_values(array_unique($values, SORT_STRING));
             $labels = [];
             foreach ($values as $v) {
                 if (in_array($q['input_type'], ['single_choice', 'multiple_choice'], true)) {
@@ -230,7 +223,7 @@ class ServiceCatalog
                         throw ValidationException::withMessages(["answers.{$q['id']}" => 'Ingresá una cantidad entre 1 y 10000.']);
                     }
                     if ($q['quantity_component_id']) {
-                        $quantities[$q['quantity_component_id']] = (float)$v;
+                        $cantidadesIngresadas[$q['quantity_component_id']][] = (float)$v;
                     }
                     $labels[] = (string)$v;
                 } else {
@@ -258,46 +251,58 @@ class ServiceCatalog
         $componenteHeredado = $components->firstWhere('slug', TipoCliente::CONCEPTO_HEREDADO);
         $reglaHeredada = $componenteHeredado ? $rules->where('service_component_id', $componenteHeredado->id)
             ->firstWhere('estimator_option_id', $opcionHeredada ?? $opcionGlobal) : null;
-        foreach ($components as $c) {
-            if ($c->is_default) {
-                $quantities[$c->id] = $quantities[$c->id] ?? (float)$c->default_quantity;
-            }
-        }
+        // Agrupa unidades aportadas por respuestas distintas. El modo del concepto decide cómo se combinan.
+        $unidadesPorRegla = [];
         foreach ($rules as $rule) {
             if ($rule->service_component_id === $componenteHeredado?->id && $rule->id !== $reglaHeredada?->id) continue;
             if ($components->has($rule->service_component_id)) {
-                $quantities[$rule->service_component_id] = ($quantities[$rule->service_component_id] ?? 0) + (float)$rule->quantity;
+                $unidadesPorRegla[$rule->service_component_id] = ($unidadesPorRegla[$rule->service_component_id] ?? 0) + (float)$rule->quantity;
             }
         }
-        $available = !$incomplete && $service['estimation_mode'] === 'automatic' && $base !== null;
-        if ($preciosSegmento->isNotEmpty() || ($base && $this->baseTecnica($base))) $available = $available && $segmentPrice !== null;
-        if ($componenteHeredado) $available = $available && $reglaHeredada !== null;
-        $baseMin = $segmentPrice?->price_min ?? $base?->price_min;
-        $baseMax = $segmentPrice?->price_max ?? $base?->price_max;
-        $min = $baseMin !== null ? (int)round($baseMin * 100) : 0;
-        $max = $baseMax !== null ? (int)round($baseMax * 100) : 0;
+        $tarifaAplicada = $service['estimation_mode'] === 'automatic' ? $tariff : null;
+        $baseDisponible = $tarifaAplicada !== null && $base !== null;
+        if ($preciosSegmento->isNotEmpty() || ($base && $this->baseTecnica($base))) {
+            $baseDisponible = $baseDisponible && $segmentPrice !== null;
+        }
+        if ($componenteHeredado) $baseDisponible = $baseDisponible && $reglaHeredada !== null;
+        $baseMin = $baseDisponible ? ($segmentPrice?->price_min ?? $base->price_min) : null;
+        $baseMax = $baseDisponible ? ($segmentPrice?->price_max ?? $base->price_max) : null;
+        $precios = $tarifaAplicada ? DB::table('component_prices')->where('tariff_version_id', $tarifaAplicada->id)
+            ->whereIn('service_component_id', $components->keys())->get()->keyBy('service_component_id') : collect();
+        $available = !$incomplete && $baseDisponible;
         $items = [];
-        foreach ($quantities as $id => $quantity) {
-            if ($quantity <= 0 || !$components->has($id)) {
-                continue;
-            }
-            $price = $tariff ? DB::table('component_prices')->where('tariff_version_id', $tariff->id)->where('service_component_id', $id)->first() : null;
+        foreach ($components as $id => $concepto) {
+            $modo = $this->modoCobro($concepto);
+            $quantity = $modo->unidades($concepto->is_default ? (float)$concepto->default_quantity : 0,
+                $cantidadesIngresadas[$id] ?? [], $unidadesPorRegla[$id] ?? 0);
+            if ($quantity <= 0) continue;
+
+            $price = $precios->get($id);
             $available = $available && $price !== null;
-            $items[] = ['component_id' => $id, 'name' => $components[$id]->name, 'slug' => $components[$id]->slug, 'unit' => $components[$id]->unit_code, 'quantity' => $quantity, 'min' => $price?->price_min, 'max' => $price?->price_max];
-            $min += (int)round(($price?->price_min ?? 0) * 100 * $quantity);
-            $max += (int)round(($price?->price_max ?? 0) * 100 * $quantity);
+            $items[] = ['component_id' => $id, 'name' => $concepto->name, 'slug' => $concepto->slug,
+                'unit' => $concepto->unit_code, 'modo_cobro' => $modo->value, 'quantity' => $quantity,
+                'min' => $price?->price_min, 'max' => $price?->price_max,
+                'subtotal_min' => $price ? round($price->price_min * $quantity, 2) : null,
+                'subtotal_max' => $price ? round($price->price_max * $quantity, 2) : null];
         }
 
-        // La estimación conserva la cotización que tenía el catálogo al calcular.
-        $ccl = $available && in_array($tariff?->currency_code, ['USD', 'ARS'], true) ? $this->cotizacion->vigente($tariff) : null;
-        // Sin configuración completa se informa revisión profesional, nunca un precio ficticio.
+        // Una revisión conserva lo conocido y su procedencia, aunque todavía no exista un total estimable.
+        $subtotal = EconomiaEstimada::subtotal($baseMin, $baseMax, $items);
+        $ccl = in_array($tarifaAplicada?->currency_code, ['USD', 'ARS'], true) ? $this->cotizacion->vigente($tarifaAplicada) : null;
         return ['key' => (string)Str::uuid(), 'service' => $service, 'answers' => $snapshot, 'items' => $items,
-            'mode' => $available ? 'automatic' : 'manual', 'tariff_id' => $available ? $tariff->id : null,
+            'mode' => $available ? 'automatic' : 'manual', 'tariff_id' => $tarifaAplicada?->id, 'incomplete' => $incomplete,
             'currency' => $tariff?->currency_code ?? 'ARS', 'ccl_rate' => $ccl['valor'] ?? null,
             'ccl_source' => $ccl['fuente'] ?? null,
-            'base_min' => $available ? $baseMin : null,
-            'base_max' => $available ? $baseMax : null, 'min' => $available ? $min / 100 : null,
-            'max' => $available ? $max / 100 : null, 'date' => now()->toDateTimeString()];
+            'base_min' => $baseMin, 'base_max' => $baseMax, ...$subtotal,
+            'min' => $available ? $subtotal['subtotal_min'] : null, 'max' => $available ? $subtotal['subtotal_max'] : null,
+            'date' => now()->toDateTimeString()];
+    }
+
+    // El concepto tarifario antiguo y las configuraciones sin modalidad conservan la suma anterior.
+    private function modoCobro(object $concepto): ModoCobro
+    {
+        return $concepto->slug === TipoCliente::CONCEPTO_HEREDADO
+            ? ModoCobro::Heredado : (ModoCobro::tryFrom($concepto->modo_cobro ?? '') ?? ModoCobro::Heredado);
     }
 
     // Los importes comerciales de las variantes viven en su tabla. Esta fila común es solo un respaldo técnico.

@@ -22,6 +22,8 @@ const result = computed(() => {
         ccl_source: estimate.ccl_source_snapshot,
         base_min: estimate.base_min_snapshot,
         base_max: estimate.base_max_snapshot,
+        pricing_partial: estimate.pricing_partial,
+        items: estimate.items,
         date: estimate.created_at,
     };
 });

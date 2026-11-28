@@ -20,10 +20,11 @@ class PreciosCatalogo
         return TipoCliente::opcionesActivas();
     }
 
-    private function conceptos(int $servicio)
+    private function conceptos(int $servicio, bool $soloIncluidos = false)
     {
         return DB::table('service_components')->where('service_id', $servicio)->where('active', 1)
-            ->where('slug', '!=', 'segmento-tarifario-2026-11')->pluck('id');
+            ->where('slug', '!=', TipoCliente::CONCEPTO_HEREDADO)
+            ->when($soloIncluidos, fn($consulta) => $consulta->where('is_default', 1))->pluck('id');
     }
 
     public static function reglas(): array
@@ -38,8 +39,8 @@ class PreciosCatalogo
             'precios.segmentos.*.min' => $importe,
             'precios.segmentos.*.max' => $importe,
             'precios.conceptos.*.id' => 'required|integer|distinct',
-            'precios.conceptos.*.min' => $importe,
-            'precios.conceptos.*.max' => $importe,
+            'precios.conceptos.*.min' => 'nullable|numeric|decimal:0,2|min:0|max:100000000',
+            'precios.conceptos.*.max' => 'nullable|numeric|decimal:0,2|min:0|max:100000000',
         ];
     }
 
@@ -61,9 +62,16 @@ class PreciosCatalogo
             || count($precios['conceptos']) !== $conceptos->count()) {
             throw ValidationException::withMessages(['precios' => 'Completá los tipos de cliente y los adicionales activos de este servicio.']);
         }
+        // Los opcionales pueden quedar a cotizar. Los incluidos necesitan un importe explícito, incluso si es cero.
+        $incluidos = $this->conceptos($servicio, soloIncluidos: true);
         foreach ($precios as $grupo => $filas) {
             foreach ($filas as $i => $precio) {
-                if ($precio['max'] < $precio['min']) {
+                $min = $precio['min'] ?? null;
+                $max = $precio['max'] ?? null;
+                if (($min === null) !== ($max === null) || ($min === null && $incluidos->contains($precio['id']) && $grupo === 'conceptos')) {
+                    throw ValidationException::withMessages(["precios.$grupo.$i." . ($min === null ? 'min' : 'max') => 'Completá el importe del adicional.']);
+                }
+                if ($min !== null && $max < $min) {
                     throw ValidationException::withMessages(["precios.$grupo.$i.max" => 'El máximo debe ser mayor o igual al mínimo.']);
                 }
             }
@@ -80,6 +88,7 @@ class PreciosCatalogo
         ]);
         foreach (['segmentos' => ['service_segment_prices', 'estimator_option_id'], 'conceptos' => ['component_prices', 'service_component_id']] as $grupo => [$tabla, $columna]) {
             foreach ($precios[$grupo] as $precio) {
+                if (!isset($precio['min'], $precio['max'])) continue;
                 $fila = [
                     'tariff_version_id' => $version, $columna => $precio['id'],
                     'price_min' => $precio['min'], 'price_max' => $precio['max'],
@@ -102,7 +111,7 @@ class PreciosCatalogo
 
         return DB::table('service_prices')->where('tariff_version_id', $version)->where('service_id', $servicio)->exists()
             && $segmentos->count() === count(TipoCliente::ETIQUETAS) && $segmentos->diff($cargados)->isEmpty()
-            && $this->conceptos($servicio)->diff($conceptos)->isEmpty();
+            && $this->conceptos($servicio, soloIncluidos: true)->diff($conceptos)->isEmpty();
     }
 
     private function copiarVersion($vigente, int $servicio): int

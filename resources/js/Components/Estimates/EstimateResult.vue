@@ -19,6 +19,9 @@ const equivalenteArs = computed(() => {
     if (mode === 'manual' || currency !== 'USD' || !Number(ccl_rate) || min == null || max == null) return '';
     return priceRange(Number(min) * Number(ccl_rate), Number(max) * Number(ccl_rate), 'ARS');
 });
+const parcial = computed(() => props.result.pricing_partial ?? null);
+const importeParcial = computed(() => parcial.value
+    ? priceRange(parcial.value.min, parcial.value.max, parcial.value.currency) : '');
 </script>
 
 <template>
@@ -26,28 +29,22 @@ const equivalenteArs = computed(() => {
     <div class="result-grid">
         <v-card class="card result-card">
             <p class="eyebrow">{{ result.mode === 'manual' ? 'Revisión de alcance' : 'Tu estimación orientativa' }}</p>
-            <h2>{{
-                    result.mode === 'manual' ? 'Preparemos una propuesta para tu proyecto' : priceRange(result.min, result.max, result.currency)
-                }}</h2>
+            <h2>{{ result.mode === 'manual' ? (importeParcial ? 'Subtotal conocido: ' + importeParcial : 'Preparemos una propuesta para tu proyecto') : priceRange(result.min, result.max, result.currency) }}</h2>
             <p v-if="equivalenteArs" class="estimacion-equivalente">
                 Equivalente en pesos: {{ equivalenteArs }}
                 <FuenteCotizacionCcl :fuente="result.ccl_source"/>
             </p>
-            <p>{{
-                    result.mode === 'manual' ? 'synaux necesita revisar el alcance para definir el importe y los plazos. Podés continuar con la solicitud.' : 'Calculada el ' + date(result.date) + '. El precio y las condiciones finales se confirman en el presupuesto formal.'
-                }}</p>
-            <div v-if="result.mode !== 'manual'" class="estimate-lines">
+            <p>{{ result.mode === 'manual' ? (importeParcial ? 'Este subtotal incluye los importes disponibles. Algunos conceptos requieren revisión profesional; el subtotal no es un total definitivo.' : 'synaux necesita revisar el alcance para definir el importe y los plazos. Podés continuar con la solicitud.') : 'Calculada el ' + date(result.date) + '. El precio y las condiciones finales se confirman en el presupuesto formal.' }}</p>
+            <div v-if="result.mode !== 'manual' || importeParcial" class="estimate-lines">
                 <div>
                     <span>Base del servicio</span>
-                    <strong>{{ priceRange(result.base_min, result.base_max, result.currency) }}</strong>
+                    <strong>{{ result.base_min == null ? 'A cotizar' : priceRange(result.base_min, result.base_max, result.currency) }}</strong>
                 </div>
                 <div v-for="item in result.items" :key="item.name">
                     <span>{{ item.name }}<template v-if="item.unit !== 'segmento'"> · {{
                             item.quantity
                         }}</template></span>
-                    <strong>{{
-                            priceRange(Number(item.min) * Number(item.quantity), Number(item.max) * Number(item.quantity), result.currency)
-                        }}</strong>
+                    <strong>{{ item.min == null || item.max == null ? 'A cotizar' : priceRange(Number(item.min) * Number(item.quantity), Number(item.max) * Number(item.quantity), result.currency) }}</strong>
                 </div>
             </div>
             <div class="button-stack">

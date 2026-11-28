@@ -27,12 +27,15 @@ export function useRequestPricing(data, form, {estimate, old, selectedService, q
         return matches ? calculation : null;
     });
     const reference = computed(() => {
-        if (estimate) return estimate.price_min == null ? null : {
+        if (estimate) return estimate.price_min == null ? estimate.pricing_partial ?? null : {
             min: estimate.price_min, max: estimate.price_max ?? estimate.price_min,
             currency: estimate.currency_snapshot, date: estimate.created_at,
         };
         const calculation = matchingCalculation.value;
-        if (calculation) return calculation.min == null ? null : {
+        if (calculation) return calculation.min == null ? (calculation.subtotal_min == null ? null : {
+            min: calculation.subtotal_min, max: calculation.subtotal_max ?? calculation.subtotal_min,
+            currency: calculation.currency, partial: true,
+        }) : {
             min: calculation.min, max: calculation.max, currency: calculation.currency, date: calculation.date,
         };
 
@@ -56,8 +59,8 @@ export function useRequestPricing(data, form, {estimate, old, selectedService, q
 
     const additionalPrices = computed(() => form.additional_services.map(item => {
         const verified = matchingExtra(item);
-        if (verified && (verified.pricing_reference || adicionalesRevisados.value.length)) {
-            return referenceLine(verified.pricing_reference, item.quantity, null, summaryCurrency.value);
+        if (verified && (verified.pricing_reference || verified.pricing_partial || adicionalesRevisados.value.length)) {
+            return referenceLine(verified.pricing_reference ?? verified.pricing_partial, item.quantity, null, summaryCurrency.value);
         }
 
         // Un borrador incompleto puede conservar una referencia orientativa hasta el cálculo del servidor.

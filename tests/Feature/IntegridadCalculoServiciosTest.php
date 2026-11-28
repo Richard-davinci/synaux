@@ -1,0 +1,284 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\User;
+use App\Services\Catalog\ServiceCatalog;
+use App\Services\Catalog\TipoCliente;
+use App\Services\Estimates\EstimateStore;
+use App\Services\Solicitudes\RecorridoSolicitud;
+use Database\Seeders\SynauxCatalogSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Tests\TestCase;
+
+// Aísla tarifas y conceptos de prueba en SQLite en memoria para no tocar el catálogo comercial.
+class IntegridadCalculoServiciosTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private array $catalogo;
+    private ServiceCatalog $motor;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(SynauxCatalogSeeder::class);
+        $this->motor = app(ServiceCatalog::class);
+        $this->catalogo = $this->crearCatalogoPrueba();
+    }
+
+    // El servicio usa precios de prueba por segmento y deja libres sus conceptos para cada caso.
+    private function crearCatalogoPrueba(): array
+    {
+        $categoria = DB::table('service_categories')->insertGetId([
+            'name' => 'Pruebas de integridad', 'slug' => 'pruebas-integridad', 'description' => 'Datos aislados', 'active' => true,
+        ]);
+        DB::table('tariff_versions')->update(['active' => false]);
+        $tarifa = DB::table('tariff_versions')->insertGetId([
+            'name' => 'Tarifa aislada de pruebas', 'currency_code' => 'USD', 'ccl_rate' => 1700,
+            'effective_from' => now()->subDay(), 'active' => true,
+        ]);
+        $opcionesCliente = TipoCliente::opcionesActivas()->keyBy('clave_segmento');
+        $servicios = [];
+        foreach (['principal', 'adicional'] as $tipo) {
+            $servicio = DB::table('services')->insertGetId([
+                'service_category_id' => $categoria, 'name' => ucfirst($tipo), 'slug' => 'integridad-' . $tipo,
+                'description' => 'Servicio aislado de pruebas', 'active' => true, 'estimation_mode' => 'automatic',
+            ]);
+            DB::table('service_prices')->insert([
+                'tariff_version_id' => $tarifa, 'service_id' => $servicio, 'price_min' => 0, 'price_max' => 0,
+            ]);
+            foreach (['particular' => 410, 'pyme' => 800, 'empresa' => 1200] as $clave => $precio) {
+                DB::table('service_segment_prices')->insert([
+                    'tariff_version_id' => $tarifa, 'service_id' => $servicio,
+                    'estimator_option_id' => $opcionesCliente[$clave]->id, 'price_min' => $precio, 'price_max' => $precio,
+                ]);
+            }
+            $servicios[$tipo] = $servicio;
+        }
+
+        return ['tarifa' => $tarifa, 'pregunta_cliente' => $opcionesCliente['particular']->question_id,
+            'opciones_cliente' => $opcionesCliente, 'servicios' => $servicios];
+    }
+
+    private function pregunta(string $nombre, string $tipo = 'single_choice', ?int $componenteCantidad = null, bool $obligatoria = false, ?int $servicioId = null): array
+    {
+        $id = DB::table('estimator_questions')->insertGetId([
+            'service_id' => $servicioId ?? $this->catalogo['servicios']['principal'], 'question' => $nombre,
+            'input_type' => $tipo, 'sort_order' => 20 + DB::table('estimator_questions')->count(),
+            'active' => true, 'required' => $obligatoria, 'quantity_component_id' => $componenteCantidad,
+        ]);
+        $opciones = [];
+        if (in_array($tipo, ['single_choice', 'multiple_choice'], true)) {
+            foreach (['Sí', 'También'] as $orden => $label) {
+                $opciones[] = DB::table('estimator_options')->insertGetId([
+                    'question_id' => $id, 'label' => $label, 'sort_order' => $orden, 'active' => true, 'clave_segmento' => null,
+                ]);
+            }
+        }
+
+        return ['id' => $id, 'opciones' => $opciones];
+    }
+
+    private function concepto(string $nombre, string $slug, ?float $precio, string $modo, ?int $servicioId = null): int
+    {
+        $id = DB::table('service_components')->insertGetId([
+            'service_id' => $servicioId ?? $this->catalogo['servicios']['principal'], 'name' => $nombre, 'slug' => $slug,
+            'description' => $nombre, 'unit_code' => 'unidad', 'active' => true, 'is_default' => false,
+            'default_quantity' => 1, 'modo_cobro' => $modo,
+        ]);
+        if ($precio !== null) {
+            DB::table('component_prices')->insert([
+                'tariff_version_id' => $this->catalogo['tarifa'], 'service_component_id' => $id,
+                'price_min' => $precio, 'price_max' => $precio,
+            ]);
+        }
+        return $id;
+    }
+
+    private function regla(int $opcion, int $concepto, float $unidades = 1): void
+    {
+        DB::table('estimation_rules')->insert([
+            'estimator_option_id' => $opcion, 'service_component_id' => $concepto, 'quantity' => $unidades, 'active' => true,
+        ]);
+    }
+
+    private function respuestas(string $tipo = 'pyme'): array
+    {
+        $respuestas = [];
+        foreach (DB::table('estimator_questions')->whereNull('service_id')->where('active', 1)->get() as $pregunta) {
+            if ($pregunta->input_type === 'single_choice' || $pregunta->input_type === 'multiple_choice') {
+                $opciones = DB::table('estimator_options')->where('question_id', $pregunta->id)->where('active', 1)->orderBy('sort_order')->get();
+                $opcion = $pregunta->id === $this->catalogo['pregunta_cliente']
+                    ? $this->catalogo['opciones_cliente'][$tipo] : $opciones->first();
+                if ($opcion) $respuestas[$pregunta->id] = $pregunta->input_type === 'multiple_choice' ? [$opcion->id] : $opcion->id;
+            } elseif ($pregunta->input_type === 'number') {
+                $respuestas[$pregunta->id] = 1;
+            } elseif ($pregunta->input_type === 'text') {
+                $respuestas[$pregunta->id] = 'Respuesta de prueba';
+            }
+        }
+
+        return $respuestas;
+    }
+
+    public function test_base_only_prices_each_stable_customer_type_even_after_visible_labels_change(): void
+    {
+        $precios = ['particular' => 410, 'pyme' => 800, 'empresa' => 1200];
+        foreach ($precios as $clave => $precio) {
+            $resultado = $this->motor->calculate('integridad-principal', $this->respuestas($clave));
+            $this->assertSame('automatic', $resultado['mode']);
+            $this->assertEquals($precio, $resultado['min']);
+            $this->assertSame([], $resultado['items']);
+        }
+        DB::table('estimator_questions')->where('id', $this->catalogo['pregunta_cliente'])->update(['question' => '¿Quién contrata?']);
+        DB::table('estimator_options')->where('id', $this->catalogo['opciones_cliente']['pyme']->id)->update(['label' => 'Comercio mediano']);
+        $resultado = $this->motor->calculate('integridad-principal', $this->respuestas('pyme'));
+        $this->assertEquals(800, $resultado['min']);
+        $this->assertSame('Comercio mediano', $resultado['answers'][0]['label']);
+    }
+
+    public function test_unique_fixed_charge_avoids_duplicate_and_reference_example_totals_usd_1330(): void
+    {
+        $tecnologia = $this->concepto('Tecnología específica', 'tecnologia-especifica', 150, 'unico');
+        $qTecnologiaA = $this->pregunta('¿Usa tecnología A?');
+        $qTecnologiaB = $this->pregunta('¿Usa tecnología B?');
+        $this->regla($qTecnologiaA['opciones'][0], $tecnologia);
+        $this->regla($qTecnologiaB['opciones'][0], $tecnologia);
+        $logo = $this->concepto('Diseño de logotipo', 'logotipo', 120, 'unico');
+        $imagenes = $this->concepto('Imágenes', 'imagenes', 80, 'unico');
+        $qLogo = $this->pregunta('¿Necesitás logotipo?');
+        $qImagenes = $this->pregunta('¿Necesitás imágenes?');
+        $this->regla($qLogo['opciones'][0], $logo);
+        $this->regla($qImagenes['opciones'][0], $imagenes);
+        $secciones = $this->concepto('Sección adicional', 'seccion-adicional', 60, 'cantidad');
+        $qSecciones = $this->pregunta('¿Cuántas secciones adicionales?', 'number', $secciones);
+
+        $answers = $this->respuestas();
+        $answers[$qTecnologiaA['id']] = $qTecnologiaA['opciones'][0];
+        $answers[$qTecnologiaB['id']] = $qTecnologiaB['opciones'][0];
+        $answers[$qLogo['id']] = $qLogo['opciones'][0];
+        $answers[$qImagenes['id']] = $qImagenes['opciones'][0];
+        $answers[$qSecciones['id']] = 3;
+        $resultado = $this->motor->calculate('integridad-principal', $answers);
+
+        $this->assertSame('automatic', $resultado['mode']);
+        $this->assertEquals(1330, $resultado['min']);
+        $this->assertEquals(150, collect($resultado['items'])->firstWhere('slug', 'tecnologia-especifica')['subtotal_min']);
+        $this->assertEquals(180, collect($resultado['items'])->firstWhere('slug', 'seccion-adicional')['subtotal_min']);
+    }
+
+    public function test_accumulation_multiple_selection_and_changed_or_removed_answers_recalculate(): void
+    {
+        $concepto = $this->concepto('Bloques acumulables', 'bloques', 25, 'acumulativo');
+        $q1 = $this->pregunta('¿Bloque uno?');
+        $q2 = $this->pregunta('¿Bloque dos?');
+        $this->regla($q1['opciones'][0], $concepto, 2);
+        $this->regla($q2['opciones'][0], $concepto, 3);
+        $multi = $this->pregunta('¿Qué módulos?', 'multiple_choice');
+        $this->regla($multi['opciones'][0], $concepto, 1);
+        $this->regla($multi['opciones'][1], $concepto, 1);
+        $q1Values = [$q1['id'] => $q1['opciones'][0], $q2['id'] => $q2['opciones'][0],
+            $multi['id'] => [$multi['opciones'][0], $multi['opciones'][0], $multi['opciones'][1]]];
+        $ambas = $this->motor->calculate('integridad-principal', $this->respuestas() + $q1Values);
+        $this->assertEquals(975, $ambas['min']);
+        $una = $this->motor->calculate('integridad-principal', $this->respuestas() + [$q1['id'] => $q1['opciones'][0],
+            $multi['id'] => [$multi['opciones'][0], $multi['opciones'][1]]]);
+        $this->assertEquals(900, $una['min']);
+        $cambiada = $this->motor->calculate('integridad-principal', $this->respuestas() + [$q1['id'] => $q1['opciones'][1],
+            $q2['id'] => $q2['opciones'][0], $multi['id'] => []]);
+        $this->assertEquals(875, $cambiada['min']);
+        DB::table('estimator_questions')->whereIn('id', [$q1['id'], $q2['id'], $multi['id']])->update(['required' => false]);
+        $sinSelecciones = $this->motor->calculate('integridad-principal', $this->respuestas());
+        $this->assertEquals(800, $sinSelecciones['min']);
+    }
+
+    public function test_optional_missing_price_keeps_public_base_and_selected_concept_is_partial_not_free(): void
+    {
+        $pendiente = $this->concepto('Integración especial', 'integracion-pendiente', null, 'unico');
+        $pregunta = $this->pregunta('¿Necesitás integración?');
+        $this->regla($pregunta['opciones'][0], $pendiente);
+        $reference = $this->motor->references()['integridad-principal'];
+        $this->assertEquals(800, collect($reference['segments'])->firstWhere('key', 'pyme')['min']);
+        $selected = $this->motor->calculate('integridad-principal', $this->respuestas() + [$pregunta['id'] => $pregunta['opciones'][0]]);
+        $this->assertSame('manual', $selected['mode']);
+        $this->assertNull($selected['min']);
+        $this->assertEquals(800, $selected['subtotal_min']);
+        $this->assertNull(collect($selected['items'])->firstWhere('component_id', $pendiente)['subtotal_min']);
+        $cliente = User::factory()->create();
+        $store = app(EstimateStore::class);
+        $savedId = $store->save($cliente->id, $selected);
+        $saved = $store->find($cliente->id, $savedId);
+        $this->assertEquals(800, $saved['pricing_partial']['min']);
+        $this->assertSame($this->catalogo['tarifa'], $saved['tariff_version_id']);
+        $this->assertEquals(1700, $saved['ccl_rate_snapshot']);
+        $this->assertNull($saved['items'][0]['subtotal_min']);
+
+        $cero = $this->concepto('Opción gratuita confirmada', 'opcion-cero', 0, 'unico');
+        $otra = $this->pregunta('¿Elegís la opción de importe cero?');
+        $this->regla($otra['opciones'][0], $cero);
+        $zeroResult = $this->motor->calculate('integridad-principal', $this->respuestas() + [$otra['id'] => $otra['opciones'][0]]);
+        $this->assertSame('automatic', $zeroResult['mode']);
+        $this->assertEquals(800, $zeroResult['min']);
+        $this->assertSame(0.0, collect($zeroResult['items'])->firstWhere('component_id', $cero)['subtotal_min']);
+    }
+
+    public function test_additional_service_inherits_client_type_and_snapshots_currency_tariff_ccl_and_lines(): void
+    {
+        $resultadoPrincipal = $this->motor->calculate('integridad-principal', $this->respuestas('empresa'));
+        foreach (['particular' => 410, 'pyme' => 800, 'empresa' => 1200] as $segmento => $precio) {
+            $resultadoPrincipal = $this->motor->calculate('integridad-principal', $this->respuestas($segmento));
+            $adicionales = app(RecorridoSolicitud::class)->calculateAdditionalServices(
+                $this->catalogo['servicios']['principal'], [['service_id' => $this->catalogo['servicios']['adicional'], 'quantity' => 2, 'answers' => []]],
+                $resultadoPrincipal['answers'], 'USD',
+            );
+            $guardado = $adicionales[0];
+            $this->assertSame($segmento, $guardado['segmento_cliente']);
+            $this->assertEquals($precio, $guardado['pricing_reference']['min']);
+            $this->assertSame('USD', $guardado['pricing_breakdown']['currency']);
+            $this->assertSame($this->catalogo['tarifa'], $guardado['pricing_breakdown']['tariff_version_id']);
+            $this->assertEquals(1700, $guardado['pricing_breakdown']['ccl_rate']);
+            $this->assertEquals($precio * 2, $guardado['pricing_breakdown']['subtotal_total_min']);
+        }
+    }
+
+    public function test_saved_estimate_and_additional_snapshot_do_not_change_after_tariff_or_rule_edits(): void
+    {
+        $component = $this->concepto('Edición posterior', 'edicion-posterior', 60, 'unico');
+        $question = $this->pregunta('¿Agregar ajuste?');
+        $this->regla($question['opciones'][0], $component);
+        $answers = [...$this->respuestas(), $question['id'] => $question['opciones'][0]];
+        $calculation = $this->motor->calculate('integridad-principal', $answers);
+        $user = User::factory()->create();
+        $store = app(EstimateStore::class);
+        $estimateId = $store->save($user->id, $calculation);
+        $before = $store->find($user->id, $estimateId);
+
+        $extraComponent = $this->concepto('Ajuste del servicio adicional', 'ajuste-adicional', 35, 'unico', $this->catalogo['servicios']['adicional']);
+        $extraQuestion = $this->pregunta('¿Agregar ajuste adicional?', 'single_choice', null, false, $this->catalogo['servicios']['adicional']);
+        $this->regla($extraQuestion['opciones'][0], $extraComponent);
+        $extraBefore = app(RecorridoSolicitud::class)->calculateAdditionalServices(
+            $this->catalogo['servicios']['principal'], [['service_id' => $this->catalogo['servicios']['adicional'], 'quantity' => 1,
+                'answers' => [$extraQuestion['id'] => $extraQuestion['opciones'][0]]]],
+            $calculation['answers'], 'USD',
+        );
+        DB::table('component_prices')->where('tariff_version_id', $this->catalogo['tarifa'])
+            ->where('service_component_id', $component)->update(['price_min' => 999, 'price_max' => 999]);
+        DB::table('component_prices')->where('tariff_version_id', $this->catalogo['tarifa'])
+            ->where('service_component_id', $extraComponent)->update(['price_min' => 999, 'price_max' => 999]);
+        DB::table('estimator_options')->where('id', $question['opciones'][0])->update(['label' => 'Texto revisado']);
+        DB::table('estimation_rules')->where('estimator_option_id', $question['opciones'][0])->update(['quantity' => 50]);
+        DB::table('estimator_options')->where('id', $extraQuestion['opciones'][0])->update(['label' => 'Texto adicional revisado']);
+        DB::table('estimation_rules')->where('estimator_option_id', $extraQuestion['opciones'][0])->update(['quantity' => 50]);
+
+        $this->assertSame($before, $store->find($user->id, $estimateId));
+        $extraAfter = app(RecorridoSolicitud::class)->calculateAdditionalServices(
+            $this->catalogo['servicios']['principal'], [['service_id' => $this->catalogo['servicios']['adicional'], 'quantity' => 1,
+                'answers' => [$extraQuestion['id'] => $extraQuestion['opciones'][0]]]],
+            $calculation['answers'], 'USD', $extraBefore,
+        );
+        $this->assertSame($extraBefore[0]['pricing_breakdown'], $extraAfter[0]['pricing_breakdown']);
+        $this->assertSame($extraBefore[0]['pricing_reference'], $extraAfter[0]['pricing_reference']);
+    }
+}

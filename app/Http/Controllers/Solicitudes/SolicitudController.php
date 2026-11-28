@@ -68,12 +68,7 @@ class SolicitudController extends Controller
             $journey = app(\App\Services\Solicitudes\RecorridoSolicitud::class);
             $pending = $journey->pending($request);
             if (array_key_exists('answers', $data) && empty($data['estimate_id'])) {
-                $calculation = $journey->calculate($data);
-                if ($pending && !($pending['form']['estimate_id'] ?? null) && $pending['calculation']['service']['database_id'] === (int)$data['service_id']
-                    && (int)($pending['form']['id'] ?? 0) === (int)($data['id'] ?? 0)
-                    && $pending['calculation']['answers'] == $calculation['answers']) {
-                    $calculation = $pending['calculation'];
-                }
+                $calculation = $journey->retomarCalculo($data, $pending);
                 $data['estimate_id'] = app(\App\Services\Estimates\EstimateStore::class)->save($request->user()->id, $calculation);
             }
 

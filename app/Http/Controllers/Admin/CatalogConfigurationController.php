@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Services\Admin\PreciosCatalogo;
 use App\Services\Catalog\ServiceCatalog;
+use App\Services\Catalog\ModoCobro;
 use App\Services\Catalog\TipoCliente;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -119,7 +120,8 @@ class CatalogConfigurationController extends Controller
                 'input_type' => ['required', Rule::in(['single_choice', 'multiple_choice', 'number', 'text'])], 'sort_order' => 'required|integer|min:0|max:1000', 'options_text' => 'nullable|string|max:5000',
                 'quantity_component_id' => 'nullable|integer|exists:service_components,id', 'required' => 'sometimes|boolean'],
             'componentes' => [...$common, 'service_id' => 'required|integer|exists:services,id', 'name' => 'required|string|max:255', 'slug' => 'required|alpha_dash|max:150',
-                'description' => 'required|string|max:10000', 'unit_code' => 'required|string|max:32', 'is_default' => 'required|boolean', 'default_quantity' => 'required|numeric|gt:0|max:10000'],
+                'description' => 'required|string|max:10000', 'unit_code' => 'required|string|max:32', 'is_default' => 'required|boolean', 'default_quantity' => 'required|numeric|gt:0|max:10000',
+                'modo_cobro' => ['sometimes', Rule::enum(ModoCobro::class)]],
             'reglas' => [...$common, 'estimator_option_id' => 'required|integer|exists:estimator_options,id', 'service_component_id' => 'required|integer|exists:service_components,id', 'quantity' => 'required|numeric|min:0|max:10000'],
             'categorias' => [...$common, 'name' => 'required|string|max:255', 'slug' => ['required', 'alpha_dash', Rule::unique('service_categories', 'slug')->ignore($id)], 'description' => 'required|string|max:10000'],
         };

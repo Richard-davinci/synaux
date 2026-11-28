@@ -91,6 +91,9 @@ class TariffController extends Controller
         }
         foreach (['services', 'components', 'segments'] as $type) {
             foreach ($data[$type] as $index => $price) {
+                if (isset($price['min']) !== isset($price['max'])) {
+                    throw ValidationException::withMessages(["$type.$index." . (isset($price['min']) ? 'max' : 'min') => 'Completá ambos importes.']);
+                }
                 if (isset($price['min'], $price['max']) && $price['max'] < $price['min']) {
                     throw ValidationException::withMessages(["$type.$index.max" => 'El máximo debe ser mayor o igual al mínimo.']);
                 }
@@ -111,11 +114,11 @@ class TariffController extends Controller
         }
         if ($data['active']) {
             $automatic = $automaticServiceIds;
-            $required = DB::table('service_components')->whereIn('service_id', $automatic)->where('active', 1)
+            $required = DB::table('service_components')->whereIn('service_id', $automatic)->where('active', 1)->where('is_default', 1)
                 ->where('slug', '!=', 'segmento-tarifario-2026-11')->pluck('id');
             $componentesCompletos = collect($data['components'])->filter(fn($precio) => isset($precio['min'], $precio['max']))->pluck('id');
             if ($automatic->diff(array_column($data['services'], 'id'))->isNotEmpty() || $required->diff($componentesCompletos)->isNotEmpty()) {
-                throw ValidationException::withMessages(['active' => 'Completá la base y todos los componentes de los servicios automáticos antes de activar.']);
+                throw ValidationException::withMessages(['active' => 'Completá la base y los conceptos incluidos por defecto antes de activar.']);
             }
             // Evita activar una versión que no pueda cotizar cada opción general del catálogo.
             $providedSegments = collect($data['segments'])->filter(fn($precio) => isset($precio['min'], $precio['max']))

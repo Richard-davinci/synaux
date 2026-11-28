@@ -51,6 +51,12 @@ const types = [{value: 'single_choice', label: 'Una opción'}, {
     value: 'multiple_choice',
     label: 'Varias opciones'
 }, {value: 'number', label: 'Cantidad'}, {value: 'text', label: 'Texto libre'}];
+const modosCobro = [
+    {value: 'heredado', label: 'Conservar cálculo actual'},
+    {value: 'unico', label: 'Cargo único'},
+    {value: 'acumulativo', label: 'Cargo acumulativo'},
+    {value: 'cantidad', label: 'Por cantidad'},
+];
 const titulos = {preguntas: 'pregunta', componentes: 'concepto', reglas: 'regla'};
 const labelFor = type => types.find(t => t.value === type)?.label ?? type;
 const questionFor = optionId => questions.value.find(q => q.options.some(o => o.id == optionId));
@@ -133,7 +139,7 @@ const alcance = computed({
 });
 const fields = {
     preguntas: ['id', 'service_id', 'question', 'input_type', 'sort_order', 'options_text', 'quantity_component_id', 'required', 'active'],
-    componentes: ['id', 'service_id', 'name', 'slug', 'description', 'unit_code', 'is_default', 'default_quantity', 'active'],
+    componentes: ['id', 'service_id', 'name', 'slug', 'description', 'unit_code', 'is_default', 'default_quantity', 'modo_cobro', 'active'],
     reglas: ['id', 'estimator_option_id', 'service_component_id', 'quantity', 'active'],
 };
 
@@ -157,6 +163,7 @@ function edit(kind, row = {}, general = false) {
         unit_code: 'unidad',
         is_default: false,
         default_quantity: 1,
+        modo_cobro: 'heredado',
         estimator_option_id: '',
         service_component_id: '',
         quantity: 1
@@ -210,10 +217,9 @@ const tienePreciosVigentes = computed(() => {
     return Boolean((base && (Number(base.price_min) > 0 || Number(base.price_max) > 0))
         || preciosPorSegmento.value.some(segment => Boolean(segment.price)));
 });
-const conceptosConPrecio = computed(() => conceptosActivos.value.filter(c => precioConcepto(c.id)).length);
 const coberturaCompleta = computed(() => preciosPorSegmento.value.length > 0
     && preciosPorSegmento.value.every(segment => Boolean(segment.price))
-    && conceptosConPrecio.value === conceptosActivos.value.length);
+    && conceptosActivos.value.filter(c => c.is_default).every(c => Boolean(precioConcepto(c.id))));
 const automatica = computed(() => props.service.estimation_mode === 'automatic');
 const panelPrecios = ref(false);
 const formularioPrecios = useForm({precios: {segmentos: [], conceptos: []}});
@@ -331,7 +337,7 @@ function importe(precio) {
                         <div>
                             <h4>{{ concepto.name }}</h4>
                             <p>{{ concepto.description }}</p>
-                            <p>Unidad {{ concepto.unit_code }} · {{ importe(precioConcepto(concepto.id)) }}</p>
+                            <p>Unidad {{ concepto.unit_code }} · {{ importe(precioConcepto(concepto.id)) }} · {{ modosCobro.find(m => m.value === concepto.modo_cobro)?.label ?? modosCobro[0].label }}</p>
                             <p v-if="concepto.is_default">Cantidad por defecto {{ concepto.default_quantity }}</p>
                             <p v-for="pregunta in quantityQuestionsFor(concepto.id)" :key="pregunta.id">Cantidad
                                 ingresada en «{{ pregunta.question }}».</p>
@@ -487,6 +493,8 @@ function importe(precio) {
                        hint="Letras, números y guiones; único dentro del servicio."/>
                     <F v-model="form.description" label="Descripción" type="textarea" required
                        maxlength="10000"/>
+                    <F v-model="form.modo_cobro" label="Cómo se cobra" type="select" :options="modosCobro" required
+                       hint="Las configuraciones existentes mantienen su cálculo hasta que elijas otro modo."/>
                     <div class="field-row">
                         <F v-model="form.unit_code" label="Unidad" required maxlength="32"/>
                         <F v-model="form.default_quantity" label="Cantidad inicial" type="number" min="0.001"

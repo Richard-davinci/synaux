@@ -6,6 +6,13 @@ export function referenceLine(reference, quantity = 1, segment = null, currency 
     const min = selected?.min;
     const max = selected?.max ?? min;
     const code = reference?.currency || 'ARS';
+    if (reference?.partial === true && min != null && max != null && Number.isFinite(Number(min)) && Number.isFinite(Number(max))) {
+        if (!Number.isInteger(count) || count < 1 || count > 1000 || (currency && reference.currency !== currency)) {
+            return {priced: false, quantity: count};
+        }
+        return {priced: false, hasKnownAmount: true, partial: true, quantity: count, currency: reference.currency,
+            min: Math.round(Number(min) * 100) * count / 100, max: Math.round(Number(max) * 100) * count / 100};
+    }
     if (min == null || max == null || !Number.isFinite(Number(min)) || !Number.isFinite(Number(max))
         || Number(min) < 0 || Number(max) < Number(min) || !Number.isInteger(count) || count < 1 || count > 1000
         || (currency && code !== currency)) return {priced: false, quantity: count};
@@ -18,9 +25,10 @@ export function referenceLine(reference, quantity = 1, segment = null, currency 
 
 // Suma solo los renglones cotizados en una misma moneda y distingue un subtotal de un total completo.
 export function summarizePrices(lines, currency = 'ARS') {
-    const priced = lines.filter(line => line.priced && line.currency === currency);
+    const priced = lines.filter(line => (line.priced || line.hasKnownAmount) && line.currency === currency);
+    const complete = lines.filter(line => line.priced && line.currency === currency);
     return {
-        currency, hasPrice: priced.length > 0, pending: lines.length - priced.length,
+        currency, hasPrice: priced.length > 0, pending: lines.length - complete.length,
         min: priced.reduce((sum, line) => sum + Math.round(line.min * 100), 0) / 100,
         max: priced.reduce((sum, line) => sum + Math.round(line.max * 100), 0) / 100
     };

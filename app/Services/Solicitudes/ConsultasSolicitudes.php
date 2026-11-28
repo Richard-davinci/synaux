@@ -2,6 +2,7 @@
 
 namespace App\Services\Solicitudes;
 
+use App\Services\Catalog\EconomiaEstimada;
 use Illuminate\Support\Facades\DB;
 
 class ConsultasSolicitudes
@@ -34,17 +35,23 @@ class ConsultasSolicitudes
                 $estimateMax = $r->estimate_max ?? ($estimateSnapshot['price_max'] ?? null);
                 $baseMin = $r->base_min_snapshot ?? ($estimateSnapshot['base_min'] ?? null);
                 $baseMax = $r->base_max_snapshot ?? ($estimateSnapshot['base_max'] ?? null);
-                $estimateItems = $r->estimate_items ?? json_encode($estimateSnapshot['items'] ?? []);
+                $estimateItems = $r->estimate_items ? json_decode($r->estimate_items, true) : ($estimateSnapshot['items'] ?? []);
+                $moneda = $r->estimate_currency ?? ($estimateSnapshot['currency'] ?? null);
 
                 return $public ? $base : [...$base, 'user_id' => $r->user_id, 'estimate_id' => $r->estimate_id,
                     'pricing_reference' => $estimateMin === null ? null : [
                         'min' => $estimateMin, 'max' => $estimateMax ?? $estimateMin,
-                        'currency' => $r->estimate_currency ?? ($estimateSnapshot['currency'] ?? null),
+                        'currency' => $moneda,
                     ],
-                    'tariff_version_id' => $r->tariff_version_id,
-                    'pricing_breakdown' => $baseMin === null ? null : [
+                    'pricing_partial' => $estimateMin === null ? EconomiaEstimada::referenciaParcial($baseMin, $baseMax, $estimateItems, $moneda) : null,
+                    'tariff_version_id' => $r->tariff_version_id ?? ($estimateSnapshot['tariff_version_id'] ?? null),
+                    'pricing_breakdown' => $baseMin === null && !$estimateItems ? null : [
                         'base_min' => $baseMin, 'base_max' => $baseMax,
-                        'items' => json_decode($estimateItems ?? '[]', true),
+                        'items' => $estimateItems,
+                        'currency' => $moneda,
+                        'tariff_version_id' => $r->tariff_version_id ?? ($estimateSnapshot['tariff_version_id'] ?? null),
+                        'ccl_rate' => $estimateSnapshot['ccl_rate'] ?? null,
+                        'ccl_source' => $estimateSnapshot['ccl_source'] ?? null,
                     ],
                     // Las solicitudes antiguas sin instantánea usan el mismo contacto que el documento formal.
                     'contact' => json_decode($r->contact_snapshot ?? 'null', true) ?? ['name' => $r->contact_name, 'email' => $r->contact_email], 'additional_services' => json_decode($r->requested_services ?? '[]', true),
