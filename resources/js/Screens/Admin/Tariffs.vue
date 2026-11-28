@@ -15,6 +15,7 @@ const props = defineProps({data: Object});
 const administration = computed(() => props.data.administration);
 const tarifarios = computed(() => administration.value.tariffs);
 const panelOpen = ref(false);
+const servicioAbierto = ref(null);
 const submit = useSubmit();
 const tarifario = useForm({name: '', currency_code: 'USD', ccl_rate: '', active: false, services: [], components: [], segments: []});
 const cotizacionCcl = computed(() => Number(tarifario.ccl_rate) || 0);
@@ -48,6 +49,7 @@ function prepararVersion(origen = {}) {
             min: reutilizar ? (precio?.price_min ?? '') : '', max: reutilizar ? (precio?.price_max ?? '') : '',
             fixed: !reutilizar || Number(precio?.price_min) === Number(precio?.price_max)};
     }));
+    servicioAbierto.value = tarifario.services[0]?.id ?? null;
     panelOpen.value = true;
 }
 
@@ -60,6 +62,12 @@ function equivalente(amount) {
 function establecerPrecioFijo(precio, fijo) {
     precio.fixed = fijo;
     if (fijo) precio.max = precio.min;
+}
+
+function preciosCargadosDelServicio(servicioId) {
+    const precios = tarifario.segments.filter(precio => precio.service_id === servicioId);
+    const completos = precios.filter(precio => precio.min !== '' && precio.min != null && precio.max !== '' && precio.max != null).length;
+    return `${completos} de ${precios.length} tipos con precio`;
 }
 
 function guardarTarifario() {
@@ -128,28 +136,43 @@ function guardarTarifario() {
 
                         <section class="tariff-section">
                             <div class="tariff-heading"><div><h2>Precios por servicio y tipo de cliente</h2>
-                                <p>Cada bloque azul identifica un servicio. Definí su precio para cada tipo de cliente; si tiene trabajos adicionales configurados, aparecerán aparte.</p></div></div>
+                                <p>Cada sección corresponde a un servicio. Definí su precio para cada tipo de cliente; si tiene trabajos adicionales configurados, aparecerán aparte.</p></div></div>
                             <p v-if="!administration.clientSegments.length" class="notice">Primero configurá la pregunta general «¿Para qué tipo de cliente?» con sus variantes.</p>
-                            <article v-for="servicio in tarifario.services" :key="servicio.id" class="tariff-service">
-                                <h3>{{ servicio.name }}</h3>
-                                <div class="tariff-segment-header" aria-hidden="true">
-                                    <span>Tipo de cliente</span><span>Modalidad</span><span>Importe en USD</span><span>Equivalente</span>
-                                </div>
-                                <div v-for="precio in tarifario.segments.filter(row => row.service_id === servicio.id)" :key="precio.option_id"
-                                     class="tariff-segment">
-                                    <strong>{{ precio.label }}</strong>
-                                    <div class="tariff-price-mode" role="group" :aria-label="'Modalidad de precio para ' + precio.label">
-                                        <button type="button" :aria-pressed="precio.fixed" @click="establecerPrecioFijo(precio, true)">Fijo</button>
-                                        <button type="button" :aria-pressed="!precio.fixed" @click="establecerPrecioFijo(precio, false)">Rango</button>
+                            <div class="tariff-services">
+                                <article v-for="servicio in tarifario.services" :key="servicio.id" class="tariff-service"
+                                         :class="{'tariff-service-open': servicioAbierto === servicio.id}">
+                                    <button type="button" class="tariff-service-toggle" :aria-expanded="servicioAbierto === servicio.id"
+                                            @click="servicioAbierto = servicioAbierto === servicio.id ? null : servicio.id">
+                                        <span class="tariff-service-name">{{ servicio.name }}</span>
+                                        <span class="tariff-service-meta">
+                                            <span>{{ preciosCargadosDelServicio(servicio.id) }}</span>
+                                            <span class="tariff-service-chevron" aria-hidden="true">⌄</span>
+                                        </span>
+                                    </button>
+                                    <div v-if="servicioAbierto === servicio.id" class="tariff-service-content">
+                                        <div class="tariff-segment-header">
+                                            <span>Tipo de cliente</span><span>Modalidad e importe en USD</span><span>Equivalente CCL</span>
+                                        </div>
+                                        <div v-for="precio in tarifario.segments.filter(row => row.service_id === servicio.id)" :key="precio.option_id"
+                                             class="tariff-segment">
+                                            <strong>{{ precio.label }}</strong>
+                                            <div class="tariff-price-entry">
+                                                <div class="tariff-price-mode" role="group" :aria-label="'Modalidad de precio para ' + precio.label">
+                                                    <button type="button" :aria-pressed="precio.fixed" @click="establecerPrecioFijo(precio, true)">Fijo</button>
+                                                    <button type="button" :aria-pressed="!precio.fixed" @click="establecerPrecioFijo(precio, false)">Rango</button>
+                                                </div>
+                                                <F v-if="precio.fixed" v-model="precio.min" label="Precio fijo en USD" type="number" min="0" step="0.01" :required="tarifario.active" @update:model-value="precio.max = $event"/>
+                                                <div v-else class="tariff-range-inputs">
+                                                    <F v-model="precio.min" label="Desde · USD" type="number" min="0" step="0.01" :required="tarifario.active"/>
+                                                    <F v-model="precio.max" label="Hasta · USD" type="number" min="0" step="0.01" :required="tarifario.active"/>
+                                                </div>
+                                            </div>
+                                            <span v-if="precio.min === '' || precio.min == null" class="tariff-equivalent tariff-equivalent-empty">Falta cargar el precio</span>
+                                            <span v-else class="tariff-equivalent">{{ equivalente(precio.min) }}<template v-if="Number(precio.min) !== Number(precio.max)"> – {{ equivalente(precio.max) }}</template></span>
+                                        </div>
                                     </div>
-                                    <F v-if="precio.fixed" v-model="precio.min" label="Precio fijo en USD" type="number" min="0" step="0.01" :required="tarifario.active" @update:model-value="precio.max = $event"/>
-                                    <div v-else class="tariff-range-inputs">
-                                        <F v-model="precio.min" label="Desde · USD" type="number" min="0" step="0.01" :required="tarifario.active"/>
-                                        <F v-model="precio.max" label="Hasta · USD" type="number" min="0" step="0.01" :required="tarifario.active"/>
-                                    </div>
-                                    <span class="tariff-equivalent">{{ equivalente(precio.min) }}<template v-if="Number(precio.min) !== Number(precio.max)"> – {{ equivalente(precio.max) }}</template></span>
-                                </div>
-                            </article>
+                                </article>
+                            </div>
                         </section>
 
                         <details v-if="tarifario.components.length" class="tariff-section tariff-components">
@@ -211,18 +234,27 @@ function guardarTarifario() {
 .tariff-activation-toggle { display: inline-flex; align-items: center; gap: 9px; color: #153b64; font-size: .88rem; font-weight: 700; cursor: pointer; }
 .tariff-activation-toggle input { width: 18px; height: 18px; margin: 0; accent-color: #1f6f7f; }
 .tariff-heading p { margin-top: 4px; }
-.tariff-service { display: grid; gap: 5px; padding: 11px; border: 1px solid #1f6f7f26; border-radius: 12px; }
-.tariff-service h3 { margin: 0; padding: 8px 11px; border-radius: 8px; background: #153b64; color: #fff; font-size: .96rem; }
-.tariff-segment-header, .tariff-segment { display: grid; grid-template-columns: minmax(100px, .8fr) 112px minmax(150px, 1fr) minmax(125px, .8fr); align-items: center; gap: 9px; }
-.tariff-segment-header { padding: 8px 0 5px; color: #446075; font-size: .72rem; font-weight: 700; }
+.tariff-services { display: grid; gap: 10px; }
+.tariff-service { overflow: hidden; border: 1px solid #1f6f7f38; border-radius: 10px; background: #fff; }
+.tariff-service-toggle { display: flex; width: 100%; min-height: 48px; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 13px; border: 0; border-left: 3px solid #1f6f7f; background: #f3f8f9; color: #153b64; text-align: left; cursor: pointer; }
+.tariff-service-toggle:hover, .tariff-service-open .tariff-service-toggle { background: #eaf4f5; }
+.tariff-service-name { font-size: .9rem; font-weight: 700; line-height: 1.35; }
+.tariff-service-meta { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 10px; color: #446075; font-size: .76rem; }
+.tariff-service-chevron { color: #1f6f7f; font-size: 1.2rem; line-height: 1; transition: transform .16s ease; }
+.tariff-service-open .tariff-service-chevron { transform: rotate(180deg); }
+.tariff-service-content { display: grid; gap: 0; padding: 4px 12px 8px; }
+.tariff-segment-header, .tariff-segment { display: grid; grid-template-columns: minmax(95px, .72fr) minmax(260px, 1.8fr) minmax(120px, .86fr); align-items: center; gap: 10px; }
+.tariff-segment-header { margin-top: 4px; padding: 8px 0; border-bottom: 1px solid #1f6f7f2e; color: #153b64; font-size: .8rem; font-weight: 700; }
 .tariff-segment { padding: 8px 0; border-top: 1px solid #1f6f7f1e; }
 .tariff-component-row { grid-template-columns: minmax(150px, .9fr) repeat(2, minmax(130px, 1fr)) minmax(125px, .8fr); }
 .tariff-segment > strong { align-self: center; color: #153b64; }
+.tariff-price-entry { display: grid; grid-template-columns: 112px minmax(0, 1fr); align-items: end; gap: 9px; min-width: 0; }
 .tariff-price-mode { display: grid; grid-template-columns: 1fr 1fr; padding: 2px; border: 1px solid #1f6f7f30; border-radius: 7px; background: #f5f9fa; }
 .tariff-price-mode button { min-height: 28px; border: 0; border-radius: 5px; background: transparent; color: #446075; font: inherit; font-size: .75rem; cursor: pointer; }
 .tariff-price-mode button[aria-pressed='true'] { background: #153b64; color: #fff; }
 .tariff-range-inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .tariff-equivalent { align-self: center; color: #446075; font-size: .82rem; text-align: right; }
+.tariff-equivalent-empty { justify-self: end; padding: 5px 8px; border: 1px solid #d9e5e9; border-radius: 6px; background: #f3f7f8; color: #526b7d; font-size: .75rem; font-weight: 600; }
 .tariff-segment :deep(.field) { gap: 3px; margin: 0; }
 .tariff-segment :deep(.field > label) { font-size: .78rem; line-height: 1.15; }
 .tariff-components { border: 1px solid #1f6f7f26 !important; border-radius: 12px; padding: 14px !important; }
@@ -235,15 +267,19 @@ function guardarTarifario() {
     .tariff-form-card { padding: 14px; }
     .tariff-status-summary { margin: -14px -14px 2px; padding: 9px 14px; }
     .tariff-segment-header { display: none; }
-    .tariff-segment { grid-template-columns: 88px minmax(0, 1fr); gap: 6px 8px; }
+    .tariff-segment-header { grid-template-columns: minmax(0, 1fr); }
+    .tariff-segment { grid-template-columns: minmax(0, 1fr); gap: 7px; }
     .tariff-segment > strong { grid-column: 1 / -1; }
-    .tariff-price-mode { grid-column: 1; grid-row: 2; }
-    .tariff-segment > :deep(.field), .tariff-range-inputs { grid-column: 2; grid-row: 2; }
+    .tariff-price-entry { grid-template-columns: 88px minmax(0, 1fr); align-items: end; }
     .tariff-component-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .tariff-equivalent { grid-column: 1 / -1; text-align: left; }
+    .tariff-equivalent-empty { justify-self: start; }
 }
 @media (max-width: 480px) {
     .tariff-section-heading { align-items: flex-start; flex-direction: column; gap: 4px; }
     .tariff-fields { grid-template-columns: minmax(0, 1fr); }
+    .tariff-service-toggle { align-items: flex-start; }
+    .tariff-service-meta { gap: 5px; font-size: .7rem; }
+    .tariff-price-entry { grid-template-columns: 78px minmax(0, 1fr); gap: 7px; }
 }
 </style>
