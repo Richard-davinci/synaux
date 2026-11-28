@@ -145,6 +145,8 @@ Route::middleware('auth')->group(function () {
         }
         // Los precios publican versiones del tarifario; el resto configura el catálogo.
         Route::middleware('throttle:30,1')->group(function () {
+            Route::post('/admin/servicios/{service}/precios', [TariffController::class, 'guardarServicio'])->whereNumber('service');
+            Route::post('/admin/tarifario/ccl', [TariffController::class, 'actualizarCcl']);
             Route::post('/admin/guardar/tarifario', [TariffController::class, 'store']);
             Route::post('/admin/guardar/servicios-destacados', [CatalogConfigurationController::class, 'saveFeatured']);
             Route::post('/admin/guardar/{resource}', [CatalogConfigurationController::class, 'save']);

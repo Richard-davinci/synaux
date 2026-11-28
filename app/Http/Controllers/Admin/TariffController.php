@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\Admin\PreciosCatalogo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -10,8 +11,36 @@ use Illuminate\Validation\ValidationException;
 
 class TariffController extends Controller
 {
+    // El precio se cambia desde la ficha y solo puede afectar al servicio identificado en la ruta.
+    public function guardarServicio(Request $request, int $service, PreciosCatalogo $catalogo)
+    {
+        abort_unless($request->user()->puedeAdministrarSynaux(), 403);
+        $precios = $request->validate(PreciosCatalogo::reglas())['precios'];
+
+        DB::transaction(function () use ($catalogo, $service, $precios) {
+            $catalogo->bloquearVersiones();
+            $servicio = DB::table('services')->where('id', $service)->lockForUpdate()->firstOrFail();
+            if ($servicio->estimation_mode !== 'automatic') {
+                throw ValidationException::withMessages(['precios' => 'Este servicio se cotiza mediante un presupuesto profesional.']);
+            }
+            $catalogo->guardarServicio($service, $precios);
+        }, 3);
+
+        return redirect("/admin/servicios/$service/editar?config=precios")->with('notice', 'Precios del servicio guardados.');
+    }
+
+    // La acción global cambia únicamente la cotización de referencia.
+    public function actualizarCcl(Request $request, PreciosCatalogo $catalogo)
+    {
+        abort_unless($request->user()->puedeAdministrarSynaux(), 403);
+        $datos = $request->validate(['ccl_rate' => 'required|numeric|decimal:0,4|gt:0|max:1000000']);
+        $cambio = $catalogo->actualizarCcl($datos['ccl_rate']);
+
+        return redirect('/admin/tarifario')->with('notice', $cambio ? 'Cotización CCL actualizada.' : 'La cotización CCL ya tiene ese valor.');
+    }
+
     // Valida rangos y cobertura antes de crear una versión nueva e independiente del tarifario.
-    public function store(Request $request)
+    public function store(Request $request, PreciosCatalogo $catalogo)
     {
         $data = $request->validate(['name' => 'required|string|max:255', 'currency_code' => ['required', Rule::in(['ARS', 'USD', 'EUR'])],
             'ccl_rate' => ['nullable', 'numeric', 'decimal:0,4', 'gt:0', 'max:1000000'], 'active' => 'required|boolean',
@@ -69,7 +98,9 @@ class TariffController extends Controller
                 throw ValidationException::withMessages(['segments' => 'Completá el precio de cada tipo de cliente para todos los servicios automáticos.']);
             }
         }
-        DB::transaction(function () use ($data) {
+        DB::transaction(function () use ($data, $catalogo) {
+            // El acceso anterior comparte el bloqueo con la edición por servicio y el CCL.
+            $catalogo->bloquearVersiones();
             // Cada publicación crea una versión; no se editan los valores que originaron cálculos anteriores.
             if ($data['active']) {
                 // Solo una versión queda vigente; los precios previos permanecen intactos para el historial.
@@ -94,7 +125,7 @@ class TariffController extends Controller
                     'estimator_option_id' => $price['option_id'], 'price_min' => $price['min'], 'price_max' => $price['max'],
                 ]);
             }
-        });
+        }, 3);
 
         return redirect('/admin/tarifario')->with('notice', 'Nueva versión del tarifario guardada.');
     }

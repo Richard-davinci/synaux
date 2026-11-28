@@ -4,6 +4,8 @@ import {VTab, VTabs} from 'vuetify/components';
 import MigasNavegacion from '../../Components/Navigation/MigasNavegacion.vue';
 import {useForm, usePage} from '@inertiajs/vue3';
 import ServiceConfiguration from '../../Components/Admin/ServiceConfiguration.vue';
+import ImportesServicio from '../../Components/Admin/ImportesServicio.vue';
+import {datosDeImportes, prepararImporte} from '../../Components/Admin/preciosServicio';
 import B from '../../Components/UI/AppButton.vue';
 import F from '../../Components/UI/FormField.vue';
 import T from '../../Components/UI/PageTitle.vue';
@@ -18,7 +20,7 @@ const tabs = [
     ['informacion', 'Información y alcance'],
     ['preguntas', 'Preguntas'],
     ['estimacion', 'Estimación'],
-    ['precios', 'Precios vigentes'],
+    ['precios', 'Precios'],
 ];
 const configurationTab = ref('informacion');
 // Los identificadores relacionan cada pestaña con su región de contenido.
@@ -47,7 +49,11 @@ const slugEdited = ref(false);
 const service = useForm({
     id: null, name: '', slug: '', service_category_id: '', summary: '', description: '',
     deliverables: '', estimation_mode: 'manual', active: false,
+    precios: {segmentos: [], conceptos: []},
 });
+// Un alta automática puede guardar importes en el mismo envío que la ficha.
+const cargaInicial = computed(() => service.estimation_mode === 'automatic' && selected.value?.estimation_mode !== 'automatic');
+const cotizacion = computed(() => catalog.value.currentTariff?.ccl_rate ?? catalog.value.currentTariff?.source_rate);
 watch(() => service.name, name => {
     if (!slugEdited.value) service.slug = slugify(name);
 });
@@ -66,12 +72,23 @@ watch(() => page.url, () => {
         deliverables: Array.isArray(row?.deliverables) ? row.deliverables.join('\n') : '',
         estimation_mode: row?.estimation_mode ?? 'manual',
         active: Boolean(row?.active),
+        precios: {
+            segmentos: catalog.value.clientSegments.map(segmento => prepararImporte(segmento.id, segmento.label)),
+            conceptos: row ? catalog.value.components.filter(concepto => concepto.service_id === row.id
+                && concepto.active && concepto.slug !== 'segmento-tarifario-2026-11')
+                .map(concepto => prepararImporte(concepto.id, concepto.name)) : [],
+        },
     });
     service.resetAndClearErrors();
 }, {immediate: true});
 
 function guardar() {
-    service.transform(values => ({...values, configure_after_save: values.id == null}));
+    service.transform(({precios, ...values}) => ({
+        ...values,
+        configure_after_save: values.id == null,
+        ...(cargaInicial.value && [...precios.segmentos, ...precios.conceptos].some(fila => fila.min !== '' || fila.max !== '')
+            ? {precios: datosDeImportes(precios)} : {}),
+    }));
     submit(service, '/admin/guardar/servicios');
 }
 </script>
@@ -80,7 +97,7 @@ function guardar() {
     <section class="page shell catalog-admin workspace-view catalog-editor">
         <MigasNavegacion class="editor-migas" :niveles="migas" dentro-de-contenedor/>
         <T :title="selected ? selected.name : 'Nuevo servicio'"
-           :description="selected ? 'Editá la ficha pública, las preguntas y los precios de este servicio.' : 'Guardá la ficha para configurar sus preguntas y precios.'"/>
+           :description="selected ? 'Editá la ficha pública, las preguntas y los precios de este servicio.' : 'Definí el alcance del servicio y cómo se va a cotizar.'"/>
         <!-- Vuetify gestiona el teclado y el desplazamiento de la barra en pantallas angostas. -->
         <VTabs v-if="selected" v-model="configurationTab" class="service-tabs" color="primary"
                slider-color="#1f6f7f" show-arrows aria-label="Configuración del servicio">
@@ -131,15 +148,20 @@ function guardar() {
                     <h2 id="ficha-modalidad">Modalidad de estimación</h2>
                     <F v-model="service.estimation_mode" label="¿Cómo se cotiza este servicio?" type="select"
                        :options="modalidades" required :error="service.errors.estimation_mode"
-                       :hint="service.estimation_mode === 'manual' ? 'Un profesional revisa cada solicitud y prepara el presupuesto.' : 'Configurá la base, las reglas y los precios vigentes para calcular una referencia.'"/>
+                       :hint="service.estimation_mode === 'manual' ? 'Un profesional revisa cada solicitud y prepara el presupuesto.' : 'Cada tipo de cliente tiene su propio precio orientativo.'"/>
+                </v-card>
+                <v-card v-if="cargaInicial" tag="section" class="card catalog-section" aria-labelledby="ficha-precios">
+                    <h2 id="ficha-precios">Precios del servicio</h2>
+                    <p>Cargá un importe fijo o un rango en USD para cada tipo de cliente. Podés dejar los precios en blanco si guardás la ficha sin publicar.</p>
+                    <ImportesServicio class="catalog-price-fields" :formulario="service" :cotizacion="cotizacion"
+                                      :obligatorio="service.active"/>
                 </v-card>
                 <v-card tag="section" class="card catalog-section" aria-labelledby="ficha-publicacion">
                     <h2 id="ficha-publicacion">Publicación</h2>
                     <label class="select-row"><input v-model="service.active" type="checkbox">Mostrar en el
                         catálogo</label>
                     <p v-if="service.errors.active" role="alert">{{ service.errors.active }}</p>
-                    <p v-if="service.estimation_mode === 'automatic'">Revisá la cobertura de precios antes de publicar
-                        un servicio automático.</p>
+                    <p v-if="service.estimation_mode === 'automatic'">Para publicar un servicio automático, completá sus precios.</p>
                 </v-card>
                 <div class="form-actions">
                     <B type="submit"
@@ -204,6 +226,8 @@ function guardar() {
 .catalog-section p {
     margin: 8px 0 0;
 }
+
+.catalog-price-fields { margin-top: 16px; max-width: 640px; }
 
 .catalog-fields {
     display: grid;

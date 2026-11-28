@@ -5,7 +5,9 @@ import {useForm} from '@inertiajs/vue3';
 import B from '../UI/AppButton.vue';
 import F from '../UI/FormField.vue';
 import S from '../UI/StatusBadge.vue';
-import {date, money} from '../../support/formatters';
+import ImportesServicio from './ImportesServicio.vue';
+import {datosDeImportes, prepararImporte} from './preciosServicio';
+import {money} from '../../support/formatters';
 import {useSubmit} from '../../support/useSubmit';
 
 // La ficha separa lo propio del servicio de las preguntas compartidas por todo el catálogo.
@@ -16,6 +18,7 @@ const idEditor = useId();
 const formularios = {
     plantilla: idEditor + '-plantilla',
     configuracion: idEditor + '-configuracion',
+    precios: idEditor + '-precios',
 };
 const questions = computed(() => props.administration.questions.filter(q => q.service_id == props.service.id || q.service_id == null));
 const components = computed(() => props.administration.components.filter(c => c.service_id == props.service.id
@@ -181,8 +184,9 @@ function save() {
 }
 
 // El servidor identifica la versión vigente con el mismo criterio que usa el catálogo.
-const currentTariff = computed(() => props.administration.tariffs.find(t => t.id == props.administration.currentTariffId));
+const currentTariff = computed(() => props.administration.currentTariff);
 const moneda = computed(() => currentTariff.value?.currency_code ?? 'ARS');
+const cotizacion = computed(() => currentTariff.value?.ccl_rate ?? currentTariff.value?.source_rate);
 const precioConcepto = id => currentTariff.value?.components.find(p => p.service_component_id == id);
 const preciosPorSegmento = computed(() => props.administration.clientSegments.map(segment => ({
     ...segment,
@@ -198,6 +202,28 @@ const coberturaCompleta = computed(() => preciosPorSegmento.value.length > 0
     && preciosPorSegmento.value.every(segment => Boolean(segment.price))
     && conceptosConPrecio.value === conceptosActivos.value.length);
 const automatica = computed(() => props.service.estimation_mode === 'automatic');
+const panelPrecios = ref(false);
+const formularioPrecios = useForm({precios: {segmentos: [], conceptos: []}});
+
+// La edición muestra solo las variantes y los adicionales de la ficha abierta.
+function editarPrecios() {
+    const reutilizar = moneda.value === 'USD';
+    formularioPrecios.defaults({
+        precios: {
+            segmentos: preciosPorSegmento.value.map(s => prepararImporte(s.id, s.label, reutilizar ? s.price : null)),
+            conceptos: conceptosActivos.value.map(c => prepararImporte(c.id, c.name, reutilizar ? precioConcepto(c.id) : null)),
+        },
+    });
+    formularioPrecios.resetAndClearErrors();
+    panelPrecios.value = true;
+}
+
+function guardarPrecios() {
+    formularioPrecios.transform(({precios}) => ({precios: datosDeImportes(precios)}));
+    submit(formularioPrecios, '/admin/servicios/' + props.service.id + '/precios', {
+        onSuccess: () => { panelPrecios.value = false; },
+    });
+}
 const gruposConceptos = computed(() => [
     {id: 'incluidos', titulo: 'Incluidos por defecto', registros: conceptosActivos.value.filter(c => c.is_default)},
     {
@@ -328,26 +354,21 @@ function importe(precio) {
             </v-card>
         </template>
 
-        <!-- Para actualizar el tarifario se abre un formulario aparte. -->
+        <!-- La ficha consulta y cambia los importes de este servicio sin salir del editor. -->
         <v-card tag="section" v-else-if="section === 'precios'" class="card bloque-configuracion">
             <div class="cabecera-configuracion">
                 <div><h2>Precios vigentes</h2>
-                    <p v-if="automatica && currentTariff">{{ currentTariff.name }} · {{ moneda }} · Desde
-                        {{ date(currentTariff.effective_from) }}</p>
-                    <p v-else-if="automatica">Todavía no hay un tarifario vigente.</p>
+                    <p v-if="automatica && tienePreciosVigentes">Importes orientativos en {{ moneda }}.</p>
+                    <p v-else-if="automatica">Cargá el importe orientativo para cada tipo de cliente.</p>
                 </div>
                 <div class="acciones-configuracion">
-                    <B v-if="automatica" compact :href="'/admin/tarifario?servicio=' + service.id">
-                        {{ tienePreciosVigentes ? 'Editar precios' : 'Configurar precio' }}
+                    <B v-if="automatica" compact @click="editarPrecios">
+                        {{ tienePreciosVigentes ? 'Editar precios' : 'Configurar precios' }}
                     </B>
-                    <B compact variant="secondary" href="/admin/tarifario">Administrar tarifario</B>
                 </div>
             </div>
             <template v-if="automatica">
-                <p class="notice">
-                    <strong>{{ coberturaCompleta ? 'Cobertura completa' : 'Cobertura incompleta' }}</strong>
-                    · {{ conceptosConPrecio }} de {{ conceptosActivos.length }} conceptos activos con precio
-                </p>
+                <p v-if="!coberturaCompleta" class="notice">Faltan precios para completar la estimación automática.</p>
                 <dl class="lista-precios">
                     <div v-for="segment in preciosPorSegmento" :key="segment.id">
                         <dt>{{ segment.label }} <small>· precio del servicio</small></dt>
@@ -358,11 +379,29 @@ function importe(precio) {
                         <dd>{{ importe(precioConcepto(concepto.id)) }}</dd>
                     </div>
                 </dl>
-                <p v-if="moneda === 'USD' && currentTariff?.ccl_rate" class="precio-ccl">Cotización guardada: CCL {{ money(currentTariff.ccl_rate, 'ARS') }} por USD 1.</p>
-                <p v-if="!preciosPorSegmento.length" class="notice">Este tarifario es anterior al esquema por tipo de cliente. Creá una nueva versión para cargar los precios en USD por variante.</p>
+                <p v-if="cotizacion" class="precio-ccl">CCL de referencia · USD 1 = {{ money(cotizacion, 'ARS') }}</p>
             </template>
             <p v-else class="notice"><strong>A cotizar.</strong> El precio se define en un presupuesto profesional.</p>
         </v-card>
+
+        <SidePanel v-if="section === 'precios'" title="Precios del servicio" v-model="panelPrecios"
+                   :persistent="formularioPrecios.processing">
+            <form :id="formularios.precios" class="form-configuracion" @submit.prevent="guardarPrecios">
+                <div class="contexto-configuracion">
+                    <span>Servicio</span>
+                    <strong>{{ service.name }}</strong>
+                </div>
+                <p class="ayuda-configuracion">Los cambios se aplican a las próximas estimaciones de este servicio.</p>
+                <ImportesServicio :formulario="formularioPrecios" :cotizacion="cotizacion" obligatorio/>
+            </form>
+            <template #footer>
+                <B variant="secondary" :disabled="formularioPrecios.processing" @click="panelPrecios = false">Cancelar</B>
+                <B type="submit" :form="formularios.precios"
+                   :disabled="formularioPrecios.processing || !formularioPrecios.precios.segmentos.length || !formularioPrecios.isDirty">
+                    {{ formularioPrecios.processing ? 'Guardando…' : 'Guardar precios' }}
+                </B>
+            </template>
+        </SidePanel>
 
         <SidePanel :title="reutilizar ? 'Reutilizar ' + titulos[reutilizar] : 'Reutilizar'"
                    :model-value="Boolean(reutilizar)"

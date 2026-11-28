@@ -27,6 +27,8 @@ const detailPrices = computed(() => detailReference.value?.segments?.length
 // El tipo de cliente elegido en el detalle acompaña el acceso al estimador.
 const detailSegment = ref(props.data.initialClientType ?? 'PyME');
 const displayCurrency = ref('ARS');
+// La ficha muestra la moneda del importe original hasta que haya un CCL para convertirlo.
+const priceCurrency = computed(() => detailReference.value?.ccl_rate ? displayCurrency.value : detailReference.value?.currency);
 const chosenPrice = computed(() => detailPrices.value.find(item => item.label === detailSegment.value) ?? detailPrices.value[0]);
 const estimateHref = computed(() => {
     const query = new URLSearchParams({servicio: selected.value.id, paso: '2'});
@@ -51,7 +53,7 @@ function convertPrice(min, max, currency) {
     return {min: convert(min), max: convert(max), currency};
 }
 
-function detailPrice(min, max, currency = displayCurrency.value) {
+function detailPrice(min, max, currency = priceCurrency.value) {
     const amount = convertPrice(min, max, currency);
     return Number(amount.min) === Number(amount.max)
         ? money(amount.min, amount.currency)
@@ -93,7 +95,7 @@ function detailEquivalentText(min, max) {
                     }}</h2>
                 <template v-if="detailReference">
                     <p v-if="detailReference.segments?.length">Elegí el tipo de cliente para ver el importe en
-                        {{ displayCurrency }}.</p>
+                        {{ priceCurrency }}.</p>
                     <div v-if="detailReference.ccl_rate" class="detail-currency" role="group" aria-label="Moneda principal del precio">
                         <span>Mostrar en</span>
                         <button v-for="currency in ['ARS', 'USD']" :key="currency" type="button"
@@ -115,7 +117,7 @@ function detailEquivalentText(min, max) {
                     </div>
                     <p v-else-if="chosenPrice" class="detail-base-price">
                         <strong>{{ detailPrice(chosenPrice.min, chosenPrice.max) }}</strong> {{
-                            detailReference.currency
+                            priceCurrency
                         }}</p>
                     <p class="detail-price-date">Valores vigentes desde {{ date(detailReference.date) }}.</p>
                     <div class="detail-price-info">

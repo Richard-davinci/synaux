@@ -78,6 +78,9 @@ class ServiceCatalog
         $components = DB::table('service_components')->where('active', 1)->get()->groupBy('service_id');
         $references = [];
         foreach (($services ?? $this->services()) as $service) {
+            // Un servicio que hoy se cotiza a medida conserva sus versiones para pedidos previos.
+            if ($tariffId === null && $service['estimation_mode'] !== 'automatic') continue;
+
             $base = $bases->get($service['database_id']);
             $parts = $components->get($service['database_id'], collect());
             $configuredSegments = $segmentPrices->get($service['database_id'], collect());
@@ -87,8 +90,9 @@ class ServiceCatalog
             if (!$base || $partsForPrice->contains(fn($part) => !$prices->has($part->id))) {
                 continue;
             }
-            $min = (float)$base->price_min;
-            $max = (float)$base->price_max;
+            // Si hay variantes, el importe del segmento reemplaza la base. Los adicionales siguen sumándose.
+            $min = $configuredSegments->isEmpty() ? (float)$base->price_min : 0.0;
+            $max = $configuredSegments->isEmpty() ? (float)$base->price_max : 0.0;
             foreach ($partsForPrice->where('is_default', 1) as $part) {
                 $min += $prices[$part->id]->price_min * $part->default_quantity;
                 $max += $prices[$part->id]->price_max * $part->default_quantity;

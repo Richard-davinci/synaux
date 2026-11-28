@@ -1,0 +1,152 @@
+<?php
+
+namespace App\Services\Admin;
+
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+
+class PreciosCatalogo
+{
+    // El catálogo y la administración consultan el mismo tarifario publicado.
+    public function vigente()
+    {
+        return DB::table('tariff_versions')->where('active', 1)->where('effective_from', '<=', now())
+            ->orderByDesc('effective_from')->orderByDesc('id')->first();
+    }
+
+    public function segmentos()
+    {
+        return DB::table('estimator_options as o')->join('estimator_questions as q', 'q.id', '=', 'o.question_id')
+            ->whereNull('q.service_id')->where('q.question', '¿Para qué tipo de cliente?')
+            ->where('q.active', 1)->where('o.active', 1)->orderBy('o.sort_order')->get(['o.id', 'o.label']);
+    }
+
+    private function conceptos(int $servicio)
+    {
+        return DB::table('service_components')->where('service_id', $servicio)->where('active', 1)
+            ->where('slug', '!=', 'segmento-tarifario-2026-11')->pluck('id');
+    }
+
+    public static function reglas(): array
+    {
+        $importe = 'required|numeric|decimal:0,2|min:0|max:100000000';
+
+        return [
+            'precios' => 'required|array:segmentos,conceptos',
+            'precios.segmentos' => 'required|array|max:100',
+            'precios.conceptos' => 'present|array|max:1000',
+            'precios.segmentos.*.id' => 'required|integer|distinct',
+            'precios.segmentos.*.min' => $importe,
+            'precios.segmentos.*.max' => $importe,
+            'precios.conceptos.*.id' => 'required|integer|distinct',
+            'precios.conceptos.*.min' => $importe,
+            'precios.conceptos.*.max' => $importe,
+        ];
+    }
+
+    // Las operaciones comparten el bloqueo de la primera versión para copiar siempre la última publicada.
+    public function bloquearVersiones(): void
+    {
+        DB::table('tariff_versions')->orderBy('id')->lockForUpdate()->first();
+    }
+
+    // Los precios del servicio y el CCL crean instantáneas internas para conservar estimaciones anteriores.
+    public function guardarServicio(int $servicio, array $precios): void
+    {
+        $vigente = $this->vigente();
+        $segmentos = $this->segmentos()->pluck('id');
+        $conceptos = $this->conceptos($servicio);
+        if ($segmentos->isEmpty() || $segmentos->diff(array_column($precios['segmentos'], 'id'))->isNotEmpty()
+            || count($precios['segmentos']) !== $segmentos->count()
+            || $conceptos->diff(array_column($precios['conceptos'], 'id'))->isNotEmpty()
+            || count($precios['conceptos']) !== $conceptos->count()) {
+            throw ValidationException::withMessages(['precios' => 'Completá los tipos de cliente y los adicionales activos de este servicio.']);
+        }
+        foreach ($precios as $grupo => $filas) {
+            foreach ($filas as $i => $precio) {
+                if ($precio['max'] < $precio['min']) {
+                    throw ValidationException::withMessages(["precios.$grupo.$i.max" => 'El máximo debe ser mayor o igual al mínimo.']);
+                }
+            }
+        }
+        if ($vigente && $vigente->currency_code !== 'USD'
+            && DB::table('service_prices')->where('tariff_version_id', $vigente->id)->exists()) {
+            throw ValidationException::withMessages(['precios' => 'La tarifa vigente contiene precios en otra moneda. Para operar en USD primero hay que migrar esa tarifa con una cotización acordada.']);
+        }
+
+        $version = $this->copiarVersion($vigente, 'USD', $vigente?->ccl_rate ?? $vigente?->source_rate,
+            $vigente?->ccl_rate_at ?? $vigente?->source_checked_at, $servicio);
+        // La variante ya representa el importe inicial; la fila base es un respaldo técnico sin cargo.
+        DB::table('service_prices')->insert([
+            'tariff_version_id' => $version, 'service_id' => $servicio, 'price_min' => 0, 'price_max' => 0,
+        ]);
+        foreach (['segmentos' => ['service_segment_prices', 'estimator_option_id'], 'conceptos' => ['component_prices', 'service_component_id']] as $grupo => [$tabla, $columna]) {
+            foreach ($precios[$grupo] as $precio) {
+                $fila = [
+                    'tariff_version_id' => $version, $columna => $precio['id'],
+                    'price_min' => $precio['min'], 'price_max' => $precio['max'],
+                ];
+                if ($grupo === 'segmentos') $fila['service_id'] = $servicio;
+                DB::table($tabla)->insert($fila);
+            }
+        }
+    }
+
+    public function tieneCobertura(int $servicio): bool
+    {
+        $version = $this->vigente()?->id;
+        if (!$version) return false;
+
+        $segmentos = $this->segmentos()->pluck('id');
+        $cargados = DB::table('service_segment_prices')->where('tariff_version_id', $version)
+            ->where('service_id', $servicio)->pluck('estimator_option_id');
+        $conceptos = DB::table('component_prices')->where('tariff_version_id', $version)->pluck('service_component_id');
+
+        return DB::table('service_prices')->where('tariff_version_id', $version)->where('service_id', $servicio)->exists()
+            && $segmentos->isNotEmpty() && $segmentos->diff($cargados)->isEmpty()
+            && $this->conceptos($servicio)->diff($conceptos)->isEmpty();
+    }
+
+    // Un cambio de CCL copia los importes de todos los servicios en su moneda original.
+    public function actualizarCcl(string|float $cotizacion): bool
+    {
+        return DB::transaction(function () use ($cotizacion) {
+            $this->bloquearVersiones();
+            $vigente = $this->vigente();
+            if ($vigente && (float) $vigente->ccl_rate === (float) $cotizacion) return false;
+
+            $this->copiarVersion($vigente, $vigente?->currency_code ?? 'USD', $cotizacion, now());
+            return true;
+        }, 3);
+    }
+
+    private function copiarVersion($vigente, string $moneda, $cotizacion, $fechaCcl, ?int $servicio = null): int
+    {
+        $ahora = now();
+        DB::table('tariff_versions')->where('active', 1)->where('effective_from', '<=', $ahora)->update(['active' => false]);
+        $version = DB::table('tariff_versions')->insertGetId([
+            'name' => 'Precios del catálogo', 'currency_code' => $moneda, 'ccl_rate' => $cotizacion,
+            'ccl_rate_at' => $fechaCcl, 'effective_from' => $ahora, 'active' => true, 'created_at' => $ahora,
+        ]);
+        if (!$vigente) return $version;
+
+        $columnas = ['price_min', 'price_max'];
+        foreach ([
+            'service_prices' => ['service_id'],
+            'service_segment_prices' => ['service_id', 'estimator_option_id'],
+            'component_prices' => ['service_component_id'],
+        ] as $tabla => $claves) {
+            $origen = DB::table($tabla)->where('tariff_version_id', $vigente->id)
+                ->selectRaw('? as tariff_version_id', [$version])->addSelect([...$claves, ...$columnas]);
+            if ($servicio !== null) {
+                if ($tabla === 'component_prices') {
+                    $origen->whereNotIn('service_component_id', DB::table('service_components')->where('service_id', $servicio)->select('id'));
+                } else {
+                    $origen->where('service_id', '!=', $servicio);
+                }
+            }
+            DB::table($tabla)->insertUsing(['tariff_version_id', ...$claves, ...$columnas], $origen);
+        }
+        return $version;
+    }
+}

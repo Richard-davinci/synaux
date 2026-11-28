@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\Admin\PreciosCatalogo;
 use App\Services\Catalog\ServiceCatalog;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -96,7 +97,7 @@ class CatalogConfigurationController extends Controller
     }
 
     // Valida el recurso permitido y guarda sus cambios solo para una cuenta administrativa.
-    public function save(Request $request, string $resource)
+    public function save(Request $request, string $resource, PreciosCatalogo $catalogoPrecios)
     {
         abort_unless($request->user()->puedeAdministrarSynaux(), 403);
         $table = match ($resource) {
@@ -122,6 +123,10 @@ class CatalogConfigurationController extends Controller
             'categorias' => [...$common, 'name' => 'required|string|max:255', 'slug' => ['required', 'alpha_dash', Rule::unique('service_categories', 'slug')->ignore($id)], 'description' => 'required|string|max:10000'],
         };
         $data = $request->validate($rules);
+        // El alta puede guardar la ficha y sus precios juntos, o dejar la ficha sin publicar.
+        $precios = $resource === 'servicios' && $data['estimation_mode'] === 'automatic' && $request->has('precios')
+            ? $request->validate(PreciosCatalogo::reglas())['precios']
+            : null;
         // El contexto del editor impide modificar por accidente registros de otro servicio.
         $context = $request->validate(['catalog_service_id' => 'nullable|integer|exists:services,id'])['catalog_service_id'] ?? null;
         if ($context && in_array($resource, ['preguntas', 'componentes'], true)) {
@@ -137,7 +142,9 @@ class CatalogConfigurationController extends Controller
                 abort_unless((int)$old->service_id === (int)$context, 422);
             }
         }
-        $savedId = DB::transaction(function () use ($resource, $table, $id, $data) {
+        $savedId = DB::transaction(function () use ($resource, $table, $id, $data, $precios, $catalogoPrecios) {
+            if ($resource === 'servicios') $catalogoPrecios->bloquearVersiones();
+            $anterior = null;
             if ($id) {
                 $anterior = DB::table($table)->where('id', $id)->lockForUpdate()->firstOrFail();
                 // Cambiar el alcance no debe romper cantidades ni retirar una pregunta de otros servicios.
@@ -186,6 +193,13 @@ class CatalogConfigurationController extends Controller
             } else {
                 $id = DB::table($table)->insertGetId($data);
             }
+            if ($resource === 'servicios' && $data['estimation_mode'] === 'automatic') {
+                if ($precios !== null) $catalogoPrecios->guardarServicio($id, $precios);
+                $publicacionNueva = $data['active'] && (!$anterior?->active || $anterior->estimation_mode !== 'automatic');
+                if ($publicacionNueva && !$catalogoPrecios->tieneCobertura($id)) {
+                    throw ValidationException::withMessages(['active' => 'Completá los precios del servicio antes de publicarlo. Podés guardar la ficha sin publicar.']);
+                }
+            }
             if ($options !== null) {
                 // Desactiva opciones anteriores y reutiliza sus identificadores; no borra respuestas históricas.
                 DB::table('estimator_options')->where('question_id', $id)->update(['active' => 0]);
@@ -199,11 +213,12 @@ class CatalogConfigurationController extends Controller
                 }
             }
             return $id;
-        });
+        }, 3);
 
         $mensaje = 'Configuración guardada.';
         if ($resource === 'servicios' && $request->boolean('configure_after_save')) {
-            return redirect("/admin/servicios/$savedId/editar?config=preguntas")->with('notice', $mensaje);
+            $seccion = $data['estimation_mode'] === 'automatic' ? 'precios' : 'preguntas';
+            return redirect("/admin/servicios/$savedId/editar?config=$seccion")->with('notice', $mensaje);
         }
         return back()->with('notice', $mensaje);
     }
