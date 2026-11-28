@@ -89,11 +89,14 @@ class CatalogAdministrationTest extends TestCase
         $category = DB::table('service_categories')->where('slug', 'comunicacion')->value('id');
         $values = ['name' => 'Asesoría', 'slug' => 'asesoria', 'service_category_id' => $category,
             'summary' => 'Asesoría de comunicación.', 'description' => 'Definición de objetivos y alcance.',
-            'deliverables' => "Diagnóstico\nPlan de trabajo", 'estimation_mode' => 'manual', 'active' => false];
+            'deliverables' => "Diagnóstico\nPlan de trabajo", 'excluded_items' => "Publicidad paga\nProducción audiovisual",
+            'conditions' => 'El cliente entrega sus materiales antes del inicio.', 'estimation_mode' => 'manual', 'active' => false];
         $this->post('/admin/guardar/servicios', $values)->assertRedirect()->assertSessionHasNoErrors();
         $this->assertDatabaseHas('services', ['slug' => 'asesoria', 'active' => false, 'estimation_mode' => 'manual']);
         $service = DB::table('services')->where('slug', 'asesoria')->first();
         $this->assertSame(['Diagnóstico', 'Plan de trabajo'], json_decode($service->deliverables, true));
+        $this->assertSame(['Publicidad paga', 'Producción audiovisual'], json_decode($service->excluded_items, true));
+        $this->assertSame('El cliente entrega sus materiales antes del inicio.', $service->conditions);
         $this->assertSame('2026-11-24 15:00:00', $service->updated_at);
         $this->travel(1)->day();
         $this->post('/admin/guardar/servicios', [...$values, 'slug' => ''])->assertSessionHasErrors('slug');

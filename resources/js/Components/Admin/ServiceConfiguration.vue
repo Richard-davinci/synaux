@@ -1,6 +1,7 @@
 <script setup>
 import SidePanel from '../UI/SidePanel.vue';
 import {computed, ref, useId} from 'vue';
+import {VSelect} from 'vuetify/components';
 import {useForm} from '@inertiajs/vue3';
 import B from '../UI/AppButton.vue';
 import F from '../UI/FormField.vue';
@@ -23,18 +24,19 @@ const formularios = {
 const questions = computed(() => props.administration.questions.filter(q => q.service_id == props.service.id || q.service_id == null));
 const components = computed(() => props.administration.components.filter(c => c.service_id == props.service.id
     && c.slug !== 'segmento-tarifario-2026-11'));
+const preguntaSistema = computed(() => questions.value.find(q => q.clave_sistema === 'tipo_cliente'));
 const gruposPreguntas = computed(() => [
     {
         id: 'propias',
         titulo: 'Preguntas de este servicio',
         descripcion: 'Definen el alcance de este servicio.',
-        registros: questions.value.filter(q => q.service_id != null)
+        registros: questions.value.filter(q => q.service_id != null && q.clave_sistema !== 'tipo_cliente')
     },
     {
         id: 'generales',
         titulo: 'Preguntas generales',
         descripcion: 'Se aplican a todos los servicios. Los cambios afectan las solicitudes nuevas.',
-        registros: questions.value.filter(q => q.service_id == null)
+        registros: questions.value.filter(q => q.service_id == null && q.clave_sistema !== 'tipo_cliente')
     },
 ]);
 const conceptosActivos = computed(() => components.value.filter(c => c.active));
@@ -63,10 +65,25 @@ const questionFor = optionId => questions.value.find(q => q.options.some(o => o.
 const optionLabel = id => questionFor(id)?.options.find(o => o.id == id)?.label ?? 'Opción inactiva';
 const componentName = id => components.value.find(c => c.id == id)?.name ?? 'Componente';
 const ruleIsCurrent = rule => rule.active && questionFor(rule.estimator_option_id)?.active && questionFor(rule.estimator_option_id)?.options.some(o => o.id == rule.estimator_option_id && o.active);
+const nombreConceptoCobrado = rule => {
+    const componente = components.value.find(item => Number(item.id) === Number(rule.service_component_id));
+    const modo = modosCobro.find(item => item.value === componente?.modo_cobro)?.label ?? modosCobro[0].label;
+    return `${componentName(rule.service_component_id)} · ${modo}`;
+};
 // Solo se muestran condiciones aplicables, incluidas las cantidades ingresadas por el cliente.
 const activeRulesFor = id => rules.value.filter(rule => rule.service_component_id == id && ruleIsCurrent(rule));
 const quantityQuestionsFor = id => questions.value.filter(question =>
     question.active && question.input_type === 'number' && question.quantity_component_id == id);
+// Resume preguntas, opciones y reglas asociadas a cada concepto sin crear una relación paralela.
+const reglasDelConcepto = id => rules.value.filter(rule => Number(rule.service_component_id) === Number(id));
+const reglaOpcion = id => rules.value.filter(rule => Number(rule.estimator_option_id) === Number(id));
+const conceptosDeOpcion = id => reglaOpcion(id).filter(rule => rule.active).map(nombreConceptoCobrado);
+const usoDelConcepto = id => {
+    const reglas = reglasDelConcepto(id);
+    const preguntas = new Set(reglas.map(rule => questionFor(rule.estimator_option_id)?.id).filter(Boolean));
+    quantityQuestionsFor(id).forEach(question => preguntas.add(question.id));
+    return {preguntas: preguntas.size, opciones: new Set(reglas.map(rule => rule.estimator_option_id)).size, reglas: reglas.length};
+};
 // La reutilización copia la definición al servicio actual y deja los precios y las reglas en su origen.
 const reutilizar = ref(null);
 const categoriaOrigen = ref('');
@@ -121,7 +138,11 @@ function copiarPlantilla() {
     if (!original) return;
     const tipo = reutilizar.value;
     reutilizar.value = null;
-    edit(tipo, {...original, id: null, service_id: props.service.id, quantity_component_id: null, is_default: false});
+    const copia = {...original, id: null, service_id: props.service.id, quantity_component_id: null, is_default: false};
+    if (tipo === 'preguntas') copia.options = (original.options ?? []).filter(option => option.active).map(option => ({
+        id: null, label: option.label, component_ids: [], active: true,
+    }));
+    edit(tipo, copia);
 }
 
 const dialog = ref(false);
@@ -138,7 +159,7 @@ const alcance = computed({
     },
 });
 const fields = {
-    preguntas: ['id', 'service_id', 'question', 'input_type', 'sort_order', 'options_text', 'quantity_component_id', 'required', 'active'],
+    preguntas: ['id', 'service_id', 'question', 'input_type', 'sort_order', 'options_text', 'options', 'quantity_component_id', 'required', 'active'],
     componentes: ['id', 'service_id', 'name', 'slug', 'description', 'unit_code', 'is_default', 'default_quantity', 'modo_cobro', 'active'],
     reglas: ['id', 'estimator_option_id', 'service_component_id', 'quantity', 'active'],
 };
@@ -154,6 +175,7 @@ function edit(kind, row = {}, general = false) {
         input_type: 'single_choice',
         sort_order: 0,
         options_text: '',
+        options: [],
         quantity_component_id: null,
         required: true,
         active: true,
@@ -173,8 +195,18 @@ function edit(kind, row = {}, general = false) {
         active: row.active == null ? true : Boolean(row.active),
         required: row.required == null ? true : Boolean(row.required),
         is_default: Boolean(row.is_default),
-        options_text: row.options?.filter(o => o.active).map(o => o.label).join('\n') ?? ''
+        options_text: row.options?.filter(o => o.active).map(o => o.label).join('\n') ?? '',
+        options: row.options?.filter(o => o.active).map(o => ({
+            id: o.id ?? null, label: o.label,
+            component_ids: o.component_ids ?? rules.value.filter(rule => Number(rule.estimator_option_id) === Number(o.id)
+                && components.value.some(component => Number(component.id) === Number(rule.service_component_id)))
+                .map(rule => Number(rule.service_component_id)),
+        })) ?? [],
     };
+    if (kind === 'preguntas' && !segmentsEditables.value.length
+        && ['single_choice', 'multiple_choice'].includes(values.input_type) && !values.options.length) {
+        values.options = [{id: null, label: '', component_ids: []}];
+    }
     puedeGeneralizar.value = kind === 'preguntas' && values.service_id != null && !row.quantity_component_id;
     const datos = Object.fromEntries(fields[kind].map(key => [key, values[key]]));
     if (segmentosEditables.value.length) {
@@ -191,7 +223,11 @@ function save() {
         const datos = Object.fromEntries(fields[resource.value].map(key => [key, values[key]]));
         if (segmentosEditables.value.length) {
             delete datos.options_text;
+            delete datos.options;
             datos.etiquetas_segmentos = values.etiquetas_segmentos;
+        } else if (resource.value === 'preguntas') {
+            delete datos.options_text;
+            if (!['single_choice', 'multiple_choice'].includes(values.input_type)) delete datos.options;
         }
         return {...datos, catalog_service_id: props.service.id,
             quantity_component_id: values.input_type === 'number' ? values.quantity_component_id || null : null};
@@ -201,6 +237,15 @@ function save() {
             dialog.value = false;
         }
     });
+}
+
+// Cada opción conserva su ID al cambiar el texto y edita solo reglas del servicio abierto.
+function agregarOpcion() {
+    form.options.push({id: null, label: '', component_ids: []});
+}
+
+function quitarOpcion(indice) {
+    form.options.splice(indice, 1);
 }
 
 // El servidor identifica la versión vigente con el mismo criterio que usa el catálogo.
@@ -257,6 +302,11 @@ const gruposConceptos = computed(() => [
     },
     {id: 'inactivos', titulo: 'Inactivos', registros: components.value.filter(c => !c.active)},
 ].filter(grupo => grupo.registros.length));
+const conceptosSinVinculo = computed(() => conceptosActivos.value.filter(concepto => !concepto.is_default
+    && !activeRulesFor(concepto.id).length && !quantityQuestionsFor(concepto.id).length));
+const conceptosSinPrecioVinculados = computed(() => conceptosActivos.value.filter(concepto =>
+    !concepto.is_default && (activeRulesFor(concepto.id).length || quantityQuestionsFor(concepto.id).length)
+    && !precioConcepto(concepto.id)));
 const opcionesActivas = computed(() => options.value.filter(opcion => {
     const pregunta = questionFor(opcion.value);
     return pregunta?.active && pregunta.options.some(o => o.id == opcion.value && o.active);
@@ -275,6 +325,23 @@ function importe(precio) {
     <div class="service-configuration">
         <!-- Cada pregunta muestra su alcance, su estado y si requiere respuesta. -->
         <template v-if="section === 'preguntas'">
+            <v-card v-if="preguntaSistema" tag="section" class="card bloque-configuracion">
+                <div class="cabecera-configuracion">
+                    <div><h2>Pregunta del sistema</h2>
+                        <p>Identifica el tipo de cliente y determina qué precio base corresponde.</p></div>
+                    <B compact variant="secondary" :aria-label="'Editar pregunta del sistema ' + preguntaSistema.question"
+                       @click="edit('preguntas', preguntaSistema)">Editar</B>
+                </div>
+                <div class="configuration-row">
+                    <div><div class="estado-configuracion"><h3>{{ preguntaSistema.question }}</h3><S value="enabled"/></div>
+                        <div class="opciones-pregunta">
+                            <span v-for="opcion in preguntaSistema.options.filter(o => o.active)" :key="opcion.id">
+                                {{ opcion.label }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </v-card>
             <v-card tag="section" v-for="grupo in gruposPreguntas" :key="grupo.id" class="card bloque-configuracion">
                 <div class="cabecera-configuracion">
                     <div><h2>{{ grupo.titulo }}</h2>
@@ -297,8 +364,13 @@ function importe(precio) {
                             :value="question.active ? 'enabled' : 'disabled'"/></div>
                         <p>{{ labelFor(question.input_type) }} · {{ question.required ? 'Obligatoria' : 'Opcional' }} ·
                             Orden {{ question.sort_order }}</p>
-                        <p v-if="question.options.some(o => o.active)">
-                            {{ question.options.filter(o => o.active).map(o => o.label).join(' · ') }}</p>
+                        <div v-if="question.options.some(o => o.active)" class="opciones-pregunta">
+                            <div v-for="opcion in question.options.filter(o => o.active)" :key="opcion.id">
+                                <strong>{{ opcion.label }}</strong>
+                                <span>{{ conceptosDeOpcion(opcion.id).join(' · ') || 'Sin adicional asociado' }}</span>
+                            </div>
+                        </div>
+                        <p v-if="question.quantity_component_id">La cantidad se vincula con «{{ componentName(question.quantity_component_id) }}».</p>
                     </div>
                     <B compact variant="secondary" :aria-label="'Editar pregunta ' + question.question"
                        @click="edit('preguntas', question)">Editar</B>
@@ -306,51 +378,28 @@ function importe(precio) {
             </v-card>
         </template>
 
-        <!-- La base, los conceptos y las condiciones se revisan por separado. -->
+        <!-- La pestaña explica el recorrido económico y mantiene accesibles las reglas avanzadas existentes. -->
         <template v-else-if="section === 'estimacion'">
             <v-card tag="section" class="card bloque-configuracion">
-                <h2>Cómo se calcula la estimación</h2>
-                <p v-if="automatica">La estimación toma el precio del tipo de cliente y suma los conceptos que correspondan.</p>
-                <p v-else>Este servicio se cotiza manualmente. Podés preparar sus conceptos y reglas para cuando actives
-                    la estimación automática.</p>
-                <template v-if="automatica">
-                    <div v-for="segment in preciosPorSegmento" :key="segment.id" class="resumen-importe">
-                        <strong>{{ segment.label }}</strong><span>{{ importe(segment.price) }}</span>
-                    </div>
-                </template>
-            </v-card>
-            <v-card tag="section" class="card bloque-configuracion">
-                <div class="cabecera-configuracion">
-                    <div><h2>Conceptos de precio</h2>
-                        <p>Definí qué se suma al precio base y en qué cantidad.</p></div>
-                    <div class="acciones-configuracion">
-                        <B compact variant="secondary" @click="abrirReutilizacion('componentes')">Reutilizar
-                            concepto</B>
-                        <B compact @click="edit('componentes')">Agregar concepto</B>
-                    </div>
+                <h2>Composición de la estimación</h2>
+                <div class="paso-calculo">
+                    <strong>1. Precio base</strong>
+                    <span v-if="automatica">Se elige en «Precios y adicionales» según Particular, PyME o Empresa.</span>
+                    <span v-else>Este servicio no muestra precio público; Gestión prepara un presupuesto a medida.</span>
                 </div>
-                <p v-if="!components.length" class="notice">Todavía no hay conceptos de precio.</p>
-                <section v-for="grupo in gruposConceptos" :key="grupo.id" class="grupo-conceptos">
-                    <h3>{{ grupo.titulo }}</h3>
-                    <article v-for="concepto in grupo.registros" :key="concepto.id"
-                             class="configuration-row concept-row">
-                        <div>
-                            <h4>{{ concepto.name }}</h4>
-                            <p>{{ concepto.description }}</p>
-                            <p>Unidad {{ concepto.unit_code }} · {{ importe(precioConcepto(concepto.id)) }} · {{ modosCobro.find(m => m.value === concepto.modo_cobro)?.label ?? modosCobro[0].label }}</p>
-                            <p v-if="concepto.is_default">Cantidad por defecto {{ concepto.default_quantity }}</p>
-                            <p v-for="pregunta in quantityQuestionsFor(concepto.id)" :key="pregunta.id">Cantidad
-                                ingresada en «{{ pregunta.question }}».</p>
-                        </div>
-                        <B compact variant="secondary" :aria-label="'Editar concepto ' + concepto.name"
-                           @click="edit('componentes', concepto)">Editar</B>
-                    </article>
-                </section>
+                <div class="paso-calculo">
+                    <strong>2. Adicionales</strong>
+                    <span>Las respuestas vinculadas suman conceptos. Las preguntas numéricas pueden aportar su cantidad.</span>
+                </div>
+                <p v-if="automatica && !coberturaCompleta" class="notice" role="status">Faltan precios base o importes de prestaciones incluidas para calcular una referencia completa.</p>
+                <p v-if="!conceptosActivos.length" class="notice">Este servicio usa solo su precio base y no necesita adicionales.</p>
+                <p v-if="conceptosSinVinculo.length" class="notice">{{ conceptosSinVinculo.length }} concepto(s) activo(s) todavía no se vinculan a respuestas ni a cantidades.</p>
+                <p v-if="conceptosSinPrecioVinculados.length" class="notice">Algunos conceptos vinculados no tienen precio vigente. Si se seleccionan, el cálculo se deriva a revisión profesional.</p>
             </v-card>
             <v-card tag="section" class="card bloque-configuracion">
                 <div class="cabecera-configuracion">
                     <div><h2>Reglas de cálculo</h2>
-                        <p>Cada regla indica cuántas unidades suma una respuesta a un concepto.</p></div>
+                        <p>Cada regla avanzada suma unidades cuando se elige una opción.</p></div>
                     <B compact :disabled="!opcionesActivas.length || !conceptosActivos.length" @click="edit('reglas')">Agregar
                         regla</B>
                 </div>
@@ -359,7 +408,7 @@ function importe(precio) {
                 <p v-else-if="!rules.length" class="notice">Todavía no hay reglas de cálculo.</p>
                 <article v-for="regla in rules" :key="regla.id" class="configuration-row">
                     <div>
-                        <div class="estado-configuracion"><h3>{{ optionLabel(regla.estimator_option_id) }} →
+                        <div class="estado-configuracion"><h3>{{ questionFor(regla.estimator_option_id)?.question }} · {{ optionLabel(regla.estimator_option_id) }} →
                             {{ componentName(regla.service_component_id) }}</h3>
                             <S :value="ruleIsCurrent(regla) && conceptosActivos.some(c => c.id == regla.service_component_id) ? 'enabled' : 'disabled'"/>
                         </div>
@@ -379,6 +428,7 @@ function importe(precio) {
                 <div><h2>Precios vigentes</h2>
                     <p v-if="automatica && tienePreciosVigentes">Importes orientativos en {{ moneda }}.</p>
                     <p v-else-if="automatica">Cargá el importe orientativo para cada tipo de cliente.</p>
+                    <p v-else>Este servicio se cotiza a medida y no publica un precio base.</p>
                 </div>
                 <div class="acciones-configuracion">
                     <B v-if="automatica" compact @click="editarPrecios">
@@ -387,20 +437,45 @@ function importe(precio) {
                 </div>
             </div>
             <template v-if="automatica">
-                <p v-if="!coberturaCompleta" class="notice">Faltan precios para completar la estimación automática.</p>
+                <p v-if="!coberturaCompleta" class="notice" role="status">Faltan precios base o importes de prestaciones incluidas para completar la estimación automática.</p>
                 <dl class="lista-precios">
                     <div v-for="segment in preciosPorSegmento" :key="segment.id">
                         <dt>{{ segment.label }} <small>· precio del servicio</small></dt>
                         <dd>{{ importe(segment.price) }}</dd>
                     </div>
-                    <div v-for="concepto in conceptosActivos" :key="concepto.id">
-                        <dt>{{ concepto.name }} <small>· Por unidad</small></dt>
-                        <dd>{{ importe(precioConcepto(concepto.id)) }}</dd>
-                    </div>
                 </dl>
                 <p v-if="cotizacion" class="precio-ccl">CCL de referencia · USD 1 = {{ money(cotizacion, 'ARS') }}</p>
             </template>
             <p v-else class="notice"><strong>A cotizar.</strong> El precio se define en un presupuesto profesional.</p>
+        </v-card>
+
+        <v-card v-if="section === 'precios'" tag="section" class="card bloque-configuracion">
+            <div class="cabecera-configuracion">
+                <div><h2>Adicionales del servicio</h2>
+                    <p>Administrá cada concepto y su importe aquí. Las respuestas se vinculan en la pestaña Preguntas.</p></div>
+                <div class="acciones-configuracion">
+                    <B compact variant="secondary" @click="abrirReutilizacion('componentes')">Reutilizar concepto</B>
+                    <B compact @click="edit('componentes')">Agregar concepto</B>
+                </div>
+            </div>
+            <p v-if="!components.length" class="notice">Todavía no hay adicionales para este servicio.</p>
+            <section v-for="grupo in gruposConceptos" :key="grupo.id" class="grupo-conceptos">
+                <h3>{{ grupo.titulo }}</h3>
+                <article v-for="concepto in grupo.registros" :key="concepto.id" class="configuration-row concept-row">
+                    <div>
+                        <div class="estado-configuracion"><h3>{{ concepto.name }}</h3><S :value="concepto.active ? 'enabled' : 'disabled'"/></div>
+                        <p v-if="concepto.description">{{ concepto.description }}</p>
+                        <p class="concepto-detalle">{{ importe(precioConcepto(concepto.id)) }} · {{ concepto.unit_code }} ·
+                            {{ modosCobro.find(m => m.value === concepto.modo_cobro)?.label ?? modosCobro[0].label }}</p>
+                        <p v-if="concepto.is_default">Incluido en el precio base · cantidad inicial {{ concepto.default_quantity }}</p>
+                        <p v-for="pregunta in quantityQuestionsFor(concepto.id)" :key="pregunta.id">Cantidad definida por «{{ pregunta.question }}».</p>
+                        <p class="concepto-uso">Usado en {{ usoDelConcepto(concepto.id).preguntas }} preguntas,
+                            {{ usoDelConcepto(concepto.id).opciones }} opciones y {{ usoDelConcepto(concepto.id).reglas }} reglas.</p>
+                    </div>
+                    <B compact variant="secondary" :aria-label="'Editar adicional ' + concepto.name"
+                       @click="edit('componentes', concepto)">Editar</B>
+                </article>
+            </section>
         </v-card>
 
         <SidePanel v-if="section === 'precios'" title="Precios del servicio" v-model="panelPrecios"
@@ -479,13 +554,33 @@ function importe(precio) {
                         <F v-for="opcion in segmentosEditables" :key="opcion.id" v-model="form.etiquetas_segmentos[opcion.id]"
                            :label="'Texto visible de ' + nombresSegmentos[opcion.clave_segmento]" required maxlength="255"/>
                     </template>
-                    <F v-else-if="['single_choice','multiple_choice'].includes(form.input_type)"
-                       v-model="form.options_text" label="Opciones (una por línea)" type="textarea" required
-                       maxlength="5000"
-                       hint="Las opciones sin cambios conservan sus reglas. Si cambiás un texto, revisá las reglas vinculadas."/>
+                    <section v-else-if="['single_choice','multiple_choice'].includes(form.input_type)" class="opciones-editor">
+                        <div class="opciones-editor-heading"><div><h3>Respuestas y adicionales</h3>
+                            <p>Podés dejar una respuesta sin adicional o asociarle varios conceptos de este servicio.</p></div>
+                            <B compact variant="secondary" type="button" @click="agregarOpcion">Agregar respuesta</B>
+                        </div>
+                        <div v-for="(opcion, indice) in form.options" :key="opcion.id ?? 'nueva-' + indice" class="opcion-editor-row">
+                            <F v-model="opcion.label" :label="'Respuesta ' + (indice + 1)" required maxlength="255"
+                               :error="form.errors[`options.${indice}.label`]"/>
+                            <div class="opcion-vinculo">
+                                <label :for="idEditor + '-opcion-' + indice">Conceptos que suma (opcional)</label>
+                                <VSelect :id="idEditor + '-opcion-' + indice" v-model="opcion.component_ids"
+                                         :items="componentOptions" item-title="label" item-value="value" multiple chips
+                                         closable-chips density="compact" variant="outlined" color="primary" hide-details
+                                         :menu-props="{maxHeight: 260}"/>
+                                <small v-if="!componentOptions.length">Primero agregá un concepto en Precios y adicionales.</small>
+                                <small v-else>Sin selección, esta respuesta no agrega un importe.</small>
+                                <small v-if="form.errors[`options.${indice}.component_ids.0`]" class="error" role="alert">
+                                    {{ form.errors[`options.${indice}.component_ids.0`] }}</small>
+                            </div>
+                            <B compact variant="secondary" type="button" :disabled="form.options.length <= 1"
+                               :aria-label="'Quitar respuesta ' + (indice + 1)" @click="quitarOpcion(indice)">Quitar</B>
+                        </div>
+                    </section>
                     <F v-if="form.input_type === 'number' && form.service_id !== null"
                        v-model="form.quantity_component_id" label="Concepto cuya cantidad define (opcional)"
-                       type="select" :options="[{value:'',label:'Sin componente'}, ...componentOptions]"/>
+                       type="select" :options="[{value:'',label:'Sin concepto adicional'}, ...componentOptions]"
+                       hint="La cantidad ingresada se aplica al modo de cobro configurado en el concepto."/>
                 </template>
                 <template v-else-if="resource === 'componentes'">
                     <F v-model="form.name" label="Nombre" required maxlength="255"/>
@@ -591,6 +686,70 @@ function importe(precio) {
     font-size: 1rem;
     margin: 0;
 }
+
+.opciones-pregunta {
+    display: grid;
+    gap: 7px;
+    margin-top: 10px;
+}
+
+.opciones-pregunta > div, .opciones-pregunta > span {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 12px;
+    color: #446075;
+    font-size: .875rem;
+}
+
+.opciones-pregunta strong { color: #153b64; }
+
+.paso-calculo {
+    display: grid;
+    gap: 3px;
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-left: 3px solid #1f6f7f;
+    border-radius: 6px;
+    background: #f5f9fa;
+}
+
+.paso-calculo span, .concepto-uso { color: #446075; font-size: .875rem; }
+
+.opciones-editor {
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+}
+
+.opciones-editor-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.opciones-editor-heading h3 { color: #153b64; font-size: 1rem; }
+.opciones-editor-heading p, .opcion-vinculo small { color: #446075; font-size: .8125rem; }
+
+.opcion-editor-row {
+    display: grid;
+    grid-template-columns: minmax(140px, .85fr) minmax(240px, 1.5fr) auto;
+    align-items: end;
+    gap: 12px;
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid #1f6f7f26;
+    border-radius: 10px;
+    background: #f5f9fa;
+}
+
+.opcion-vinculo { display: grid; gap: 5px; min-width: 0; }
+.opcion-vinculo > label { color: #153b64; font-size: .875rem; }
+.opcion-vinculo :deep(.v-field) { background: #fff; border-radius: 8px; }
+.opcion-vinculo :deep(.v-chip) { max-width: 100%; }
+.opcion-vinculo .error { color: #a63a45; }
 
 .configuration-row p {
     font-size: .875rem;
@@ -704,6 +863,8 @@ function importe(precio) {
         flex-direction: column;
         align-items: flex-start;
     }
+
+    .opcion-editor-row { grid-template-columns: minmax(0, 1fr); align-items: stretch; }
 }
 
 @media (max-width: 440px) {

@@ -4,8 +4,6 @@ import {VTab, VTabs} from 'vuetify/components';
 import MigasNavegacion from '../../Components/Navigation/MigasNavegacion.vue';
 import {useForm, usePage} from '@inertiajs/vue3';
 import ServiceConfiguration from '../../Components/Admin/ServiceConfiguration.vue';
-import ImportesServicio from '../../Components/Admin/ImportesServicio.vue';
-import {datosDeImportes, prepararImporte} from '../../Components/Admin/preciosServicio';
 import B from '../../Components/UI/AppButton.vue';
 import F from '../../Components/UI/FormField.vue';
 import T from '../../Components/UI/PageTitle.vue';
@@ -18,9 +16,9 @@ const submit = useSubmit();
 const catalog = computed(() => props.data.administration);
 const tabs = [
     ['informacion', 'Información y alcance'],
+    ['precios', 'Precios y adicionales'],
     ['preguntas', 'Preguntas'],
     ['estimacion', 'Estimación'],
-    ['precios', 'Precios'],
 ];
 const configurationTab = ref('informacion');
 // Los identificadores relacionan cada pestaña con su región de contenido.
@@ -49,12 +47,8 @@ const modalidades = [
 const slugEdited = ref(false);
 const service = useForm({
     id: null, name: '', slug: '', service_category_id: '', summary: '', description: '',
-    deliverables: '', estimation_mode: 'manual', active: false,
-    precios: {segmentos: [], conceptos: []},
+    deliverables: '', excluded_items: '', conditions: '', estimation_mode: 'manual', active: false,
 });
-// Un alta automática puede guardar importes en el mismo envío que la ficha.
-const cargaInicial = computed(() => service.estimation_mode === 'automatic' && selected.value?.estimation_mode !== 'automatic');
-const cotizacion = computed(() => catalog.value.currentCcl?.valor);
 watch(() => service.name, name => {
     if (!slugEdited.value) service.slug = slugify(name);
 });
@@ -71,25 +65,16 @@ watch(() => page.url, () => {
         summary: row?.summary ?? '',
         description: row?.description ?? '',
         deliverables: Array.isArray(row?.deliverables) ? row.deliverables.join('\n') : '',
+        excluded_items: Array.isArray(row?.excluded_items) ? row.excluded_items.join('\n') : '',
+        conditions: row?.conditions ?? '',
         estimation_mode: row?.estimation_mode ?? 'manual',
         active: Boolean(row?.active),
-        precios: {
-            segmentos: catalog.value.clientSegments.map(segmento => prepararImporte(segmento.id, segmento.label)),
-            conceptos: row ? catalog.value.components.filter(concepto => concepto.service_id === row.id
-                && concepto.active && concepto.slug !== 'segmento-tarifario-2026-11')
-                .map(concepto => prepararImporte(concepto.id, concepto.name)) : [],
-        },
     });
     service.resetAndClearErrors();
 }, {immediate: true});
 
 function guardar() {
-    service.transform(({precios, ...values}) => ({
-        ...values,
-        configure_after_save: values.id == null,
-        ...(cargaInicial.value && [...precios.segmentos, ...precios.conceptos].some(fila => fila.min !== '' || fila.max !== '')
-            ? {precios: datosDeImportes(precios)} : {}),
-    }));
+    service.transform(values => ({...values, configure_after_save: values.id == null}));
     submit(service, '/admin/guardar/servicios');
 }
 </script>
@@ -138,11 +123,17 @@ function guardar() {
                     <h2 id="ficha-alcance">Alcance del servicio</h2>
                     <div class="catalog-fields">
                         <F v-model="service.description" label="Descripción completa" type="textarea"
-                           hint="Explicá el objetivo y los límites del servicio." required maxlength="10000"
+                           hint="Explicá el objetivo del servicio." required maxlength="10000"
                            :error="service.errors.description"/>
-                        <F v-model="service.deliverables" label="Entregables (uno por línea)" type="textarea"
-                           hint="Listá lo que recibe el cliente en «Qué incluye»." required maxlength="10000"
+                        <F v-model="service.deliverables" label="Prestaciones incluidas (una por línea)" type="textarea"
+                           hint="Lo que recibe el cliente por el precio base." required maxlength="10000"
                            :error="service.errors.deliverables"/>
+                        <F v-model="service.excluded_items" label="Prestaciones no incluidas (una por línea)" type="textarea"
+                           hint="Aclaraciones comerciales; no hace falta convertir cada una en un adicional." maxlength="10000"
+                           :error="service.errors.excluded_items"/>
+                        <F v-model="service.conditions" class="catalog-wide" label="Condiciones y limitaciones" type="textarea"
+                           hint="Plazos, supuestos, dependencias del cliente y límites del servicio." maxlength="10000"
+                           :error="service.errors.conditions"/>
                     </div>
                 </v-card>
                 <v-card tag="section" class="card catalog-section" aria-labelledby="ficha-modalidad">
@@ -153,18 +144,13 @@ function guardar() {
                            ? 'El cliente envía su pedido y Gestión define el precio al revisar el alcance.'
                            : 'El cliente ve una referencia según su tipo de cliente. Gestión confirma el importe en el presupuesto formal.'"/>
                 </v-card>
-                <v-card v-if="cargaInicial" tag="section" class="card catalog-section" aria-labelledby="ficha-precios">
-                    <h2 id="ficha-precios">Precios del servicio</h2>
-                    <p>Cargá un importe fijo o un rango en USD para cada tipo de cliente. Podés dejar los precios en blanco si guardás la ficha sin publicar.</p>
-                    <ImportesServicio class="catalog-price-fields" :formulario="service" :cotizacion="cotizacion"
-                                      :obligatorio="service.active"/>
-                </v-card>
                 <v-card tag="section" class="card catalog-section" aria-labelledby="ficha-publicacion">
                     <h2 id="ficha-publicacion">Publicación</h2>
-                    <label class="select-row"><input v-model="service.active" type="checkbox">Mostrar en el
+                    <label class="select-row"><input v-model="service.active" type="checkbox"
+                        :disabled="service.estimation_mode === 'automatic' && !selected">Mostrar en el
                         catálogo</label>
                     <p v-if="service.errors.active" role="alert">{{ service.errors.active }}</p>
-                    <p v-if="service.estimation_mode === 'automatic'">Completá los precios orientativos antes de publicar el servicio.</p>
+                    <p v-if="service.estimation_mode === 'automatic'">Completá los precios orientativos antes de publicar. Guardá primero la ficha, cargá los importes y después activá la publicación.</p>
                 </v-card>
                 <div class="form-actions">
                     <B type="submit"

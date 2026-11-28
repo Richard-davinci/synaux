@@ -23,12 +23,124 @@ class ServiceConfigurationTest extends TestCase
         $this->actingAs(User::factory()->create(['is_admin' => true]));
     }
 
+    // Completa las preguntas obligatorias con la primera opción válida para comparar el motor antes y después de editar.
+    private function respuestasDePrueba(ServiceCatalog $catalog, string $slug): array
+    {
+        $service = $catalog->service($slug);
+        $answers = [];
+        foreach ($catalog->questions($service['database_id']) as $question) {
+            if (!$question['required']) continue;
+            if (in_array($question['input_type'], ['single_choice', 'multiple_choice'], true)) {
+                $option = $question['options'][0] ?? null;
+                if ($option) $answers[$question['id']] = $question['input_type'] === 'multiple_choice' ? [$option->id] : $option->id;
+            } elseif ($question['input_type'] === 'number') {
+                $answers[$question['id']] = 1;
+            } else {
+                $answers[$question['id']] = 'Respuesta de prueba';
+            }
+        }
+
+        return $answers;
+    }
+
     public function test_old_sections_redirect_to_service_configuration(): void
     {
         $id = DB::table('services')->orderBy('id')->value('id');
-        foreach (['preguntas' => 'preguntas', 'componentes' => 'estimacion', 'reglas' => 'estimacion'] as $old => $tab) {
+        foreach (['preguntas' => 'preguntas', 'componentes' => 'precios', 'reglas' => 'estimacion'] as $old => $tab) {
             $this->get('/admin/' . $old)->assertRedirect("/admin/servicios/$id/editar?config=$tab");
         }
+    }
+
+    // Las opciones conservan sus IDs y las relaciones existentes al editar sus textos visibles.
+    public function test_answer_options_can_link_multiple_components_without_replacing_the_calculation_engine(): void
+    {
+        $serviceId = DB::table('services')->where('slug', 'landing-page')->value('id');
+        $tariffId = DB::table('tariff_versions')->where('active', 1)->max('id');
+        $firstComponent = DB::table('service_components')->insertGetId([
+            'service_id' => $serviceId, 'name' => 'Diseño de logotipo', 'slug' => 'test-logotipo',
+            'description' => 'Concepto de prueba', 'unit_code' => 'unidad', 'active' => true,
+            'is_default' => false, 'default_quantity' => 1, 'modo_cobro' => 'unico',
+        ]);
+        $secondComponent = DB::table('service_components')->insertGetId([
+            'service_id' => $serviceId, 'name' => 'Banco de imágenes', 'slug' => 'test-imagenes',
+            'description' => 'Concepto de prueba', 'unit_code' => 'unidad', 'active' => true,
+            'is_default' => false, 'default_quantity' => 1, 'modo_cobro' => 'acumulativo',
+        ]);
+        DB::table('component_prices')->insert([
+            ['tariff_version_id' => $tariffId, 'service_component_id' => $firstComponent, 'price_min' => 120, 'price_max' => 120],
+            ['tariff_version_id' => $tariffId, 'service_component_id' => $secondComponent, 'price_min' => 80, 'price_max' => 80],
+        ]);
+        $catalog = app(ServiceCatalog::class);
+        $answers = $this->respuestasDePrueba($catalog, 'landing-page');
+        $antes = $catalog->calculate('landing-page', $answers);
+
+        $datos = [
+            'catalog_service_id' => $serviceId, 'service_id' => $serviceId,
+            'question' => '¿Contás con un logotipo?', 'input_type' => 'single_choice',
+            'sort_order' => 40, 'active' => true, 'required' => false,
+            'options' => [
+                ['id' => null, 'label' => 'Sí', 'component_ids' => []],
+                ['id' => null, 'label' => 'No, necesito uno', 'component_ids' => [$firstComponent, $secondComponent]],
+            ],
+        ];
+        $this->post('/admin/guardar/preguntas', $datos)->assertRedirect()->assertSessionHasNoErrors();
+        $questionId = DB::table('estimator_questions')->where('question', $datos['question'])->value('id');
+        $options = DB::table('estimator_options')->where('question_id', $questionId)->orderBy('sort_order')->get();
+        $optionIds = $options->pluck('id')->all();
+        $this->assertSame(2, DB::table('estimation_rules')->whereIn('service_component_id', [$firstComponent, $secondComponent])->count());
+        $this->assertSame($antes['min'], $catalog->calculate('landing-page', $answers)['min']);
+
+        $datos['id'] = $questionId;
+        $datos['options'] = [
+            ['id' => $options[0]->id, 'label' => 'Sí, ya tengo uno', 'component_ids' => []],
+            ['id' => $options[1]->id, 'label' => 'No, quiero diseñarlo', 'component_ids' => [$firstComponent, $secondComponent]],
+        ];
+        $this->post('/admin/guardar/preguntas', $datos)->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame($optionIds, DB::table('estimator_options')->where('question_id', $questionId)->orderBy('sort_order')->pluck('id')->all());
+        $this->assertSame('No, quiero diseñarlo', DB::table('estimator_options')->where('id', $optionIds[1])->value('label'));
+        $this->assertSame(2, DB::table('estimation_rules')->where('estimator_option_id', $optionIds[1])->where('active', true)->count());
+        $this->assertEquals($antes['min'] + 200, $catalog->calculate('landing-page', $answers + [$questionId => $optionIds[1]])['min']);
+
+        $datos['options'][1]['component_ids'] = [$firstComponent];
+        $this->post('/admin/guardar/preguntas', $datos)->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('estimation_rules', [
+            'estimator_option_id' => $optionIds[1], 'service_component_id' => $secondComponent, 'active' => false,
+        ]);
+        $this->assertDatabaseHas('service_components', ['id' => $secondComponent, 'active' => true]);
+        $this->assertEquals($antes['min'] + 120, $catalog->calculate('landing-page', $answers + [$questionId => $optionIds[1]])['min']);
+    }
+
+    // Una pregunta general puede tener reglas por servicio sin apagar vínculos de otros servicios.
+    public function test_general_question_links_are_scoped_to_the_service_being_edited(): void
+    {
+        $landing = DB::table('services')->where('slug', 'landing-page')->value('id');
+        $institutional = DB::table('services')->where('slug', 'sitio-institucional')->value('id');
+        $components = [];
+        foreach ([$landing, $institutional] as $index => $serviceId) {
+            $components[] = DB::table('service_components')->insertGetId([
+                'service_id' => $serviceId, 'name' => 'Adicional de prueba ' . $index, 'slug' => 'test-general-' . $index,
+                'description' => 'Concepto de prueba', 'unit_code' => 'unidad', 'active' => true,
+                'is_default' => false, 'default_quantity' => 1, 'modo_cobro' => 'unico',
+            ]);
+        }
+        $question = [
+            'service_id' => null, 'question' => '¿Necesitás material adicional?', 'input_type' => 'single_choice',
+            'sort_order' => 41, 'active' => true, 'required' => false,
+            'options' => [['id' => null, 'label' => 'Sí', 'component_ids' => [$components[0]]]],
+        ];
+        $this->post('/admin/guardar/preguntas', ['catalog_service_id' => $landing, ...$question])
+            ->assertRedirect()->assertSessionHasNoErrors();
+        $questionId = DB::table('estimator_questions')->where('question', $question['question'])->value('id');
+        $optionId = DB::table('estimator_options')->where('question_id', $questionId)->value('id');
+
+        $question['id'] = $questionId;
+        $question['options'] = [['id' => $optionId, 'label' => 'Sí', 'component_ids' => [$components[1]]]];
+        $this->post('/admin/guardar/preguntas', ['catalog_service_id' => $institutional, ...$question])
+            ->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame(2, DB::table('estimation_rules')->where('estimator_option_id', $optionId)->where('active', true)->count());
+        $this->assertDatabaseHas('estimation_rules', ['estimator_option_id' => $optionId, 'service_component_id' => $components[0], 'active' => true]);
+        $this->assertDatabaseHas('estimation_rules', ['estimator_option_id' => $optionId, 'service_component_id' => $components[1], 'active' => true]);
     }
 
     public function test_optional_questions_skip_empty_answers_but_validate_supplied_values(): void

@@ -52,7 +52,12 @@ class EspacioTrabajoController extends Controller
         // Los accesos anteriores llevan a la configuración del servicio, sin duplicar administraciones.
         if ($area === 'admin' && in_array($section, ['preguntas', 'componentes', 'reglas'], true)) {
             $serviceId = DB::table('services')->when($request->integer('servicio'), fn($q) => $q->where('id', $request->integer('servicio')))->orderBy('id')->value('id');
-            return redirect($serviceId ? "/admin/servicios/$serviceId/editar?config=" . ($section === 'preguntas' ? 'preguntas' : 'estimacion') : '/admin/servicios');
+            $configuracion = match ($section) {
+                'preguntas' => 'preguntas',
+                'componentes' => 'precios',
+                default => 'estimacion',
+            };
+            return redirect($serviceId ? "/admin/servicios/$serviceId/editar?config=$configuracion" : '/admin/servicios');
         }
         // El panel interno consulta solo los proyectos asignados al profesional de la sesión.
         if ($area === 'profesional' && $section === 'proyectos' && $usuario->esProfesionalInterno()) {

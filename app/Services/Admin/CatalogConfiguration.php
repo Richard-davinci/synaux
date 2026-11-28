@@ -26,6 +26,7 @@ class CatalogConfiguration
             'services' => DB::table('services')->get()->map(fn($s) => [
                 ...((array)$s),
                 'deliverables' => json_decode($s->deliverables ?? '[]', true),
+                'excluded_items' => json_decode($s->excluded_items ?? '[]', true),
                 'updated_at' => $s->updated_at ? Carbon::parse($s->updated_at, 'UTC')->toISOString() : null,
             ]),
             'components' => DB::table('service_components')->get(),

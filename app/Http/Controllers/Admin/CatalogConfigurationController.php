@@ -115,7 +115,8 @@ class CatalogConfigurationController extends Controller
         $rules = match ($resource) {
             'servicios' => [...$common, 'name' => 'required|string|max:255', 'service_category_id' => 'required|integer|exists:service_categories,id',
                 'slug' => ['required', 'alpha_dash', 'max:150', Rule::unique('services', 'slug')->ignore($id)], 'description' => 'required|string|max:10000', 'summary' => 'required|string|max:1000',
-                'estimation_mode' => ['required', Rule::in(['manual', 'automatic'])], 'deliverables' => 'required|string|max:10000'],
+                'estimation_mode' => ['required', Rule::in(['manual', 'automatic'])], 'deliverables' => 'required|string|max:10000',
+                'excluded_items' => 'nullable|string|max:10000', 'conditions' => 'nullable|string|max:10000'],
             'preguntas' => [...$common, 'service_id' => 'nullable|integer|exists:services,id', 'question' => 'required|string|max:1000',
                 'input_type' => ['required', Rule::in(['single_choice', 'multiple_choice', 'number', 'text'])], 'sort_order' => 'required|integer|min:0|max:1000', 'options_text' => 'nullable|string|max:5000',
                 'quantity_component_id' => 'nullable|integer|exists:service_components,id', 'required' => 'sometimes|boolean'],
@@ -126,6 +127,15 @@ class CatalogConfigurationController extends Controller
             'categorias' => [...$common, 'name' => 'required|string|max:255', 'slug' => ['required', 'alpha_dash', Rule::unique('service_categories', 'slug')->ignore($id)], 'description' => 'required|string|max:10000'],
         };
         $data = $request->validate($rules);
+        $opcionesEditadas = null;
+        if ($resource === 'preguntas' && $request->has('options')) {
+            $opcionesEditadas = $request->validate([
+                'options' => 'array|min:1|max:100', 'options.*.id' => 'nullable|integer',
+                'options.*.label' => 'required|string|max:255|distinct:ignore_case',
+                'options.*.component_ids' => 'present|array|max:100',
+                'options.*.component_ids.*' => 'required|integer|distinct|exists:service_components,id',
+            ])['options'];
+        }
         // Cada rótulo de sistema viaja con su ID actual, independientemente de su posición o del texto anterior.
         $etiquetasSegmentos = $resource === 'preguntas' ? $request->validate([
             'etiquetas_segmentos' => 'sometimes|array|size:3',
@@ -137,6 +147,9 @@ class CatalogConfigurationController extends Controller
             : null;
         // El contexto del editor impide modificar por accidente registros de otro servicio.
         $context = $request->validate(['catalog_service_id' => 'nullable|integer|exists:services,id'])['catalog_service_id'] ?? null;
+        if ($opcionesEditadas !== null && !$context) {
+            throw ValidationException::withMessages(['catalog_service_id' => 'Elegí el servicio antes de vincular sus adicionales.']);
+        }
         if ($context && in_array($resource, ['preguntas', 'componentes'], true)) {
             $old = $id ? DB::table($table)->where('id', $id)->firstOrFail() : null;
             abort_if($old && $old->service_id !== null && (int)$old->service_id !== (int)$context, 422, 'El registro pertenece a otro servicio.');
@@ -150,7 +163,7 @@ class CatalogConfigurationController extends Controller
                 abort_unless((int)$old->service_id === (int)$context, 422);
             }
         }
-        $savedId = DB::transaction(function () use ($resource, $table, $id, $data, $precios, $catalogoPrecios, $etiquetasSegmentos) {
+        $savedId = DB::transaction(function () use ($resource, $table, $id, $data, $precios, $catalogoPrecios, $etiquetasSegmentos, $opcionesEditadas, $context) {
             if ($resource === 'servicios') $catalogoPrecios->bloquearVersiones();
             $anterior = null;
             if ($id) {
@@ -169,6 +182,9 @@ class CatalogConfigurationController extends Controller
                 // Registra la edición de la ficha comercial con la hora del servidor.
                 $data['updated_at'] = now();
                 $data['deliverables'] = json_encode(array_values(array_filter(array_map('trim', explode("\n", $data['deliverables'])))));
+                $data['excluded_items'] = json_encode(array_values(array_filter(array_map('trim', explode("\n", $data['excluded_items'] ?? '')))));
+                // El alta automática queda sin publicar hasta completar su precio desde la pestaña de importes.
+                if (!$id && $data['estimation_mode'] === 'automatic') $data['active'] = false;
             }
             if ($resource === 'componentes') {
                 $duplicate = DB::table($table)->where('service_id', $data['service_id'])->where('slug', $data['slug'])->when($id, fn($q) => $q->where('id', '!=', $id))->exists();
@@ -196,7 +212,22 @@ class CatalogConfigurationController extends Controller
                     abort_unless($data['input_type'] === 'number' && $component->service_id === $data['service_id'], 422);
                 }
                 if (in_array($data['input_type'], ['single_choice', 'multiple_choice'], true) && trim($options) === '') {
-                    throw ValidationException::withMessages(['options_text' => 'Agregá por lo menos una opción por línea.']);
+                    if ($opcionesEditadas === null) throw ValidationException::withMessages(['options_text' => 'Agregá por lo menos una opción por línea.']);
+                }
+                if ($opcionesEditadas) {
+                    abort_unless(in_array($data['input_type'], ['single_choice', 'multiple_choice'], true), 422, 'Las preguntas numéricas o de texto no llevan opciones.');
+                    $existentes = $id ? DB::table('estimator_options')->where('question_id', $id)->get()->keyBy('id') : collect();
+                    $idsPresentados = array_values(array_filter(array_map(fn($opcion) => $opcion['id'] ?? null, $opcionesEditadas)));
+                    if (count($idsPresentados) !== count(array_unique(array_map('intval', $idsPresentados)))) {
+                        throw ValidationException::withMessages(['options' => 'Cada respuesta debe conservar un identificador distinto.']);
+                    }
+                    foreach ($opcionesEditadas as $opcion) {
+                        if (!empty($opcion['id'])) abort_unless($existentes->has($opcion['id']), 422, 'La opción pertenece a otra pregunta.');
+                        foreach ($opcion['component_ids'] as $componenteId) {
+                            $componente = DB::table('service_components')->find($componenteId);
+                            abort_unless($componente && (int)$componente->service_id === (int)$context, 422, 'El adicional debe pertenecer a este servicio.');
+                        }
+                    }
                 }
             }
             if ($id) {
@@ -211,7 +242,7 @@ class CatalogConfigurationController extends Controller
                     throw ValidationException::withMessages(['active' => 'Completá los precios del servicio antes de publicarlo. Podés guardar la ficha sin publicar.']);
                 }
             }
-            if ($options !== null) {
+            if ($options !== null && $opcionesEditadas === null) {
                 // Desactiva opciones anteriores y reutiliza sus identificadores; no borra respuestas históricas.
                 DB::table('estimator_options')->where('question_id', $id)->update(['active' => 0]);
                 foreach (array_filter(array_map('trim', explode("\n", $options))) as $order => $label) {
@@ -223,15 +254,61 @@ class CatalogConfigurationController extends Controller
                     }
                 }
             }
+            if ($opcionesEditadas !== null) {
+                $existentes = DB::table('estimator_options')->where('question_id', $id)->get()->keyBy('id');
+                $idsEditados = collect($opcionesEditadas)->pluck('id')->filter()->map(fn($valor) => (int)$valor)->all();
+                $opcionesRetiradas = $existentes->keys()->diff($idsEditados);
+                // Los vínculos retirados se desactivan solo para este servicio y quedan recuperables.
+                if ($opcionesRetiradas->isNotEmpty()) {
+                    DB::table('estimation_rules')->whereIn('estimator_option_id', $opcionesRetiradas)
+                        ->whereIn('service_component_id', DB::table('service_components')->where('service_id', $context)->select('id'))
+                        ->update(['active' => false]);
+                }
+                foreach ($opcionesEditadas as $orden => $opcion) {
+                    if (!empty($opcion['id'])) {
+                        $opcionId = (int)$opcion['id'];
+                        DB::table('estimator_options')->where('id', $opcionId)->where('question_id', $id)
+                            ->update(['label' => trim($opcion['label']), 'active' => true, 'sort_order' => $orden]);
+                    } else {
+                        $opcionId = DB::table('estimator_options')->insertGetId([
+                            'question_id' => $id, 'label' => trim($opcion['label']), 'sort_order' => $orden, 'active' => true,
+                        ]);
+                    }
+                    $this->sincronizarVinculos($opcionId, $opcion['component_ids'], (int)$context);
+                }
+            }
             return $id;
         }, 3);
 
         $mensaje = 'Configuración guardada.';
         if ($resource === 'servicios' && $request->boolean('configure_after_save')) {
             $seccion = $data['estimation_mode'] === 'automatic' ? 'precios' : 'preguntas';
+            $mensaje = $data['estimation_mode'] === 'automatic'
+                ? 'Servicio guardado como borrador. Configurá sus precios antes de publicarlo.'
+                : 'Servicio guardado. Ahora podés completar sus preguntas y adicionales.';
             return redirect("/admin/servicios/$savedId/editar?config=$seccion")->with('notice', $mensaje);
         }
         return back()->with('notice', $mensaje);
+    }
+
+    // Sincroniza las reglas económicas de esta pregunta sin tocar vínculos globales pertenecientes a otros servicios.
+    private function sincronizarVinculos(int $opcionId, array $componentesElegidos, int $servicio): void
+    {
+        $idsServicio = DB::table('service_components')->where('service_id', $servicio)->pluck('id');
+        DB::table('estimation_rules')->where('estimator_option_id', $opcionId)->whereIn('service_component_id', $idsServicio)
+            ->whereNotIn('service_component_id', $componentesElegidos ?: [0])->update(['active' => false]);
+        foreach ($componentesElegidos as $componenteId) {
+            $regla = DB::table('estimation_rules')->where('estimator_option_id', $opcionId)
+                ->where('service_component_id', $componenteId)->first();
+            if ($regla) {
+                DB::table('estimation_rules')->where('id', $regla->id)->update(['active' => true]);
+            } else {
+                DB::table('estimation_rules')->insert([
+                    'estimator_option_id' => $opcionId, 'service_component_id' => $componenteId,
+                    'quantity' => 1, 'active' => true,
+                ]);
+            }
+        }
     }
 
     // La pregunta del sistema conserva su alcance, tipo, estado y opciones. Solo se editan los rótulos y el orden de la pregunta.
