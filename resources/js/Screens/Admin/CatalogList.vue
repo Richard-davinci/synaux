@@ -26,7 +26,8 @@ const search = ref('');
 const categoryFilter = ref('');
 const stateFilter = ref('');
 const pagina = ref(1);
-const porPagina = 10;
+// Las categorías muestran cinco filas para que su paginador sea útil también con el catálogo actual.
+const porPagina = computed(() => categoriesView.value ? 5 : 10);
 const columnaOrden = ref('nombre');
 const descendente = ref(false);
 const entidad = computed(() => categoriesView.value ? 'categoría' : 'servicio');
@@ -81,9 +82,9 @@ function ordenarPor(clave) {
 }
 
 // Pagina después de ordenar y ajusta el número de página si desaparece la última fila.
-const totalPaginas = computed(() => Math.max(1, Math.ceil(rows.value.length / porPagina)));
-const inicio = computed(() => (pagina.value - 1) * porPagina);
-const filasVisibles = computed(() => filasOrdenadas.value.slice(inicio.value, inicio.value + porPagina));
+const totalPaginas = computed(() => Math.max(1, Math.ceil(rows.value.length / porPagina.value)));
+const inicio = computed(() => (pagina.value - 1) * porPagina.value);
+const filasVisibles = computed(() => filasOrdenadas.value.slice(inicio.value, inicio.value + porPagina.value));
 watch([search, categoryFilter, stateFilter], () => {
     pagina.value = 1;
 });
