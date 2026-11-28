@@ -5,6 +5,7 @@ use App\Http\Controllers\ActivacionCuentaController;
 use App\Http\Controllers\Admin\CatalogConfigurationController;
 use App\Http\Controllers\Admin\DirectorioUsuariosController;
 use App\Http\Controllers\Admin\OrganizacionController;
+use App\Http\Controllers\Admin\SimuladorEstimacionesController;
 use App\Http\Controllers\Admin\TariffController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ContactController;
@@ -140,6 +141,9 @@ Route::middleware('auth')->group(function () {
         // El asistente usa una página propia y conserva el permiso real del grupo administrativo.
         Route::get('/admin/servicios/nuevo', fn(Request $r, EspacioTrabajoController $c) => $c->show($r, 'admin', 'servicios'));
         Route::get('/admin/servicios/{service}/editar', [EspacioTrabajoController::class, 'editService'])->whereNumber('service');
+        // La vista previa está separada de los recorridos comerciales y solo la opera Administración.
+        Route::post('/admin/servicios/{service}/simular', [SimuladorEstimacionesController::class, 'preview'])
+            ->whereNumber('service')->middleware('throttle:30,1');
         foreach (['gestion', 'admin'] as $area) {
             Route::get('/' . $area . '/{section?}', fn(Request $r, EspacioTrabajoController $c, string $section = '') => $c->show($r, $area, $section));
         }

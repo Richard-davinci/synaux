@@ -158,9 +158,9 @@ class ServiceCatalog
     }
 
     // Resuelve un servicio activo por su identificador público; devuelve 404 si no existe.
-    public function service(string $slug): array
+    public function service(string $slug, bool $includeInactive = false): array
     {
-        return collect($this->services())->firstWhere('id', $slug) ?? abort(404);
+        return collect($this->services($includeInactive))->firstWhere('id', $slug) ?? abort(404);
     }
 
     // Carga preguntas y opciones activas del servicio en el orden configurado.
@@ -175,9 +175,10 @@ class ServiceCatalog
     }
 
     // Valida las respuestas, calcula en el servidor y conserva el resultado en la sesión para continuar.
-    public function calculate(string $slug, array $answers, ?array $questions = null, bool $allowIncomplete = false): array
+    public function calculate(string $slug, array $answers, ?array $questions = null, bool $allowIncomplete = false, bool $includeInactiveService = false): array
     {
-        $service = $this->service($slug);
+        // La opción administrativa permite probar fichas todavía no publicadas sin cambiar el acceso comercial.
+        $service = $this->service($slug, $includeInactiveService);
         $questions ??= $this->questions($service['database_id']);
         $snapshot = [];
         $selected = [];

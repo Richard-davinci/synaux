@@ -7,6 +7,7 @@ import B from '../UI/AppButton.vue';
 import F from '../UI/FormField.vue';
 import S from '../UI/StatusBadge.vue';
 import ImportesServicio from './ImportesServicio.vue';
+import SimuladorEstimacion from './SimuladorEstimacion.vue';
 import {datosDeImportes, prepararImporte} from './preciosServicio';
 import {money} from '../../support/formatters';
 import {useSubmit} from '../../support/useSubmit';
@@ -420,6 +421,7 @@ function importe(precio) {
                        @click="edit('reglas', regla)">Editar</B>
                 </article>
             </v-card>
+            <SimuladorEstimacion :service="service" :questions="questions"/>
         </template>
 
         <!-- La ficha consulta y cambia los importes de este servicio sin salir del editor. -->
