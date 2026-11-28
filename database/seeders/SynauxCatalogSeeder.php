@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 // Carga únicamente contenido inicial del prototipo: no crea cuentas ni publica precios de ejemplo.
 class SynauxCatalogSeeder extends Seeder
@@ -12,40 +11,53 @@ class SynauxCatalogSeeder extends Seeder
     public function run(): void
     {
         $content = [
-            ['Desarrollo web', 'Sitio institucional', 'sitio-institucional', 'Una presencia digital clara y administrable para presentar tu organización y orientar a sus públicos.',
+            ['Desarrollo web y tiendas online', 'Sitio institucional', 'sitio-institucional', 'Una presencia digital clara y administrable para presentar tu organización y orientar a sus públicos.',
                 'Diseñamos una experiencia web alineada con los objetivos de tu organización, con una estructura simple de recorrer y preparada para crecer.',
                 ['Arquitectura de contenidos y navegación', 'Diseño de interfaz responsive', 'Desarrollo y configuración del sitio', 'Carga inicial y documentación de uso']],
-            ['Diseño', 'Identidad visual', 'identidad-visual', 'Un sistema visual consistente para una marca nueva o en evolución.',
+            ['Diseño gráfico e identidad visual', 'Identidad visual', 'identidad-visual', 'Un sistema visual consistente para una marca nueva o en evolución.',
                 'Construimos una identidad reconocible y flexible que traduzca la personalidad de la marca en decisiones visuales coherentes.',
                 ['Dirección conceptual y universo visual', 'Logotipo y variantes principales', 'Paleta cromática y tipografías', 'Aplicaciones y guía básica de uso']],
-            ['Marketing', 'Campaña digital', 'campana-digital', 'Estrategia, piezas y seguimiento para una campaña con objetivos concretos.',
+            ['Marketing digital y contenidos', 'Campaña digital', 'campana-digital', 'Estrategia, piezas y seguimiento para una campaña con objetivos concretos.',
                 'Conectamos objetivos, mensajes y canales en una campaña digital pensada para llegar a las personas correctas.',
                 ['Definición de objetivos y públicos', 'Estrategia de contenidos y canales', 'Piezas para los formatos acordados', 'Seguimiento e informe de resultados']],
-            ['Desarrollo web', 'Landing page', 'landing-page', 'Una página enfocada en presentar una oferta y facilitar una acción.',
+            ['Desarrollo web y tiendas online', 'Landing page', 'landing-page', 'Una página enfocada en presentar una oferta y facilitar una acción.',
                 'Diseñamos y desarrollamos una página para presentar un producto, una campaña o un lanzamiento con un objetivo concreto.',
                 ['Estructura y jerarquía de contenidos', 'Diseño responsive', 'Formulario o enlace de conversión']],
-            ['Desarrollo web', 'Tienda online', 'tienda-online', 'Un catálogo con carrito y un proceso de compra adaptado a tu negocio.',
+            ['Desarrollo web y tiendas online', 'Tienda online', 'tienda-online', 'Un catálogo con carrito y un proceso de compra adaptado a tu negocio.',
                 'Definimos la navegación de la tienda y configuramos el proceso de compra según tus productos y operaciones.',
                 ['Estructura del catálogo', 'Carrito y checkout', 'Configuración de medios de pago y envío']],
-            ['UX/UI', 'Diseño UX/UI', 'diseno-ux-ui', 'Interfaces claras para sitios y productos digitales.',
+            ['Diseño UX/UI y producto digital', 'Diseño UX/UI', 'diseno-ux-ui', 'Interfaces claras para sitios y productos digitales.',
                 'Diseñamos los flujos y las pantallas prioritarias de tu producto para que puedas evaluarlos antes del desarrollo.',
                 ['Flujos de navegación', 'Diseño de pantallas', 'Prototipo interactivo']],
-            ['UX/UI', 'Auditoría de usabilidad', 'auditoria-usabilidad', 'Una revisión de la experiencia para detectar qué dificulta el uso.',
+            ['Diseño UX/UI y producto digital', 'Auditoría de usabilidad', 'auditoria-usabilidad', 'Una revisión de la experiencia para detectar qué dificulta el uso.',
                 'Evaluamos los recorridos principales de tu sitio o producto y priorizamos los problemas que afectan a sus usuarios.',
                 ['Revisión de tareas principales', 'Hallazgos con ejemplos', 'Recomendaciones priorizadas']],
-            ['UX/UI', 'Prototipo interactivo', 'prototipo-interactivo', 'Un prototipo navegable para validar una idea antes de desarrollarla.',
+            ['Diseño UX/UI y producto digital', 'Prototipo interactivo', 'prototipo-interactivo', 'Un prototipo navegable para validar una idea antes de desarrollarla.',
                 'Armamos un recorrido navegable con las pantallas necesarias para evaluar las interacciones principales.',
                 ['Definición del recorrido', 'Prototipo navegable', 'Revisión del flujo con el equipo']],
-            ['Diseño', 'Piezas para redes sociales', 'piezas-redes-sociales', 'Recursos gráficos coherentes para comunicar en tus redes.',
+            ['Diseño gráfico e identidad visual', 'Piezas para redes sociales', 'piezas-redes-sociales', 'Recursos gráficos coherentes para comunicar en tus redes.',
                 'Adaptamos la identidad visual a los formatos que usás para comunicar en redes sociales.',
                 ['Dirección visual', 'Diseño de piezas acordadas', 'Exportaciones por formato']],
-            ['Marketing', 'Auditoría SEO', 'auditoria-seo', 'Un diagnóstico de tu sitio para priorizar mejoras en buscadores.',
+            ['Marketing digital y contenidos', 'Auditoría SEO', 'auditoria-seo', 'Un diagnóstico de tu sitio para priorizar mejoras en buscadores.',
                 'Revisamos la estructura, la indexación y el contenido de las páginas prioritarias para proponer mejoras concretas.',
                 ['Revisión técnica y de contenidos', 'Informe de hallazgos', 'Lista priorizada de mejoras']],
-            ['Marketing', 'Estrategia de contenidos', 'estrategia-contenidos', 'Una planificación para comunicar con objetivos y consistencia.',
+            ['Marketing digital y contenidos', 'Estrategia de contenidos', 'estrategia-contenidos', 'Una planificación para comunicar con objetivos y consistencia.',
                 'Definimos qué comunicar, para quién y en qué formatos según tus recursos y canales.',
                 ['Definición de públicos y objetivos', 'Temas y formatos de contenido', 'Calendario editorial inicial']],
         ];
+        // Mantiene una taxonomía enfocada en los servicios digitales de synaux, incluso antes de cargar servicios nuevos.
+        foreach ([
+            ['Desarrollo web y tiendas online', 'desarrollo-web-y-tiendas-online', 'Sitios institucionales, landing pages y comercio electrónico.'],
+            ['Aplicaciones y software a medida', 'aplicaciones-y-software-a-medida', 'Aplicaciones, plataformas, sistemas e integraciones de software.'],
+            ['Diseño UX/UI y producto digital', 'diseno-ux-ui-y-producto-digital', 'Experiencia, interfaces y prototipos para sitios y productos digitales.'],
+            ['Diseño gráfico e identidad visual', 'diseno-grafico-e-identidad-visual', 'Identidad visual, piezas gráficas y recursos para comunicación digital.'],
+            ['Marketing digital y contenidos', 'marketing-digital-y-contenidos', 'Estrategia, campañas y contenidos para canales digitales.'],
+            ['Automatización e inteligencia artificial', 'automatizacion-e-inteligencia-artificial', 'Automatizaciones e integraciones con herramientas de inteligencia artificial.'],
+        ] as [$nombre, $slug, $descripcion]) {
+            DB::table('service_categories')->updateOrInsert(['slug' => $slug], [
+                'name' => $nombre, 'description' => $descripcion, 'active' => 1,
+            ]);
+        }
         foreach ($content as [$category, $name, $slug, $summary, $description, $includes]) {
             $categorySlug = Str::slug($category);
             DB::table('service_categories')->insertOrIgnore(['slug' => $categorySlug, 'name' => $category, 'description' => $category, 'active' => 1]);
@@ -53,13 +65,6 @@ class SynauxCatalogSeeder extends Seeder
             DB::table('services')->insertOrIgnore(['slug' => $slug, 'name' => $name, 'service_category_id' => $categoryId, 'description' => $description,
                 'summary' => $summary, 'deliverables' => json_encode($includes), 'active' => 1, 'estimation_mode' => $slug === 'sitio-institucional' ? 'automatic' : 'manual']);
         }
-        // Actualiza instalaciones anteriores donde el servicio original estaba dentro de Diseño.
-        $previousCategory = DB::table('service_categories')->where('slug', 'diseno')->value('id');
-        $uxCategory = DB::table('service_categories')->where('slug', Str::slug('UX/UI'))->value('id');
-        DB::table('services')->where('slug', 'diseno-ux-ui')->where('service_category_id', $previousCategory)
-            ->update(['service_category_id' => $uxCategory]);
-
-
         $web = DB::table('services')->where('slug', 'sitio-institucional')->value('id');
         foreach ([['diseno', 'Diseño y arquitectura', true], ['seccion', 'Desarrollo de sección', false], ['contenido', 'Asistencia de contenidos', false], ['tienda', 'E-commerce', false]] as [$slug, $name, $default]) {
             DB::table('service_components')->insertOrIgnore(['service_id' => $web, 'slug' => $slug, 'name' => $name, 'description' => $name,
