@@ -1,11 +1,12 @@
 <script setup>
 import SidePanel from '../UI/SidePanel.vue';
 import {computed, ref, useId} from 'vue';
-import {VSelect} from 'vuetify/components';
+import {VListItem, VSelect, VTooltip} from 'vuetify/components';
 import {useForm} from '@inertiajs/vue3';
 import B from '../UI/AppButton.vue';
 import F from '../UI/FormField.vue';
 import S from '../UI/StatusBadge.vue';
+import AppIcon from '../UI/AppIcon.vue';
 import ImportesServicio from './ImportesServicio.vue';
 import SimuladorEstimacion from './SimuladorEstimacion.vue';
 import {datosDeImportes, prepararImporte} from './preciosServicio';
@@ -580,26 +581,34 @@ function importe(precio) {
                         <div class="opciones-editor-heading"><div><h3>Respuestas y adicionales</h3>
                             <p>Podés dejar una respuesta sin adicional o asociarle varios conceptos de este servicio.</p></div>
                         </div>
+                        <p v-if="!conceptosActivos.length" class="notice conceptos-sin-disponibles" role="status">
+                            No hay adicionales configurados. Podés vincularlos posteriormente desde Precios y adicionales.
+                        </p>
                         <article v-for="(opcion, indice) in form.options" :key="opcion.id ?? 'nueva-' + indice" class="opcion-editor-row">
                             <div class="opcion-editor-row-heading">
                                 <h4>Respuesta {{ indice + 1 }}</h4>
-                                <B compact variant="ghost" type="button" :disabled="form.options.length <= 1"
-                                   :aria-label="'Quitar respuesta ' + (indice + 1)" @click="quitarOpcion(indice)">Quitar</B>
+                                <VTooltip text="Quitar respuesta" location="top" open-on-focus>
+                                    <template #activator="{props: tooltipProps}">
+                                        <B v-bind="tooltipProps" class="respuesta-quitar" compact variant="ghost" type="button"
+                                           :disabled="form.options.length <= 1"
+                                           :aria-label="'Quitar respuesta ' + (indice + 1)" @click="quitarOpcion(indice)">
+                                            <AppIcon name="trash"/>
+                                        </B>
+                                    </template>
+                                </VTooltip>
                             </div>
                             <F v-model="opcion.label" label="Texto de la respuesta" required maxlength="255"
                                :error="form.errors[`options.${indice}.label`]"/>
-                            <div class="opcion-vinculo">
+                            <div v-if="conceptosActivos.length" class="opcion-vinculo">
                                 <label :for="idEditor + '-opcion-' + indice">Conceptos que suma (opcional)</label>
-                                <VSelect v-if="conceptosActivos.length" :id="idEditor + '-opcion-' + indice"
+                                <VSelect :id="idEditor + '-opcion-' + indice"
                                          v-model="opcion.component_ids" :items="opcionesConceptosPara(opcion)"
                                          item-title="label" item-value="value" multiple chips closable-chips
                                          density="compact" variant="outlined" color="primary" hide-details
+                                         placeholder="Seleccionar adicionales"
                                          :menu-props="{maxHeight: 300}" class="selector-conceptos-opcion">
                                     <template #item="{props: itemProps, item}">
-                                        <v-list-item v-bind="itemProps">
-                                            <template #title>{{ item.raw.label }}</template>
-                                            <template #subtitle>{{ item.raw.detalle }}</template>
-                                        </v-list-item>
+                                        <VListItem v-bind="itemProps" :subtitle="item.raw.detalle"/>
                                     </template>
                                     <template #selection="{item, props: selectionProps}">
                                         <v-chip v-bind="selectionProps" size="small" color="primary">
@@ -607,10 +616,7 @@ function importe(precio) {
                                         </v-chip>
                                     </template>
                                 </VSelect>
-                                <p v-else class="notice conceptos-sin-disponibles" role="status">
-                                    No hay adicionales disponibles. Podés guardar esta respuesta sin costo adicional y vincular un concepto después de crearlo en Precios y adicionales.
-                                </p>
-                                <small v-if="conceptosActivos.length">Sin selección, esta respuesta no agrega un importe.</small>
+                                <small>Sin selección, esta respuesta no agrega un importe.</small>
                                 <small v-if="form.errors[`options.${indice}.component_ids.0`]" class="error" role="alert">
                                     {{ form.errors[`options.${indice}.component_ids.0`] }}</small>
                             </div>
@@ -760,7 +766,7 @@ function importe(precio) {
 
 .opciones-editor {
     display: grid;
-    gap: 12px;
+    gap: 10px;
     min-width: 0;
 }
 
@@ -776,9 +782,9 @@ function importe(precio) {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     align-items: stretch;
-    gap: 12px;
+    gap: 8px;
     min-width: 0;
-    padding: 14px 16px;
+    padding: 12px 14px;
     border: 1px solid #1f6f7f26;
     border-radius: 10px;
     background: #fff;
@@ -786,11 +792,38 @@ function importe(precio) {
 
 .opcion-editor-row-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; min-width:0; }
 .opcion-editor-row-heading h4 { margin:0; color:#153b64; font-size:.95rem; }
-.opcion-vinculo { display: grid; gap: 6px; min-width: 0; }
+.opcion-editor-row-heading :deep(.respuesta-quitar.v-btn) { width:36px; min-width:36px; height:36px; padding:0; box-shadow:none; }
+.opcion-editor-row-heading :deep(.respuesta-quitar .icon) { width:18px; height:18px; }
+.opcion-vinculo { display: grid; gap: 4px; min-width: 0; }
 .opcion-vinculo > label { color: #153b64; font-size: .875rem; }
 .opcion-vinculo :deep(.v-field) { min-width:0; max-width:100%; background: #fff; border-radius: 8px; }
 .opcion-vinculo :deep(.v-chip) { max-width: 100%; }
 .opcion-vinculo :deep(.v-field__input) { min-width:0; flex-wrap:wrap; }
+.opcion-vinculo :deep(.selector-conceptos-opcion .v-field__input input) {
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 0;
+    height: auto;
+    flex: 1 1 24px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    box-shadow: none;
+    outline: none;
+    font: inherit;
+}
+.opcion-vinculo :deep(.selector-conceptos-opcion .v-field__input input:focus) {
+    border: 0;
+    outline: none;
+    box-shadow: none;
+}
+.opcion-vinculo :deep(.selector-conceptos-opcion .v-field__input input::placeholder) {
+    color: #446075;
+    opacity: 1;
+}
 .opcion-vinculo :deep(.v-list-item-subtitle) { color:#446075; opacity:1; }
 .opcion-vinculo .error { color: #a63a45; }
 .conceptos-sin-disponibles { margin:0; }
