@@ -121,7 +121,7 @@ function guardarTarifario() {
 
                         <section class="tariff-section">
                             <div class="tariff-heading"><div><h2>Precios por servicio y tipo de cliente</h2>
-                                <p>Cada bloque corresponde a un servicio. Definí su precio para cada tipo de cliente; los componentes se suman aparte cuando corresponda.</p></div></div>
+                                <p>Cada bloque azul identifica un servicio. Definí su precio para cada tipo de cliente; si tiene trabajos adicionales configurados, aparecerán aparte.</p></div></div>
                             <p v-if="!administration.clientSegments.length" class="notice">Primero configurá la pregunta general «¿Para qué tipo de cliente?» con sus variantes.</p>
                             <article v-for="servicio in tarifario.services" :key="servicio.id" class="tariff-service">
                                 <h3>{{ servicio.name }}</h3>
@@ -140,7 +140,7 @@ function guardarTarifario() {
                         </section>
 
                         <details v-if="tarifario.components.length" class="tariff-section tariff-components">
-                            <summary>Componentes adicionales <span>Opcional · se suman según las reglas del servicio</span></summary>
+                            <summary>Trabajos adicionales con costo <span>Se suman solo cuando el alcance los incluye</span></summary>
                             <div v-for="componente in tarifario.components" :key="componente.id" class="tariff-segment tariff-component-row">
                                 <strong>{{ componente.name }}</strong>
                                 <F v-model="componente.min" label="Desde · USD" type="number" min="0" step="0.01" :required="tarifario.active"/>
@@ -163,7 +163,7 @@ function guardarTarifario() {
                             </div>
                             <div class="notice tariff-conversion">
                                 <strong>{{ filasCompletas }} de {{ filasEsperadas }} precios cargados</strong>
-                                <span>Para activarla, completá los precios de cada tipo de cliente y los componentes requeridos.</span>
+                                <span>Para activarla, completá los precios para cada tipo de cliente<span v-if="componentesActivos.length"> y los trabajos adicionales con costo</span>.</span>
                             </div>
                             <p v-if="tarifario.errors.active" class="field-error" role="alert">{{ tarifario.errors.active }}</p>
                         </section>
