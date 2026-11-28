@@ -26,6 +26,7 @@ const detailPrices = computed(() => detailReference.value?.segments?.length
     }] : []);
 // El tipo de cliente elegido en el detalle acompaña el acceso al estimador.
 const detailSegment = ref(props.data.initialClientType ?? 'PyME');
+const displayCurrency = ref('ARS');
 const chosenPrice = computed(() => detailPrices.value.find(item => item.label === detailSegment.value) ?? detailPrices.value[0]);
 const estimateHref = computed(() => {
     const query = new URLSearchParams({servicio: selected.value.id, paso: '2'});
@@ -42,9 +43,31 @@ const segmentDescriptions = {
     Empresa: 'Grandes empresas',
 };
 
-function detailPrice(min, max) {
-    const currency = detailReference.value.currency;
-    return min === max ? money(min, currency) : money(min, currency) + ' – ' + money(max, currency);
+function convertPrice(min, max, currency) {
+    const source = detailReference.value.currency;
+    const ccl = Number(detailReference.value.ccl_rate);
+    if (source === currency || !ccl) return {min, max, currency: source};
+    const convert = amount => source === 'USD' ? Number(amount) * ccl : Number(amount) / ccl;
+    return {min: convert(min), max: convert(max), currency};
+}
+
+function detailPrice(min, max, currency = displayCurrency.value) {
+    const amount = convertPrice(min, max, currency);
+    return Number(amount.min) === Number(amount.max)
+        ? money(amount.min, amount.currency)
+        : money(amount.min, amount.currency) + ' – ' + money(amount.max, amount.currency);
+}
+
+function detailEquivalent(min, max) {
+    if (!detailReference.value?.ccl_rate) return null;
+    return convertPrice(min, max, displayCurrency.value === 'ARS' ? 'USD' : 'ARS');
+}
+
+function detailEquivalentText(min, max) {
+    const amount = detailEquivalent(min, max);
+    if (!amount) return '';
+    const range = Number(amount.min) === Number(amount.max) ? '' : ' – ' + money(amount.max, amount.currency);
+    return 'Equivale a ' + money(amount.min, amount.currency) + range;
 }
 </script>
 
@@ -70,7 +93,12 @@ function detailPrice(min, max) {
                     }}</h2>
                 <template v-if="detailReference">
                     <p v-if="detailReference.segments?.length">Elegí el tipo de cliente para ver el importe en
-                        {{ detailReference.currency }}.</p>
+                        {{ displayCurrency }}.</p>
+                    <div v-if="detailReference.ccl_rate" class="detail-currency" role="group" aria-label="Moneda principal del precio">
+                        <span>Mostrar en</span>
+                        <button v-for="currency in ['ARS', 'USD']" :key="currency" type="button"
+                                :aria-pressed="displayCurrency === currency" @click="displayCurrency = currency">{{ currency }}</button>
+                    </div>
                     <div v-if="detailReference.segments?.length" class="detail-price-grid" role="group"
                          aria-label="Precio por tipo de cliente">
                         <button v-for="price in detailPrices" :key="price.label" type="button"
@@ -79,6 +107,7 @@ function detailPrice(min, max) {
                             <span class="detail-price-label">{{ price.label }} <I
                                 v-if="price.label === chosenPrice?.label" name="check"/></span>
                             <strong>{{ detailPrice(price.min, price.max) }}</strong>
+                            <span v-if="detailEquivalent(price.min, price.max)" class="detail-price-equivalent">{{ detailEquivalentText(price.min, price.max) }}</span>
                             <span v-if="segmentDescriptions[price.label]"
                                   class="detail-price-description">{{ segmentDescriptions[price.label] }}</span>
                         </button>
@@ -219,6 +248,12 @@ function detailPrice(min, max) {
     gap: 10px;
     margin-block: 16px;
 }
+
+/* Permite priorizar pesos o dólares sin ocultar el equivalente convertido con el CCL de la tarifa. */
+.detail-currency { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-block: 8px; color: #446075; font-size: .8rem; }
+.detail-currency button { min-width: 52px; min-height: 30px; border: 1px solid #1f6f7f44; border-radius: 7px; background: #fff; color: #153b64; font: inherit; font-weight: 700; cursor: pointer; }
+.detail-currency button[aria-pressed='true'] { color: #fff; background: #1f6f7f; border-color: #1f6f7f; }
+.detail-price-equivalent { color: #446075; font-size: .75rem; line-height: 1.35; }
 
 .detail-price-option {
     display: flex;

@@ -15,6 +15,7 @@ const query = ref('');
 const category = ref('Todos');
 const categorySearch = ref('');
 const categoryInputId = useId();
+const displayCurrency = ref('ARS');
 // El selector mantiene altura fija aunque crezca el catálogo; las categorías publicadas se ordenan por nombre.
 const categories = computed(() => [{value: 'Todos', label: 'Todas las categorías'},
     ...[...new Set(props.data.services.map(service => service.category))].sort((a, b) => a.localeCompare(b, 'es'))
@@ -30,6 +31,7 @@ const services = computed(() => props.data.services.filter(service => {
     const searchableText = normalizeSearch([service.name, service.category, service.summary].join(' '));
     return searchWords.value.every(word => searchableText.includes(word));
 }));
+const hasCclReference = computed(() => Object.values(props.data.references ?? {}).some(reference => Number(reference.ccl_rate) > 0));
 // La selección por servicio se conserva al aplicar los filtros.
 const catalogSegments = ref({});
 
@@ -65,10 +67,15 @@ const clear = () => {
                     Limpiar filtros
                 </button>
             </div>
+            <div v-if="hasCclReference" class="currency-picker" role="group" aria-label="Moneda principal de los precios">
+                <span>Mostrar precios en</span>
+                <button v-for="currency in ['ARS', 'USD']" :key="currency" type="button"
+                        :aria-pressed="displayCurrency === currency" @click="displayCurrency = currency">{{ currency }}</button>
+            </div>
         </div>
         <div v-if="services.length && data.referenceKey !== 'catalogo-vacio'" class="service-grid">
             <TarjetaServicio v-for="service in services" :key="service.id" v-model="catalogSegments[service.id]"
-                             :service="service" :reference="data.references?.[service.id]"/>
+                             :service="service" :reference="data.references?.[service.id]" :display-currency="displayCurrency"/>
         </div>
         <Empty v-else title="No encontramos servicios con esos filtros."
                text="Probá otra búsqueda o volvé a ver todas las propuestas."><B @click="clear">Limpiar filtros</B>
@@ -113,6 +120,12 @@ const clear = () => {
     align-items: end;
     gap: 1rem;
 }
+
+/* El selector cambia la moneda principal y conserva visible el equivalente calculado con el CCL de la versión. */
+.currency-picker { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: 12px; color: #446075; font-size: .8rem; }
+.currency-picker button { min-width: 54px; min-height: 32px; border: 1px solid #1f6f7f44; border-radius: 7px; background: white; color: #153b64; font: inherit; font-weight: 700; cursor: pointer; }
+.currency-picker button[aria-pressed='true'] { border-color: #1f6f7f; background: #1f6f7f; color: white; }
+.catalog-page .price-summary small { color: #446075; font-size: .78rem; }
 
 /* El buscador y el autocompletado comparten altura y etiquetas alineadas. */
 .category-picker {

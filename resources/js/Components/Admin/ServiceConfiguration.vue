@@ -15,11 +15,11 @@ const submit = useSubmit();
 const idEditor = useId();
 const formularios = {
     plantilla: idEditor + '-plantilla',
-    precios: idEditor + '-precios',
     configuracion: idEditor + '-configuracion',
 };
 const questions = computed(() => props.administration.questions.filter(q => q.service_id == props.service.id || q.service_id == null));
-const components = computed(() => props.administration.components.filter(c => c.service_id == props.service.id));
+const components = computed(() => props.administration.components.filter(c => c.service_id == props.service.id
+    && c.slug !== 'segmento-tarifario-2026-11'));
 const gruposPreguntas = computed(() => [
     {
         id: 'propias',
@@ -183,13 +183,15 @@ function save() {
 // El servidor identifica la versión vigente con el mismo criterio que usa el catálogo.
 const currentTariff = computed(() => props.administration.tariffs.find(t => t.id == props.administration.currentTariffId));
 const moneda = computed(() => currentTariff.value?.currency_code ?? 'ARS');
-const baseVigente = computed(() => currentTariff.value?.services.find(p => p.service_id == props.service.id));
 const precioConcepto = id => currentTariff.value?.components.find(p => p.service_component_id == id);
+const preciosPorSegmento = computed(() => props.administration.clientSegments.map(segment => ({
+    ...segment,
+    price: currentTariff.value?.segments?.find(price => price.service_id == props.service.id && price.estimator_option_id == segment.id),
+})));
 const conceptosConPrecio = computed(() => conceptosActivos.value.filter(c => precioConcepto(c.id)).length);
-const otrosErroresDePrecio = computed(() => Object.entries(prices.errors)
-    .filter(([campo]) => campo !== 'name' && campo !== 'min' && campo !== 'max' && !/^components\.\d+\.(min|max)$/.test(campo))
-    .map(([, mensaje]) => mensaje));
-const coberturaCompleta = computed(() => Boolean(baseVigente.value) && conceptosConPrecio.value === conceptosActivos.value.length);
+const coberturaCompleta = computed(() => preciosPorSegmento.value.length > 0
+    && preciosPorSegmento.value.every(segment => Boolean(segment.price))
+    && conceptosConPrecio.value === conceptosActivos.value.length);
 const automatica = computed(() => props.service.estimation_mode === 'automatic');
 const gruposConceptos = computed(() => [
     {id: 'incluidos', titulo: 'Incluidos por defecto', registros: conceptosActivos.value.filter(c => c.is_default)},
@@ -216,33 +218,6 @@ function importe(precio) {
     return Number(precio.price_min) === Number(precio.price_max)
         ? minimo
         : minimo + ' a ' + money(precio.price_max, moneda.value);
-}
-
-// El formulario se prepara al abrirlo, con los importes ya publicados como punto de partida.
-const publicar = ref(false);
-const prices = useForm({service_id: props.service.id, name: '', min: '', max: '', components: []});
-
-function abrirPrecios() {
-    prices.defaults({
-        service_id: props.service.id,
-        name: ('Actualización de ' + props.service.name).slice(0, 255),
-        min: baseVigente.value?.price_min ?? '',
-        max: baseVigente.value?.price_max ?? '',
-        components: conceptosActivos.value.map(c => {
-            const precio = precioConcepto(c.id);
-            return {id: c.id, name: c.name, min: precio?.price_min ?? '', max: precio?.price_max ?? ''};
-        }),
-    });
-    prices.resetAndClearErrors();
-    publicar.value = true;
-}
-
-function publishPrices() {
-    submit(prices, '/admin/guardar/precios-servicio', {
-        onSuccess: () => {
-            publicar.value = false;
-        }
-    });
 }
 </script>
 
@@ -285,12 +260,14 @@ function publishPrices() {
         <template v-else-if="section === 'estimacion'">
             <v-card tag="section" class="card bloque-configuracion">
                 <h2>Cómo se calcula la estimación</h2>
-                <p v-if="automatica">La estimación empieza con el precio base y suma los conceptos según sus
-                    cantidades.</p>
+                <p v-if="automatica">La estimación toma el precio del tipo de cliente y suma los conceptos que correspondan.</p>
                 <p v-else>Este servicio se cotiza manualmente. Podés preparar sus conceptos y reglas para cuando actives
                     la estimación automática.</p>
-                <div v-if="automatica" class="resumen-importe"><strong>Precio base
-                    vigente</strong><span>{{ importe(baseVigente) }}</span></div>
+                <template v-if="automatica">
+                    <div v-for="segment in preciosPorSegmento" :key="segment.id" class="resumen-importe">
+                        <strong>{{ segment.label }}</strong><span>{{ importe(segment.price) }}</span>
+                    </div>
+                </template>
             </v-card>
             <v-card tag="section" class="card bloque-configuracion">
                 <div class="cabecera-configuracion">
@@ -355,26 +332,26 @@ function publishPrices() {
                     <p v-else-if="automatica">Todavía no hay un tarifario vigente.</p>
                 </div>
                 <div class="acciones-configuracion">
-                    <B compact variant="secondary" href="/admin/tarifario">Ver tarifarios</B>
-                    <B v-if="automatica" compact @click="abrirPrecios">Actualizar precios</B>
+                    <B compact variant="secondary" href="/admin/tarifario">Administrar tarifario</B>
                 </div>
             </div>
             <template v-if="automatica">
                 <p class="notice">
                     <strong>{{ coberturaCompleta ? 'Cobertura completa' : 'Cobertura incompleta' }}</strong>
-                    · {{ baseVigente ? 'Base cargada' : 'Base pendiente' }}
                     · {{ conceptosConPrecio }} de {{ conceptosActivos.length }} conceptos activos con precio
                 </p>
                 <dl class="lista-precios">
-                    <div>
-                        <dt>Precio base del servicio</dt>
-                        <dd>{{ importe(baseVigente) }}</dd>
+                    <div v-for="segment in preciosPorSegmento" :key="segment.id">
+                        <dt>{{ segment.label }} <small>· precio del servicio</small></dt>
+                        <dd>{{ importe(segment.price) }}</dd>
                     </div>
                     <div v-for="concepto in conceptosActivos" :key="concepto.id">
                         <dt>{{ concepto.name }} <small>· Por unidad</small></dt>
                         <dd>{{ importe(precioConcepto(concepto.id)) }}</dd>
                     </div>
                 </dl>
+                <p v-if="moneda === 'USD' && currentTariff?.ccl_rate" class="precio-ccl">Cotización guardada: CCL {{ money(currentTariff.ccl_rate, 'ARS') }} por USD 1.</p>
+                <p v-if="!preciosPorSegmento.length" class="notice">Este tarifario es anterior al esquema por tipo de cliente. Creá una nueva versión para cargar los precios en USD por variante.</p>
             </template>
             <p v-else class="notice"><strong>A cotizar.</strong> El precio se define en un presupuesto profesional.</p>
         </v-card>
@@ -406,46 +383,6 @@ function publishPrices() {
             <template #footer>
                 <B variant="secondary" @click="reutilizar = null">Cancelar</B>
                 <B type="submit" :form="formularios.plantilla" :disabled="!plantillaElegida">Usar como plantilla</B>
-            </template>
-        </SidePanel>
-
-        <SidePanel title="Actualizar precios" v-model="publicar" :persistent="prices.processing">
-            <form :id="formularios.precios" class="form-configuracion" @submit.prevent="publishPrices">
-                <div class="contexto-configuracion">
-                    <span>Servicio · {{ moneda }}</span>
-                    <strong>{{ service.name }}</strong>
-                    <p>Publicar crea una versión del tarifario y conserva los importes anteriores.</p>
-                </div>
-                <div v-if="otrosErroresDePrecio.length" class="notice" role="alert">
-                    <p v-for="(error, indice) in otrosErroresDePrecio" :key="indice">{{ error }}</p>
-                </div>
-                <F v-model="prices.name" label="Nombre de la nueva versión" required maxlength="255"
-                   :error="prices.errors.name"/>
-                <h3>Base del servicio · {{ moneda }}</h3>
-                <div class="field-row">
-                    <F v-model="prices.min" label="Precio mínimo" type="number" min="0" max="100000000" step="0.01"
-                       required :error="prices.errors.min"/>
-                    <F v-model="prices.max" label="Precio máximo" type="number" min="0" max="100000000" step="0.01"
-                       required :error="prices.errors.max"/>
-                </div>
-                <div v-for="(component,index) in prices.components" :key="component.id" class="component-price"><h3>
-                    {{ component.name }}</h3>
-                    <div class="field-row">
-                        <F v-model="component.min" label="Precio mínimo por unidad" type="number" min="0"
-                           max="100000000" step="0.01"
-                           required :error="prices.errors[`components.${index}.min`]"/>
-                        <F v-model="component.max" label="Precio máximo por unidad" type="number" min="0"
-                           max="100000000" step="0.01"
-                           required :error="prices.errors[`components.${index}.max`]"/>
-                    </div>
-                </div>
-                <p>Las reglas de respuestas y las cantidades se suman a esta base. Para un importe fijo, usá el mismo
-                    mínimo y máximo.</p>
-            </form>
-            <template #footer>
-                <B variant="secondary" :disabled="prices.processing" @click="publicar = false">Cancelar</B>
-                <B type="submit" :form="formularios.precios"
-                   :disabled="prices.processing">{{ prices.processing ? 'Publicando…' : 'Publicar nueva versión' }}</B>
             </template>
         </SidePanel>
 

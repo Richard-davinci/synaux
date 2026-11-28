@@ -53,8 +53,10 @@ Desde **Administración** puede:
 
 ### 2. Mantener los precios
 
-- Crear versiones del tarifario en ARS, USD o EUR, con rangos para servicios y componentes.
-- Ajustar el precio de un servicio publicando una versión nueva.
+- Crear versiones propias del tarifario en USD, registrar el CCL manual y cargar precios por Particular, PyME y Empresa.
+- Cargar rangos cuando el importe varía y componentes adicionales cuando se activan por reglas del servicio.
+- Consultar el equivalente en ARS calculado con el CCL guardado en esa versión.
+- Ajustar precios publicando una versión nueva; las tarifas históricas no se reescriben.
 - Conservar los importes históricos: una nueva tarifa no reescribe los cálculos o presupuestos anteriores.
 - Activar una tarifa solo cuando están completos los importes requeridos por los servicios automáticos activos.
 

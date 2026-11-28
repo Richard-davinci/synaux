@@ -82,7 +82,7 @@ El catálogo de synaux funciona como **estructura compartida y conjunto de servi
 
 Para empezar, cada servicio puede tener un precio o rango propio en USD, tecnologías informativas y una fecha de revisión. El desglose de precio por tecnología, arquitectura y módulos se posterga para una iteración posterior. No se deben sumar precios de tecnologías alternativas; las combinaciones y sus adicionales se modelarán cuando se diseñe esa etapa avanzada.
 
-Al convertir una referencia USD a ARS, la propuesta debe guardar la cotización aplicada y la fecha para que el importe histórico no cambie. La política de cotización y las condiciones de facturación quedan pendientes de definición.
+En la primera etapa, las tarifas propias se cargan en USD y la empresa registra manualmente el CCL de referencia en cada versión. El equivalente en ARS se calcula con ese valor; la cotización y su fecha quedan asociadas a la versión para preservar los importes históricos. El CCL de referencia para mostrar tarifas no reemplaza la cotización que corresponda aplicar en una factura.
 
 ## Empresas, profesionales y clientes
 

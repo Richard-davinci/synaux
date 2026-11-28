@@ -3,12 +3,30 @@ import {computed} from 'vue';
 import {money} from '../../support/formatters';
 
 // Cada tarjeta mantiene su propio segmento. Los importes llegan del tarifario publicado por Laravel.
-const props = defineProps({reference: Object, serviceName: String, modelValue: {type: String, default: 'PyME'}});
+const props = defineProps({reference: Object, serviceName: String, currency: {type: String, default: 'ARS'}, modelValue: {type: String, default: 'PyME'}});
 const emit = defineEmits(['update:modelValue']);
 // La tarjeta comunica su selección para que el enlace al detalle conserve el mismo tipo de cliente.
 const segment = computed({get: () => props.modelValue, set: value => emit('update:modelValue', value)});
 const options = computed(() => props.reference?.segments ?? []);
 const price = computed(() => options.value.find(item => item.label === segment.value) ?? options.value[0] ?? props.reference);
+// La conversión usa la cotización CCL que quedó guardada con esta versión del tarifario.
+const displayedPrice = computed(() => {
+    if (!price.value) return null;
+    const sourceCurrency = props.reference.currency;
+    const rate = Number(props.reference.ccl_rate);
+    if (!rate || sourceCurrency === props.currency) return {min: price.value.min, max: price.value.max, currency: sourceCurrency};
+    const convert = amount => sourceCurrency === 'USD' ? Number(amount) * rate : Number(amount) / rate;
+    return {min: convert(price.value.min), max: convert(price.value.max), currency: props.currency};
+});
+const secondaryPrice = computed(() => {
+    if (!price.value || !props.reference.ccl_rate) return null;
+    const sourceCurrency = props.reference.currency;
+    const otherCurrency = props.currency === 'ARS' ? 'USD' : 'ARS';
+    if (otherCurrency === sourceCurrency) return {min: price.value.min, max: price.value.max, currency: otherCurrency};
+    const rate = Number(props.reference.ccl_rate);
+    const convert = amount => sourceCurrency === 'USD' ? Number(amount) * rate : Number(amount) / rate;
+    return {min: convert(price.value.min), max: convert(price.value.max), currency: otherCurrency};
+});
 </script>
 <template>
     <div class="catalog-price">
@@ -20,10 +38,11 @@ const price = computed(() => options.value.find(item => item.label === segment.v
         </div>
         <div class="price-summary" aria-live="polite">
             <template v-if="reference">
-                <span>Precio estimativo · {{ reference.currency }}</span>
-                <strong>{{ money(price.min, reference.currency) }}
-                    <template v-if="price.max !== price.min"> – {{ money(price.max, reference.currency) }}</template>
+                <span>Precio estimativo · {{ displayedPrice.currency }}</span>
+                <strong>{{ money(displayedPrice.min, displayedPrice.currency) }}
+                    <template v-if="Number(displayedPrice.max) !== Number(displayedPrice.min)"> – {{ money(displayedPrice.max, displayedPrice.currency) }}</template>
                 </strong>
+                <small v-if="secondaryPrice">Equivale a {{ money(secondaryPrice.min, secondaryPrice.currency) }}<template v-if="Number(secondaryPrice.max) !== Number(secondaryPrice.min)"> – {{ money(secondaryPrice.max, secondaryPrice.currency) }}</template></small>
             </template>
             <template v-else><span>Presupuesto a medida</span><strong>Consultar precio</strong></template>
         </div>
@@ -99,6 +118,8 @@ const price = computed(() => options.value.find(item => item.label === segment.v
     color: #446075;
     font-size: .8rem;
 }
+
+.price-summary small { line-height: 1.4; }
 
 .price-summary strong {
     color: #153b64;

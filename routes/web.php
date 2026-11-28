@@ -6,7 +6,6 @@ use App\Http\Controllers\Admin\CatalogConfigurationController;
 use App\Http\Controllers\Admin\DirectorioUsuariosController;
 use App\Http\Controllers\Admin\OrganizacionController;
 use App\Http\Controllers\Admin\TariffController;
-use App\Http\Controllers\Admin\TariffImportController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\EspacioTrabajoController;
@@ -136,7 +135,6 @@ Route::middleware('auth')->group(function () {
         Route::delete('/admin/usuarios/{user}/equipo', [DirectorioUsuariosController::class, 'quitarMiembro'])->whereNumber('user')->middleware('throttle:10,1,baja-equipo');
         Route::get('/gestion/clientes', [DirectorioUsuariosController::class, 'clientes'])->name('gestion.clientes.index');
         Route::get('/gestion/clientes/{user}', [DirectorioUsuariosController::class, 'show'])->whereNumber('user')->name('gestion.clientes.show');
-        Route::post('/admin/tarifario/importar', [TariffImportController::class, 'store'])->middleware('throttle:2,1');
         // Entrada administrativa de revisión para las funciones de la segunda etapa.
         Route::get('/admin/etapa-2', fn() => Inertia::render('RevisionEtapaDos'))->name('stage-two');
         // El asistente usa una página propia y conserva el permiso real del grupo administrativo.
@@ -147,7 +145,6 @@ Route::middleware('auth')->group(function () {
         }
         // Los precios publican versiones del tarifario; el resto configura el catálogo.
         Route::middleware('throttle:30,1')->group(function () {
-            Route::post('/admin/guardar/precios-servicio', [TariffController::class, 'storeServicePrices']);
             Route::post('/admin/guardar/tarifario', [TariffController::class, 'store']);
             Route::post('/admin/guardar/servicios-destacados', [CatalogConfigurationController::class, 'saveFeatured']);
             Route::post('/admin/guardar/{resource}', [CatalogConfigurationController::class, 'save']);

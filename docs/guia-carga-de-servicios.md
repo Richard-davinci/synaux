@@ -82,16 +82,13 @@ La aplicación permite copiar una pregunta o concepto de otro servicio como plan
 
 ### 5. Cargar precios
 
-En **Precios vigentes**, ingresar para cada servicio automático:
+En **Administración → Tarifarios → Nueva versión**, se ingresan precios propios en USD y la cotización CCL de venta que se usará para mostrar el equivalente en ARS. La cotización se guarda con fecha y hora dentro de esa versión; no se consulta ni actualiza automáticamente.
 
-- Precio base mínimo y máximo.
-- Precio mínimo y máximo por unidad de cada concepto activo.
-- El mismo valor en ambos campos cuando el precio sea fijo.
-- Nombre de la nueva versión del tarifario.
+Para cada servicio automático, cargar un importe para **Particular**, **PyME** y **Empresa**. Si el precio cambia según el alcance, completar un mínimo y un máximo; para un precio fijo, repetir el mismo importe. Los conceptos adicionales se cargan aparte en USD y se suman cuando las respuestas o cantidades del servicio los activan.
 
-El editor de un servicio toma la moneda de la tarifa vigente. Para crear una versión completa o cambiar la moneda, usar **Administración → Tarifarios**; se admiten ARS, USD y EUR. Cada publicación crea una versión nueva y conserva las anteriores. El cambio de precio de un servicio copia los precios vigentes de los demás para que la nueva versión sea completa.
+Cada publicación crea una versión nueva y conserva las anteriores. Al copiar una versión en USD, se copian sus importes como punto de partida. Las tarifas históricas en ARS no se reinterpretan como USD; hay que ingresar los importes propios en la nueva versión. El equivalente en pesos que se muestra junto a cada campo se calcula con el CCL guardado en esa versión.
 
-Antes de activar un tarifario, el servidor exige una base para cada servicio activo de modalidad automática y un precio para cada concepto activo de esos servicios. El precio máximo no puede ser menor que el mínimo.
+Antes de activar un tarifario, el servidor exige el precio de cada variante para cada servicio automático activo y un importe para cada concepto activo. El precio máximo no puede ser menor que el mínimo.
 
 ### 6. Publicar y revisar
 
@@ -112,7 +109,9 @@ Si falta configuración necesaria para calcular, el sistema deriva el caso a rev
 | Opción | Pertenece a una pregunta. Las opciones activas aparecen al cliente. |
 | Concepto | Pertenece a un servicio y puede ser fijo por defecto, condicional o cuantificado por una respuesta numérica. |
 | Regla | Vincula una opción con un concepto y la cantidad que agrega al cálculo. |
-| Precio | Base por servicio y precio unitario por concepto dentro de una versión de tarifario. |
+| Precio por variante | Importe mínimo y máximo por servicio y tipo de cliente dentro de una versión del tarifario. |
+| CCL | Cotización manual guardada en la versión para convertir referencias USD a ARS sin alterar estimaciones previas. |
+| Concepto | Precio adicional por unidad dentro de la versión; se suma cuando lo indican las respuestas del servicio. |
 | Estimación | Guarda las respuestas, los conceptos y los importes como instantánea para conservar lo calculado. |
 
 La oferta pública consulta servicios y categorías activos. El estimador carga preguntas activas del servicio y preguntas generales; después valida respuestas, aplica reglas y consulta la tarifa vigente en el servidor. Las solicitudes y los presupuestos profesionales siguen su propio recorrido.
@@ -122,6 +121,7 @@ Al editar o eliminar:
 - Desactivar conserva referencias históricas y deja de ofrecer el registro nuevo.
 - Eliminar un servicio o categoría solo se permite si no tiene vínculos con registros existentes.
 - Los cambios de tarifario no modifican estimaciones o presupuestos ya guardados.
+- El catálogo puede priorizar USD o ARS; cuando hay CCL guardado, también muestra el importe equivalente en la otra moneda.
 
 ## Servicios activos en la base local al 27/11/2026
 
@@ -149,13 +149,14 @@ El inventario sirve para revisar la instalación local; no reemplaza la ficha de
 ## Archivos principales del código
 
 - Pantalla y ficha de alta: `resources/js/Screens/Admin/CatalogList.vue` y `resources/js/Screens/Admin/ServiceEditor.vue`.
-- Preguntas, conceptos, reglas y precios: `resources/js/Components/Admin/ServiceConfiguration.vue`.
+- Preguntas, conceptos, reglas y precios vigentes del servicio: `resources/js/Components/Admin/ServiceConfiguration.vue`.
+- Carga versionada de precios y CCL: `resources/js/Screens/Admin/Tariffs.vue` y `app/Http/Controllers/Admin/TariffController.php`.
 - Validación y guardado del catálogo: `app/Http/Controllers/Admin/CatalogConfigurationController.php`.
 - Publicación de tarifarios: `app/Http/Controllers/Admin/TariffController.php`.
 - Lectura del catálogo y cálculo del estimador: `app/Services/Catalog/ServiceCatalog.php`.
 - Datos iniciales: `database/seeders/SynauxCatalogSeeder.php` y seeders específicos de tarifas.
 
-La carga habitual se hace desde Administración y queda en la base de datos. Los seeders solo preparan contenido inicial repetible para una instalación; no son el formulario de carga ni necesariamente contienen los cambios hechos después desde el panel. El seeder general incluye servicios y sus descripciones, y configura preguntas/componentes de base para Sitio institucional y preguntas de texto para los servicios profesionales. Los seeders de tarifas preparan versiones de referencia para Sitio institucional y Landing page.
+La carga habitual se hace desde Administración y queda en la base de datos. Los seeders solo preparan contenido inicial repetible para una instalación; no son el formulario de carga ni necesariamente contienen los cambios hechos después desde el panel. La pregunta global de tipo de cliente es compartida por los servicios y sus opciones determinan qué renglón del tarifario se usa.
 
 ## Documentación relacionada
 

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\Catalog\ServiceCatalog;
-use App\Services\Tariffs\PrepararConfiguracionTarifaInstitucional;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -97,7 +96,7 @@ class CatalogConfigurationController extends Controller
     }
 
     // Valida el recurso permitido y guarda sus cambios solo para una cuenta administrativa.
-    public function save(Request $request, string $resource, PrepararConfiguracionTarifaInstitucional $prepararTarifa)
+    public function save(Request $request, string $resource)
     {
         abort_unless($request->user()->puedeAdministrarSynaux(), 403);
         $table = match ($resource) {
@@ -138,7 +137,7 @@ class CatalogConfigurationController extends Controller
                 abort_unless((int)$old->service_id === (int)$context, 422);
             }
         }
-        $savedId = DB::transaction(function () use ($resource, $table, $id, $data, $prepararTarifa) {
+        $savedId = DB::transaction(function () use ($resource, $table, $id, $data) {
             if ($id) {
                 $anterior = DB::table($table)->where('id', $id)->lockForUpdate()->firstOrFail();
                 // Cambiar el alcance no debe romper cantidades ni retirar una pregunta de otros servicios.
@@ -187,9 +186,6 @@ class CatalogConfigurationController extends Controller
             } else {
                 $id = DB::table($table)->insertGetId($data);
             }
-            if ($resource === 'servicios' && $data['slug'] === 'sitio-institucional') {
-                $prepararTarifa->preparar((int)$id);
-            }
             if ($options !== null) {
                 // Desactiva opciones anteriores y reutiliza sus identificadores; no borra respuestas históricas.
                 DB::table('estimator_options')->where('question_id', $id)->update(['active' => 0]);
@@ -205,10 +201,7 @@ class CatalogConfigurationController extends Controller
             return $id;
         });
 
-        $tarifaInstitucional = $resource === 'servicios' && $data['slug'] === 'sitio-institucional';
-        $mensaje = $tarifaInstitucional
-            ? 'Servicio guardado. La configuración para Tarifario.ar está lista; importá los precios desde Administración → Tarifarios.'
-            : 'Configuración guardada.';
+        $mensaje = 'Configuración guardada.';
         if ($resource === 'servicios' && $request->boolean('configure_after_save')) {
             return redirect("/admin/servicios/$savedId/editar?config=preguntas")->with('notice', $mensaje);
         }

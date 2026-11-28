@@ -8,6 +8,7 @@ import {categoryIcons} from '../../Screens/Public/serviceCategoryIcons';
 const props = defineProps({
     service: {type: Object, required: true},
     reference: Object,
+    displayCurrency: {type: String, default: 'ARS'},
     headingTag: {type: String, default: 'h2'},
 });
 
@@ -43,7 +44,7 @@ const description = computed(() => props.service.id === 'sitio-institucional'
                 <span>{{ item }}</span>
             </li>
         </ul>
-        <CatalogServicePrice v-model="segment" :reference="reference" :service-name="service.name"/>
+        <CatalogServicePrice v-model="segment" :reference="reference" :service-name="service.name" :currency="displayCurrency"/>
         <div class="card-link">
             <AppButton compact :href="detailHref" :aria-label="'Ver detalles de ' + service.name" arrow>Ver detalles
             </AppButton>

@@ -71,43 +71,57 @@ class ServiceCatalog
         }
         $bases = DB::table('service_prices')->where('tariff_version_id', $tariff->id)->get()->keyBy('service_id');
         $prices = DB::table('component_prices')->where('tariff_version_id', $tariff->id)->get()->keyBy('service_component_id');
+        $segmentPrices = DB::table('service_segment_prices as p')
+            ->join('estimator_options as o', 'o.id', '=', 'p.estimator_option_id')
+            ->where('p.tariff_version_id', $tariff->id)->where('o.active', 1)
+            ->select('p.*', 'o.label')->get()->groupBy('service_id');
         $components = DB::table('service_components')->where('active', 1)->get()->groupBy('service_id');
         $references = [];
         foreach (($services ?? $this->services()) as $service) {
             $base = $bases->get($service['database_id']);
             $parts = $components->get($service['database_id'], collect());
-            if (!$base || $parts->contains(fn($part) => !$prices->has($part->id))) {
+            $configuredSegments = $segmentPrices->get($service['database_id'], collect());
+            $partsForPrice = $configuredSegments->isNotEmpty()
+                ? $parts->reject(fn($part) => $part->slug === 'segmento-tarifario-2026-11')
+                : $parts;
+            if (!$base || $partsForPrice->contains(fn($part) => !$prices->has($part->id))) {
                 continue;
             }
             $min = (float)$base->price_min;
             $max = (float)$base->price_max;
-            foreach ($parts->where('is_default', 1) as $part) {
+            foreach ($partsForPrice->where('is_default', 1) as $part) {
                 $min += $prices[$part->id]->price_min * $part->default_quantity;
                 $max += $prices[$part->id]->price_max * $part->default_quantity;
             }
-            // Cada segmento usa su opción y regla real; la tarjeta no calcula factores fijos en JavaScript.
-            $segments = [];
-            $segmentPart = $parts->firstWhere('slug', 'segmento-tarifario-2026-11');
-            if ($segmentPart) {
-                $options = DB::table('estimator_options as o')
-                    ->join('estimator_questions as q', 'q.id', '=', 'o.question_id')
-                    ->join('estimation_rules as r', 'r.estimator_option_id', '=', 'o.id')
-                    ->where('q.service_id', $service['database_id'])->where('q.active', 1)->where('o.active', 1)
-                    ->where('r.active', 1)->where('r.service_component_id', $segmentPart->id)
-                    ->orderBy('o.sort_order')->select('o.label', 'r.quantity')->get();
-                foreach ($options as $option) {
-                    $segments[] = [
-                        'label' => $option->label,
-                        'min' => round($min + $prices[$segmentPart->id]->price_min * $option->quantity, 2),
-                        'max' => round($max + $prices[$segmentPart->id]->price_max * $option->quantity, 2),
-                    ];
+            // Cada variante tiene su propio importe; las reglas antiguas solo sirven como respaldo histórico.
+            $segments = $configuredSegments->map(fn($price) => [
+                'label' => $price->label,
+                'min' => round((float)$price->price_min + $min, 2),
+                'max' => round((float)$price->price_max + $max, 2),
+            ])->values()->all();
+            if (!$segments) {
+                $segmentPart = $parts->firstWhere('slug', 'segmento-tarifario-2026-11');
+                if ($segmentPart && $prices->has($segmentPart->id)) {
+                    $options = DB::table('estimator_options as o')
+                        ->join('estimator_questions as q', 'q.id', '=', 'o.question_id')
+                        ->join('estimation_rules as r', 'r.estimator_option_id', '=', 'o.id')
+                        ->where('q.active', 1)->whereNull('q.service_id')->where('q.question', '¿Para qué tipo de cliente?')
+                        ->where('o.active', 1)->where('r.active', 1)->where('r.service_component_id', $segmentPart->id)
+                        ->orderBy('o.sort_order')->select('o.label', 'r.quantity')->get();
+                    foreach ($options as $option) {
+                        $segments[] = [
+                            'label' => $option->label,
+                            'min' => round($min + $prices[$segmentPart->id]->price_min * $option->quantity, 2),
+                            'max' => round($max + $prices[$segmentPart->id]->price_max * $option->quantity, 2),
+                        ];
+                    }
                 }
             }
             $references[$service['id']] = [
                 'min' => round($min, 2), 'max' => round($max, 2), 'currency' => $tariff->currency_code,
+                'ccl_rate' => $tariff->ccl_rate ?? $tariff->source_rate ?? null,
                 'date' => $tariff->effective_from, 'segments' => $segments,
-                'segment' => $parts->contains('slug', 'segmento-tarifario-2026-11') ? 'Particular' : null,
-                'source' => $service['id'] === 'sitio-institucional' ? $tariff->source_url : null,
+                'segment' => $segments ? 'Particular' : null,
             ];
         }
 
@@ -196,7 +210,22 @@ class ServiceCatalog
             }
             $snapshot[] = ['id' => $q['id'], 'question' => $q['question'], 'value' => $value, 'label' => implode(', ', $labels)];
         }
-        $components = DB::table('service_components')->where('service_id', $service['database_id'])->where('active', 1)->get()->keyBy('id');
+        $tariff = DB::table('tariff_versions')->where('active', 1)->where('effective_from', '<=', now())->orderByDesc('effective_from')->orderByDesc('id')->first();
+        $base = $tariff ? DB::table('service_prices')->where('tariff_version_id', $tariff->id)->where('service_id', $service['database_id'])->first() : null;
+        $globalTypeQuestion = collect($questions)->first(fn($question) => $question['service_id'] === null
+            && $question['question'] === '¿Para qué tipo de cliente?');
+        $selectedSegment = $globalTypeQuestion ? collect($selected)->first(fn($optionId) => DB::table('estimator_options as o')
+            ->join('estimator_questions as q', 'q.id', '=', 'o.question_id')
+            ->where('o.id', $optionId)->where('q.id', $globalTypeQuestion['id'])->exists()) : null;
+        $segmentPrice = $tariff && $selectedSegment
+            ? DB::table('service_segment_prices')->where('tariff_version_id', $tariff->id)
+                ->where('service_id', $service['database_id'])->where('estimator_option_id', $selectedSegment)->first()
+            : null;
+
+        $components = DB::table('service_components')->where('service_id', $service['database_id'])->where('active', 1)
+            // El concepto de segmentos solo se usa para tarifarios heredados; las nuevas versiones guardan importes directos.
+            ->when($segmentPrice, fn($query) => $query->where('slug', '!=', 'segmento-tarifario-2026-11'))
+            ->get()->keyBy('id');
         $rules = DB::table('estimation_rules')->whereIn('estimator_option_id', $selected)->where('active', 1)->get();
         foreach ($components as $c) {
             if ($c->is_default) {
@@ -208,11 +237,14 @@ class ServiceCatalog
                 $quantities[$rule->service_component_id] = ($quantities[$rule->service_component_id] ?? 0) + (float)$rule->quantity;
             }
         }
-        $tariff = DB::table('tariff_versions')->where('active', 1)->where('effective_from', '<=', now())->orderByDesc('effective_from')->orderByDesc('id')->first();
-        $base = $tariff ? DB::table('service_prices')->where('tariff_version_id', $tariff->id)->where('service_id', $service['database_id'])->first() : null;
         $available = !$incomplete && $service['estimation_mode'] === 'automatic' && $base !== null;
-        $min = $base ? (int)round($base->price_min * 100) : 0;
-        $max = $base ? (int)round($base->price_max * 100) : 0;
+        if ($globalTypeQuestion && $selectedSegment) {
+            $available = $available && $segmentPrice !== null;
+        }
+        $baseMin = $segmentPrice?->price_min ?? $base?->price_min;
+        $baseMax = $segmentPrice?->price_max ?? $base?->price_max;
+        $min = $baseMin !== null ? (int)round($baseMin * 100) : 0;
+        $max = $baseMax !== null ? (int)round($baseMax * 100) : 0;
         $items = [];
         foreach ($quantities as $id => $quantity) {
             if ($quantity <= 0 || !$components->has($id)) {
@@ -228,8 +260,9 @@ class ServiceCatalog
         // Sin configuración completa se informa revisión profesional, nunca un precio ficticio.
         return ['key' => (string)Str::uuid(), 'service' => $service, 'answers' => $snapshot, 'items' => $items,
             'mode' => $available ? 'automatic' : 'manual', 'tariff_id' => $available ? $tariff->id : null,
-            'currency' => $tariff?->currency_code ?? 'ARS', 'base_min' => $available ? $base->price_min : null,
-            'base_max' => $available ? $base->price_max : null, 'min' => $available ? $min / 100 : null,
+            'currency' => $tariff?->currency_code ?? 'ARS', 'ccl_rate' => $tariff?->ccl_rate ?? null,
+            'base_min' => $available ? $baseMin : null,
+            'base_max' => $available ? $baseMax : null, 'min' => $available ? $min / 100 : null,
             'max' => $available ? $max / 100 : null, 'date' => now()->toDateTimeString()];
     }
 }

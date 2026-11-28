@@ -1,8 +1,18 @@
 <script setup>
+import {computed} from 'vue';
 import {date, money} from '../../support/formatters';
 
 // Muestra los datos del servicio seleccionado y la referencia inicial publicada por el servidor.
-defineProps({service: Object, reference: Object, saved: Boolean});
+const props = defineProps({service: Object, reference: Object, saved: Boolean});
+// La referencia se conserva en su moneda de cálculo y muestra aparte la equivalencia CCL guardada.
+const equivalent = computed(() => {
+    if (!props.reference?.ccl_rate) return null;
+    const from = props.reference.currency;
+    const currency = from === 'USD' ? 'ARS' : 'USD';
+    const rate = Number(props.reference.ccl_rate);
+    const convert = amount => from === 'USD' ? Number(amount) * rate : Number(amount) / rate;
+    return {min: convert(props.reference.min), max: convert(props.reference.max), currency};
+});
 </script>
 <template>
     <section v-if="service" class="service-reference" aria-label="Referencia inicial del servicio">
@@ -19,6 +29,7 @@ defineProps({service: Object, reference: Object, saved: Boolean});
                 <span v-if="!saved">{{ reference.segment ? 'Base para ' + reference.segment : 'Base del servicio' }} · {{
                         reference.currency
                     }}</span>
+                <small v-if="equivalent">Equivale a {{ money(equivalent.min, equivalent.currency) }}<template v-if="Number(equivalent.max) !== Number(equivalent.min)"> – {{ money(equivalent.max, equivalent.currency) }}</template></small>
             </div>
             <strong v-else>Precio a definir al revisar el alcance</strong>
         </div>
