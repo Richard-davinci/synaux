@@ -85,7 +85,7 @@ function detailEquivalentText(min, max) {
                  fetchpriority="high">
         </header>
 
-        <!-- El presupuesto se muestra junto al alcance en escritorio y al inicio de la ficha en pantallas angostas. -->
+        <!-- El precio queda en una columna y la descripción y los entregables fluyen juntos en la otra. -->
         <div class="service-detail-grid">
             <section class="editorial-panel detail-pricing" aria-labelledby="service-pricing-title">
                 <h2 id="service-pricing-title">{{
@@ -134,19 +134,21 @@ function detailEquivalentText(min, max) {
                 </div>
             </section>
 
-            <section v-if="detailDescription" class="service-description-section"
-                     aria-labelledby="service-description-title">
-                <h2 id="service-description-title">Descripción del servicio</h2>
-                <p class="service-description text-block">{{ detailDescription }}</p>
-            </section>
+            <div class="service-description-column">
+                <section v-if="detailDescription" class="service-description-section"
+                         aria-labelledby="service-description-title">
+                    <h2 id="service-description-title">Descripción del servicio</h2>
+                    <p class="service-description text-block">{{ detailDescription }}</p>
+                </section>
 
-            <article v-if="selected.includes?.length" class="editorial-panel service-includes"
-                     aria-labelledby="service-includes-title">
-                <h2 id="service-includes-title">Qué incluye</h2>
-                <ul class="service-deliverables">
-                    <li v-for="item in selected.includes" :key="item"><I name="check"/>{{ item }}</li>
-                </ul>
-            </article>
+                <article v-if="selected.includes?.length" class="editorial-panel service-includes"
+                         aria-labelledby="service-includes-title">
+                    <h2 id="service-includes-title">Qué incluye</h2>
+                    <ul class="service-deliverables">
+                        <li v-for="item in selected.includes" :key="item"><I name="check"/>{{ item }}</li>
+                    </ul>
+                </article>
+            </div>
         </div>
     </section>
 </template>
@@ -204,13 +206,16 @@ function detailEquivalentText(min, max) {
 /* Descripción y entregables comparten una columna amplia; el presupuesto conserva espacio para los segmentos. */
 .service-detail-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
     align-items: start;
     gap: clamp(18px, 3vw, 32px);
 }
 
-.service-description-section, .service-includes {
+.service-description-column {
     grid-column: 1;
+    display: grid;
+    align-content: start;
+    gap: 18px;
 }
 
 .service-description-section {
@@ -233,7 +238,6 @@ function detailEquivalentText(min, max) {
 
 .detail-pricing {
     grid-column: 2;
-    grid-row: 1 / span 2;
     border-top: 3px solid #2db3a3;
     container-type: inline-size;
 }
@@ -254,7 +258,7 @@ function detailEquivalentText(min, max) {
 .detail-currency { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; margin-block: 8px; color: #446075; font-size: .8rem; }
 .detail-currency button { min-width: 52px; min-height: 30px; border: 1px solid #1f6f7f44; border-radius: 7px; background: #fff; color: #153b64; font: inherit; font-weight: 700; cursor: pointer; }
 .detail-currency button[aria-pressed='true'] { color: #fff; background: #1f6f7f; border-color: #1f6f7f; }
-.detail-ccl-reference { margin-left: 6px; padding: 5px 8px; border: 1px solid #1f6f7f26; border-radius: 6px; background: #f5f9fa; color: #446075; font-size: .75rem; }
+.detail-ccl-reference { margin-left: 6px; padding: 6px 9px; border: 1px solid #1f6f7f30; border-radius: 6px; background: #f5f9fa; color: #446075; font-size: .8rem; line-height: 1.35; }
 .detail-ccl-reference strong { color: #153b64; }
 .detail-price-equivalent { color: #446075; font-size: .75rem; line-height: 1.35; }
 
@@ -266,7 +270,7 @@ function detailEquivalentText(min, max) {
     text-align: left;
     font: inherit;
     color: #153b64;
-    padding: 12px;
+    padding: 13px;
     border: 1px solid #1f6f7f33;
     border-radius: 10px;
     background: #fff;
@@ -297,7 +301,8 @@ function detailEquivalentText(min, max) {
 
 .detail-price-description {
     color: #446075;
-    font-size: .875rem;
+    font-size: .8rem;
+    line-height: 1.4;
     text-wrap: pretty;
 }
 
@@ -347,9 +352,8 @@ function detailEquivalentText(min, max) {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    .detail-pricing {
+    .detail-pricing, .service-description-column {
         grid-column: 1;
-        grid-row: auto;
     }
 }
 
