@@ -9,6 +9,7 @@ import T from '../../Components/UI/PageTitle.vue';
 import S from '../../Components/UI/StatusBadge.vue';
 import SidePanel from '../../Components/UI/SidePanel.vue';
 import AccionIcono from '../../Components/UI/AccionIcono.vue';
+import SelectorFilasPorPagina from '../../Components/UI/SelectorFilasPorPagina.vue';
 import ServiciosDestacados from '../../Components/Admin/ServiciosDestacados.vue';
 import {useSubmit} from '../../support/useSubmit';
 import {date} from '../../support/formatters';
@@ -26,8 +27,8 @@ const search = ref('');
 const categoryFilter = ref('');
 const stateFilter = ref('');
 const pagina = ref(1);
-// Las categorías muestran cinco filas para que su paginador sea útil también con el catálogo actual.
-const porPagina = computed(() => categoriesView.value ? 5 : 10);
+// Cada listado comienza con su cantidad habitual y permite elegir otra o mostrar todas las filas.
+const porPagina = ref(categoriesView.value ? '5' : '10');
 const columnaOrden = ref('nombre');
 const descendente = ref(false);
 const entidad = computed(() => categoriesView.value ? 'categoría' : 'servicio');
@@ -82,10 +83,11 @@ function ordenarPor(clave) {
 }
 
 // Pagina después de ordenar y ajusta el número de página si desaparece la última fila.
-const totalPaginas = computed(() => Math.max(1, Math.ceil(rows.value.length / porPagina.value)));
-const inicio = computed(() => (pagina.value - 1) * porPagina.value);
-const filasVisibles = computed(() => filasOrdenadas.value.slice(inicio.value, inicio.value + porPagina.value));
-watch([search, categoryFilter, stateFilter], () => {
+const cantidadPagina = computed(() => porPagina.value === 'todos' ? Math.max(1, rows.value.length) : Number(porPagina.value));
+const totalPaginas = computed(() => Math.max(1, Math.ceil(rows.value.length / cantidadPagina.value)));
+const inicio = computed(() => (pagina.value - 1) * cantidadPagina.value);
+const filasVisibles = computed(() => filasOrdenadas.value.slice(inicio.value, inicio.value + cantidadPagina.value));
+watch([search, categoryFilter, stateFilter, porPagina], () => {
     pagina.value = 1;
 });
 watch(totalPaginas, total => {
@@ -94,6 +96,7 @@ watch(totalPaginas, total => {
 watch(categoriesView, () => {
     columnaOrden.value = 'nombre';
     descendente.value = false;
+    porPagina.value = categoriesView.value ? '5' : '10';
     pagina.value = 1;
 });
 
@@ -253,14 +256,17 @@ function saveCategory() {
         </div>
 
         <!-- Los controles recorren la lista filtrada sin salir de la pantalla. -->
-        <div v-if="rows.length" class="paginacion-catalogo">
-            <p aria-live="polite">{{ inicio + 1 }}–{{ inicio + filasVisibles.length }} de {{ rows.length }}
+        <div class="paginacion-catalogo">
+            <p aria-live="polite">{{ rows.length ? `${inicio + 1}–${inicio + filasVisibles.length}` : '0' }} de {{ rows.length }}
                 {{ categoriesView ? 'categorías' : 'servicios' }}</p>
-            <nav v-if="totalPaginas > 1" aria-label="Páginas del catálogo">
-                <B compact variant="secondary" :disabled="pagina <= 1" @click="pagina--">Anterior</B>
-                <span>Página {{ pagina }} de {{ totalPaginas }}</span>
-                <B compact variant="secondary" :disabled="pagina >= totalPaginas" @click="pagina++">Siguiente</B>
-            </nav>
+            <div class="paginacion-catalogo-controles">
+                <SelectorFilasPorPagina v-model="porPagina"/>
+                <nav v-if="totalPaginas > 1" aria-label="Páginas del catálogo">
+                    <B compact variant="secondary" :disabled="pagina <= 1" @click="pagina--">Anterior</B>
+                    <span>Página {{ pagina }} de {{ totalPaginas }}</span>
+                    <B compact variant="secondary" :disabled="pagina >= totalPaginas" @click="pagina++">Siguiente</B>
+                </nav>
+            </div>
         </div>
 
         <!-- Los paneles de edición y vista previa comparten encabezado, área desplazable y pie de acciones. -->
@@ -379,13 +385,13 @@ th[aria-sort] .orden-catalogo, th[aria-sort] .orden-catalogo span {
 }
 
 /* La navegación queda debajo de la tabla. */
-.acciones-catalogo, .paginacion-catalogo, .paginacion-catalogo nav {
+.acciones-catalogo, .paginacion-catalogo, .paginacion-catalogo-controles, .paginacion-catalogo nav {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.paginacion-catalogo, .paginacion-catalogo nav {
+.paginacion-catalogo, .paginacion-catalogo-controles, .paginacion-catalogo nav {
     flex-wrap: wrap;
     gap: 12px;
 }

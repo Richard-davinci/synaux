@@ -32,14 +32,21 @@ class DirectorioUsuariosController extends Controller
     {
         $organizacion = Organizacion::principal();
         $search = $this->busqueda($request);
+        $tamanoPagina = $this->tamanoPagina($request);
         $usuarios = $equipo ? $organizacion->miembros() : $organizacion->clientes();
-        $users = $usuarios
+        $consulta = $usuarios
             ->when($search !== '', fn($query) => $query->where(fn($account) => $account
                 ->whereLike('users.name', '%' . $search . '%')
                 ->orWhereLike('users.email', '%' . $search . '%')))
-            ->latest('users.id')
-            ->paginate(20, ['users.id', 'users.name', 'users.email', 'users.is_admin', 'users.created_at', 'users.activacion_pendiente'])
-            ->appends($search !== '' ? ['buscar' => $search] : []);
+            ->latest('users.id');
+        // La opción Todos usa el total filtrado; las demás cantidades quedan limitadas a valores permitidos.
+        $limite = $tamanoPagina === 'todos' ? max(1, (clone $consulta)->count()) : (int) $tamanoPagina;
+        $users = $consulta
+            ->paginate($limite, ['users.id', 'users.name', 'users.email', 'users.is_admin', 'users.created_at', 'users.activacion_pendiente'])
+            ->appends(array_filter([
+                'buscar' => $search ?: null,
+                'por_pagina' => $tamanoPagina === '20' ? null : $tamanoPagina,
+            ]));
 
         // Solo se exponen los campos de la tabla, sin las claves de la relación.
         $users->through(fn(User $usuario) => [
@@ -53,6 +60,7 @@ class DirectorioUsuariosController extends Controller
             'section' => $equipo ? 'usuarios' : 'clientes',
             'users' => $users,
             'userSearch' => $search,
+            'userPageSize' => $tamanoPagina,
             'dominioEquipo' => $equipo ? $organizacion->dominio_correo_equipo : null,
         ])->toResponse($request)->header('Cache-Control', 'private, no-store');
     }
@@ -141,13 +149,16 @@ class DirectorioUsuariosController extends Controller
         abort_unless(Organizacion::principal()->clientes()->whereKey($user->id)->exists(), 404);
 
         $search = $this->busqueda($request);
+        $tamanoPagina = $this->tamanoPagina($request);
         $directoryPage = max(1, $request->integer('pagina_usuarios', 1));
         $directoryFilters = array_filter([
             'buscar' => $search ?: null,
+            'por_pagina' => $tamanoPagina === '20' ? null : $tamanoPagina,
             'page' => $directoryPage > 1 ? $directoryPage : null,
         ]);
         $projectFilters = array_filter([
             'buscar' => $directoryFilters['buscar'] ?? null,
+            'por_pagina' => $directoryFilters['por_pagina'] ?? null,
             'pagina_usuarios' => $directoryFilters['page'] ?? null,
         ]);
 
@@ -175,5 +186,13 @@ class DirectorioUsuariosController extends Controller
         $query = $request->query('buscar');
 
         return is_string($query) ? Str::substr(trim($query), 0, 120) : '';
+    }
+
+    // Acepta solamente los tamaños expuestos en la interfaz y conserva veinte como valor inicial.
+    private function tamanoPagina(Request $request): string
+    {
+        $valor = $request->query('por_pagina');
+
+        return in_array($valor, ['5', '10', '15', '20', 'todos'], true) ? $valor : '20';
     }
 }

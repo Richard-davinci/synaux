@@ -1,12 +1,13 @@
 <script setup>
 import {router, useForm} from '@inertiajs/vue3';
-import {nextTick, ref, watch} from 'vue';
+import {computed, nextTick, ref, watch} from 'vue';
 import axios from 'axios';
 import B from '../../Components/UI/AppButton.vue';
 import F from '../../Components/UI/FormField.vue';
 import T from '../../Components/UI/PageTitle.vue';
 import SidePanel from '../../Components/UI/SidePanel.vue';
 import AccionIcono from '../../Components/UI/AccionIcono.vue';
+import SelectorFilasPorPagina from '../../Components/UI/SelectorFilasPorPagina.vue';
 import {date} from '../../support/formatters';
 
 const props = defineProps({data: {type: Object, required: true}});
@@ -14,10 +15,15 @@ const props = defineProps({data: {type: Object, required: true}});
 // La búsqueda vuelve a la primera página y la URL conserva el filtro al navegar por el listado.
 const search = ref(props.data.userSearch);
 watch(() => props.data.userSearch, valor => search.value = valor);
+const filasPorPagina = ref(String(props.data.userPageSize ?? '20'));
+watch(() => props.data.userPageSize, valor => filasPorPagina.value = String(valor ?? '20'));
 
 // El alta y el cambio de rol usan paneles independientes y envían datos distintos.
 const esEquipo = props.data.section === 'usuarios';
 const rutaListado = esEquipo ? '/admin/usuarios' : '/gestion/clientes';
+const rutaSinBusqueda = computed(() => rutaListado + (filasPorPagina.value === '20' ? '' : '?por_pagina=' + filasPorPagina.value));
+const rangoUsuarios = computed(() => props.data.users.data.length
+    ? `${props.data.users.from}–${props.data.users.to}` : '0');
 const altaAbierta = ref(false);
 const rolAbierto = ref(false);
 const miembro = ref(null);
@@ -136,13 +142,26 @@ async function compartirEnlace() {
 function profileHref(id) {
     const filters = new URLSearchParams();
     if (props.data.userSearch) filters.set('buscar', props.data.userSearch);
+    if (props.data.userPageSize && props.data.userPageSize !== '20') filters.set('por_pagina', props.data.userPageSize);
     if (props.data.users.current_page > 1) filters.set('pagina_usuarios', props.data.users.current_page);
     return '/gestion/clientes/' + id + (filters.size ? '?' + filters.toString() : '');
 }
 
+// La búsqueda y el selector conservan el otro filtro; cambiar la cantidad vuelve a la primera página.
+function parametrosListado(buscar) {
+    return {
+        ...(buscar ? {buscar} : {}),
+        ...(filasPorPagina.value === '20' ? {} : {por_pagina: filasPorPagina.value}),
+    };
+}
+
 function findUsers() {
-    const term = search.value.trim();
-    router.get(rutaListado, term ? {buscar: term} : {});
+    router.get(rutaListado, parametrosListado(search.value.trim()));
+}
+
+function cambiarFilas(valor) {
+    filasPorPagina.value = valor;
+    router.get(rutaListado, parametrosListado(props.data.userSearch), {preserveScroll: true});
 }
 </script>
 
@@ -240,7 +259,7 @@ function findUsers() {
             <F v-model="search" type="search" label="Buscar por nombre o correo" :maxlength="120"/>
             <div class="user-search-actions">
                 <B type="submit">Buscar</B>
-                <B v-if="data.userSearch" :href="rutaListado" variant="ghost">Limpiar búsqueda</B>
+                <B v-if="data.userSearch" :href="rutaSinBusqueda" variant="ghost">Limpiar búsqueda</B>
             </div>
         </form>
 
@@ -296,14 +315,19 @@ function findUsers() {
             </table>
         </div>
 
-        <div v-if="data.users.data.length || data.users.prev_page_url" class="users-results">
-            <p v-if="data.users.data.length">{{ data.users.from }}–{{ data.users.to }} de {{ data.users.total }}
+        <div class="users-results">
+            <p aria-live="polite">{{ rangoUsuarios }} de {{ data.users.total }}
                 {{ esEquipo ? 'miembros' : 'clientes' }}</p>
-            <nav v-if="data.users.prev_page_url || data.users.next_page_url" aria-label="Páginas de usuarios">
-                <B v-if="data.users.prev_page_url" :href="data.users.prev_page_url" compact
-                   variant="secondary">Anterior</B>
-                <B v-if="data.users.next_page_url" :href="data.users.next_page_url" compact variant="secondary">Siguiente</B>
-            </nav>
+            <div class="users-results-controles">
+                <SelectorFilasPorPagina :model-value="filasPorPagina" @update:model-value="cambiarFilas"/>
+                <nav v-if="data.users.prev_page_url || data.users.next_page_url"
+                     :aria-label="esEquipo ? 'Páginas del equipo' : 'Páginas de clientes'">
+                    <B v-if="data.users.prev_page_url" :href="data.users.prev_page_url" compact
+                       variant="secondary">Anterior</B>
+                    <span>Página {{ data.users.current_page }} de {{ data.users.last_page }}</span>
+                    <B v-if="data.users.next_page_url" :href="data.users.next_page_url" compact variant="secondary">Siguiente</B>
+                </nav>
+            </div>
         </div>
     </section>
 </template>
@@ -426,6 +450,17 @@ function findUsers() {
     justify-content: space-between;
     margin-top: 16px;
     color: #446075;
+}
+
+.users-results-controles {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.users-results p {
+    margin: 0;
 }
 
 /* El correo puede cortarse en varias líneas y los roles tienen nombre visible además del color. */

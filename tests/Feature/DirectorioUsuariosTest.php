@@ -57,6 +57,33 @@ class DirectorioUsuariosTest extends TestCase
         $this->get('/admin/usuarios?buscar=ESTUDIO&page=2')->assertOk()
             ->assertInertia(fn(Assert $page) => $page->has('users.data', 1)->where('users.data.0.id', $first->id));
 
+        // El tamaño elegido permanece en las páginas siguientes y Todos incluye los resultados filtrados.
+        $this->get('/admin/usuarios?buscar=ESTUDIO&por_pagina=5')->assertOk()
+            ->assertInertia(fn(Assert $page) => $page->where('userPageSize', '5')
+                ->has('users.data', 5)->where('users.total', 21)
+                ->where('users.next_page_url', fn(string $url) => str_contains($url, 'por_pagina=5')
+                    && str_contains($url, 'buscar=ESTUDIO')));
+        $this->get('/admin/usuarios?buscar=ESTUDIO&por_pagina=todos')->assertOk()
+            ->assertInertia(fn(Assert $page) => $page->where('userPageSize', 'todos')
+                ->has('users.data', 21)->where('users.last_page', 1));
+
+        $clientes = User::factory()->count(6)->create();
+        Organizacion::principal()->clientes()->attach($clientes->pluck('id'));
+        $this->get('/gestion/clientes?por_pagina=5')->assertOk()
+            ->assertInertia(fn(Assert $page) => $page->where('userPageSize', '5')
+                ->has('users.data', 5)->where('users.total', 6));
+        $this->get('/gestion/clientes?por_pagina=5&page=2')->assertOk()
+            ->assertInertia(fn(Assert $page) => $page->has('users.data', 1));
+        $this->get('/gestion/clientes?por_pagina=todos')->assertOk()
+            ->assertInertia(fn(Assert $page) => $page->has('users.data', 6)
+                ->where('users.last_page', 1));
+        $this->get('/gestion/clientes/' . $clientes->first()->id . '?por_pagina=5&pagina_usuarios=2')
+            ->assertInertia(fn(Assert $page) => $page
+                ->where('userDirectoryUrl', '/gestion/clientes?por_pagina=5&page=2'));
+        $this->get('/admin/usuarios?buscar=ESTUDIO&por_pagina=999999')->assertOk()
+            ->assertInertia(fn(Assert $page) => $page->where('userPageSize', '20')
+                ->has('users.data', 20));
+
         $this->get('/admin/usuarios?buscar=equipo%40example.test')->assertOk()
             ->assertInertia(fn(Assert $page) => $page->has('users.data', 1)->where('users.data.0.id', $first->id));
     }
