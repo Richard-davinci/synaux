@@ -106,6 +106,11 @@ function guardarTarifario() {
                         <div v-if="erroresFormulario.length" class="notice tariff-errors" role="alert">
                             <p v-for="error in erroresFormulario" :key="error.field">{{ error.message }}</p>
                         </div>
+                        <div class="tariff-status-summary" :class="{'tariff-status-ready': filasEsperadas > 0 && filasCompletas === filasEsperadas}">
+                            <strong>{{ filasCompletas }} de {{ filasEsperadas }} precios cargados</strong>
+                            <span v-if="filasEsperadas > 0 && filasCompletas === filasEsperadas">Ya están todos los precios. Podés activar esta versión para las nuevas estimaciones.</span>
+                            <span v-else>Completá los precios de cada tipo de cliente<span v-if="componentesActivos.length"> y los trabajos adicionales con costo</span> para poder activarla.</span>
+                        </div>
                         <section class="tariff-section">
                             <div class="tariff-section-heading">
                                 <h2>Datos de la versión</h2>
@@ -169,10 +174,6 @@ function guardarTarifario() {
                                     <span>{{ tarifario.active ? 'Activar para nuevas estimaciones' : 'Dejar como borrador' }}</span>
                                 </label>
                             </div>
-                            <div class="notice tariff-conversion">
-                                <strong>{{ filasCompletas }} de {{ filasEsperadas }} precios cargados</strong>
-                                <span>Para activarla, completá los precios para cada tipo de cliente<span v-if="componentesActivos.length"> y los trabajos adicionales con costo</span>.</span>
-                            </div>
                             <p v-if="tarifario.errors.active" class="field-error" role="alert">{{ tarifario.errors.active }}</p>
                         </section>
                     </form>
@@ -191,6 +192,9 @@ function guardarTarifario() {
 .tariff-form-card { width: 100%; max-width: 640px; margin-inline: auto; padding: 18px; }
 .tariff-form-card form, .tariff-section { display: grid; gap: 14px; }
 .tariff-errors { margin: 0; }
+.tariff-status-summary { position: sticky; top: 0; z-index: 2; display: grid; gap: 2px; margin: -18px -18px 2px; padding: 10px 18px; border-bottom: 1px solid #1f6f7f26; background: #fff; color: #446075; font-size: .8rem; }
+.tariff-status-summary strong { color: #153b64; font-size: .86rem; }
+.tariff-status-ready { border-bottom-color: #2db3a380; background: #f1faf8; }
 .tariff-section + .tariff-section { border-top: 1px solid #1f6f7f26; padding-top: 18px; }
 .tariff-section h2 { margin: 0; font-size: 1.1rem; line-height: 1.35; }
 .tariff-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 12px; border: 1px solid #1f6f7f26; border-left: 3px solid #2db3a3; border-radius: 8px; background: #f5f9fa; }
@@ -229,6 +233,7 @@ function guardarTarifario() {
 .field-error { color: #a43c46 !important; }
 @media (max-width: 700px) {
     .tariff-form-card { padding: 14px; }
+    .tariff-status-summary { margin: -14px -14px 2px; padding: 9px 14px; }
     .tariff-segment-header { display: none; }
     .tariff-segment { grid-template-columns: 88px minmax(0, 1fr); gap: 6px 8px; }
     .tariff-segment > strong { grid-column: 1 / -1; }
